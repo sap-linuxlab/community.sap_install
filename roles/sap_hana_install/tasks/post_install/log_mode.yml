@@ -1,0 +1,22 @@
+---
+
+- name: SAP HANA Post Install - Set log_mode to overwrite
+  shell: |
+      /usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbsql \
+      -n '{{ ansible_hostname }}' \
+      -i '{{ sap_hana_install_instance_number }}' \
+      -d SYSTEMDB \
+      -u SYSTEM \
+      -p '{{ sap_hana_install_db_system_password }}' \
+      -m <<EOF
+      ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM') SET ('persistence', 'log_mode') = 'overwrite' WITH RECONFIGURE;
+      ALTER SYSTEM ALTER CONFIGURATION('global.ini','HOST','{{ ansible_hostname }}') SET ('persistence','log_mode') = 'overwrite' WITH RECONFIGURE;
+      ALTER SYSTEM ALTER CONFIGURATION('global.ini','DATABASE','{{ sap_hana_install_sid }}') SET ('persistence','log_mode') = 'overwrite' WITH RECONFIGURE;
+      EOF
+  args:
+     executable: /bin/bash
+  become: true
+  become_user: "{{ sap_hana_install_sid | lower }}adm"
+  changed_when: no
+# Variable not used:
+#  register: __sap_hana_install_register_post_install_log_mode

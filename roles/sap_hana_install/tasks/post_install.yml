@@ -1,0 +1,85 @@
+---
+
+- name: Tasks for new HANA Systems
+  block:
+
+    - name: SAP HANA Post Install - Store connection information
+      include_tasks: post_install/hdbuserstore.yml
+
+    - name: SAP HANA Post Install - Set log_mode
+      include_tasks: post_install/log_mode.yml
+
+    - name: SAP HANA Post Install - Apply license
+      include_tasks: post_install/license.yml
+      when: sap_hana_install_apply_license
+
+    - name: SAP HANA Post Install - Set {{ sap_hana_install_sid | lower }}adm to no expire
+      shell: |
+          chage -m 0 -M 99999 -I -1 -E -1 {{ sap_hana_install_sid | lower }}adm
+      args:
+        executable: /bin/bash
+      become: true
+# Variable not used:
+#      register: __sap_hana_install_post_install_register_sidadm_noexpire
+
+# Optional Post Install Tasks
+
+# not needed because already done in sap_general_preconfigure
+#- name: SAP HANA Post Install - Update /etc/hosts
+#  include_tasks: post_install/update_etchosts.yml
+#  when:
+#    - "sap_hana_install_update_etchosts | bool"
+
+    - name: SAP HANA Post Install - Firewall
+      include_tasks: post_install/firewall.yml
+      when:
+        - "sap_hana_install_update_firewall | bool"
+
+    - name: SAP HANA Post Install - Generate Input File for SAP Application Deployment
+        '{{ sap_hana_install_nw_input_location }}/{{ sap_hana_install_sid }}.info.nw.install'
+      template:
+        src: "{{ role_path }}/templates/sap-nw-input.j2"
+        dest: "{{ sap_hana_install_nw_input_location }}/{{ sap_hana_install_sid }}.info.nw.install"
+        mode: 0644
+      become: false
+      delegate_to: 127.0.0.1
+
+  when: sap_hana_install_new_system|d(true)
+
+################
+
+- name: SAP HANA Install - Run hdblcm --list_systems after the installation
+  shell: |
+      set -o pipefail && ./hdblcm --list_systems | awk '/\/hana\/shared\/{{ sap_hana_install_sid }}/{a=1}
+      /version:/{if (a==1){
+        gsub ("^\\s*version: ", "");printf ("%s;", $NF)}
+      }
+      /hosts?:/{if (a==1){
+        gsub ("^\\s*hosts?: ", ""); gsub (", ", ","); print; a=0}
+      }'
+  args:
+    chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
+  register: __sap_hana_install_register_install_result
+  changed_when: no
+
+- name: Set fact - HANA version
+  set_fact:
+    __sap_hana_install_fact_hana_version: "{{ __sap_hana_install_register_install_result.stdout.split(';')[0] }}"
+
+- name: Set fact - HANA hosts
+  set_fact:
+    __sap_hana_install_fact_hana_hosts: "{{ __sap_hana_install_register_install_result.stdout.split(';')[1] }}"
+
+- name: SAP HANA Deployment - Finished
+  debug:
+    msg:
+      - '  SAP HANA deployment successfully completed:'
+      - ' '
+      - '  HANA Version     -       {{ __sap_hana_install_fact_hana_version }}'
+      - '  Hosts            -       {{ __sap_hana_install_fact_hana_hosts }}'
+      - '  SID              -       {{ sap_hana_install_sid }}'
+      - '  NR               -       {{ sap_hana_install_instance_number }}'
+      - '  Master Password  -       {{ sap_hana_install_common_master_password }}'
+#      - '  IP               -       {{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}'
+#      - '  Host             -       {{ ansible_hostname }}'
+#      - '  FQDN             -       {{ ansible_fqdn }}'

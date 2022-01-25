@@ -1,0 +1,17 @@
+---
+
+# Reasons for noqa: 1. Tabs can increase readability;
+#                   2. The example in man limits.conf is tab formatted;
+#                   3. It is difficult to replace tabs by spaces for entries for which their lenghts are not known
+- name: Disable core file creation for all users # noqa no-tabs
+  lineinfile:
+    path: /etc/security/limits.d/99-sap.conf
+    create: yes
+    mode: 0644
+    regexp: '^\*\s+{{ line_item }}\s+core\s.*'
+    line: "*\t{{ line_item }}\tcore\t0"
+  with_items:
+    - hard
+    - soft
+  loop_control:
+    loop_var: line_item

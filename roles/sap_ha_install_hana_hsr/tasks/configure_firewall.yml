@@ -1,0 +1,36 @@
+
+---
+
+- name: SAP HSR - [A] Enable firewall
+  command: "systemctl enable firewalld"
+
+- name: SAP HSR - [A] Start firewall
+  command: "systemctl start firewalld"
+
+
+# [A] Configure firewall
+- name: SAP HSR - [A] Configure firewall
+  shell: |
+    sudo firewall-cmd --zone=public --add-port=4{{ sap_ha_install_hana_hsr_instance_number }}02/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=4{{ sap_ha_install_hana_hsr_instance_number }}02/tcp
+    sudo firewall-cmd --zone=public --add-port=4{{ sap_ha_install_hana_hsr_instance_number }}01/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=4{{ sap_ha_install_hana_hsr_instance_number }}01/tcp
+    sudo firewall-cmd --zone=public --add-port=4{{ sap_ha_install_hana_hsr_instance_number }}07/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=4{{ sap_ha_install_hana_hsr_instance_number }}07/tcp
+    sudo firewall-cmd --zone=public --add-port=4{{ sap_ha_install_hana_hsr_instance_number }}03/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=4{{ sap_ha_install_hana_hsr_instance_number }}303/tcp
+    sudo firewall-cmd --zone=public --add-port=4{{ sap_ha_install_hana_hsr_instance_number }}40/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=4{{ sap_ha_install_hana_hsr_instance_number }}40/tcp
+    sudo firewall-cmd --zone=public --add-port=3{{ sap_ha_install_hana_hsr_instance_number }}340/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=3{{ sap_ha_install_hana_hsr_instance_number }}40/tcp
+    sudo firewall-cmd --zone=public --add-port=3{{ sap_ha_install_hana_hsr_instance_number }}41/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=3{{ sap_ha_install_hana_hsr_instance_number }}341/tcp
+    sudo firewall-cmd --zone=public --add-port=3{{ sap_ha_install_hana_hsr_instance_number }}342/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=3{{ sap_ha_install_hana_hsr_instance_number }}42/tcp
+
+# Will stop the firewall for now because if certain issues arising from the rest of the steps in the HA installation
+- name: SAP HSR - [A] Stop firewall
+  command: "systemctl stop firewalld"
+
+- name: SAP HSR - [A] Disable firewall
+  command: "systemctl disable firewalld"

@@ -1,0 +1,64 @@
+
+################
+# Run Preinstallation Steps Based on Run Mode
+################
+
+- name: SAP SWPM Pre Install - Run Preinstallation Steps
+  include_tasks: swpm/swpm_pre_install.yml
+
+
+################
+# Set sapinst command
+################
+
+- name: SAP SWPM Pre Install - Set sapinst command
+  set_fact:
+    sap_swpm_swpm_command_inifile: "SAPINST_INPUT_PARAMETERS_URL={{ sap_swpm_tmpdir.path }}/inifile.params"
+    sap_swpm_swpm_command_product_id: "SAPINST_EXECUTE_PRODUCT_ID={{ sap_swpm_product_catalog_id }}"
+    # If SWPM is running a normal install Ansible Variable sap_swpm_swpm_command_virtual_hostname is blank
+    # IF SWPM is running a HA installation, Ansible Variable sap_swpm_swpm_command_virtual_hostname is set and contains "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }}"
+    sap_swpm_swpm_command_extra_args: "SAPINST_SKIP_DIALOGS=true SAPINST_START_GUISERVER=false {{ sap_swpm_swpm_command_virtual_hostname }}"
+
+################
+# Pre Install Optional Tasks
+################
+
+# Firewall
+
+- name: SAP SWPM Pre Install - Firewall Setup
+  include_tasks: pre_install/firewall.yml
+  when: 
+    - "sap_swpm_setup_firewall | bool"
+
+# /etc/hosts
+
+- name: SAP SWPM Pre Install - Update /etc/hosts
+  include_tasks: pre_install/update_etchosts.yml
+  when: 
+    - "sap_swpm_update_etchosts | bool"
+
+################
+# Display Parameters
+################
+
+- name: SAP SWPM - Display Software
+  debug:
+    msg: 
+      - " SAPEXEDB   -   {{ sap_swpm_kernel_dependent_path }}/{{ sap_swpm_kernel_dependent_file_name }} "
+      - " SAPEXE     -   {{ sap_swpm_kernel_independent_path }}/{{ sap_swpm_kernel_independent_file_name }} "
+      - " IGS Helper -   {{ sap_swpm_igs_helper_path }}/{{ sap_swpm_igs_helper_file_name }} "
+      - " IGS        -   {{ sap_swpm_igs_path }}/{{ sap_swpm_igs_file_name }} "
+      - " WEBDISP    -   {{ sap_swpm_web_dispatcher_path }}/{{ sap_swpm_web_dispatcher_file_name }} "
+      - " SAPCAR     -   {{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }} "
+      - " SWPM       -   {{ sap_swpm_swpm_path }}/{{ sap_swpm_swpm_sar_file_name }} "
+      - " MP Stack   -   {{ sap_swpm_mp_stack_path }}/{{ sap_swpm_mp_stack_file_name }} "
+      - " Backup     -   {{ sap_swpm_backup_location }} "
+
+- name: SAP SWPM - Installation Proper
+  debug:
+    msg:
+      - '   Ready to run SWPM for SAP Software Installation  '
+      - ' '
+      - '   SAP Product        -       {{ sap_swpm_product_catalog_id }}  '
+      - '   SID                -       {{ sap_swpm_sid }} '
+      - '   Host               -       {{ ansible_hostname }} '

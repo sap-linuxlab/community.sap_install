@@ -1,0 +1,134 @@
+---
+######################################
+# HANA Default Variables
+#
+
+# Want extensive debugging
+#debuglevel: 3
+
+# For executing just some of the configuration steps,
+# 1 - set sap_hana_preconfigure_config_all to "no" (default is "yes"),
+# 2 - set sap_hana_preconfigure_installation or sap_hana_preconfigure_configuration, or both, to "yes" (default for both is "no")
+# 3 - and set one or more of the SAP notes related variables to "yes":
+#sap_hana_preconfigure_config_all: no
+#sap_hana_preconfigure_installation: yes
+#sap_hana_preconfigure_configuration: yes
+## examples for RHEL7:
+#sap_hana_preconfigure_2292690_02: yes
+#sap_hana_preconfigure_2292690_05: yes
+#sap_hana_preconfigure_2009879_3_9: yes
+#sap_hana_preconfigure_2009879_3_14_1: yes
+#sap_hana_preconfigure_2009879_3_14_2: yes
+#sap_hana_preconfigure_2009879_3_14_3: yes
+#sap_hana_preconfigure_2009879_3_14_4: yes
+## examples for RHEL8:
+#sap_hana_preconfigure_2777782_03: yes
+#sap_hana_preconfigure_2777782_10: yes
+## both:
+#sap_hana_preconfigure_2382421: yes
+
+# Perform an assertion run:
+sap_hana_preconfigure_assert: no
+
+# In case of an assertion run, if set to "yes", the role will abort for any assertion error:
+sap_hana_preconfigure_assert_ignore_errors: no
+
+# In case of an assertion run, if set to "yes", check all configuration steps no matter if tuned or static configuration has been selected:
+sap_hana_preconfigure_assert_all_config: no
+
+# Perform a RHEL minor release check for SAP HANA:
+sap_hana_preconfigure_min_rhel_release_check: yes
+
+# supported RHEL minor releases for SAP HANA:
+sap_hana_preconfigure_supported_rhel_minor_releases: "{{ __sap_hana_preconfigure_supported_rhel_minor_releases }}"
+
+# Set to "yes" if you want the role to enable SAP HANA repos. The default is "no".
+sap_hana_preconfigure_enable_sap_hana_repos: no
+
+# Change one or more of the following in case you want different repos to be enabled than defined in vars.
+sap_hana_preconfigure_req_repos_redhat_7_x86_64: "{{ __sap_hana_preconfigure_req_repos_redhat_7_x86_64 }}"
+sap_hana_preconfigure_req_repos_redhat_7_ppc64le: "{{ __sap_hana_preconfigure_req_repos_redhat_7_ppc64le }}"
+sap_hana_preconfigure_req_repos_redhat_8_x86_64: "{{ __sap_hana_preconfigure_req_repos_redhat_8_x86_64 }}"
+sap_hana_preconfigure_req_repos_redhat_8_ppc64le: "{{ __sap_hana_preconfigure_req_repos_redhat_8_ppc64le }}"
+sap_hana_preconfigure_req_repos_redhat_9_x86_64: "{{ __sap_hana_preconfigure_req_repos_redhat_9_x86_64 }}"
+sap_hana_preconfigure_req_repos_redhat_9_ppc64le: "{{ __sap_hana_preconfigure_req_repos_redhat_9_ppc64le }}"
+
+# Set to "yes" if you want the role to set the RHEL minor release, which is required for SAP HANA. Default is "no".
+sap_hana_preconfigure_set_minor_release: no
+
+# HANA Major and minor version
+# These variables are used in other SAP HANA related roles, e.g. sap-hana-mediacheck.
+sap_hana_version: "2"
+sap_hana_sps: "0"
+
+# List of RHEL packages to be installed for SAP HANA. For RHEL 8 and later, you can choose to install either the default list
+#   or a list of the minimum required packages for SAP HANA server:
+sap_hana_preconfigure_packages: "{{ __sap_hana_preconfigure_packages }}"
+#sap_hana_preconfigure_packages: "{{ __sap_hana_preconfigure_packages_min_install }}"
+
+# SAP HANA requires certain minimum package versions to be supported. These mininum levels are listed in SAP Note 2235581.
+# Set to no if you want to ignore these requirements.
+sap_hana_preconfigure_min_package_check: yes
+
+# Set the following variable to "yes" if you want to run "yum update" during the installation part:
+sap_hana_preconfigure_update: no
+
+# Set the following variable to "yes" if you want the role to reboot the server if necessary:
+sap_hana_preconfigure_reboot_ok: no
+
+# Set the following variable to "no" if you want the role to not fail if a reboot is required:
+sap_hana_preconfigure_fail_if_reboot_required: yes
+
+###
+#
+# The following variables are optional.
+# If they are defined, the users sapadm and sapsys will already be created
+# This is necessary for installation of hostagent, but some customers require it at an earlier stage.
+#
+# sap_sapadm_uid:
+# sap_sapadm_pw_clear:
+# sap_sapsys_gid:
+# sap_hana_id_group_sapsys: not yet used
+# sap_hana_id_user_sapadm: not yet used
+
+##  HANA kernel parameters
+# [SAP Note 2382421](https://launchpad.support.sap.com/#/notes/2382421) defines kernel parameters that all Linux systems need to set.
+# The default parameter recomendations are dependent on the OS release. Hence the OS dependant default setting is defined in
+# ./vars/{{ansible_os_release}}.yml. If you need to add or change parameters for your system, copy these parameters from the vars file
+# into the variable sap_hana_preconfigure_kernel_parameters and add or change your settings:
+
+sap_hana_preconfigure_kernel_parameters: "{{ __sap_hana_preconfigure_kernel_parameters_default }}"
+
+sap_hana_preconfigure_kernel_parameters_ppc64le: "{{ __sap_hana_preconfigure_kernel_parameters_default_ppc64le }}"
+
+sap_hana_preconfigure_use_netapp_settings_nfs: no
+
+sap_hana_preconfigure_use_netapp_settings_nfsv3: no
+
+sap_hana_preconfigure_add_ibm_power_repo: yes
+
+# sap_hana_preconfigure_ibm_power_repo_url: 'http://public.dhe.ibm.com/software/server/POWER/Linux/yum/download/ibm-power-repo-3.0.0-19.noarch.rpm'
+sap_hana_preconfigure_ibm_power_repo_url: "{{ __sap_hana_preconfigure_ibm_power_repo_url }}"
+
+#### The following parameters are for PPC LE only
+## add a list of interfaces where MTU size will be set to 9000
+## defaults to empty
+#sap_hana_preconfigure_ppcle_mtu9000_if: "{{ ansible_interfaces| difference(['lo']) }}" # all interfaces
+sap_hana_preconfigure_ppcle_mtu9000_if: ''
+## list where tso flag should be set
+## defaults to all interfaces
+sap_hana_preconfigure_ppcle_tso_if: "{{ ansible_interfaces| difference(['lo']) }}"
+
+# SELinux is already configured in role sap_general_preconfigure:
+#sap_hana_preconfigure_selinux_state: "{{ __sap_hana_preconfigure_selinux_state }}"
+
+sap_hana_preconfigure_use_tuned: yes
+
+sap_hana_preconfigure_modify_grub_cmdline_linux: no
+
+sap_hana_preconfigure_run_grub2_mkconfig: "{{ __sap_hana_preconfigure_run_grub2_mkconfig }}"
+
+# Use the following variable to specify the name of the RHEL group which is used for the database processes
+# (if it exists, it will be used to configure process limits as per step
+#  "Configuring Process Resource Limits" of SAP note 2772999):
+# sap_hana_preconfigure_db_group_name: dba

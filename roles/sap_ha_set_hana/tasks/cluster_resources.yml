@@ -1,0 +1,28 @@
+# [1] Create the HANA topology
+- name: SAP HANA HA - [1] Create the HANA topology
+  shell: |
+    pcs property set maintenance-mode=true
+    pcs resource create SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} \
+      SAPHanaTopology SID={{ sap_ha_set_hana_sid }} InstanceNumber={{ sap_ha_set_hana_instance_number }} \
+      op start timeout=600 op stop timeout=300 op monitor interval=10 timeout=600 \
+      clone clone-max=2 clone-node-max=1 interleave=true
+  when:
+    - sap_ha_set_hana_role == 'primary'
+
+# [1] Create the HANA resources
+- name: SAP HANA HA - [1] Create the HANA resources
+  shell: |
+    pcs resource create SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} SAPHana SID={{ sap_ha_set_hana_sid }} InstanceNumber={{ sap_ha_set_hana_instance_number }} PREFER_SITE_TAKEOVER=true DUPLICATE_PRIMARY_TIMEOUT=7200 AUTOMATED_REGISTER=false \
+      op start timeout=3600 op stop timeout=3600 \
+      op monitor interval=61 role="Slave" timeout=700 \
+      op monitor interval=59 role="Master" timeout=700 \
+      op promote timeout=3600 op demote timeout=3600 \
+      promotable notify=true clone-max=2 clone-node-max=1 interleave=true
+    pcs resource create vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} IPaddr2 ip="{{ sap_ha_set_hana_load_balancer_ip }}"
+    pcs resource create nc_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} azure-lb port=625{{ sap_ha_set_hana_instance_number }}
+    pcs resource group add g_ip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} nc_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}
+    pcs constraint order SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone then SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone symmetrical=false
+    pcs constraint colocation add g_ip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} with master SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone 4000
+    pcs property set maintenance-mode=false
+  when:
+    - sap_ha_set_hana_role == 'primary'

@@ -1,0 +1,91 @@
+---
+# OS RELEASE: RHEL 7
+# Platform: PPC64LE
+# SAP Note: 2055470
+# https://launchpad.support.sap.com/#/notes/2055470
+# The SAP Note points to http://www-03.ibm.com/support/techdocs/atsmastr.nsf/WebIndex/WP102502
+
+# On the above page you will find more PDF documents, the following is used in this config file:
+# Configuring your Network for SAP HANA (Ethernet connectivity):
+# http://www-03.ibm.com/support/techdocs/atsmastr.nsf/5cb5ed706d254a8186256c71006d2e0a/c32b40501f4f76c886257de0004fa1d4/$FILE/
+#    Network_Configuration_for_HANA_Workloads_on_IBM_Power_Servers_V4.pdf
+
+- name: Assert ppc64le specific settings
+  block:
+
+    - name: Assert - Display SAP note number 2055470 and its version
+      debug:
+        msg: "SAP note {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2055470$') | first).number }}
+              (version {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2055470$') | first).version }}): SAP HANA on POWER settings"
+
+    - name: Display an info about checking the MTU size
+      debug:
+        msg: "WARN: Checking of MTU size==9000 on all interfaces not yet implemented. Please check manually!"
+
+#- name: ensure MTU size is 9000 on all interfaces
+#  shell: |
+#    mtu=$(nmcli conn show {{ line_item }} | grep 802-3-ethernet.mtu | awk -F: '{printf("%d", $2)}')
+#    if [ "$mtu" != "9000" ]; then
+#       nmcli conn mod {{ line_item }} 802-3-ethernet.mtu "9000"
+#       ip link set mtu 9000 dev {{ line_item }}
+#    else
+#       exit 90
+#    fi
+#  register: __sap_hana_preconfigure_register_ibm_mtusize_assert
+#  changed_when: __sap_hana_preconfigure_register_ibm_mtusize_assert is success
+#  failed_when: __sap_hana_preconfigure_register_ibm_mtusize_assert.rc > 0 and __sap_hana_preconfigure_register_ibm_mtusize_assert.rc != 90
+#  with_items: "{{ sap_hana_preconfigure_ppcle_mtu9000_if }}"
+#  when: not( (sap_hana_preconfigure_ppcle_mtu9000_if) or
+#             ( sap_hana_preconfigure_ppcle_mtu9000_if is none) or
+#             (sap_hana_preconfigure_ppcle_mtu9000_if | trim == '')
+#           )
+#  loop_control:
+#    loop_var: line_item
+
+# This only works if interfacename=device name, otherwise it fails
+    - name: Display an info about checking largesend options
+      debug:
+        msg: "WARN: Checking of largesend options of interface {{ sap_hana_preconfigure_ppcle_tso_if }} not yet implemented. Please check manually!"
+
+#- name: add largesend options to interface
+#  lineinfile:
+#    regexp: '^ETHTOOL_OPTIONS_tso='
+#    line: ETHTOOL_OPTIONS_tso='-K iface tso on'
+#    path: /etc/sysconfig/network-scripts/ifcfg-{{ line_item }}
+#  with_items: "{{ sap_hana_preconfigure_ppcle_tso_if }}"
+#  when: not( (sap_hana_preconfigure_ppcle_tso_if) or ( sap_hana_preconfigure_ppcle_tso_if is none) or (sap_hana_preconfigure_ppcle_tso_if | trim == '') )
+#  loop_control:
+#    loop_var: line_item
+
+    - name: Check /etc/sysctl.d/ibm_largesend.conf
+      block:
+        - name: Get info about file /etc/sysctl.d/ibm_largesend.conf
+          stat:
+            path: /etc/sysctl.d/ibm_largesend.conf
+          register: __sap_hana_preconfigure_register_stat_sysctl_ibm_largesend_conf_assert
+
+        - name: Assert that file /etc/sysctl.d/ibm_largesend.conf exists
+          assert:
+            that: __sap_hana_preconfigure_register_stat_sysctl_ibm_largesend_conf_assert.stat.exists
+            fail_msg: "FAIL: File /etc/sysctl.d/ibm_largesend.conf does not exist!"
+            success_msg: "PASS: File /etc/sysctl.d/ibm_largesend.conf exists."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+
+        - name: Assert that file /etc/sysctl.d/ibm_largesend.conf is a regular file
+          assert:
+            that: __sap_hana_preconfigure_register_stat_sysctl_ibm_largesend_conf_assert.stat.isreg
+            fail_msg: "FAIL: File /etc/sysctl.d/ibm_largesend.conf is not a regular file!"
+            success_msg: "PASS: File /etc/sysctl.d/ibm_largesend.conf is a regular file."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+          when: __sap_hana_preconfigure_register_stat_sysctl_ibm_largesend_conf_assert.stat.exists
+
+      when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2055470|d(false)
+
+    - name: Get and assert kernel tunables for ppc64le
+      include_tasks: ../RedHat/generic/assert-2055470-loop-block.yml
+      loop: "{{ sap_hana_preconfigure_kernel_parameters_ppc64le }}"
+      loop_control:
+        loop_var: line_item
+      when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2055470|d(false)
+
+  when: ansible_architecture == 'ppc64le'

@@ -1,0 +1,41 @@
+---
+
+- name: Assert that service {{ __sap_hana_preconfigure_packages_and_services[line_item].svc }} is disabled
+          if package {{ __sap_hana_preconfigure_packages_and_services[line_item].pkg }} is installed
+  block:
+    - name: "Report that package {{ __sap_hana_preconfigure_packages_and_services[line_item].pkg }} is installed"
+      debug:
+        msg: "INFO: Package '{{ __sap_hana_preconfigure_packages_and_services[line_item].pkg }}' is installed."
+
+    - name: Assert that service {{ __sap_hana_preconfigure_packages_and_services[line_item].svc }} is
+              {{ __sap_hana_preconfigure_packages_and_services[line_item].svc_status }}
+      assert:
+        that: "ansible_facts.services['{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}.service'].status ==
+                 '{{ __sap_hana_preconfigure_packages_and_services[line_item].svc_status }}'"
+        fail_msg: "FAIL: Service '{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}' is not
+                     {{ __sap_hana_preconfigure_packages_and_services[line_item].svc_status }}!"
+        success_msg: "PASS: Service '{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}' is
+                       {{ __sap_hana_preconfigure_packages_and_services[line_item].svc_status }}."
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+
+    - name: Assert that service {{ __sap_hana_preconfigure_packages_and_services[line_item].svc }} is
+              {{ __sap_hana_preconfigure_packages_and_services[line_item].svc_state }} or
+              {{ __sap_hana_preconfigure_packages_and_services[line_item].systemd_state }}
+      assert:
+        that: "(ansible_facts.services['{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}.service'].state ==
+                 '{{ __sap_hana_preconfigure_packages_and_services[line_item].svc_state }}' or
+                 ansible_facts.services['{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}.service'].state ==
+                 '{{ __sap_hana_preconfigure_packages_and_services[line_item].systemd_state }}')"
+        fail_msg: "FAIL: Service '{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}' is not
+                     {{ __sap_hana_preconfigure_packages_and_services[line_item].svc_state }}!"
+        success_msg: "PASS: Service '{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}' is
+                        {{ __sap_hana_preconfigure_packages_and_services[line_item].svc_state }} or
+                        {{ __sap_hana_preconfigure_packages_and_services[line_item].systemd_state }}."
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+
+  when: "__sap_hana_preconfigure_packages_and_services[line_item].pkg in ansible_facts.packages"
+
+- name: "Report that package {{ __sap_hana_preconfigure_packages_and_services[line_item].pkg }} is not installed"
+  debug:
+    msg: "PASS: Package '{{ __sap_hana_preconfigure_packages_and_services[line_item].pkg }}' is not installed."
+  when: "__sap_hana_preconfigure_packages_and_services[line_item].pkg not in ansible_facts.packages"

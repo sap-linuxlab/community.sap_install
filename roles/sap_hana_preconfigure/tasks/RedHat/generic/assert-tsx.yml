@@ -1,0 +1,80 @@
+---
+
+- name: Assert - Perform steps for checking TSX
+  block:
+# There are CPUs which are not capable of enabling the rtm flag, so we just report the status:
+    - name: Get all CPU flags
+      shell: lscpu | grep "^Flags:"
+      register: __sap_hana_preconfigure_register_lscpu_flags
+      changed_when: no
+
+    - name: Report that the rtm CPU flag exists
+      debug:
+        msg: "INFO: The CPU flags contain 'rtm'."
+      when: __sap_hana_preconfigure_register_lscpu_flags.stdout is regex("^Flags:.*\s*rtm\s*.*")
+
+    - name: Report that the rtm CPU flag does not exist
+      debug:
+        msg: "INFO: The CPU flags do not contain 'rtm'."
+      when: __sap_hana_preconfigure_register_lscpu_flags.stdout is not regex("^Flags:.*\s*rtm\s*.*")
+
+# Note: Assertions are only necessary if rtm is not in the CPU flags.
+#       If rtm is present, we just print an INFO message.
+    - name: TSX - Get contents of GRUB_CMDLINE_LINUX in /etc/default/grub
+      command: grep GRUB_CMDLINE_LINUX /etc/default/grub
+      register: __sap_hana_preconfigure_register_default_grub_cmdline_tsx_assert
+      changed_when: no
+
+    - name: Assert that tsx=on is in GRUB_CMDLINE_LINUX in /etc/default/grub
+      assert:
+        that: "'tsx=on' in __sap_hana_preconfigure_register_default_grub_cmdline_tsx_assert.stdout"
+        fail_msg: "FAIL: 'tsx=on' is not in GRUB_CMDLINE_LINUX in /etc/default/grub!"
+        success_msg: "PASS: 'tsx=on' is in GRUB_CMDLINE_LINUX in /etc/default/grub."
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+      when: __sap_hana_preconfigure_register_lscpu_flags.stdout is not regex("^Flags:.*\s*rtm\s*.*")
+
+    - name: Report if tsx=on is in GRUB_CMDLINE_LINUX in /etc/default/grub
+      debug:
+        msg: "INFO: 'tsx=on' is in GRUB_CMDLINE_LINUX in /etc/default/grub."
+      when:
+        - "'tsx=on' in __sap_hana_preconfigure_register_default_grub_cmdline_tsx_assert.stdout"
+        - __sap_hana_preconfigure_register_lscpu_flags.stdout is regex("^Flags:.*\s*rtm\s*.*")
+
+    - name: Report if tsx=on is not in GRUB_CMDLINE_LINUX in /etc/default/grub
+      debug:
+        msg: "INFO: 'tsx=on' is not in GRUB_CMDLINE_LINUX in /etc/default/grub."
+      when:
+        - "'tsx=on' not in __sap_hana_preconfigure_register_default_grub_cmdline_tsx_assert.stdout"
+        - __sap_hana_preconfigure_register_lscpu_flags.stdout is regex("^Flags:.*\s*rtm\s*.*")
+
+    - name: TSX - Get contents of /proc/cmdline
+      command: cat /proc/cmdline
+      register: __sap_hana_preconfigure_register_proc_cmdline_tsx_assert
+      changed_when: no
+
+    - name: Assert that tsx=on is in /proc/cmdline
+      assert:
+        that: "'tsx=on' in __sap_hana_preconfigure_register_proc_cmdline_tsx_assert.stdout"
+        fail_msg: "FAIL: 'tsx=on' is not in /proc/cmdline!"
+        success_msg: "PASS: 'tsx=on' is in /proc/cmdline."
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+      when: __sap_hana_preconfigure_register_lscpu_flags.stdout is not regex("^Flags:.*\s*rtm\s*.*")
+
+    - name: Report if tsx=on is in /proc/cmdline
+      debug:
+        msg: "INFO: 'tsx=on' is in /proc/cmdline."
+      when:
+        - "'tsx=on' in __sap_hana_preconfigure_register_proc_cmdline_tsx_assert.stdout"
+        - __sap_hana_preconfigure_register_lscpu_flags.stdout is regex("^Flags:.*\s*rtm\s*.*")
+
+    - name: Report if tsx=on is not in /proc/cmdline
+      debug:
+        msg: "INFO: 'tsx=on' is not in /proc/cmdline."
+      when:
+        - "'tsx=on' not in __sap_hana_preconfigure_register_proc_cmdline_tsx_assert.stdout"
+        - __sap_hana_preconfigure_register_lscpu_flags.stdout is regex("^Flags:.*\s*rtm\s*.*")
+
+  when: ansible_architecture == 'x86_64' and
+        ansible_distribution == 'RedHat' and
+        ansible_distribution_major_version == '8' and
+        __sap_hana_preconfigure_fact_ansible_distribution_minor_version|int >= 3

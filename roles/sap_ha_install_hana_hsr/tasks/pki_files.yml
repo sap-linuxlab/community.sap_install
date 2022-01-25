@@ -1,0 +1,30 @@
+# [1] Copy the system PKI files to /tmp
+- name: Copy the system PKI files to /tmp
+  fetch:
+    src: "{{ item }}"
+    dest: /tmp/
+    flat: yes
+  loop:
+    - /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs/data/SSFS_{{ sap_ha_install_hana_hsr_sid }}.DAT
+    - /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs/key/SSFS_{{ sap_ha_install_hana_hsr_sid }}.KEY
+  when:
+    - sap_ha_install_hana_hsr_role == 'primary'
+
+# Cant copy or fetch files between 2 nodes because were using
+# --connection: local
+# Moving files step is temporarily set in TF
+
+
+# [2] Copy the system PKI files from /tmp to /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs/data/
+- name: Copy the system PKI files from /tmp to /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs/data/
+  copy:
+    src: "/tmp/{{ item.file }}"
+    dest: "{{ item.path }}{{ item.file }}"
+    owner: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
+    group: sapsys
+    mode: '{{ item.mode }}'
+  loop:
+    - { path: '/usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs/data/', file: 'SSFS_{{ sap_ha_install_hana_hsr_sid }}.DAT', mode: '0600' }
+    - { path: '/usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs/key/', file: 'SSFS_{{ sap_ha_install_hana_hsr_sid }}.KEY', mode: '0640' }
+  when:
+    - sap_ha_install_hana_hsr_role == 'secondary'

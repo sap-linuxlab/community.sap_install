@@ -1,0 +1,56 @@
+---
+
+# can be configured by tuned profile sap-hana, entry "energy_perf_bias=performance"
+#   in included tuned profile throughput-performance
+# More details on EPB are in: https://github.com/torvalds/linux/blob/be1fcde604e429691771ce70230668af8097e29b/arch/x86/kernel/cpu/intel_epb.c
+- name: Perform steps for configuring EPB
+  block:
+    - name: Check if system supports Intel's performance bias setting
+      shell: set -o pipefail && LC_ALL=C cpupower info | head -1 | awk '{print $2, $3, $4}'
+      check_mode: no
+      register: __sap_hana_preconfigure_register_cpupower_info_epb_supported
+      ignore_errors: true
+      changed_when: false
+
+    - name: Display the output of the cpupower info command
+      debug:
+        var: __sap_hana_preconfigure_register_cpupower_info_epb_supported.stdout_lines,
+             __sap_hana_preconfigure_register_cpupower_info_epb_supported.stderr_lines
+
+    - name: Change EPB if possible
+      block:
+        - name: Create file /etc/init.d/boot.local if it does not exist
+          file:
+            path: /etc/init.d/boot.local
+            state: touch
+            mode: 0755
+
+        - name: Configure EPB at boot time
+          lineinfile:
+            dest: /etc/init.d/boot.local
+            line: "cpupower set -b 0"
+
+        - name: Configure EPB on the running system
+          command: cpupower set -b 0
+          register: __sap_hana_preconfigure_register_cpupower_set
+
+        - name: Display the output of the cpupower set command
+          debug:
+            var: __sap_hana_preconfigure_register_cpupower_set.stdout_lines, __sap_hana_preconfigure_register_cpupower_set.stderr_lines
+
+        - name: Get status of EPB
+          command: cpupower info -b
+          register: __sap_hana_preconfigure_register_cpupower_info
+          ignore_errors: true
+          changed_when: false
+
+        - name: Display the output of the cpupower info -b command
+          debug:
+            var: __sap_hana_preconfigure_register_cpupower_info.stdout_lines, __sap_hana_preconfigure_register_cpupower_info.stderr_lines
+
+      when:
+        - __sap_hana_preconfigure_register_cpupower_info_epb_supported.stdout != 'does not support'
+
+  when:
+    - ansible_architecture == 'x86_64'
+    - not sap_hana_preconfigure_use_tuned

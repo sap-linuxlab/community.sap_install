@@ -1,0 +1,29 @@
+---
+
+- name: Copy SAR based SAPHOSTAGENT to the target host
+  copy:
+    src: "{{ sap_hostagent_sar_local_path }}/{{ sap_hostagent_sar_file_name }}"
+    dest: "{{ sap_hostagent_agent_tmp_directory }}/{{ sap_hostagent_sar_file_name }}"
+    mode: '0755'
+
+- name: Copy SAPCAR tool to the target host
+  copy:
+    src: "{{ sap_hostagent_sapcar_local_path }}/{{ sap_hostagent_sapcar_file_name }}"
+    dest: "{{ sap_hostagent_agent_tmp_directory }}/{{ sap_hostagent_sapcar_file_name }}"
+    mode: '0755'
+
+- name: Extract the SAPHOSTAGENT archive using SAPCAR
+  command: >-
+    {{ sap_hostagent_agent_tmp_directory }}/{{ sap_hostagent_sapcar_file_name }} \
+    -xvf {{ sap_hostagent_agent_tmp_directory }}/{{ sap_hostagent_sar_file_name }} -manifest SIGNATURE.SMF
+  register: extractagent
+  args:
+    chdir: "{{ sap_hostagent_agent_tmp_directory }}"
+  changed_when: "'SAPCAR: processing archive' in extractagent.stdout"
+
+- name: Install SAPHOSTAGENT
+  command: "{{ sap_hostagent_agent_tmp_directory }}/saphostexec -install"
+  register: installagent
+  args:
+    chdir: "{{ sap_hostagent_agent_tmp_directory }}"
+  changed_when: "'Install service' in installagent.stdout"

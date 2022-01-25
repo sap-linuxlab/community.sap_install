@@ -1,0 +1,29 @@
+# Set facts based on the install dictionary
+- set_fact:
+    sap_swpm_product_catalog_id: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_product_catalog_id'] }}"
+    sap_swpm_inifile_list: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_list'] }}"
+
+- name: If not already defined, use the default variable for the template (i.e. does not overwrite due to variable precedence)
+  set_fact:
+    "{{ item.key }}": "{{ item.value }}"
+  with_dict: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_dictionary'] }}"
+
+
+# Determine Installation Type
+- name: SAP SWPM default_templates mode - Determine Installation Type
+  include_tasks: "../pre_install/install_type.yml"
+
+# Password Facts
+- name: SAP SWPM default_templates mode - Password Facts
+  include_tasks: ../pre_install/password_facts.yml
+
+# Prepare Software
+- name: SAP SWPM default_templates mode - Prepare Software
+  include_tasks: prepare_software.yml
+
+# Process SWPM Configfile Template
+- name: SAP SWPM default_templates mode - Process SWPM Configfile Template
+  template:
+    src: "{{ role_path }}/templates/configfile.j2"
+    dest: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+  register: sap_swpm_cftemplate

@@ -1,0 +1,51 @@
+# [1] Create SAP directories in the Azure NetApp Files volume
+- name: SAP NW HA - [1] Create SAP directories in the Azure NetApp Files volume
+  shell: |
+    sudo mkdir -p /saptmp
+    sudo mount -t nfs -o rw,hard,rsize=65536,wsize=65536,vers=4.1,sec=sys,tcp {{ sap_ha_set_netweaver_nfs_ip }}:/sap{{ sap_ha_set_netweaver_sid }} /saptmp
+    sudo cd /saptmp
+    sudo mkdir -p sapmnt{{ sap_ha_set_netweaver_sid }}
+    sudo mkdir -p usrsap{{ sap_ha_set_netweaver_sid }}ascs
+    sudo mkdir -p usrsap{{ sap_ha_set_netweaver_sid }}ers
+    sudo mkdir -p usrsap{{ sap_ha_set_netweaver_sid }}sys
+    sudo mkdir -p usrsap{{ sap_ha_set_netweaver_sid }}pas
+    sudo mkdir -p usrsap{{ sap_ha_set_netweaver_sid }}aas
+    sudo cd ..
+    sudo umount /saptmp
+    sudo rmdir /saptmp
+  when:
+    - sap_ha_set_netweaver_role == 'ascs'
+
+# [A] Create the shared directories
+- name: SAP NW HA - [A] Create the shared directories
+  shell: |
+    sudo mkdir -p /sapmnt/{{ sap_ha_set_netweaver_sid }}
+    sudo mkdir -p /usr/sap/trans
+    sudo mkdir -p /usr/sap/{{ sap_ha_set_netweaver_sid }}/SYS
+    sudo mkdir -p /usr/sap/{{ sap_ha_set_netweaver_sid }}/ASCS{{ sap_ha_set_netweaver_ascs_instance_nr }}
+    sudo mkdir -p /usr/sap/{{ sap_ha_set_netweaver_sid }}/ERS{{ sap_ha_set_netweaver_ers_instance_nr}}
+    sudo chattr +i /sapmnt/Q{{ sap_ha_set_netweaver_sid }}AS
+    sudo chattr +i /usr/sap/trans
+    sudo chattr +i /usr/sap/{{ sap_ha_set_netweaver_sid }}/SYS
+    sudo chattr +i /usr/sap/{{ sap_ha_set_netweaver_sid }}/ASCS{{ sap_ha_set_netweaver_ascs_instance_nr }}
+    sudo chattr +i /usr/sap/{{ sap_ha_set_netweaver_sid }}/ERS{{ sap_ha_set_netweaver_ers_instance_nr}}
+
+# [A] Install NFS client and other requirements
+- name: SAP NW HA - [A] Install NFS client and other requirements
+  shell: |
+    sudo yum -y install nfs-utils resource-agents resource-agents-sap
+
+# [A] Add mount entries
+- name: SAP NW HA - [A] Add mount entries
+  lineinfile:
+    path: /etc/fstab
+    line: "{{ item }}"
+  loop:
+    - "{{ sap_ha_set_netweaver_nfs_ip }}:/sap{{ sap_ha_set_netweaver_sid }}/sapmnt{{ sap_ha_set_netweaver_sid }} /sapmnt/{{ sap_ha_set_netweaver_sid }} nfs rw,hard,rsize=65536,wsize=65536,vers=4.1,sec=sys"
+    - "{{ sap_ha_set_netweaver_nfs_ip }}:/sap{{ sap_ha_set_netweaver_sid }}/usrsap{{ sap_ha_set_netweaver_sid }}sys /usr/sap/{{ sap_ha_set_netweaver_sid }}/SYS nfs rw,hard,rsize=65536,wsize=65536,vers=4.1,sec=sys"
+    - "{{ sap_ha_set_netweaver_nfs_trans_ip }}:/transSAP /usr/sap/trans nfs rw,hard,rsize=65536,wsize=65536,vers=4.1,sec=sys"
+
+# [A] Mount a
+- name: SAP NW HA - [A] Mount a
+  shell: |
+    sudo mount -a

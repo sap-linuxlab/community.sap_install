@@ -1,0 +1,24 @@
+# [A] Deduplicate values from /etc/hosts
+- name: SAP NW HA - Deduplicate values from /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    create: false
+    regexp: (?i)^\s*{{ item }}\s+
+    state: absent
+  loop:
+    - "{{ sap_ha_set_netweaver_node1_ip }}"
+    - "{{ sap_ha_set_netweaver_node2_ip }}"
+    - "{{ sap_ha_set_netweaver_load_balancer_ascs_ip }}"
+    - "{{ sap_ha_set_netweaver_load_balancer_ers_ip }}"
+    - "{{ sap_ha_set_netweaver_load_balancer_db_ip }}"
+
+- name: SAP NW HA - [A] Setup host name resolution
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ item }}"
+  loop:
+    - "{{ sap_ha_set_netweaver_node1_ip }}\t{{ sap_ha_set_netweaver_node1_hostname }}.{{ sap_ha_set_netweaver_fqdn }}\t{{ sap_ha_set_netweaver_node1_hostname }}"
+    - "{{ sap_ha_set_netweaver_node2_ip }}\t{{ sap_ha_set_netweaver_node2_hostname }}.{{ sap_ha_set_netweaver_fqdn }}\t{{ sap_ha_set_netweaver_node2_hostname }}"
+    - "{{ sap_ha_set_netweaver_load_balancer_ascs_ip }}\t{{ sap_ha_set_netweaver_load_balancer_ascs_hostname }}.{{ sap_ha_set_netweaver_fqdn }}\t{{ sap_ha_set_netweaver_load_balancer_ascs_hostname }}"
+    - "{{ sap_ha_set_netweaver_load_balancer_ers_ip }}\t{{ sap_ha_set_netweaver_load_balancer_ers_hostname }}.{{ sap_ha_set_netweaver_fqdn }}\t{{ sap_ha_set_netweaver_load_balancer_ers_hostname }}"
+    - "{{ sap_ha_set_netweaver_load_balancer_db_ip }}\t{{ sap_ha_set_netweaver_load_balancer_db_hostname }}.{{ sap_ha_set_netweaver_fqdn }}\t{{ sap_ha_set_netweaver_load_balancer_db_hostname }}"

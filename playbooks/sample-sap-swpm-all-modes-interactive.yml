@@ -1,0 +1,101 @@
+---
+- hosts: all
+
+  become: true
+
+  name: Playbook sample for SAP SWPM
+
+  roles:
+    - { role: ../roles/sap_swpm }
+
+
+# Prompt for Ansible Variables, using pause for conditional argument
+# Avoid vars prompt, so Facts Gathering does not split the input of a user
+  pre_tasks:
+
+    - pause:
+        prompt: "Choose: default, advanced, inifile_reuse. Alternatively use default_templates or advanced_templates"
+      register: prompt
+      no_log: yes
+      run_once: yes
+    - set_fact:
+        sap_swpm_ansible_role_mode: "{{prompt.user_input}}"
+      no_log: yes
+      run_once: yes
+
+    - pause:
+        prompt: "Mode is {{ sap_swpm_ansible_role_mode }}, but variables not detected. Define path to YAML file with Ansible Variables"
+      register: prompt
+      no_log: no
+      run_once: yes
+      when:
+        - (sap_swpm_ansible_role_mode == "default" or sap_swpm_ansible_role_mode == "advanced")
+        - (sap_swpm_product_catalog_id is not defined or sap_swpm_product_catalog_id == None)
+    - include_vars:
+        file: "{{prompt.user_input}}"
+      no_log: no
+      run_once: yes
+      when:
+        - (sap_swpm_ansible_role_mode == "default" or sap_swpm_ansible_role_mode == "advanced")
+        - (sap_swpm_product_catalog_id is not defined or sap_swpm_product_catalog_id == None)
+
+    - pause:
+        prompt: "Mode is {{ sap_swpm_ansible_role_mode }}, but inifile.params not detected. Define path to inifile.params"
+      register: prompt
+      no_log: yes
+      run_once: yes
+      when:
+        - sap_swpm_ansible_role_mode == "inifile_reuse"
+    - set_fact:
+        sap_swpm_inifile_reuse_source: "{{prompt.user_input}}"
+      no_log: no
+      run_once: yes
+      when:
+        - sap_swpm_ansible_role_mode == "inifile_reuse"
+
+    - pause:
+        prompt: "Mode is {{ sap_swpm_ansible_role_mode }}, but variables not detected. Define path to YAML file with Ansible Variables"
+      register: prompt
+      no_log: no
+      run_once: yes
+      when:
+        - (sap_swpm_ansible_role_mode == "default_templates" or sap_swpm_ansible_role_mode == "advanced_templates")
+        - (sap_swpm_templates_install_dictionary is not defined or sap_swpm_templates_install_dictionary == None)
+    - include_vars:
+        file: "{{prompt.user_input}}"
+      no_log: no
+      run_once: yes
+      when:
+        - (sap_swpm_ansible_role_mode == "default_templates" or sap_swpm_ansible_role_mode == "advanced_templates")
+        - (sap_swpm_templates_install_dictionary is not defined or sap_swpm_templates_install_dictionary == None)
+    - pause:
+        prompt: "Mode is {{ sap_swpm_ansible_role_mode }}, define which template to run (e.g. sap_s4hana_2020_onehost_install)"
+      register: prompt
+      no_log: yes
+      run_once: yes
+      when:
+        - sap_swpm_ansible_role_mode == "default_templates" or sap_swpm_ansible_role_mode == "advanced_templates"
+    - set_fact:
+        sap_swpm_templates_product_input: "{{prompt.user_input}}"
+      no_log: no
+      run_once: yes
+      when:
+        - sap_swpm_ansible_role_mode == "default_templates" or sap_swpm_ansible_role_mode == "advanced_templates"
+
+    - name: Display Ansible Role for SAP SWPM using default or advanced templates mode
+      debug:
+        msg: "Ansible Role for SAP SWPM mode is {{ sap_swpm_ansible_role_mode }}, using the following values: {{ sap_swpm_templates_install_dictionary }}"
+      when:
+        - sap_swpm_ansible_role_mode == "default_templates" or sap_swpm_ansible_role_mode == "advanced_templates"
+
+
+# Execute SAP SWPM
+  tasks:
+
+    - name: Execute Ansible Role sap_install_media_detect
+      include_role:
+        name: { role: lss.sap_install.sap_install_media_detect }
+
+    - name: Execute Ansible Role sap_swpm with SAP S/4HANA One Host, System Copy Homogeneous (SAP HANA Backup/Restore)
+      include_role:
+        name: { role: lss.sap_install.sap_swpm }

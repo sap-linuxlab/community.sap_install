@@ -1,0 +1,37 @@
+- name: SAP Media Organize - SAP HANA - Create temp dir - {{ sap_hana_install_directory }}/tmp
+  file:
+    path: "{{ sap_hana_install_directory }}/tmp"
+    state: directory
+
+- name: SAP Media Organize - SAP HANA - Extracting {{ passed_sap_hana_install_components_sar }}
+  command: >-
+    {{ sap_hana_install_directory }}/{{ sap_hana_install_sapcar_file_name }} \
+    -R {{ sap_hana_install_directory }}/tmp
+    -xvf {{ sap_hana_install_directory }}/{{ passed_sap_hana_install_components_sar }} \
+    -manifest SIGNATURE.SMF
+  register: sap_hana_install_extract
+  args:
+    chdir: "{{ sap_hana_install_directory }}"
+  changed_when: "'SAPCAR: processing archive' in sap_hana_install_extract.stdout"
+
+- name: SAP Media Organize - SAP HANA - Create directory if SAP Host Agent
+  file:
+    path: "{{ sap_hana_install_directory }}/tmp/SAP_HOST_AGENT"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  when: "'SAPHOST' in passed_sap_hana_install_components_sar"
+
+- name: SAP Media Organize - SAP HANA - Prepare extracted dir
+  shell: |
+    extracted_dir=$(ls -d */)
+    cp SIGNATURE.SMF $extracted_dir
+    cp -R $extracted_dir ../extracted/$extracted_dir
+  args:
+    chdir: "{{ sap_hana_install_directory }}/tmp"
+
+- name: SAP Media Organize - SAP HANA - Remove temp dir - {{ sap_hana_install_directory }}/tmp
+  file:
+    path: "{{ sap_hana_install_directory }}/tmp"
+    state: absent

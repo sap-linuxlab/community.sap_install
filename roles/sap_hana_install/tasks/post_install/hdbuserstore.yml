@@ -1,0 +1,15 @@
+---
+
+- name: SAP HANA Post Install - Create and Store Connection Info in hdbuserstore
+  shell: |
+      /usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbuserstore \
+      SET {{ sap_hana_install_hdbuserstore_key }} \
+      {{ ansible_hostname }}:3{{ sap_hana_install_instance_number }}13 \
+      SYSTEM '{{ sap_hana_install_db_system_password }}'
+  args:
+     executable: /bin/bash
+  become: true
+  become_user: "{{ sap_hana_install_sid | lower }}adm"
+  changed_when: no
+# variable not used:
+#  register: __sap_hana_install_register_post_install_hdbuserstore

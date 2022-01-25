@@ -1,0 +1,32 @@
+---
+
+- name: Display the role path
+  debug:
+    var: role_path
+
+- name: Include OS specific vars
+  include_vars: '{{ item }}'
+  with_first_found:
+    - '{{ ansible_distribution }}_{{ ansible_distribution_version }}.yml'
+    - '{{ ansible_distribution }}_{{ ansible_distribution_major_version }}.yml'
+    - '{{ ansible_os_family }}.yml'
+
+- name: Set filename prefix to empty string if role is run in normal mode
+  set_fact:
+    __sap_general_preconfigure_fact_assert_filename_prefix: ""
+  when: not sap_general_preconfigure_assert|d(false)
+
+- name: Prepend filename with assert string if role is run in assert mode
+  set_fact:
+    __sap_general_preconfigure_fact_assert_filename_prefix: "assert-"
+  when: sap_general_preconfigure_assert|d(false)
+
+# required for installation and configuration tasks:
+- name: Gather package facts
+  package_facts:
+
+- include_tasks: '{{ __sap_general_preconfigure_fact_assert_filename_prefix }}installation.yml'
+  when: sap_general_preconfigure_config_all|d(true) or sap_general_preconfigure_installation|d(false)
+
+- include_tasks: '{{ __sap_general_preconfigure_fact_assert_filename_prefix }}configuration.yml'
+  when: sap_general_preconfigure_config_all|d(true) or sap_general_preconfigure_configuration|d(false)

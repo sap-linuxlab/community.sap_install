@@ -1,0 +1,62 @@
+---
+# defaults file for sap_general_preconfigure
+
+# For executing just some of the configuration steps,
+# 1 - set sap_general_preconfigure_config_all to "no" (default is "yes"),
+# 2 - set sap_general_preconfigure_installation or sap_general_preconfigure_configuration, or both, to "yes" (default for both is "no")
+# 3 - and set one or more of the SAP notes related variables to "yes":
+# sap_general_preconfigure_config_all: no
+# sap_general_preconfigure_installation: yes
+# sap_general_preconfigure_configuration: yes
+## examples for RHEL7:
+# sap_general_preconfigure_2002167_02: yes
+# sap_general_preconfigure_2002167_06: yes
+# sap_general_preconfigure_1391070: yes
+# sap_general_preconfigure_0941735: yes
+## examples for RHEL8:
+# sap_general_preconfigure_2772999_02: yes
+# sap_general_preconfigure_2772999_10: yes
+
+sap_general_preconfigure_assert: no
+
+sap_general_preconfigure_assert_ignore_errors: no
+
+sap_general_preconfigure_packagegroups: "{{ __sap_general_preconfigure_packagegroups }}"
+# sap_general_preconfigure_packagegroups: '@minimal-environment'
+
+sap_general_preconfigure_envgroups: "{{ __sap_general_preconfigure_envgroups }}"
+# sap_general_preconfigure_envgroups: '@minimal-environment'
+
+sap_general_preconfigure_packages: "{{ __sap_general_preconfigure_packages }}"
+
+sap_general_preconfigure_min_package_check: yes
+
+sap_general_preconfigure_update: no
+
+sap_general_preconfigure_reboot_ok: no
+
+sap_general_preconfigure_fail_if_reboot_required: yes
+
+sap_general_preconfigure_selinux_state: disabled
+
+sap_general_preconfigure_size_of_tmpfs_gb: "{{ ((0.75 * ( ansible_memtotal_mb + ansible_swaptotal_mb )) / 1024) | round | int }}"
+
+sap_general_preconfigure_locale: en_US.UTF-8
+
+sap_general_preconfigure_modify_etc_hosts: yes
+
+sap_general_preconfigure_kernel_parameters: "{{ __sap_general_preconfigure_kernel_parameters_default }}"
+
+# see SAP note 611361 for possible restrictions for the maximum length of the hostname:
+sap_general_preconfigure_max_hostname_length: "{{ __sap_general_preconfigure_max_hostname_length }}"
+
+sap_hostname: "{{ ansible_hostname }}"
+
+sap_domain: "{{ ansible_domain }}"
+
+sap_ip: "{{ ansible_default_ipv4.address }}"
+
+# use the following variable to specify the name of the RHEL group which is used for the database processes
+# (if it exists, it will be used to configure process limits as per step
+#  "Configuring Process Resource Limits" of SAP note 2002167/2772999):
+# sap_general_preconfigure_db_group_name: dba

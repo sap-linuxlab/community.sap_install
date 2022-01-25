@@ -1,0 +1,30 @@
+---
+
+- name: Assert - List required SAP Notes
+  debug:
+    var: __sap_netweaver_preconfigure_sapnotes_versions | difference([''])
+
+- name: Gather service facts
+  service_facts:
+
+- name: Assert - Include configuration actions for required sapnotes
+  include_tasks: "sapnote/assert-{{ sap_note_line_item.number }}.yml"
+  with_items: "{{ __sap_netweaver_preconfigure_sapnotes_versions | difference(['']) }}"
+  loop_control:
+    loop_var: sap_note_line_item
+
+- name: Report if checking for the minimum size of the swap space is skipped
+  debug:
+    msg: "INFO: Not checking for the minimum size of the swap space (variable sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured)."
+  when: not sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured
+
+- name: Assert that enough swap space is configured
+  assert:
+    that:
+      - "ansible_swaptotal_mb >= {{ sap_netweaver_preconfigure_min_swap_space_mb }}"
+    fail_msg: "FAIL: The system has only {{ ansible_swaptotal_mb }} MB of swap space configured,
+      which is less than the minimum required amount of {{ sap_netweaver_preconfigure_min_swap_space_mb }} MB for SAP NetWeaver!"
+    success_msg: "PASS: The system has {{ ansible_swaptotal_mb }} MB of swap space configured,
+      which is equal to or more than the minimum required amount of {{ sap_netweaver_preconfigure_min_swap_space_mb }} MB for SAP NetWeaver."
+  when: sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured
+  ignore_errors: "{{ sap_netweaver_preconfigure_assert_ignore_errors|d(false) }}"

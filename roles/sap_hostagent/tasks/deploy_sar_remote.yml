@@ -1,0 +1,17 @@
+---
+
+- name: Extract the SAPHOSTAGENT archive using SAPCAR
+  command: >-
+    {{ sap_hostagent_sar_remote_path }}/{{ sap_hostagent_sapcar_file_name }} \
+    -xvf {{ sap_hostagent_sapcar_remote_path }}/{{ sap_hostagent_sar_file_name }} -manifest SIGNATURE.SMF
+  register: extractagent
+  args:
+    chdir: "{{ sap_hostagent_agent_tmp_directory }}"
+  changed_when: "'SAPCAR: processing archive' in extractagent.stdout"
+
+- name: Install SAPHOSTAGENT
+  command: "{{ sap_hostagent_agent_tmp_directory }}/saphostexec -install"
+  register: installagent
+  args:
+    chdir: "{{ sap_hostagent_agent_tmp_directory }}"
+  changed_when: "'Install service' in installagent.stdout"

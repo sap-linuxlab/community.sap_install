@@ -1,0 +1,80 @@
+---
+
+- name: disable numa_balancing at boot
+  lineinfile:
+    path: /etc/default/grub
+    backup: yes
+    backrefs: yes
+    state: present
+    regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=(?!.* {{ line_item }}).*). *$'
+    line: "\\1 {{ line_item }}\""
+  with_items:
+     - "numa_balancing=disable"
+  notify: __sap_hana_preconfigure_regenerate_grub2_conf_handler
+  when: ansible_architecture == "x86_64" and
+        ansible_os_family == 'Suse' and
+        ansible_distribution_major_version == '15'
+  tags: grubconfig
+  loop_control:
+    loop_var: line_item
+
+- name: disable transparent hugepages at boot
+  lineinfile:
+    path: /etc/default/grub
+    backup: yes
+    backrefs: yes
+    state: present
+    regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=(?!.* {{ line_item }}).*). *$'
+    line: "\\1 {{ line_item }}\""
+  with_items:
+     - "transparent_hugepage=never"
+  notify: __sap_hana_preconfigure_regenerate_grub2_conf_handler
+  when: ansible_architecture == "x86_64" and
+        ansible_os_family == 'Suse' and
+        ansible_distribution_major_version == '15'
+  tags: grubconfig
+  loop_control:
+    loop_var: line_item
+
+- name: disable intel c states in grub config
+  lineinfile:
+    path: /etc/default/grub
+    backup: yes
+    backrefs: yes
+    state: present
+    regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=(?!.* {{ line_item }}).*). *$'
+    line: "\\1 {{ line_item }}\""
+  with_items:
+     - "processor.max_cstate=1"
+     - "intel_idle.max_cstate=1"
+  notify: __sap_hana_preconfigure_regenerate_grub2_conf_handler
+  when: ansible_architecture == "x86_64" and
+        ansible_os_family == 'Suse' and
+        ansible_distribution_major_version == '15'
+  tags: grubconfig
+  loop_control:
+    loop_var: line_item
+
+
+# Intel Systems only
+#  - name: "Configure CPU Governor for Performance now"
+#    command: cpupower frequency-set -g performance
+#    register: __sap_hana_preconfigure_register_sles15_cpupower_frequency_set
+#    ignore_errors: True
+
+- name: "Energy Performance Bias (EPB, applies to Intel-based systems only)"
+  lineinfile:
+    path: /etc/init.d/boot.local
+    mode: 0744
+    line: 'cpupower set -b 0'
+    state: present
+    create: yes
+
+- name: Kernel samepage merging (KSM)
+  lineinfile:
+    dest: /etc/init.d/boot.local
+    mode: 0744
+    line: echo 0 > /sys/kernel/mm/ksm/run
+    state: present
+    create: yes
+

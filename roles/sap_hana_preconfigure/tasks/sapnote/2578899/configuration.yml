@@ -1,0 +1,29 @@
+---
+
+- name: 2588899 - I/O scheduler
+  lineinfile:
+    path: /etc/default/grub
+    backup: yes
+    backrefs: yes
+    state: present
+    regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=(?!.* {{ item }}).*). *$'
+    line: "\\1 {{ item }}\""
+  with_items:
+     - "elevator=noop"
+  notify: __sap_hana_preconfigure_regenerate_grub2_conf_handler
+  when: ansible_architecture == "x86_64" and
+        ansible_os_family == 'Suse' and
+        ansible_distribution_major_version == '15'
+  tags: grubconfig
+
+- name: 2578899 - sysstat - monitoring data
+  service:
+    name: sysstat
+    enabled: true
+    state: started
+
+- name: 2578899 - UUID daemon
+  service:
+    name: uuidd
+    enabled: true
+    state: started

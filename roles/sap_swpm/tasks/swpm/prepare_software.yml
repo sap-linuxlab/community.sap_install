@@ -1,0 +1,236 @@
+################
+# Prepare software path
+################
+
+# Software Path
+
+- name: SAP SWPM Pre Install - Check availability of software path - {{ sap_swpm_software_path }}
+  stat:
+    path: "{{ sap_swpm_software_path }}"
+  register: sap_swpm_software_path_stat
+  failed_when: not sap_swpm_software_path_stat.stat.exists
+
+- name: SAP SWPM Pre Install - Change ownership of software path - {{ sap_swpm_software_path }}
+  ansible.builtin.file:
+    path: "{{ sap_swpm_software_path }}"
+    state: directory
+    recurse: yes
+    mode: '0755'
+    owner: root
+    group: root
+
+# Backup Location - this is moved to install_type/restore_install.yml
+
+# - name: SAP SWPM Pre Instal; - Check backup location
+
+#   block:
+
+#   - name: SAP SWPM Pre Install - Check availability backup location - {{ sap_swpm_backup_location }}
+#     stat:
+#       path: "{{ sap_swpm_backup_location }}"
+#     register: sap_swpm_backup_location_stat
+#     failed_when: not sap_swpm_backup_location_stat.stat.exists and '.CP' in sap_swpm_product_catalog_id
+
+#   - name: SAP SWPM Pre Install - Change ownership of backup location - {{ sap_swpm_backup_location }}
+#     ansible.builtin.file:
+#       path: "{{ sap_swpm_backup_location }}"
+#       state: directory
+#       recurse: yes
+#       mode: '0755'
+#       owner: root
+#       group: root
+#     when:
+#       - sap_swpm_backup_location_stat.stat.exists and sap_swpm_backup_location_stat.stat.isdir
+
+#   when:
+#     - "'restore' in sap_swpm_swpm_installation_type"
+
+# SAPCAR Path
+
+- name: SAP SWPM Pre Install - Check availability of SAPCAR path - {{ sap_swpm_sapcar_path }}
+  stat:
+    path: "{{ sap_swpm_sapcar_path }}"
+  register: sap_swpm_sapcar_path_stat
+  failed_when: not sap_swpm_sapcar_path_stat.stat.exists
+
+- name: SAP SWPM Pre Install - Change ownership of SAPCAR path - {{ sap_swpm_sapcar_path }}
+  ansible.builtin.file:
+    path: "{{ sap_swpm_sapcar_path }}"
+    state: directory
+    recurse: yes
+    mode: '0755'
+    owner: root
+    group: root
+
+# SWPM Path
+
+- name: SAP SWPM Pre Install - Check availability of SWPM path - {{ sap_swpm_swpm_path }}
+  stat:
+    path: "{{ sap_swpm_swpm_path }}"
+  register: sap_swpm_swpm_path_stat
+  failed_when: not sap_swpm_swpm_path_stat.stat.exists
+
+- name: SAP SWPM Pre Install - Change ownership of SWPM path - {{ sap_swpm_swpm_path }}
+  ansible.builtin.file:
+    path: "{{ sap_swpm_swpm_path }}"
+    state: directory
+    recurse: yes
+    mode: '0755'
+    owner: root
+    group: root
+
+
+################
+# Get software files from software paths
+################
+
+# 1. SAPCAR
+
+- name: SAP SWPM Pre Install - Get SAPCAR from {{ sap_swpm_sapcar_path }}
+  shell: |
+    ls SAPCAR*.EXE
+  args:
+    chdir: "{{ sap_swpm_sapcar_path }}"
+  register: sap_swpm_sapcar_file_name_get
+
+- name: SAP SWPM Pre Install - Set fact for SAPCAR
+  set_fact:
+    sap_swpm_sapcar_file_name: "{{ sap_swpm_sapcar_file_name_get.stdout }}"
+
+- name: SAP SWPM Pre Install - Check availability of SAPCAR - {{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }}
+  stat:
+    path: "{{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }}"
+  register: sap_swpm_sapcar_file_name_stat
+  failed_when: not sap_swpm_sapcar_file_name_stat.stat.exists
+
+# 2. SWPM
+
+- name: SAP SWPM Pre Install - Get SWPM from {{ sap_swpm_swpm_path }}
+  shell: |
+    ls SWPM*.SAR
+  args:
+    chdir: "{{ sap_swpm_swpm_path }}"
+  register: sap_swpm_swpm_sar_file_name_get
+
+- name: SAP SWPM Pre Install - Set fact for SWPM
+  set_fact:
+    sap_swpm_swpm_sar_file_name: "{{ sap_swpm_swpm_sar_file_name_get.stdout }}"
+
+- name: SAP SWPM Pre Install - Check availability of SWPM - {{ sap_swpm_swpm_path }}/{{ sap_swpm_swpm_sar_file_name }}
+  stat:
+    path: "{{ sap_swpm_swpm_path }}/{{ sap_swpm_swpm_sar_file_name }}"
+  register: sap_swpm_swpm_sar_file_name_stat
+  failed_when: not sap_swpm_swpm_sar_file_name_stat.stat.exists
+
+- name: SAP SWPM Pre Install - Full SAP System
+  block:
+
+  # 3. IGS
+
+  - name: SAP SWPM Pre Install - Get IGS from software path
+    shell: |
+      ls igsexe*.sar
+    args:
+      chdir: "{{ sap_swpm_software_path }}"
+    register: sap_swpm_igs_file_name_get
+
+  - name: SAP SWPM Pre Install - Set fact for IGS
+    set_fact:
+      sap_swpm_igs_path: "{{ sap_swpm_software_path }}"
+      sap_swpm_igs_file_name: "{{ sap_swpm_igs_file_name_get.stdout }}"
+
+  - name: SAP SWPM Pre Install - Check availability of IGS - {{ sap_swpm_igs_path }}/{{ sap_swpm_igs_file_name }}
+    stat:
+      path: "{{ sap_swpm_igs_path }}/{{ sap_swpm_igs_file_name }}"
+    register: sap_swpm_igs_file_name_stat
+    failed_when: not sap_swpm_igs_file_name_stat.stat.exists
+
+  # 4. IGS Helper
+
+  - name: SAP SWPM Pre Install - Get IGS Helper from software path
+    shell: |
+      ls igshelper*.sar
+    args:
+      chdir: "{{ sap_swpm_software_path }}"
+    register: sap_swpm_igs_helper_file_name_get
+
+  - name: SAP SWPM Pre Install - Set fact for IGS
+    set_fact:
+      sap_swpm_igs_helper_path: "{{ sap_swpm_software_path }}"
+      sap_swpm_igs_helper_file_name: "{{ sap_swpm_igs_helper_file_name_get.stdout }}"
+
+  - name: SAP SWPM Pre Install - Check availability of IGS Helper - {{ sap_swpm_igs_helper_path }}/{{ sap_swpm_igs_helper_file_name }}
+    stat:
+      path: "{{ sap_swpm_igs_helper_path }}/{{ sap_swpm_igs_helper_file_name }}"
+    register: sap_swpm_igs_helper_file_name_stat
+    failed_when: not sap_swpm_igs_helper_file_name_stat.stat.exists
+
+  # 5. SAPEXEDB
+
+  - name: SAP SWPM Pre Install - Get SAPEXEDB from software path
+    shell: |
+      ls SAPEXEDB_*.SAR
+    args:
+      chdir: "{{ sap_swpm_software_path }}"
+    register: sap_swpm_kernel_dependent_file_name_get
+
+  - name: SAP SWPM Pre Install - Set fact for SAPEXEDB
+    set_fact:
+      sap_swpm_kernel_dependent_path: "{{ sap_swpm_software_path }}"
+      sap_swpm_kernel_dependent_file_name: "{{ sap_swpm_kernel_dependent_file_name_get.stdout }}"
+
+  - name: SAP SWPM Pre Install - Check availability of SAPEXEDB - {{ sap_swpm_kernel_dependent_path }}/{{ sap_swpm_kernel_dependent_file_name }}
+    stat:
+      path: "{{ sap_swpm_kernel_dependent_path }}/{{ sap_swpm_kernel_dependent_file_name }}"
+    register: sap_swpm_kernel_dependent_file_name_stat
+    failed_when: not sap_swpm_kernel_dependent_file_name_stat.stat.exists
+
+  # 6. SAPEXE
+
+  - name: SAP SWPM Pre Install - Get SAPEXE from software path
+    shell: |
+      ls SAPEXE_*.SAR
+    args:
+      chdir: "{{ sap_swpm_software_path }}"
+    register: sap_swpm_kernel_independent_file_name_get
+
+  - name: SAP SWPM Pre Install - Set fact for SAPEXE
+    set_fact:
+      sap_swpm_kernel_independent_path: "{{ sap_swpm_software_path }}"
+      sap_swpm_kernel_independent_file_name: "{{ sap_swpm_kernel_independent_file_name_get.stdout }}"
+
+  - name: SAP SWPM Pre Install - Check availability of SAPEXE - {{ sap_swpm_kernel_independent_path }}/{{ sap_swpm_kernel_independent_file_name }}
+    stat:
+      path: "{{ sap_swpm_kernel_independent_path }}/{{ sap_swpm_kernel_independent_file_name }}"
+    register: sap_swpm_kernel_independent_file_name_stat
+    failed_when: not sap_swpm_kernel_independent_file_name_stat.stat.exists
+
+
+  when:
+    - not sap_swpm_generic | bool
+
+- name: SAP SWPM Pre Install - Webdispatcher
+  block:
+
+  # 7. Web Dispatcher
+
+  - name: SAP SWPM Pre Install - Get WEBDISP from software path
+    shell: |
+      ls SAPWEBDISP_*.SAR
+    args:
+      chdir: "{{ sap_swpm_software_path }}"
+    register: sap_swpm_web_dispatcher_file_name_get
+
+  - name: SAP SWPM Pre Install - Set fact for WEBDISP
+    set_fact:
+      sap_swpm_web_dispatcher_path: "{{ sap_swpm_software_path }}"
+      sap_swpm_web_dispatcher_file_name: "{{ sap_swpm_web_dispatcher_file_name_get.stdout }}"
+
+  - name: SAP SWPM Pre Install - Check availability of WEBDISP - {{ sap_swpm_web_dispatcher_path }}/{{ sap_swpm_web_dispatcher_file_name }}
+    stat:
+      path: "{{ sap_swpm_web_dispatcher_path }}/{{ sap_swpm_web_dispatcher_file_name }}"
+    register: sap_swpm_web_dispatcher_file_name_stat
+    failed_when: not sap_swpm_web_dispatcher_file_name_stat.stat.exists
+
+  when:
+    - "'Webdispatcher' in sap_swpm_product_catalog_id"

@@ -1,0 +1,105 @@
+---
+################
+# Password Facts
+################
+
+- name: SAP HANA Pre Install - Set password facts when using master password
+  set_fact:
+    sap_hana_install_sapadm_password: "{{ sap_hana_install_common_master_password }}"
+    sap_hana_install_sidadm_password: "{{ sap_hana_install_common_master_password }}"
+    sap_hana_install_db_system_password: "{{ sap_hana_install_common_master_password }}"
+    sap_hana_install_ase_user_password: "{{ sap_hana_install_common_master_password }}"
+    sap_hana_install_xs_org_password: "{{ sap_hana_install_common_master_password }}"
+    sap_hana_install_lss_user_password: "{{ sap_hana_install_common_master_password }}"
+    sap_hana_install_lss_backup_password: "{{ sap_hana_install_common_master_password }}"
+  when: sap_hana_install_use_master_password == 'y'
+
+################
+# Prepare software path
+################
+
+- name: Prepare the HANA software for installation
+  block:
+
+    - name: SAP HANA Pre Install - Check availability of software path - {{ sap_hana_install_software_directory }}
+      stat:
+        path: "{{ sap_hana_install_software_directory }}"
+      register: __sap_hana_install_register_stat_software_directory
+
+    - name: SAP HANA Pre Install - Assert that the software directory exists
+      assert:
+        that: __sap_hana_install_register_stat_software_directory.stat.exists
+        fail_msg: "FAIL: The software path {{ sap_hana_install_software_directory }} does not exist!"
+        success_msg: "PASS: The software path {{ sap_hana_install_software_directory }} exist."
+
+    - name: SAP HANA Pre Install - Change ownership of software path - {{ sap_hana_install_software_directory }}
+      ansible.builtin.file:
+        path: "{{ sap_hana_install_software_directory }}"
+        state: directory
+        recurse: yes
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: SAP HANA Pre Install - Change ownership of HANA directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+      loop:
+        - "/hana"
+        - "/hana/shared"
+        - "/hana/log"
+        - "/hana/data"
+
+    - name: SAP HANA Pre Install - Initial search for directory SAP_HANA_DATABASE
+      find:
+        paths: "{{ sap_hana_install_software_directory }}"
+        recurse: yes
+        file_type: directory
+        contains: "SAP_HANA_DATABASE"
+      register: __sap_hana_install_register_find_directory_sap_hana_database
+
+    - name: SAP HANA Pre Install - Initial check for existence of "/SAP_HANA_DATABASE/hdblcm"
+      stat:
+        path: "{{ __sap_hana_install_register_find_directory_sap_hana_database.files[0].path +
+               '/SAP_HANA_DATABASE/hdblcm' }}"
+      register: __sap_hana_install_register_stat_hdblcm_initial
+      when: __sap_hana_install_register_find_directory_sap_hana_database.files[0].path is defined
+
+    - name: SAP HANA Pre Install - Run hdblcm prepare
+      include_tasks: pre_install/hdblcm_prepare.yml
+      when: (not __sap_hana_install_register_find_directory_sap_hana_database.files[0].path is defined) or
+            (not __sap_hana_install_register_stat_hdblcm_initial.stat.exists)
+
+    - name: SAP HANA Pre Install - Set fact for hdblcm installer path
+      set_fact:
+        sap_hana_hdblcm_path:
+          "{{ __sap_hana_install_register_find_directory_sap_hana_database.files[0].path }}/SAP_HANA_DATABASE"
+
+    - name: SAP HANA Pre Install - Check availability of "{{ sap_hana_hdblcm_path + '/hdblcm' }}"
+      stat:
+        path: "{{ sap_hana_hdblcm_path + '/hdblcm' }}"
+      register: __sap_hana_install_register_hdblcm_stat
+      failed_when: not __sap_hana_install_register_hdblcm_stat.stat.exists
+
+  when: sap_hana_install_new_system|d(true)
+
+################
+# Pre Install Steps
+################
+
+- name: SAP HANA Pre Install - Create temporary directory to store various files
+  tempfile:
+    state: directory
+    suffix: hanaconfig
+  register: __sap_hana_install_register_tmpdir
+
+- name: SAP HANA Pre Install - Process HANA configfile template
+  template:
+    src: "{{ role_path }}/templates/configfile.j2"
+    dest: "{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg"
+    mode: 0644
+  register: __sap_hana_install_register_cftemplate

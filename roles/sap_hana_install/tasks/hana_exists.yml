@@ -1,0 +1,53 @@
+---
+
+- name: HANA admin user check
+  block:
+    - name: Check for sidadm user
+      command: getent passwd {{ sap_hana_install_sid | lower }}adm
+      register: __sap_hana_install_register_getent_passwd_sidadm
+      failed_when: no
+
+# Reason for noqa: The variable is a substring of a user name
+    - name: Assert that there is no sidadm user # noqa var-spacing
+      assert:
+        that: __sap_hana_install_register_getent_passwd_sidadm.rc != 0
+        fail_msg: "FAIL: User {{ sap_hana_install_sid | lower}}adm exists.
+                   Because of this, SAP HANA with SID {{ sap_hana_install_sid }} will not be installed."
+        success_msg: "PASS: User {{ sap_hana_install_sid | lower}}adm does not exist."
+
+  when: sap_hana_install_check_sidadm_user|d(true)
+
+- name: "Get info about directory /hana/shared/{{ sap_hana_install_sid }}"
+  stat:
+    path: "/hana/shared/{{ sap_hana_install_sid }}"
+  register: __sap_hana_install_register_stat_hana_shared_sid_assert
+  failed_when: no
+
+- name: "Assert that directory /hana/shared/{{ sap_hana_install_sid }} does not exist"
+  assert:
+    that: not __sap_hana_install_register_stat_hana_shared_sid_assert.stat.exists
+    fail_msg: "FAIL: Directory /hana/shared/{{ sap_hana_install_sid }} exists.
+               Because of this, SAP HANA with SID {{ sap_hana_install_sid }} will not be installed."
+    success_msg: "PASS: Directory /hana/shared/{{ sap_hana_install_sid }} does not exist."
+
+- name: "Get info about directory /usr/sap/{{ sap_hana_install_sid }}"
+  stat:
+    path: "/usr/sap/{{ sap_hana_install_sid }}"
+  register: __sap_hana_install_register_stat_usr_sap_sid_assert
+  failed_when: no
+
+- name: "Assert that directory /usr/sap/{{ sap_hana_install_sid }} does not exist"
+  assert:
+    that: not __sap_hana_install_register_stat_usr_sap_sid_assert.stat.exists
+    fail_msg: "FAIL: Directory /usr/sap/{{ sap_hana_install_sid }} exists.
+               Because of this, SAP HANA with SID {{ sap_hana_install_sid }} will not be installed."
+    success_msg: "PASS: Directory /usr/sap/{{ sap_hana_install_sid }} does not exist."
+
+#    - name: Check if there is already a SAP HANA system with SID {{ sap_hana_install_sid }} and instance {{ sap_hana_install_instance_number }}
+#      command: sapcontrol -nr {{ sap_hana_install_instance_number }} -function GetProcessList
+#      register: __sap_hana_install_register_sapcontrol
+#      failed_when: no
+#
+#    - name: display __sap_hana_install_register_sapcontrol
+#      debug:
+#        var: __sap_hana_install_register_sapcontrol

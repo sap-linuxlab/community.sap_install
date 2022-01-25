@@ -1,0 +1,16 @@
+---
+
+- name: SAP HANA Post Install - Apply the SAP HANA license
+  shell: |
+      /usr/sap/{{ sap_hana_install_sid | upper }}/HDB{{ sap_hana_install_instance_number }}/exe/hdbsql \
+      -i {{ sap_hana_install_instance_number }} -u SYSTEM -p {{ sap_hana_install_db_system_password }} -m <<EOF
+      SET SYSTEM LICENSE '$(cat {{ sap_hana_install_license_path }}/{{ sap_hana_install_license_file_name }})';
+      EOF
+  args:
+     executable: /bin/bash
+  become: true
+  become_user: "{{ sap_hana_install_sid | lower }}adm"
+  changed_when: "'0 rows affected' in addlicense.stdout"
+# Variable not used:
+#  register: __sap_hana_install_register_post_install_apply_license
+  when: sap_hana_install_apply_license

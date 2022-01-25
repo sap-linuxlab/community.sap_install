@@ -1,0 +1,48 @@
+---
+
+- name: Set SELinux state to '{{ sap_general_preconfigure_selinux_state }}' in /etc/selinux/config
+  lineinfile:
+    path: /etc/selinux/config
+    regexp: ^SELINUX\s*=.*
+    line: "SELINUX={{ sap_general_preconfigure_selinux_state }}"
+    state: present
+  register: __sap_general_preconfigure_register_selinux_config_state_changed
+  notify: __sap_general_preconfigure_reboot_handler
+
+- name: Set SELinux type to 'targeted' in /etc/selinux/config
+  lineinfile:
+    path: /etc/selinux/config
+    regexp: ^SELINUXTYPE\s*=.*
+    line: 'SELINUXTYPE=targeted'
+    state: present
+  register: __sap_general_preconfigure_register_selinux_config_type_changed
+  notify: __sap_general_preconfigure_reboot_handler
+
+# Reason for noqa: We need to notify a handler in another role, which is not possible from a handler in the current role
+- name: SELinux - Set the flag that reboot is needed to apply changes # noqa no-handler
+  set_fact:
+    sap_general_preconfigure_fact_reboot_required: true
+  when: __sap_general_preconfigure_register_selinux_config_state_changed.changed or
+        __sap_general_preconfigure_register_selinux_config_type_changed.changed
+
+- name: SELinux - Display the content of sap_general_preconfigure_fact_reboot_required
+  debug:
+    var: sap_general_preconfigure_fact_reboot_required
+
+- name: Set or unset SELinux kernel parameter, RHEL 8 and RHEL 9
+  block:
+
+    - name: Disable SELinux also on the kernel command line, RHEL 8 and RHEL 9
+      command: grubby --args="selinux=0" --update-kernel=ALL
+      when: sap_general_preconfigure_selinux_state == 'disabled'
+
+    - name: Make sure SELinux is not disabled on the kernel command line, RHEL 8 and RHEL 9
+      command: grubby --remove-args="selinux" --update-kernel=ALL
+      when: sap_general_preconfigure_selinux_state == 'enforcing' or
+            sap_general_preconfigure_selinux_state == 'permissive'
+
+  when:
+    - ansible_os_family == 'RedHat'
+    - ( ansible_distribution_major_version == '8' or
+        ansible_distribution_major_version == '9'
+      )

@@ -1,0 +1,64 @@
+---
+
+- name: SAP SWPM Pre Install - Determine if Generic Product
+  set_fact:
+    sap_swpm_generic: 'true'
+  when: 
+    - "'Webdispatcher' in sap_swpm_product_catalog_id"
+# todo: add items for generic SAP products
+
+################
+# Determine Installation Type
+################
+
+- name: SAP SWPM Pre Install - Determine Installation Type
+  set_fact:
+    sap_swpm_swpm_installation_type: ""
+    sap_swpm_swpm_installation_header: ""
+    sap_swpm_swpm_command_virtual_hostname: ""
+
+# Restore from backup
+- name: SAP SWPM Pre Install - Check if Backup Restore
+  set_fact:
+    sap_swpm_swpm_installation_type: "restore"
+    sap_swpm_swpm_installation_header: "Restoring from Backup"
+  when: 
+    - "'.CP' in sap_swpm_product_catalog_id"
+
+# Standard
+- name: SAP SWPM Pre Install - Check if Standard Installation
+  set_fact:
+    sap_swpm_swpm_installation_type: "standard"
+    sap_swpm_swpm_installation_header: "Installing"
+  when: 
+    - "not '.ABAPHA' in sap_swpm_product_catalog_id"
+    - "not '.CP' in sap_swpm_product_catalog_id"
+    - "'initial' in sap_swpm_virtual_hostname"
+    - "not sap_swpm_generic | bool"
+
+# Generic
+- name: SAP SWPM Pre Install - Check if Generic SAP Product Installation
+  set_fact:
+    sap_swpm_swpm_installation_type: "generic"
+    sap_swpm_swpm_installation_header: "Installing Generic SAP Product"
+  when: 
+    - "not '.CP' in sap_swpm_product_catalog_id"
+    - "sap_swpm_generic | bool"
+
+# High Availability
+- name: SAP SWPM Pre Install - Check if High Availability Installation
+  set_fact:
+    sap_swpm_swpm_installation_type: "ha"
+    sap_swpm_swpm_installation_header: "High Availability Installation using virtual hostname"
+    sap_swpm_swpm_command_virtual_hostname: "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }}"
+  when: 
+    - "'.ABAPHA' in sap_swpm_product_catalog_id"
+    - "not 'initial' in sap_swpm_virtual_hostname"
+    - "not sap_swpm_generic | bool"
+
+################
+# Run Installation Type Steps
+################
+
+- name: SAP SWPM Pre Install - Run Installation Type Steps
+  include_tasks: "install_type/{{ sap_swpm_swpm_installation_type }}_install.yml"

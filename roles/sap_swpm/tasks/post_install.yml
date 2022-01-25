@@ -1,0 +1,34 @@
+---
+
+- name: SAP SWPM Post Install - Set {{ sap_swpm_sid | lower }}adm to no expire
+  shell: |
+      chage -m 0 -M 99999 -I -1 -E -1 {{ sap_swpm_sid | lower }}adm
+      chage -m 0 -M 99999 -I -1 -E -1 sapadm
+  args:
+     executable: /bin/bash
+  become: true
+  register: sap_swpm_post_install_sidadm_noexpire
+
+# Firewall
+
+- name: SAP SWPM Post Install - Firewall Setup
+  include_tasks: post_install/firewall.yml
+  when: 
+    - "sap_swpm_setup_firewall | bool"
+    
+###################################################################################################################################################################
+
+- name: SAP SWPM Deployment - Finished
+  debug:
+    msg:
+      - '   SAP SWPM deployment successfully completed '
+      - ' '
+      - '   SAP Product        -       {{ sap_swpm_product_catalog_id }}  '
+      - '   SID                -       {{ sap_swpm_sid }} '
+      - '   Primary Instance   -       {{ sap_swpm_pas_instance_nr }} '
+      - '   Host               -       {{ ansible_hostname }} '
+      - '   FQDN               -       {{ ansible_fqdn }}  '
+      - '   IP                 -       {{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}  '
+      - '   Master Password    -       {{ sap_swpm_master_password }} '
+      - '   DDIC 000 Password  -       {{ sap_swpm_ddic_000_password }} '
+      

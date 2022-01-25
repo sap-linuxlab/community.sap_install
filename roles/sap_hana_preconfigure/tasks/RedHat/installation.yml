@@ -1,0 +1,226 @@
+---
+
+- name: Ensure that the system is running a RHEL release which is supported for SAP HANA
+  assert:
+    that: ansible_distribution_version in "{{ sap_hana_preconfigure_supported_rhel_minor_releases }}"
+    fail_msg: "The RHEL release {{ ansible_distribution_version }} is not supported for SAP HANA!"
+    success_msg: "The RHEL release {{ ansible_distribution_version }} is supported for SAP HANA."
+  ignore_errors: "{{ not sap_hana_preconfigure_min_rhel_release_check }}"
+
+- name: Perform steps for enabling repos for SAP HANA
+  block:
+# repos required for SAP HANA on RHEL 7 and RHEL 8:
+    - name: Fill the variable for the generic list of required repos
+      set_fact:
+        __sap_hana_preconfigure_fact_required_repos: "{{ lookup('vars','__sap_hana_preconfigure_req_repos_redhat_' +
+        ansible_distribution_version|string|replace (\".\", \"_\") + '_' + ansible_architecture) }}"
+
+    - name: Construct valid argument list to the subscription-manager repos command
+      set_fact:
+        __sap_hana_preconfigure_fact_required_repos_args: "{{ ['--enable='] | product(__sap_hana_preconfigure_fact_required_repos) | map('join') | list }}"
+
+    - name: Enable required repositories
+      command: "subscription-manager repos {{ __sap_hana_preconfigure_fact_required_repos_args | map('quote') | join(' ') }}"
+      register: __sap_hana_preconfigure_register_subscription_enable_repos
+
+    - name: Display the output of the subscription-manager repos --enable command
+      debug:
+        var: __sap_hana_preconfigure_register_subscription_enable_repos
+
+  when: sap_hana_preconfigure_enable_sap_hana_repos
+
+- name: Detect if the minor RHEL release is set
+  shell: set -o pipefail && subscription-manager release --show | awk '{print $NF}'
+  register: __sap_hana_preconfigure_register_subscription_manager_release
+  changed_when: false
+  when:
+    - sap_hana_preconfigure_set_minor_release
+
+- name: Set the minor RHEL release
+  command: subscription-manager release --set="{{ ansible_distribution_version }}"
+  when:
+    - sap_hana_preconfigure_set_minor_release
+    - __sap_hana_preconfigure_register_subscription_manager_release.stdout != ansible_distribution_version
+
+- name: Ensure required packages are installed
+  package:
+    state: present
+    name: "{{ sap_hana_preconfigure_packages }}"
+
+# The package module is sufficient to guarantee that the required packages are installed.
+# So there is no need to display the installed packages.
+# This information can be displayed with an assert run or by running the role with an appropriate verbosity level
+#
+# - name: Get status of installed packages
+#   yum:
+#     name: "{{ sap_hana_preconfigure_packages }}"
+#   register: __sap_hana_preconfigure_register_required_packages
+#   ignore_errors: True
+#   changed_when: false
+#
+# - name: Display the list of required packages which are installed
+#   debug:
+#     var: __sap_hana_preconfigure_register_required_packages.results
+
+### If this task fails, you need to enable the IBM PowerTools repository
+### see https://www14.software.ibm.com/support/customercare/sas/f/lopdiags/home.html for details
+
+- name: Install the ibm-power-repo package
+  yum:
+    name: "{{ sap_hana_preconfigure_ibm_power_repo_url }}"
+    state: present
+    disable_gpg_check: True
+  when:
+    - ansible_architecture == "ppc64le"
+    - sap_hana_preconfigure_add_ibm_power_repo|d(true)
+
+- name: Accept the license for the IBM Service and Productivity Tools
+  shell: LESS=+q /opt/ibm/lop/configure <<<'y'
+  when:
+    - ansible_architecture == "ppc64le"
+    - sap_hana_preconfigure_add_ibm_power_repo|d(true)
+
+# Reason for noqa: Both yum and dnf support "state: latest"
+- name: Install the IBM Service and Productivity Tools # noqa package-latest
+  package:
+    state: latest
+    name: "{{ __sap_hana_preconfigure_required_ppc64le }}"
+  when: ansible_architecture == "ppc64le"
+
+# The package module is sufficient to guarantee that the required packages are installed.
+# So there is no need to display the installed packages.
+# This information can be displayed with an assert run or by running the role with an appropriate verbosity level
+#
+#- name: Get the status of installed IBM Service and Productivity Tools
+#  yum:
+#    name: "{{ __sap_hana_preconfigure_required_ppc64le }}"
+#  register: __sap_hana_preconfigure_register_required_ppc64le_packages
+#  ignore_errors: True
+#  changed_when: false
+#  when: ansible_architecture == "ppc64le"
+#
+# - name: ppc64le - Get status of installed packages
+#  debug:
+#    var: __sap_hana_preconfigure_register_required_ppc64le_packages.results
+#  when: ansible_architecture == "ppc64le"
+
+- name: Ensure that the minimum required package versions are installed
+  block:
+    - name: Create a list of minimum required package versions to be installed
+# How does it work?
+# 1 - Print the required package name and version with a prefix "1" followed by a space.
+# 2 - In the same output sequence, list all installed versions of this package with a prefix "2" followed by a space.
+# 3 - Replace all occurrences of ".el" by ".0.0" so that the sort -V correctly sorts packages with ".el" in its name
+# 4 - Sort the list by the name and version.
+# 5 - Replace ".0.0" by ".el" again to get back the original names.
+# 6 - Store the last installed version of the package in variable latestpkg.
+# 7 - Store the last content of column 1 in variable col1, the last content of column 2 in variable col2,
+#     and the last number of fields in variable _nf.
+# 8 - case 1: If the last number of output fields is greater than 2, it indicates that the package is not installed
+#             because the output of "rpm -q" will be similar to "package XXX is not installed".
+# 8 - case 2a: If the first column of the last line of the output is "1", it means that the required package is
+#              the latest of all required and installed versions of the package, so it means that the package needs
+#              to be updated.
+# 8 - case 2b: If the first column of the last line of the output is "2", it means that at least of the installed
+#              versions the package is equal to or greater than the required package version.
+      shell: |
+           (echo "1 {{ pkg[0] }}-{{ pkg[1] }}";rpm -q --qf "%{NAME}-%{VERSION}-%{RELEASE}\n" {{ pkg[0] }} |
+             awk '{printf ("2 %s\n", $0)}') |
+             awk '{gsub ("\\.el", ".0.0"); print}' |
+             sort -k 2 -k 1 -V |
+             awk '{gsub ("\\.0\\.0", ".el"); col1=$1; col2=$2; _nf=NF}
+               $1==2{latestpkg=$2}
+               END {
+                      if (_nf>2) {
+                         printf ("{{ pkg[0] }}-{{ pkg[1] }}\n")
+                      } else {
+                         if (col1==1) {
+                            printf ("{{ pkg[0] }}-{{ pkg[1] }}\n")
+                         }
+                      }
+                   }'
+      with_list: "{{ __sap_hana_preconfigure_min_pkgs }}"
+      loop_control:
+        loop_var: pkg
+      check_mode: no
+      register: __sap_hana_preconfigure_register_minpkglist
+      changed_when: no
+
+    - name: Display the content of the minimum package list variable
+      debug:
+        var: __sap_hana_preconfigure_register_minpkglist
+
+    - name: Install minimum packages if required
+      yum:
+        name: "{{ line_item.stdout }}"
+        state: present
+      with_items: "{{ __sap_hana_preconfigure_register_minpkglist.results }}"
+      loop_control:
+        loop_var: line_item
+
+  when:
+    - sap_hana_preconfigure_min_package_check|bool
+    - __sap_hana_preconfigure_min_pkgs|d([])
+
+# Reason for noqa: Both yum and dnf support "state: latest"
+- name: Ensure that the system is updated to the latest patchlevel # noqa package-latest
+  package:
+    state: latest
+    name: "*"
+  when: sap_hana_preconfigure_update|bool
+
+- name: "Set needs-restarting command in case of RHEL 7"
+  set_fact:
+    __sap_hana_preconfigure_fact_needs_restarting_command: "needs-restarting -r"
+  when:
+    - ansible_os_family == 'RedHat'
+    - ansible_distribution_major_version == '7'
+
+- name: "Set needs-restarting command in case of RHEL 8 or RHEL 9, except RHEL 8.0"
+  set_fact:
+    __sap_hana_preconfigure_fact_needs_restarting_command: "yum needs-restarting -r"
+  when:
+    - ansible_os_family == 'RedHat'
+    - (ansible_distribution_major_version == '8' or
+         ansible_distribution_major_version == '9'
+      )
+    - ansible_distribution_version != '8.0'
+
+- name: "Set customized needs-restarting command in case of RHEL 8.0"
+  set_fact:
+    __sap_hana_preconfigure_fact_needs_restarting_command: "_IKRNL=$(rpm -q --last kernel | awk 'NR==1{sub(/kernel-/,\"\"); print $1}'); _CKRNL=$(uname -r); if [ ${_IKRNL} != ${_CKRNL} ]; then exit 1; else exit 0; fi"
+  when:
+    - ansible_os_family == 'RedHat'
+    - ansible_distribution_version == '8.0'
+
+- name: Display the command for checking a reboot requirement
+  debug:
+    var: __sap_hana_preconfigure_fact_needs_restarting_command
+
+# Reason for noqa: The command to be executed might contain pipes
+- name: Determine if system needs to be restarted # noqa command-instead-of-shell
+  shell: "{{ __sap_hana_preconfigure_fact_needs_restarting_command }}"
+  register: __sap_hana_preconfigure_register_needs_restarting
+  ignore_errors: true
+  changed_when: false
+  args:
+    warn: false
+  check_mode: false
+
+- name: Display the output of the reboot requirement check
+  debug:
+    var: __sap_hana_preconfigure_register_needs_restarting
+
+# Role sap_general_preconfigure is typically run right before this role, in the same playbook.
+# We can avoid a second reboot by setting sap_general_preconfigure_fail_if_reboot_required
+# to 'no' and notifying the reboot handler of the current role about the reboot requirement
+# of role sap_general_preconfigure.
+- name: Call reboot handler if necessary as per role sap_general_preconfigure
+  command: /bin/true
+  notify: __sap_hana_preconfigure_reboot_handler
+  when: sap_general_preconfigure_fact_reboot_required|d(false)
+
+- name: Call reboot handler if necessary as per this role
+  command: /bin/true
+  notify: __sap_hana_preconfigure_reboot_handler
+  when: __sap_hana_preconfigure_register_needs_restarting is failed

@@ -1,0 +1,254 @@
+---
+# OS RELEASE: RHEL  7.x
+# Check EUS Channels
+# https://launchpad.support.sap.com/#/notes/2009879
+#
+# This SAP Note Contains the general installation guides for all RHEL 7.x systems in PDF format
+#
+# Some of these tasks are documented already in SAP NOTE 2292690
+# See comments
+#
+
+### 3.1 - Basic OS installation is a prerequisite
+### 3.2 - Additional Package installation is done in the installation.yml file
+### 3.3 - Hostname - is an SAP generic setting, already done with SAP Note 2002167 (sap_general_preconfigure)
+### 3.4 - NTP/Chrony - is a generic SAP requirement, needs to be done by linux-system-roles.timesync
+### 3.5 - Configure Storage - out of scooe, have a look at linux-system-roles.storage
+### 3.6 - Activate SAP HANA specific tuned profile -> SAP Note 2292690
+### 3.7 - Disable SE Linux -> SAP Note 2292690, SAP NOTE 2002167
+### 3.8 - Disable Numa Balancing -> SAP Note 2292690
+
+### 3.9 - Create the compatibility links for HANA
+- name: Check if required links exist
+  block:
+    - name: ... in case of RHEL 7.2
+      block:
+        - name: RHEL 7.2 - Get info about file /usr/lib64/libssl.so.1.0.1
+          stat:
+            path: /usr/lib64/libssl.so.1.0.1
+          register: __sap_hana_preconfigure_register_stat_libssl_rhel_72_assert
+
+        - name: RHEL 7.2 - Assert that file /usr/lib64/libssl.so.1.0.1 exists
+          assert:
+            that: __stat_lpbldap.stat.exists
+            fail_msg: "FAIL: File /usr/lib64/libssl.so.1.0.1 does not exist!"
+            success_msg: "PASS: File /usr/lib64/libssl.so.1.0.1 exist."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+
+        - name: RHEL 7.2 - Assert that file /usr/lib64/libssl.so.1.0.1 is a link
+          assert:
+            that: __sap_hana_preconfigure_register_stat_libssl_rhel_72_assert.stat.islnk
+            fail_msg: "FAIL: File /usr/lib64/libssl.so.1.0.1 is not a link!"
+            success_msg: "PASS: File /usr/lib64/libssl.so.1.0.1 is a link."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+          when: __sap_hana_preconfigure_register_stat_libssl_rhel_72_assert.stat.exists
+
+        - name: RHEL 7.2 - Assert that file /usr/lib64/libssl.so.1.0.1 is a link to /usr/lib64/libssl.so.1.0.1e
+          assert:
+            that: "__sap_hana_preconfigure_register_stat_libssl_rhel_72_assert.stat.lnk_target == '/usr/lib64/libssl.so.1.0.1e'"
+            fail_msg: "FAIL: File /usr/lib64/libssl.so.1.0.1 is not a link to /usr/lib64/libssl.so.1.0.1e!"
+            success_msg: "PASS: File /usr/lib64/libssl.so.1.0.1 is a link to /usr/lib64/libssl.so.1.0.1e."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+          when: __sap_hana_preconfigure_register_stat_libssl_rhel_72_assert.stat.exists
+
+        - name: RHEL 7.2 - Get info about file /usr/lib64/libcrypto.so.1.0.1
+          stat:
+            path: /usr/lib64/libcrypto.so.1.0.1
+          register: __sap_hana_preconfigure_register_stat_libcrypto_rhel_72_assert
+
+        - name: RHEL 7.2 - Assert that file /usr/lib64/libcrypto.so.1.0.1 exists
+          assert:
+            that: __sap_hana_preconfigure_register_stat_libcrypto_rhel_72_assert.stat.exists
+            fail_msg: "FAIL: File /usr/lib64/libcrypto.so.1.0.1 does not exist!"
+            success_msg: "PASS: File /usr/lib64/libcrypto.so.1.0.1 exist."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+
+        - name: RHEL 7.2 - Assert that file /usr/lib64/libcrypto.so.1.0.1 exists and is a link
+          assert:
+            that: __sap_hana_preconfigure_register_stat_libcrypto_rhel_72_assert.stat.islnk
+            fail_msg: "FAIL: File /usr/lib64/libcrypto.so.1.0.1 is not a link!"
+            success_msg: "PASS: File /usr/lib64/libcrypto.so.1.0.1 is a link."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+          when: __sap_hana_preconfigure_register_stat_libcrypto_rhel_72_assert.stat.exists
+
+        - name: RHEL 7.2 - Assert that file /usr/lib64/libcrypto.so.1.0.1 is a link to /usr/lib64/libcrypto.so.1.0.1e
+          assert:
+            that: "__sap_hana_preconfigure_register_stat_libcrypto_rhel_72_assert.stat.lnk_target == '/usr/lib64/libcrypto.so.1.0.1e'"
+            fail_msg: "FAIL: File /usr/lib64/libcrypto.so.1.0.1 is not a link to /usr/lib64/libcrypto.so.1.0.1e!"
+            success_msg: "PASS: File /usr/lib64/libcrypto.so.1.0.1 is a link to /usr/lib64/libcrypto.so.1.0.1e."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+          when: __sap_hana_preconfigure_register_stat_libcrypto_rhel_72_assert.stat.exists
+
+      when: "ansible_distribution_version  == '7.2'"
+
+    - name: ... in case of RHEL 7.3 and above
+      block:
+        - name: Get info about file /usr/lib64/libssl.so.1.0.1
+          stat:
+            path: /usr/lib64/libssl.so.1.0.1
+          register: __sap_hana_preconfigure_register_stat_libssl_rhel_7_assert
+
+        - name: Assert that file /usr/lib64/libssl.so.1.0.1 exists
+          assert:
+            that: __sap_hana_preconfigure_register_stat_libssl_rhel_7_assert.stat.exists
+            fail_msg: "FAIL: File /usr/lib64/libssl.so.1.0.1 does not exist!"
+            success_msg: "PASS: File /usr/lib64/libssl.so.1.0.1 exist."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+
+        - name: Assert that file /usr/lib64/libssl.so.1.0.1 is a link
+          assert:
+            that: __sap_hana_preconfigure_register_stat_libssl_rhel_7_assert.stat.islnk
+            fail_msg: "FAIL: File /usr/lib64/libssl.so.1.0.1 is not a link!"
+            success_msg: "PASS: File /usr/lib64/libssl.so.1.0.1 is a link."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+          when: __sap_hana_preconfigure_register_stat_libssl_rhel_7_assert.stat.exists
+
+        - name: Assert that file /usr/lib64/libssl.so.1.0.1 is a link to /usr/lib64/libssl.so.10
+          assert:
+            that: "__sap_hana_preconfigure_register_stat_libssl_rhel_7_assert.stat.lnk_target == '/usr/lib64/libssl.so.10'"
+            fail_msg: "FAIL: File /usr/lib64/libssl.so.1.0.1 is not a link to /usr/lib64/libssl.so.10!"
+            success_msg: "PASS: File /usr/lib64/libssl.so.1.0.1 is a link to /usr/lib64/libssl.so.10."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+          when: __sap_hana_preconfigure_register_stat_libssl_rhel_7_assert.stat.exists
+
+        - name: Get info about file /usr/lib64/libcrypto.so.1.0.1
+          stat:
+            path: /usr/lib64/libcrypto.so.1.0.1
+          register: __sap_hana_preconfigure_register_stat_libcrypto_rhel_7_assert
+
+        - name: Assert that file /usr/lib64/libcrypto.so.1.0.1 exists
+          assert:
+            that: __sap_hana_preconfigure_register_stat_libcrypto_rhel_7_assert.stat.exists
+            fail_msg: "FAIL: File /usr/lib64/libcrypto.so.1.0.1 does not exist!"
+            success_msg: "PASS: File /usr/lib64/libcrypto.so.1.0.1 exist."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+
+        - name: Assert that file /usr/lib64/libcrypto.so.1.0.1 is a link
+          assert:
+            that: __sap_hana_preconfigure_register_stat_libcrypto_rhel_7_assert.stat.islnk
+            fail_msg: "FAIL: File /usr/lib64/libcrypto.so.1.0.1 is not a link!"
+            success_msg: "PASS: File /usr/lib64/libcrypto.so.1.0.1 is a link."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+          when: __sap_hana_preconfigure_register_stat_libcrypto_rhel_7_assert.stat.exists
+
+        - name: Assert that file /usr/lib64/libcrypto.so.1.0.1 is a link to /usr/lib64/libcrypto.so.10
+          assert:
+            that: "__sap_hana_preconfigure_register_stat_libcrypto_rhel_7_assert.stat.lnk_target == '/usr/lib64/libcrypto.so.10'"
+            fail_msg: "FAIL: File /usr/lib64/libcrypto.so.1.0.1 is not a link to /usr/lib64/libcrypto.so.10!"
+            success_msg: "PASS: File /usr/lib64/libcrypto.so.1.0.1 is a link to /usr/lib64/libcrypto.so.10."
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+          when: __sap_hana_preconfigure_register_stat_libcrypto_rhel_7_assert.stat.exists
+
+      when: "ansible_distribution_version != '7.2'"
+
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_9|d(false)
+
+### 3.10 - THP -> SAP Note 2292690
+### 3.11 - CPU Governor for performance -> TunedProfile -> SAP Note 2292690
+### 3.12 - Processor C-States für x86_64 -> SAP Note 2292690
+
+### Set by HANA installer
+#- name: Assert - increase file handles to 32800 for sapsys group
+#  pam_limits:
+#    dest: /etc/security/limits.d/99-sapsys.conf
+#    domain: "@sapsys"
+#    limit_item: nofile
+#    limit_type: "{{ line_item }}"
+#    value: 32800
+#  with_items:
+#    - soft
+#    - hard
+#  loop_control:
+#    loop_var: line_item
+
+### 3.13 - set number of process to unlimited for sapsys group
+# now in role sap_general_preconfigure
+#- name: Assert - 3.13 Set the hard and soft limit for the max number of processes per user (nproc) to unlimited for group sapsys
+#  block:
+#    - name: Get the hard limit of nproc for group sapsys
+#      command: awk '/sapsys/&&/nproc/&&/hard/{print $NF}' /etc/security/limits.d/99-sap.conf
+#      register: awk_nofile_hard_result
+#      changed_when: no
+#
+#    - name: Assert that the hard limit of nproc is unlimited for group sapsys
+#      assert:
+#        that:
+#          - "awk_nofile_hard_result.stdout == 'unlimited'"
+#        fail_msg: "FAIL: The hard limit of nproc is not set to 'unlimited' in /etc/security/limits.d/99-sap.conf!"
+#        success_msg: "PASS: The hard limit of nproc is set to 'unlimited' in /etc/security/limits.d/99-sap.conf."
+#      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+#
+#    - name: Get the soft limit of nproc for group sapsys
+#      command: awk '/sapsys/&&/nproc/&&/soft/{print $NF}' /etc/security/limits.d/99-sap.conf
+#      register: awk_nofile_soft_result
+#      changed_when: no
+#
+#    - name: Assert that the soft limit of nproc is unlimited for group sapsys
+#      assert:
+#        that:
+#          - "awk_nofile_soft_result.stdout == 'unlimited'"
+#        fail_msg: "FAIL: The soft limit of nproc is not set to 'unlimited' in /etc/security/limits.d/99-sap.conf!"
+#        success_msg: "PASS: The soft limit of nproc is set to 'unlimited' in /etc/security/limits.d/99-sap.conf."
+#      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+#
+#  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_13|d(false)
+
+### 3.14 - Disable ABRT
+- include_tasks: ../RedHat/generic/assert-abrtd.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_14_1|d(false)
+
+- include_tasks: ../RedHat/generic/assert-abrt-ccpp.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_14_2|d(false)
+
+### 3.14 - Disable core Dumps
+- include_tasks: ../RedHat/generic/assert-coredumps.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_14_3|d(false)
+
+### 3.14 - Disable Kdump
+- include_tasks: ../RedHat/generic/assert-kdump.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_14_4|d(false)
+
+### 3.15 - Disable Firewalld
+### Firewall Settings can only be done if SAP instance ID is known,
+### otherwise disable firewall
+### NYI: Set proper firewall rules if SID/instance number is known
+###
+- include_tasks: ../RedHat/generic/assert-firewalld.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_15|d(false)
+# - name: 3.15 Ensure firewall is disabled when instance ID unknown
+#   service: name=firewalld state=stopped enabled=no
+#   ignore_errors: True
+
+
+### Firewall Calculation for SID=xx
+##################################################################
+# Schema                     | Description
+# ---------------------------+------------------------------------
+# 3xx09                      | Administration port for SAP HANA
+# 1128 - 1129, 5xx13 - 5xx14 | SAP HANA Studio
+# 43xx, 80xx                 | Company Network
+# 3xx15, 3xx17               | SAP HANA Studio + Replication
+#
+# NYI: Create this service in case SID is defined
+#
+# example file for SID=99, but what to replace for destination ??
+# Maybe this could be moved to hana-deploy !
+#
+# <?xml version="1.0" encoding="utf-8"?>
+# <service>
+# <short>SAP HANA</short>
+# <description>Firewall rules for SAP HANA</description>
+# <port port="39909" protocol="tcp"/>
+# <port port="1128" protocol="tcp"/>
+# <port port="1129" protocol="tcp"/>
+# <port port="4399" protocol="tcp"/>
+# <port port="8099" protocol="tcp"/>
+# <port port="59913" protocol="tcp"/>
+# <port port="59914" protocol="tcp"/>
+# <port port="39915" protocol="tcp"/>
+# <port port="39917" protocol="tcp"/>
+# <port port="39901" protocol="tcp"/>
+# <port port="39907" protocol="tcp"/>
+# <destination ipv4="192.168.0.33"/>
+# </service>
+#

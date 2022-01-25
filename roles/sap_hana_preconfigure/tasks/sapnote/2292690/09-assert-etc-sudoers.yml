@@ -1,0 +1,18 @@
+---
+
+- name: Assert 2292690-9
+  debug:
+    msg: "SAP note 2292690 Step 9: Database startup fails with an error message - /etc/sudoers"
+
+- name: Get contents of /etc/sudoers
+  command: grep '^Defaults[ \s]*requiretty' /etc/sudoers
+  register: __sap_hana_preconfigure_register_etc_sudoers_requiretty_assert
+  changed_when: no
+  ignore_errors: yes
+
+- name: Assert that "Defaults requiretty" is not set in /etc/sudoers
+  assert:
+    that: __sap_hana_preconfigure_register_etc_sudoers_requiretty_assert is failed
+    fail_msg: "FAIL: The string 'Defaults requiretty' was found in /etc/sudoers!"
+    success_msg: "PASS: The string 'Defaults requiretty' was not found in /etc/sudoers!"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"

@@ -1,0 +1,52 @@
+---
+# OS RELEASE: RHEL 7 and RHEL 8
+# SAP Note: 2526952 - Red Hat Enterprise Linux for SAP Solutions
+# prerequisite: package tuned-profiles-sap is installed (see vars/RedHat.yml)
+
+# Configure tuned to use profile "sap-netweaver"
+
+- name: Configure - Display SAP note number 2526952 and its version
+  debug:
+    msg: "SAP note {{ (__sap_netweaver_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2526952$') | first).number }}
+          (version {{ (__sap_netweaver_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2526952$') | first).version }}): RHEL for SAP packages"
+
+- name: Enable and start tuned
+  service:
+    name=tuned
+    state=started
+    enabled=yes
+
+- name: Show currently active tuned profile
+  shell: set -o pipefail && /usr/sbin/tuned-adm active | awk '/:/{print $NF}'
+  check_mode: no
+  register: __sap_netweaver_preconfigure_register_current_tuned_profile
+  changed_when: false
+
+- name: Display the output of the tuned-adm active command
+  debug:
+    var: __sap_netweaver_preconfigure_register_current_tuned_profile.stdout_lines, __sap_netweaver_preconfigure_register_current_tuned_profile.stderr_lines
+
+#- name: Set a variable which contains the name of the currently active tuned profile
+#  set_fact:
+#    __sap_netweaver_preconfigure_register_active_tuned_profile: "{{ __sap_netweaver_preconfigure_register_current_tuned_profile.stdout }}"
+
+- name: Switch to tuned profile sap-netweaver if not currently active
+  block:
+    - name: Switch to tuned profile sap-netweaver
+      command: /usr/sbin/tuned-adm profile sap-netweaver
+
+    - name: Show new active tuned profile
+      shell: /usr/sbin/tuned-adm active | awk '{print $NF}'
+      check_mode: no
+      register: __sap_netweaver_preconfigure_register_new_tuned_profile
+      changed_when: false
+
+    - name: Display the output of the tuned-adm active command after switching to profile sap-netweaver
+      debug:
+        var: __sap_netweaver_preconfigure_register_new_tuned_profile.stdout_lines, __sap_netweaver_preconfigure_register_new_tuned_profile.stderr_lines
+
+#    - name: Set a variable which contains the name of the now active tuned profile
+#      set_fact:
+#        __sap_netweaver_preconfigure_register_active_tuned_profile: "{{ __sap_netweaver_preconfigure_register_new_tuned_profile.stdout }}"
+  when:
+    - __sap_netweaver_preconfigure_register_current_tuned_profile.stdout != 'sap-netweaver'

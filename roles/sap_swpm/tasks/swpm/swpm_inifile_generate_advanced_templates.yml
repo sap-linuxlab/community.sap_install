@@ -1,0 +1,51 @@
+# Set facts based on the install dictionary
+- set_fact:
+    sap_swpm_product_catalog_id: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_product_catalog_id'] }}"
+
+- name: SAP SWPM advanced_templates mode - Create temporary directory
+  tempfile:
+    state: directory
+    suffix: swpmconfig
+  register: sap_swpm_tmpdir
+
+# Remove Existing inifile.params
+- name: SAP SWPM advanced_templates mode - Ensure inifile.params
+  file:
+    path: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+    state: touch
+
+
+- name: SAP SWPM advanced_templates mode - Loop over the dictionary and output to file
+  lineinfile:
+    path: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+    state: present
+    insertafter: EOF
+    line: "{{ item.key }}={{ item.value }}"
+  with_dict: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_custom_values_dictionary'] }}"
+
+# NOTE: Values in Dictionary Keys for instance numbers must be string using '01' single quote, otherwise SAP SWPM will crash
+
+
+# Detect variables from generated inifile
+- name: SAP SWPM advanced_templates mode - Detect Variables
+  include_tasks: detect_variables.yml
+
+# Prepare Software
+- name: SAP SWPM advanced_templates mode - Prepare Software
+  include_tasks: prepare_software.yml
+
+
+# ALT: Generate complete inifile.params with all parameters from control.xml, for every SAP software product
+#- name: ALT: SAP SWPM advanced_templates mode - Generate complete inifile.params
+#  script: ./plugins/module_utils/swpm2_parameters_inifile_generate.py '/path/to/controlxml/'
+#  args:
+#    executable: /bin/python3
+
+# ALT: Replace values of generated inifile with custom values
+#- name: ALT: SAP SWPM advanced_templates mode - Replace values of generated inifile with custom values
+#  replace:
+#    path: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+#    regexp: '^{{ item.key }}.*$'
+#    replace: '{{ item.key }}={{ item.value }}'
+#    backup: yes
+#  with_dict: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_custom_values_dictionary'] }}"

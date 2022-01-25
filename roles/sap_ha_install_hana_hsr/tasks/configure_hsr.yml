@@ -1,0 +1,58 @@
+# [1] Enable HANA System Replication
+- name: SAP HSR - [1] Enable HANA System Replication
+  shell: |
+      source /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/home/.sapenv.sh && \
+      /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/HDB{{ sap_ha_install_hana_hsr_instance_number }}/exe/hdbnsutil \
+      -sr_enable --name="{{ sap_ha_install_hana_hsr_alias }}"
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
+  register: enablesr
+  changed_when: "'successfully enabled system as system replication source site' in enablesr.stdout"
+  when:
+    - sap_ha_install_hana_hsr_role == 'primary'
+
+# [2] Stop HANA instance
+- name: SAP HSR - [2] Stop HANA instance
+  shell: |
+      /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/HDB{{ sap_ha_install_hana_hsr_instance_number }}/HDB stop
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
+  register: stopinstance
+  changed_when: "'StopSystem' in stopinstance.stdout"
+  when:
+    - sap_ha_install_hana_hsr_role == 'secondary'
+
+# [2] Register secondary node to HANA System Replication
+- name: SAP HSR - [2] Register secondary node to HANA System Replication
+  shell: |
+      source /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/home/.sapenv.sh && \
+      /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/HDB{{ sap_ha_install_hana_hsr_instance_number }}/exe/hdbnsutil \
+      -sr_register --name={{ sap_ha_install_hana_hsr_alias }} \
+      --remoteHost={{ sap_ha_install_hana_hsr_primary_hostname }} --remoteInstance={{ sap_ha_install_hana_hsr_instance_number }} \
+      --replicationMode={{ sap_ha_install_hana_hsr_rep_mode }} --operationMode={{ sap_ha_install_hana_hsr_oper_mode }}
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
+  register: registersr
+  changed_when: "'adding site' in registersr.stdout"
+  when:
+    - sap_ha_install_hana_hsr_role == 'secondary'
+
+# [2] Start HANA instance
+- name: SAP HSR - [2] Start HANA instance
+  shell: |
+      /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/HDB{{ sap_ha_install_hana_hsr_instance_number }}/exe/sapcontrol \
+      -nr {{ sap_ha_install_hana_hsr_instance_number }} -function StartSystem
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
+  register: startinstance
+  changed_when: "'StartSystem' in startinstance.stdout"
+  when:
+    - sap_ha_install_hana_hsr_role == 'secondary'

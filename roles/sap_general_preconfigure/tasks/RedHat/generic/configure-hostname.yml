@@ -1,0 +1,54 @@
+---
+
+# The hostname module fails if it is run from an initrc_t context
+# See also: https://github.com/ansible/ansible/issues/19814
+# The following applies an appropriate selinux rule if the role is run in initrc_t context
+
+# 1) using compiled file tmp/hostnamectl-fix.pp:
+# - name: Adding SELinux rule so that hostname will work from initrc_t context
+#  block:
+#    - name: copy SELinux Rule
+#      copy:
+#        src=tmp/hostnamectl-fix.pp
+#        dest=/tmp/hostnamectl-fix.pp
+#    - name: apply SELinux Rule
+#      command: semodule -i /tmp/hostnamectl-fix.pp
+#  when: sap_base_settings_register_selinux_context.stdout.split(':')[2] is defined and sap_base_settings_register_selinux_context.stdout.split(':')[2] == 'initrc_t'
+
+# 2) using source file tmp/hostnamectl-fix.te:
+# - name: Get current SELinux context
+#   command: "id -Z"
+#   register: sap_base_settings_register_selinux_context
+#   changed_when: false
+#   ignore_errors: true
+#
+# - name: Debug current SELinux context
+#   debug:
+#     msg: "The current SELinux context is {{ sap_base_settings_register_selinux_context.stdout.split(':')[2] }} "
+#   ignore_errors: true
+#
+# - name: Add SELinux rule so that hostname will work from initrc_t context
+#   block:
+#     - name: copy SELinux Rule
+#       copy:
+#         src=tmp/hostnamectl-fix.te
+#         dest=/tmp/hostnamectl-fix.te
+#     - name: compile SELinux module file
+#       command: checkmodule -M -m -o /tmp/hostnamectl-fix.mod /tmp/hostnamectl-fix.te
+#     - name: build SELinux policy package
+#       command: semodule_package -M -m -o /tmp/hostnamectl-fix.pp /tmp/hostnamectl-fix.mod
+#     - name: load SELinux policy package
+#       command: semodule -i /tmp/hostnamectl-fix.pp
+#     - name: Remove temporary files
+#       file: path=/tmp/hostnamectl-fix.*
+#         state=absent
+#   when: sap_base_settings_register_selinux_context.stdout.split(':')[2] is defined and sap_base_settings_register_selinux_context.stdout.split(':')[2] == 'initrc_t'
+
+- name: Ensure that the short hostname is set
+  hostname:
+    name: "{{ sap_hostname }}"
+
+- name: "Ensure that the length of the hostname is not longer than 'sap_general_preconfigure_max_hostname_length'"
+  assert:
+    that: "{{ sap_hostname | length | int }} <= {{ sap_general_preconfigure_max_hostname_length | int }}"
+    msg: "The length of the hostname is {{ sap_hostname | length | int }} but must be less or equal to {{ sap_general_preconfigure_max_hostname_length }} (variable 'sap_general_preconfigure_max_hostname_length')!"

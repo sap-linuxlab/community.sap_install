@@ -1,0 +1,43 @@
+# Update etc hosts for NW
+
+- name: SAP SWPM Pre Install - Update etc hosts for NW
+  block:
+
+  - name: SAP SWPM Pre Install - Deduplicate values from /etc/hosts
+    lineinfile:
+      path: /etc/hosts
+      create: false
+      regexp: (?i)^\s*{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}\s+
+      state: absent
+
+  - name: SAP SWPM Pre Install - Update /etc/hosts with NW entry
+    lineinfile:
+      path: /etc/hosts
+      line: "{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}\t{{ ansible_hostname }}.{{ sap_swpm_fqdn }}\t{{ ansible_hostname }}"
+  
+  when: 
+    - "sap_swpm_fqdn is defined"
+
+# Update etc hosts for HANA
+
+- name: SAP SWPM Pre Install - Update etc hosts for HANA
+  block:
+
+  - name: SAP SWPM Pre Install - Deduplicate values from /etc/hosts
+    lineinfile:
+      path: /etc/hosts
+      create: false
+      regexp: (?i)^\s*{{ sap_swpm_db_ip }}\s+
+      state: absent
+
+  - name: SAP SWPM Pre Install - Update /etc/hosts with HANA entry
+    lineinfile:
+      path: /etc/hosts
+      line: "{{ sap_swpm_db_ip }}\t{{ sap_swpm_db_host }}.{{ sap_swpm_fqdn }}\t{{ sap_swpm_db_host }}"
+
+  when: 
+    - "sap_swpm_db_ip is defined"
+    - "sap_swpm_db_host is defined"
+    - "sap_swpm_db_host != ansible_hostname"
+
+

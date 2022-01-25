@@ -1,0 +1,88 @@
+---
+# hdblcm prepare
+
+# Create directory  {{ sap_hana_install_directory }}/extracted
+# This is where all extracted .SAR files will be stored
+
+- name: SAP Media Organize - SAP HANA - Remove directory - {{ sap_hana_install_directory }}/extracted
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_directory }}/extracted"
+    state: absent
+
+- name: SAP Media Organize - SAP HANA - Create directory - {{ sap_hana_install_directory }}/extracted
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_directory }}/extracted"
+    state: directory
+
+- name: SAP Media Organize - SAP HANA - Change ownership of deployment directory - {{ sap_hana_install_directory }}
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_directory }}"
+    state: directory
+    recurse: yes
+    mode: '0755'
+    owner: root
+    group: root
+  
+- name: SAP Media Organize - SAP HANA - Get SAPCAR executable file from folder - {{ sap_hana_install_directory }}
+  shell: |
+    ls SAPCAR*EXE
+  args:
+    chdir: "{{ sap_hana_install_directory }}"
+  register: sapcar_executable
+
+- name: SAP Media Organize - SAP HANA - Set fact for SAPCAR executable
+  set_fact:
+    sap_hana_install_sapcar_file_name: "{{ sapcar_executable.stdout }}"
+
+- name: SAP Media Organize - SAP HANA - Get all SAR files in folder - {{ sap_hana_install_directory }}
+  shell: |
+    ls *.SAR
+  args:
+    chdir: "{{ sap_hana_install_directory }}"
+  register: sarfiles_list
+
+- name: SAP Media Organize - SAP HANA - Set fact list of SAR files
+  set_fact:
+    sap_hana_install_components_sar: "{{ sarfiles_list.stdout.split() }}"
+  when:
+    - not( sarfiles_list.stdout == '' )
+
+- name: SAP Media Organize - SAP HANA - Extract all SAR files in folder - {{ sap_hana_install_directory }}
+  include_tasks: extract_sar.yml
+  register: extract_all_sar_files
+  loop: "{{ sap_hana_install_components_sar }}"
+  loop_control:
+    loop_var: passed_sap_hana_install_components_sar
+  when:
+    - not( sarfiles_list.stdout == '' )
+
+- name: SAP Media Organize - SAP HANA - Change ownership of software path - {{ sap_hana_install_directory }}
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_directory }}"
+    state: directory
+    recurse: yes
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: SAP Media Organize - SAP HANA - Find SAP_HANA_DATABASE
+  find:
+    paths: "{{ sap_hana_install_directory }}"
+    recurse: yes
+    file_type: directory
+    contains: "SAP_HANA_DATABASE"
+  register: sap_hana_database
+
+- name: SAP Media Organize - SAP HANA - Find SAP_HANA_CLIENT for SAP SWPM
+  find:
+    paths: "{{ sap_hana_install_directory }}"
+    recurse: yes
+    file_type: directory
+    patterns: "SAP_HANA_CLIENT"
+  register: sap_hana_client_path
+  ignore_errors: yes
+
+- name: SAP Media Organize - SAP HANA - Set fact for hdblcm installer path for SAP SWPM 1
+  set_fact:
+    sap_swpm_cd_rdms_path: "{{ sap_hana_client_path.files[0].path }}"
+  ignore_errors: yes

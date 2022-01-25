@@ -1,0 +1,37 @@
+---
+# OS RELEASE: RHEL 6.x, 7.x
+# Check EUS Channels
+# https://launchpad.support.sap.com/#/notes/2009879
+#
+# This SAP Note Contains the general installation guides for all RHEL systems in PDF format
+# We include the release specific stuff here
+#
+
+# Todo: move repo checking to RedHat/installion.yml
+# Disable for now, as there is no support for ppc64le
+#- name: Check for EUS or E4S repository
+#  shell: |
+#    yum repolist | awk '
+#       BEGIN {a=0}
+#       /rhel-{{ ansible_distribution_major_version }}-server-e[4u]s-rpms/ {a++}
+#       /rhel-sap-hana-for-rhel-{{ ansible_distribution_major_version }}-server-e[4u]s-rpms/ {a++}
+#       END {print a}'
+#  register: sap_hana_preconfigure_register_eus
+#  changed_when: false
+
+#- name: Output warning
+#  debug:
+#    msg: "We could not recognize the correct RHEL repositories for SAP HANA. Please make sure you the proper EUS or E4S repositories available"
+#  when:
+#    - sap_hana_preconfigure_register_eus.stdout != "2"
+#  ignore_errors: true
+
+### Package installation is done in installation.yml
+
+- name: Configure - Display SAP note number 2009879 and its version
+  debug:
+    msg: "SAP note {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2009879$') | first).number }}
+          (version {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2009879$') | first).version }}): SAP HANA Guidelines for R
+HEL 7 (pdf)"
+
+- include_tasks: 2009879_{{ ansible_distribution_major_version }}.yml
