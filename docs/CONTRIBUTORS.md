@@ -12,3 +12,6 @@
     - **Bernd Finger** - Developer of sap_*_preconfigure Ansible Roles and project co-owner
     - **Marcos Entenza** - Primary Developer of Ansible Roles
     - **Ricardo Garcia** - Primary Developer of Ansible Roles
+- **SVA**
+  - ** Thomas Bludau ** - Origin developer of SAP installation Ansible automation (2019) and project co-owner
+  - ** Rainer Leber **  - Developer of Ansible Collection (SLES code)
