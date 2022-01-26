@@ -2,10 +2,10 @@
 
 - **IBM Lab for SAP Solutions**
   - IBM Consulting
-    - **Jason Masipiquena** - Developer of Ansible Collection and project co-owner
+    - **Jason Masipiquena** - Developer of Ansible Collection
     - **Sherard Guico** - Origin technical SAP specialist, installation expertise and primary testing
   - IBM Cloud
-    - **Sean Freeman** - Origin developer of SAP installation Bash automation (2017), and creation of sap_swpm Template modes
+    - **Sean Freeman** - Developer of Ansible Collection, project co-owner and origin developer of SAP installation Bash automation (2017)
 - **Red Hat**
   - Red Hat for SAP CoP
     - **Markus Koch** - Origin developer of SAP installation Ansible automation (2019) and project owner
