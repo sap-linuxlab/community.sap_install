@@ -1,0 +1,27 @@
+# Worflow for ansible-test sanity tests
+
+name: ansible-test sanity
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+  workflow_dispatch:
+
+jobs:
+  sanity:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with: 
+          path: ~/ansible_collections/community/sap_install
+      
+      - name: Install necessary python requirements
+        run: pip install -r requirements-dev.txt
+        
+      - name: Execute ansible-test sanity checks
+        working-directory: ~/ansible_collections/community/sap_install
+        run: ansible-test sanity
