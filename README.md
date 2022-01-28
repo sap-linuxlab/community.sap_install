@@ -69,11 +69,8 @@ Within this Ansible Collection, there are various Ansible Roles and no custom An
 | Role Name  | Ansible Lint Status|
 | :-- | :-- |
 | [sap_general_preconfigure](/roles/sap_general_preconfigure) | [![Ansible Lint for sap_general_preconfigure](https://github.com/kksat/community.sap_install/actions/workflows/ansible-lint%20sap_general_preconfigure.yml/badge.svg)](https://github.com/kksat/community.sap_install/actions/workflows/ansible-lint%20sap_general_preconfigure.yml) |
-
 | [sap_netweaver_preconfigure](/roles/sap_netweaver_preconfigure) | [![Ansible Lint for sap_netweaver_preconfigure](https://github.com/kksat/community.sap_install/actions/workflows/ansible-lint%20sap_netweaver_preconfigure.yml/badge.svg)](https://github.com/kksat/community.sap_install/actions/workflows/ansible-lint%20sap_netweaver_preconfigure.yml) |
-
 | [sap_hana_preconfigure](/roles/sap_hana_preconfigure) | [![Ansible Lint for sap_hana_preconfigure](https://github.com/kksat/community.sap_install/actions/workflows/ansible-lint%20sap_hana_preconfigure.yml/badge.svg)](https://github.com/kksat/community.sap_install/actions/workflows/ansible-lint%20sap_hana_preconfigure.yml) |
-
 | [sap_hana_install](/roles/sap_hana_install) | [![Ansible Lint for sap_hana_install](https://github.com/kksat/community.sap_install/actions/workflows/ansible-lint%20sap_hana_install.yml/badge.svg)](https://github.com/kksat/community.sap_install/actions/workflows/ansible-lint%20sap_hana_install.yml) |
 
 
