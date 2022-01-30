@@ -1,5 +1,10 @@
 ---
 
+- name: Get boot command line
+  slurp:
+    src: /proc/cmdline
+  register: __sap_hana_preconfigure_register_proc_cmdline
+
 - name: Enable TSX at boot time
   command: /bin/true
   notify: __sap_hana_preconfigure_grubby_update_handler
@@ -8,4 +13,5 @@
     - ansible_distribution == 'RedHat'
     - ansible_distribution_major_version == '8'
     - __sap_hana_preconfigure_fact_ansible_distribution_minor_version|int >= 3
+    - not ( __sap_hana_preconfigure_register_proc_cmdline['content'] | b64decode | regex_findall('tsx=on') )
   tags: grubconfig
