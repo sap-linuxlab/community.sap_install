@@ -54,36 +54,46 @@
         - "/hana/log"
         - "/hana/data"
 
-    - name: SAP HANA Pre Install - Initial search for directory SAP_HANA_DATABASE
+    - name: SAP HANA Pre Install - Find file 'hdblcm'
       find:
         paths: "{{ sap_hana_install_software_directory }}"
         recurse: yes
-        file_type: directory
-        contains: "SAP_HANA_DATABASE"
-      register: __sap_hana_install_register_find_directory_sap_hana_database
+        file_type: file
+        patterns: 'hdblcm'
+      register: __sap_hana_install_register_find_hdblcm
 
-    - name: SAP HANA Pre Install - Initial check for existence of "/SAP_HANA_DATABASE/hdblcm"
-      stat:
-        path: "{{ __sap_hana_install_register_find_directory_sap_hana_database.files[0].path +
-               '/SAP_HANA_DATABASE/hdblcm' }}"
-      register: __sap_hana_install_register_stat_hdblcm_initial
-      when: __sap_hana_install_register_find_directory_sap_hana_database.files[0].path is defined
+    - name: Set path of 'hdblcm' from find result
+      block:
 
-    - name: SAP HANA Pre Install - Run hdblcm prepare
-      include_tasks: pre_install/hdblcm_prepare.yml
-      when: (not __sap_hana_install_register_find_directory_sap_hana_database.files[0].path is defined) or
-            (not __sap_hana_install_register_stat_hdblcm_initial.stat.exists)
+        - name: Show the full path name of file 'hdblcm'
+          debug:
+            var: __sap_hana_install_register_find_hdblcm.files[0].path
 
-    - name: SAP HANA Pre Install - Set fact for hdblcm installer path
-      set_fact:
-        sap_hana_hdblcm_path:
-          "{{ __sap_hana_install_register_find_directory_sap_hana_database.files[0].path }}/SAP_HANA_DATABASE"
+        - name: SAP HANA Pre Install - Set fact for 'hdblcm' installer path from find result
+          set_fact:
+            sap_hana_hdblcm_path:
+              "{{ __sap_hana_install_register_find_hdblcm.files[0].path | regex_replace('/hdblcm$', '') }}"
 
-    - name: SAP HANA Pre Install - Check availability of "{{ sap_hana_hdblcm_path + '/hdblcm' }}"
-      stat:
-        path: "{{ sap_hana_hdblcm_path + '/hdblcm' }}"
-      register: __sap_hana_install_register_hdblcm_stat
-      failed_when: not __sap_hana_install_register_hdblcm_stat.stat.exists
+      when: __sap_hana_install_register_find_hdblcm.files[0] is defined
+
+    - name: Extract files if file 'hdblcm' was not found initially
+      block:
+
+        - name: SAP HANA Pre Install - Run hdblcm prepare
+          include_tasks: pre_install/hdblcm_prepare.yml
+
+        - name: SAP HANA Pre Install - Set fact for 'hdblcm' installer path
+          set_fact:
+            sap_hana_hdblcm_path:
+              "{{ __sap_hana_install_register_find_directory_sap_hana_database.files[0].path }}"
+
+        - name: SAP HANA Pre Install - Check availability of "{{ sap_hana_hdblcm_path + '/hdblcm' }}"
+          stat:
+            path: "{{ sap_hana_hdblcm_path + '/hdblcm' }}"
+          register: __sap_hana_install_register_hdblcm_stat
+          failed_when: not __sap_hana_install_register_hdblcm_stat.stat.exists
+
+      when: sap_hana_hdblcm_path is not defined
 
   when: sap_hana_install_new_system|d(true)
 
