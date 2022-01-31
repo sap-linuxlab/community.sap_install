@@ -5,6 +5,7 @@
     - name: Check for sidadm user
       command: getent passwd {{ sap_hana_install_sid | lower }}adm
       register: __sap_hana_install_register_getent_passwd_sidadm
+      changed_when: no
       failed_when: no
 
 # Reason for noqa: The variable is a substring of a user name
@@ -16,6 +17,31 @@
         success_msg: "PASS: User {{ sap_hana_install_sid | lower}}adm does not exist."
 
   when: sap_hana_install_check_sidadm_user|d(true)
+
+# The role supports specifying the SAP HANA group id in variable `sap_hana_install_groupid`, which is the id of the sapsys group.
+# The SAP HANA installation will fail if there is already a group named sapsys but with a different ID. Let's better fail before.
+- name: HANA admin group check
+  block:
+    - name: Get info about the ID of the sapsys group
+      command: getent group sapsys
+      register: __sap_hana_install_register_getent_group_sapsys
+      changed_when: no
+      failed_when: no
+
+    - name: In case there is a group sapsys, assert that its group ID is identical to sap_hana_install_groupid
+      assert:
+        that: "{{ __sap_hana_install_register_getent_group_sapsys.stdout.split(':')[2] }} == {{ sap_hana_install_groupid }}"
+        fail_msg: "FAIL: Group sapsys exists but with a different group ID than {{ sap_hana_install_groupid }},
+	           which has been specified in variable sap_hana_install_groupid.
+	           Because of this, SAP HANA with SID {{ sap_hana_install_sid }} will not be installed."
+        success_msg: "PASS: The group is of sapsys is identical to the value of variable
+                      sap_hana_install_groupid, which is {{ sap_hana_install_groupid }}"
+      when: __sap_hana_install_register_getent_group_sapsys.rc == 0
+
+  when:
+    - sap_hana_install_groupid is defined
+    - sap_hana_install_groupid | string != "None"
+    - sap_hana_install_groupid | string | length > 0
 
 - name: "Get info about directory /hana/shared/{{ sap_hana_install_sid }}"
   stat:
