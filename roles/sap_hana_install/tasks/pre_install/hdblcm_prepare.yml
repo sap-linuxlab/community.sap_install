@@ -24,10 +24,8 @@
     owner: root
     group: root
 
-- name: SAP HANA hdblcm prepare - Install the file package if not yet present
-  package:
-    name: file
-    state: present
+# We need the file package for the file command, which we need in the next task.
+# The file package is contained in the Base software group, which should be installed already.
 
 # In case there is more than one SAPCAR*EXE file in the software directory, we need to get the correct one.
 # In case of ppc64 and ppc64le, the file command displays the same architecture in the second column.
@@ -47,9 +45,9 @@
               awk '{gsub ("x86-64", "x86_64"); gsub ("64-bit PowerPC", "ppc64le"); gsub ("IBM S/390", "s390x");
               split ($0, a, ":"); split (a[2], b, ","); sub ("^ ", "", b[2]); printf ("%s %s\n", a[1], b[2])}'
          done | awk '/'"{{ ansible_architecture }}"'/{print $1}'); do
-      ${sapcar_matching_arch} --version >/dev/null 2>&1 && (
+      ./${sapcar_matching_arch} --version >/dev/null 2>&1 && (
       printf "%s " ${sapcar_matching_arch}
-      ${sapcar_matching_arch} --version |
+      ./${sapcar_matching_arch} --version |
         awk '/kernel release/{rel=$NF}/patch number/{printf ("%s %s\n", rel, $NF)}')
       done | sort -k 2 -nr -k 3 -nr | awk 'NR==1{print $1}'
   args:
