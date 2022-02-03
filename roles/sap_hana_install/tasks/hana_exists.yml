@@ -20,7 +20,7 @@
 
 # The role supports specifying the SAP HANA group id in variable `sap_hana_install_groupid`, which is the id of the sapsys group.
 # The SAP HANA installation will fail if there is already a group named sapsys but with a different ID. Let's better fail before.
-- name: HANA admin group check
+- name: Check HANA admin group
   block:
     - name: Get info about the ID of the sapsys group
       command: getent group sapsys
@@ -31,11 +31,11 @@
     - name: In case there is a group sapsys, assert that its group ID is identical to sap_hana_install_groupid
       assert:
         that: "{{ __sap_hana_install_register_getent_group_sapsys.stdout.split(':')[2] }} == {{ sap_hana_install_groupid }}"
-        fail_msg: "FAIL: Group sapsys exists but with a different group ID than {{ sap_hana_install_groupid }},
+        fail_msg: "FAIL: Group sapsys exists but with a different group ID than '{{ sap_hana_install_groupid }}',
 	           which has been specified in variable sap_hana_install_groupid.
-	           Because of this, SAP HANA with SID {{ sap_hana_install_sid }} will not be installed."
+	           Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
         success_msg: "PASS: The group is of sapsys is identical to the value of variable
-                      sap_hana_install_groupid, which is {{ sap_hana_install_groupid }}"
+                      sap_hana_install_groupid, which is '{{ sap_hana_install_groupid }}'"
       when: __sap_hana_install_register_getent_group_sapsys.rc == 0
 
   when:
@@ -43,31 +43,31 @@
     - sap_hana_install_groupid | string != "None"
     - sap_hana_install_groupid | string | length > 0
 
-- name: "Get info about directory /hana/shared/{{ sap_hana_install_sid }}"
+- name: "Get info about directory '/hana/shared/{{ sap_hana_install_sid }}'"
   stat:
     path: "/hana/shared/{{ sap_hana_install_sid }}"
   register: __sap_hana_install_register_stat_hana_shared_sid_assert
   failed_when: no
 
-- name: "Assert that directory /hana/shared/{{ sap_hana_install_sid }} does not exist"
+- name: "Assert that directory '/hana/shared/{{ sap_hana_install_sid }}' does not exist"
   assert:
     that: not __sap_hana_install_register_stat_hana_shared_sid_assert.stat.exists
-    fail_msg: "FAIL: Directory /hana/shared/{{ sap_hana_install_sid }} exists.
-               Because of this, SAP HANA with SID {{ sap_hana_install_sid }} will not be installed."
-    success_msg: "PASS: Directory /hana/shared/{{ sap_hana_install_sid }} does not exist."
+    fail_msg: "FAIL: Directory '/hana/shared/{{ sap_hana_install_sid }}' exists.
+               Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
+    success_msg: "PASS: Directory '/hana/shared/{{ sap_hana_install_sid }}' does not exist."
 
-- name: "Get info about directory /usr/sap/{{ sap_hana_install_sid }}"
+- name: "Get info about directory '/usr/sap/{{ sap_hana_install_sid }}'"
   stat:
     path: "/usr/sap/{{ sap_hana_install_sid }}"
   register: __sap_hana_install_register_stat_usr_sap_sid_assert
   failed_when: no
 
-- name: "Assert that directory /usr/sap/{{ sap_hana_install_sid }} does not exist"
+- name: "Assert that directory '/usr/sap/{{ sap_hana_install_sid }}' does not exist"
   assert:
     that: not __sap_hana_install_register_stat_usr_sap_sid_assert.stat.exists
-    fail_msg: "FAIL: Directory /usr/sap/{{ sap_hana_install_sid }} exists.
-               Because of this, SAP HANA with SID {{ sap_hana_install_sid }} will not be installed."
-    success_msg: "PASS: Directory /usr/sap/{{ sap_hana_install_sid }} does not exist."
+    fail_msg: "FAIL: Directory '/usr/sap/{{ sap_hana_install_sid }}' exists.
+               Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
+    success_msg: "PASS: Directory '/usr/sap/{{ sap_hana_install_sid }}' does not exist."
 
 #    - name: Check if there is already a SAP HANA system with SID {{ sap_hana_install_sid }} and instance {{ sap_hana_install_instance_number }}
 #      command: sapcontrol -nr {{ sap_hana_install_instance_number }} -function GetProcessList

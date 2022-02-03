@@ -1,15 +1,28 @@
 ---
 
-- name: SAP HANA hdblcm prepare - Create temp dir - {{ sap_hana_install_software_directory }}/tmp
+- name: SAP HANA hdblcm prepare - Set fact for temporary extraction destination, default
+  set_fact:
+    __sap_hana_install_tmp_software_extract_directory: "{{ sap_hana_install_software_extract_directory }}/tmp"
+  when: "'SAPHOST' not in passed_sap_hana_install_components_sar"
+
+- name: SAP HANA hdblcm prepare - Set fact for temporary extraction destination, SAP Host Agent
+  set_fact:
+    __sap_hana_install_tmp_software_extract_directory: "{{ sap_hana_install_software_extract_directory }}/tmp/SAP_HOST_AGENT"
+  when: "'SAPHOST' in passed_sap_hana_install_components_sar"
+
+- name: SAP HANA hdblcm prepare - Create temporary extraction destination '{{ __sap_hana_install_tmp_software_extract_directory }}'
   file:
-    path: "{{ sap_hana_install_software_directory }}/tmp"
+    path: "{{ __sap_hana_install_tmp_software_extract_directory }}"
     state: directory
     mode: 0755
+    owner: root
+    group: root
+  when: "'SAPHOST' in passed_sap_hana_install_components_sar"
 
-- name: SAP HANA hdblcm prepare - Extracting {{ passed_sap_hana_install_components_sar }}
+- name: SAP HANA hdblcm prepare - Extracting file '{{ passed_sap_hana_install_components_sar }}'
   command: >-
     {{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_file_name }} \
-    -R {{ sap_hana_install_software_directory }}/tmp
+    -R {{ __sap_hana_install_tmp_software_extract_directory }} \
     -xvf {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }} \
     -manifest SIGNATURE.SMF
   register: __sap_hana_install_register_extract
@@ -17,25 +30,22 @@
     chdir: "{{ sap_hana_install_software_directory }}"
   changed_when: "'SAPCAR: processing archive' in __sap_hana_install_register_extract.stdout"
 
-- name: SAP HANA hdblcm prepare - Create directory if SAP Host Agent
-  file:
-    path: "{{ sap_hana_install_software_directory }}/tmp/SAP_HOST_AGENT"
-    state: directory
-    mode: 0755
-    owner: root
-    group: root
-  when: "'SAPHOST' in passed_sap_hana_install_components_sar"
-
-- name: SAP HANA hdblcm prepare - Prepare extracted dir
+- name: SAP HANA hdblcm prepare - Move files into the correct place, default
   shell: |
     extracted_dir=$(ls -d */)
-    cp SIGNATURE.SMF $extracted_dir
-    cp -R $extracted_dir ../extracted/$extracted_dir
+    mv SIGNATURE.SMF ${extracted_dir}
+    mv ${extracted_dir} ..
   args:
-    chdir: "{{ sap_hana_install_software_directory }}/tmp"
-  changed_when: no
+    chdir: "{{ __sap_hana_install_tmp_software_extract_directory }}"
+  when: "'SAPHOST' not in passed_sap_hana_install_components_sar"
 
-- name: SAP HANA hdblcm prepare - Remove temp dir - {{ sap_hana_install_software_directory }}/tmp
+- name: SAP HANA hdblcm prepare - Move files into the correct place, SAP Host Agent
+  command: mv ./tmp/SAP_HOST_AGENT .
+  args:
+    chdir: "{{ sap_hana_install_software_extract_directory }}"
+  when: "'SAPHOST' in passed_sap_hana_install_components_sar"
+
+- name: SAP HANA hdblcm prepare - Remove temporary extraction directory '{{ sap_hana_install_software_extract_directory }}/tmp'
   file:
-    path: "{{ sap_hana_install_software_directory }}/tmp"
+    path: "{{ sap_hana_install_software_extract_directory }}/tmp"
     state: absent

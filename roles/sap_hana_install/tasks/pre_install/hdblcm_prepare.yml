@@ -1,29 +1,36 @@
 ---
 # hdblcm prepare
 
-# Create directory  {{ sap_hana_install_software_directory }}/extracted
+# Create directory {{ sap_hana_install_software_extract_directory }}
 # This is where all extracted .SAR files will be stored
 
-- name: SAP HANA hdblcm prepare - Remove directory - {{ sap_hana_install_software_directory }}/extracted
+- name: SAP HANA hdblcm prepare - Remove directory '{{ sap_hana_install_software_extract_directory }}'
   ansible.builtin.file:
-    path: "{{ sap_hana_install_software_directory }}/extracted"
+    path: "{{ sap_hana_install_software_extract_directory }}"
     state: absent
 
-- name: SAP HANA hdblcm prepare - Create directory - {{ sap_hana_install_software_directory }}/extracted
+- name: SAP HANA hdblcm prepare - Create directory '{{ sap_hana_install_software_extract_directory }}'
   ansible.builtin.file:
-    path: "{{ sap_hana_install_software_directory }}/extracted"
+    path: "{{ sap_hana_install_software_extract_directory }}"
     state: directory
-    mode: 0755
+    mode: '0755'
 
-- name: SAP HANA hdblcm prepare - Change ownership of deployment directory - {{ sap_hana_install_software_directory }}
+- name: SAP HANA hdblcm prepare - Change ownership of deployment directory '{{ sap_hana_install_software_directory }}'
   ansible.builtin.file:
     path: "{{ sap_hana_install_software_directory }}"
     state: directory
     recurse: yes
-    mode: 0755
+    mode: '0755'
     owner: root
     group: root
 
+- name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable if sap_hana_install_sapcar_filename is defined
+  set_fact:
+    __sap_hana_install_fact_sapcar_file_name: "{{ sap_hana_install_sapcar_filename }}"
+  when: sap_hana_install_sapcar_filename is defined
+
+- name: SAP HANA hdblcm prepare - Determine file name of SAPCAR*EXE
+  block:
 # We need the file package for the file command, which we need in the next task.
 # The file package is contained in the Base software group, which should be installed already.
 
@@ -37,31 +44,48 @@
 #   We then execute each of the matching SAPCAR*EXE files and if the return code is 0, we execute it again,
 #   print the version and patch number, sort numerically by the version and patch number and finally
 #   select the SAPCAR*EXE file with the highest version.
-- name: SAP HANA hdblcm prepare - Get SAPCAR executable file from folder - {{ sap_hana_install_software_directory }}
-  shell: |
-    set -o pipefail && for sapcar_matching_arch in $(
-         for sapcar_any in SAPCAR*EXE; do
-            file ${sapcar_any} |
-              awk '{gsub ("x86-64", "x86_64"); gsub ("64-bit PowerPC", "ppc64le"); gsub ("IBM S/390", "s390x");
-              split ($0, a, ":"); split (a[2], b, ","); sub ("^ ", "", b[2]); printf ("%s %s\n", a[1], b[2])}'
-         done | awk '/'"{{ ansible_architecture }}"'/{print $1}'); do
-      ./${sapcar_matching_arch} --version >/dev/null 2>&1 && (
-      printf "%s " ${sapcar_matching_arch}
-      ./${sapcar_matching_arch} --version |
-        awk '/kernel release/{rel=$NF}/patch number/{printf ("%s %s\n", rel, $NF)}')
-      done | sort -k 2 -nr -k 3 -nr | awk 'NR==1{print $1}'
-  args:
-    chdir: "{{ sap_hana_install_software_directory }}"
-  register: __sap_hana_install_register_sapcar_path
-  changed_when: no
+    - name: SAP HANA hdblcm prepare - Get SAPCAR executable file from folder - {{ sap_hana_install_software_directory }}
+      shell: |
+        set -o pipefail && for sapcar_matching_arch in $(
+             for sapcar_any in SAPCAR*EXE; do
+                file ${sapcar_any} |
+                  awk '{gsub ("x86-64", "x86_64"); gsub ("64-bit PowerPC", "ppc64le"); gsub ("IBM S/390", "s390x");
+                  split ($0, a, ":"); split (a[2], b, ","); sub ("^ ", "", b[2]); printf ("%s %s\n", a[1], b[2])}'
+             done | awk '/'"{{ ansible_architecture }}"'/{print $1}'); do
+          ./${sapcar_matching_arch} --version >/dev/null 2>&1 && (
+          printf "%s " ${sapcar_matching_arch}
+          ./${sapcar_matching_arch} --version |
+            awk '/kernel release/{rel=$NF}/patch number/{printf ("%s %s\n", rel, $NF)}')
+          done | sort -k 2 -nr -k 3 -nr | awk 'NR==1{print $1}'
+      args:
+        chdir: "{{ sap_hana_install_software_directory }}"
+      register: __sap_hana_install_register_sapcar_file
+      changed_when: no
 
-- name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable
-  set_fact:
-    __sap_hana_install_fact_sapcar_file_name: "{{ __sap_hana_install_register_sapcar_path.stdout }}"
+    - name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable
+      set_fact:
+        __sap_hana_install_fact_sapcar_file_name: "{{ __sap_hana_install_register_sapcar_file.stdout }}"
 
-- name: Show the full path name of SAPCAR
-  debug:
-    msg: "Using '{{ __sap_hana_install_register_sapcar_path.stdout }}' for extracting SAR files."
+  when: sap_hana_install_sapcar_filename is not defined
+
+- name: SAP HANA hdblcm prepare - Get info about the SAPCAR executable
+  stat:
+    path: "{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_file_name }}"
+  register: __sap_hana_install_register_sapcar_stat_result
+  failed_when: no
+
+- name: SAP HANA hdblcm prepare - Assert that the SAPCAR executable is available
+  assert:
+    that: __sap_hana_install_register_sapcar_stat_result.stat.exists
+    fail_msg: "FAIL: No valid SAPCAR executable could be found. Consider setting variable 'sap_hana_install_sapcar_filename'."
+    success_msg: "Using '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_file_name }}' for extracting SAR files."
+
+- name: SAP HANA hdblcm prepare - Make sure SAPCAR has execute permissions and is owned by root
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_file_name }}"
+    mode: '0755'
+    owner: root
+    group: root
 
 - name: SAP HANA hdblcm prepare - Get all SAR files in folder - {{ sap_hana_install_software_directory }}
   shell: |
@@ -76,29 +100,23 @@
     __sap_hana_install_fact_components_sar: "{{ __sap_hana_install_register_sarfiles_list.stdout.split() }}"
   when: __sap_hana_install_register_sarfiles_list.stdout | length > 0
 
-- name: SAP HANA hdblcm prepare - Extract all SAR files in folder - {{ sap_hana_install_software_directory }}
+- name: SAP HANA hdblcm prepare - Extract all SAR files in folder '{{ sap_hana_install_software_directory }}'
   include_tasks: extract_sar.yml
-# Variable not used:
-#  register: __sap_hana_preconfigure_register_extract_all_sar_files
   loop: "{{ __sap_hana_install_fact_components_sar }}"
   loop_control:
     loop_var: passed_sap_hana_install_components_sar
   when: __sap_hana_install_register_sarfiles_list.stdout | length > 0
 
-- name: SAP HANA Pre Install - Change ownership of software path - {{ sap_hana_install_software_directory }}
-  ansible.builtin.file:
-    path: "{{ sap_hana_install_software_directory }}"
-    state: directory
-    recurse: yes
-    mode: 0755
-    owner: root
-    group: root
-
-- name: SAP HANA hdblcm prepare - Find SAP_HANA_DATABASE or HDB_SERVER_LINUX_
+- name: SAP HANA hdblcm prepare - Find 'SAP_HANA_DATABASE' in '{{ sap_hana_install_software_extract_directory }}'
   find:
-    paths: "{{ sap_hana_install_software_directory }}"
+    paths: "{{ sap_hana_install_software_extract_directory }}"
     recurse: yes
     file_type: directory
-    patterns: '(SAP_HANA_DATABASE|HDB_SERVER_LINUX_)'
+    patterns: '(SAP_HANA_DATABASE)'
     use_regex: yes
   register: __sap_hana_install_register_find_directory_sap_hana_database
+
+- name: SAP HANA hdblcm prepare - Set fact for 'hdblcm' installer path
+  set_fact:
+    __sap_hana_install_fact_hdblcm_path:
+      "{{ __sap_hana_install_register_find_directory_sap_hana_database.files[0].path }}"
