@@ -61,36 +61,48 @@
       register: __sap_hana_install_register_stat_software_extract_directory
       failed_when: no
 
-# In case more than on installation is ongoing extracting to the same shared directory, wait until the extraction has completed:
+# In case more than on installation is ongoing and extracting to the same shared directory, wait until the extraction has completed:
     - name: SAP HANA Pre Install - Proceed if extraction status file '{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__' is absent
       wait_for:
         path: "{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__"
         state: absent
       failed_when: no
 
-    - name: SAP HANA Pre Install - Find file 'hdblcm' if '{{ sap_hana_install_software_extract_directory }}' exists
+    - name: SAP HANA Pre Install - Find directory 'SAP_HANA_DATABASE' if '{{ sap_hana_install_software_extract_directory }}' exists
       find:
         paths: "{{ sap_hana_install_software_extract_directory }}"
         recurse: yes
-        file_type: file
-        patterns: 'hdblcm'
-      register: __sap_hana_install_register_find_hdblcm
+        file_type: directory
+        patterns: 'SAP_HANA_DATABASE'
+      register: __sap_hana_install_register_find_directory_sap_hana_database_initial
       when: __sap_hana_install_register_stat_software_extract_directory.stat.exists
 
-    - name: SAP HANA Pre Install - Set path of 'hdblcm' from successful find result
+    - name: SAP HANA Pre Install - Set directory of 'hdblcm' from successful find result
       block:
 
         - name: SAP HANA Pre Install - Set fact for 'hdblcm' installer directory if found initially
           set_fact:
-            __sap_hana_install_fact_hdblcm_path: "{{ __sap_hana_install_register_find_hdblcm.files[0].path | dirname }}"
+            __sap_hana_install_fact_hdblcm_path: "{{ __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0].path }}"
 
-        - name: SAP HANA Pre Install - Show the full path name of file 'hdblcm'
+        - name: SAP HANA Pre Install - Show the full path name of file 'hdblcm' if found initially
           debug:
             msg: "Using file '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' for the installation of SAP HANA."
 
+        - name: SAP HANA Pre Install - Get info about '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' if found initially
+          stat:
+            path: "{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}"
+          register: __sap_hana_install_register_stat_hdblcm_initial
+          failed_when: no
+
+        - name: SAP HANA Pre Install - Assert that file 'hdblcm' is available if found initially
+          assert:
+            that: __sap_hana_install_register_stat_hdblcm_initial.stat.exists
+            fail_msg: "FAIL: File 'hdblcm' could not be found. Installation of SAP HANA is not possible."
+            success_msg: "Using file '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' for the installation of SAP HANA."
+
       when:
         - __sap_hana_install_register_stat_software_extract_directory.stat.exists
-        - __sap_hana_install_register_find_hdblcm.files[0] is defined
+        - __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is defined
 
     - name: SAP HANA Pre Install - Extract SAR files if file 'hdblcm' was not found initially
       block:
@@ -114,7 +126,7 @@
             fail_msg: "FAIL: File 'hdblcm' could not be found. Installation of SAP HANA is not possible."
             success_msg: "Using file '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' for the installation of SAP HANA."
 
-      when: __sap_hana_install_register_find_hdblcm.files[0] is not defined
+      when: __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is not defined
 
   when: sap_hana_install_new_system|d(true)
 
@@ -134,7 +146,3 @@
     dest: "{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg"
     mode: '0644'
   register: __sap_hana_install_register_cftemplate
-
-- name: SAP HANA Pre Install - Show location of HANA configfile
-  debug:
-    msg: "HANA configfile is: '{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg'"

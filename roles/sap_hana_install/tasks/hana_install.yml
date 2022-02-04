@@ -20,10 +20,18 @@
       - 'Alternatively, you can run the following command on the control node:'
       - "ssh {{ inventory_hostname }} {{ __sap_hana_install_register_tmpdir.path }}/tail-f-hdblcm-install-trc.sh"
 
+- name: Set fact for hdblcm command line
+  set_fact:
+    __sap_hana_install_hdblcm_command_line: "./hdblcm {{ sap_hana_install_hdblcm_extraargs }}
+      --configfile={{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg
+      -b"
+
+- name: Show the hdblcm command line
+  debug:
+    msg: "SAP HANA install command: '{{ __sap_hana_install_hdblcm_command_line }}'"
+
 - name: Installing SAP HANA - {{ sap_hana_install_sid }} {{ sap_hana_install_instance_number }}
-  command: "./hdblcm {{ sap_hana_install_hdblcm_extraargs }}
-            --configfile={{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg
-            -b"
+  command: "{{ __sap_hana_install_hdblcm_command_line }}"
   register: __sap_hana_install_register_hdblcm_install
   args:
     chdir: "{{ __sap_hana_install_fact_hdblcm_path }}"
