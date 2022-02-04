@@ -61,6 +61,13 @@
       register: __sap_hana_install_register_stat_software_extract_directory
       failed_when: no
 
+# In case more than on installation is ongoing extracting to the same shared directory, wait until the extraction has completed:
+    - name: SAP HANA Pre Install - Proceed if extraction status file '{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__' is absent
+      wait_for:
+        path: "{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__"
+        state: absent
+      failed_when: no
+
     - name: SAP HANA Pre Install - Find file 'hdblcm' if '{{ sap_hana_install_software_extract_directory }}' exists
       find:
         paths: "{{ sap_hana_install_software_extract_directory }}"
@@ -127,3 +134,7 @@
     dest: "{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg"
     mode: '0644'
   register: __sap_hana_install_register_cftemplate
+
+- name: SAP HANA Pre Install - Show location of HANA configfile
+  debug:
+    msg: "HANA configfile is: '{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg'"
