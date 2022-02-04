@@ -46,6 +46,19 @@ If more than one SAPCAR EXE file is present in the software directory, the role 
 for the current hardware architecture. Alternatively, the file name of the SAPCAR EXE file can also be set with
 variable `sap_hana_install_sapcar_filename`.
 
+If more than one SAR file for a certain software product is present in the software directory, the automatic
+handling of such SAR files will fail after extraction, when moving the newly created product directories
+(like `SAP_HOST_AGENT`) to already existing destinations.
+For avoiding such situations, use following variable to provide a list of SAR files to extract:
+`sap_hana_install_sarfiles_list`.
+
+Example:
+```
+sap_hana_install_sarfiles_list:
+  - SAPHOSTAGENT54_54-80004822.SAR
+  - IMDB_SERVER20_060_0-80002031.SAR
+```
+
 #### Extracted SAP HANA Software Installation Files
 
 This role will detect if there is a file `hdblcm` already present in the directory specified by variable

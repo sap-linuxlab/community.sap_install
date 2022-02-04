@@ -84,25 +84,39 @@
     owner: root
     group: root
 
-- name: SAP HANA hdblcm prepare - Get all SAR files in folder - {{ sap_hana_install_software_directory }}
-  shell: |
-    ls *.SAR
-  args:
-    chdir: "{{ sap_hana_install_software_directory }}"
-  register: __sap_hana_install_register_sarfiles_list
-  changed_when: no
+- name: Handle SAR files in folder '{{ sap_hana_install_software_directory }}'
+  block:
 
-- name: SAP HANA hdblcm prepare - Set fact list of SAR files
+    - name: SAP HANA hdblcm prepare - Get all SAR files in folder '{{ sap_hana_install_software_directory }}'
+      shell: |
+        ls *.SAR
+      args:
+        chdir: "{{ sap_hana_install_software_directory }}"
+      register: __sap_hana_install_register_sarfiles_list
+      changed_when: no
+
+    - name: SAP HANA hdblcm prepare - Set fact list of SAR files from output of ls command
+      set_fact:
+        __sap_hana_install_fact_components_sar: "{{ __sap_hana_install_register_sarfiles_list.stdout.split() }}"
+      when: __sap_hana_install_register_sarfiles_list.stdout | length > 0
+
+  when: sap_hana_install_sarfiles_list is not defined
+
+- name: SAP HANA hdblcm prepare - Set fact list of SAR files from variable if defined
   set_fact:
-    __sap_hana_install_fact_components_sar: "{{ __sap_hana_install_register_sarfiles_list.stdout.split() }}"
-  when: __sap_hana_install_register_sarfiles_list.stdout | length > 0
+    __sap_hana_install_fact_components_sar: "{{ sap_hana_install_sarfiles_list }}"
+  when: sap_hana_install_sarfiles_list is defined
+
+- name: SAP HANA hdblcm prepare - Display SAR files to be extracted
+  debug:
+    var: __sap_hana_install_fact_components_sar
 
 - name: SAP HANA hdblcm prepare - Extract all SAR files in folder '{{ sap_hana_install_software_directory }}'
   include_tasks: extract_sar.yml
   loop: "{{ __sap_hana_install_fact_components_sar }}"
   loop_control:
     loop_var: passed_sap_hana_install_components_sar
-  when: __sap_hana_install_register_sarfiles_list.stdout | length > 0
+  when: __sap_hana_install_fact_components_sar | length > 0
 
 - name: SAP HANA hdblcm prepare - Remove status file '{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__'
   ansible.builtin.file:

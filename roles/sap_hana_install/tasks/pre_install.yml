@@ -84,10 +84,6 @@
           set_fact:
             __sap_hana_install_fact_hdblcm_path: "{{ __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0].path }}"
 
-        - name: SAP HANA Pre Install - Show the full path name of file 'hdblcm' if found initially
-          debug:
-            msg: "Using file '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' for the installation of SAP HANA."
-
         - name: SAP HANA Pre Install - Get info about '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' if found initially
           stat:
             path: "{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}"
@@ -97,7 +93,7 @@
         - name: SAP HANA Pre Install - Assert that file 'hdblcm' is available if found initially
           assert:
             that: __sap_hana_install_register_stat_hdblcm_initial.stat.exists
-            fail_msg: "FAIL: File 'hdblcm' could not be found. Installation of SAP HANA is not possible."
+            fail_msg: "FAIL: File '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' could not be found. Installation of SAP HANA is not possible."
             success_msg: "Using file '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' for the installation of SAP HANA."
 
       when:
