@@ -41,6 +41,11 @@ Place the following files in directory /software/hana or in any other directory 
     -rwxr-xr-x. 1 nobody nobody 3694683699 Mar  4  2021 IMDB_SERVER20_054_0-80002031.SAR
     -rwxr-xr-x. 1 nobody nobody   89285401 Sep 30 04:24 SAPHOSTAGENT51_51-20009394.SAR
     ```
+
+If more than one SAPCAR EXE file is present in the software directory, the role will select the latest version
+for the current hardware architecture. Alternatively, the file name of the SAPCAR EXE file can also be set with
+variable `sap_hana_install_sapcar_filename`.
+
 #### Extracted SAP HANA Software Installation Files
 
 This role will detect if there is a file `hdblcm` already present in the directory specified by variable
