@@ -54,6 +54,47 @@ Default is `no`, meaning that the role will fail for any assertion error which i
 sap_general_preconfigure_assert_ignore_errors
 ```
 
+### (RHEL only): Use SAP NetWeaver repo
+If the following variable is set to `yes`, the role will enable the SAP NetWeaver repo if variable
+`sap_general_preconfigure_enable_repos` is set to `yes`. Default is `no`.
+```yaml
+sap_general_preconfigure_use_netweaver_repo
+```
+
+### (RHEL only): Enable SAP HANA repo
+If the following variable is set to `yes`, the role will enable the SAP HANA repo if variable
+`sap_general_preconfigure_enable_repos` is set to `yes`. Default is `no`.
+```yaml
+sap_general_preconfigure_use_hana_repo
+```
+
+### (RHEL only): Enable HA repo
+If the following variable is set to `yes`, the role will enable the Highavailability repo if variable
+`sap_general_preconfigure_enable_repos` is set to `yes`. Default is `no`.
+```yaml
+sap_general_preconfigure_use_ha_repo
+```
+
+### (RHEL only): If variable `sap_general_preconfigure_enable_repos` is set to `yes`, use the
+following variable to set the repository type. Valid values are `normal`, `eus`, and `e4s`.
+```yaml
+sap_general_preconfigure_repo_type:
+```
+
+### (RHEL only): Enable repos
+If the following variable is set to `yes`, the role will enable all repos as per definitions above. Default is `no`.
+```yaml
+sap_general_preconfigure_enable_repos
+```
+
+### (RHEL only): Set the minor release lock
+Set to `yes` if you want the role to set the RHEL minor release, which is a requirement for SAP HANA. Default is `no`.
+Note: If you set the RHEL minor release lock, then it is strongly recommended to also set variable
+`sap_general_preconfigure_repo_type` (see below) to `e4s`.
+```yaml
+sap_general_preconfigure_set_minor_release: no
+```
+
 ### Minimum package check
 The following variable will make sure packages are installed at minimum required versions as defined in files `vars/*.yml`. Default is `yes`.
 ```yaml

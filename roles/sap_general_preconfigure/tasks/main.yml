@@ -4,7 +4,22 @@
   debug:
     var: role_path
 
-- name: Include OS specific vars
+- name: Set the RHEL repo type string, eus and e4s
+  set_fact:
+    __sap_general_preconfigure_fact_repo_type_string: "{{ sap_general_preconfigure_repo_type }}-"
+  when:
+    - sap_general_preconfigure_enable_repos
+    - ansible_os_family == 'RedHat'
+
+- name: Set the RHEL repo type string, normal repos
+  set_fact:
+    __sap_general_preconfigure_fact_repo_type_string: ''
+  when:
+    - sap_general_preconfigure_enable_repos
+    - ansible_os_family == 'RedHat'
+    - sap_general_preconfigure_repo_type == 'normal'
+
+- name: Include OS specific vars, specific
   include_vars: '{{ item }}'
   with_first_found:
     - '{{ ansible_distribution }}_{{ ansible_distribution_version }}.yml'
@@ -53,6 +68,40 @@
   set_fact:
     sap_general_preconfigure_db_group_name: "{{ sap_preconfigure_db_group_name|d(sap_general_preconfigure_db_group_name) }}"
   when: sap_preconfigure_db_group_name is defined or sap_general_preconfigure_db_group_name is defined
+
+- name: Set list of repos, RHEL
+  block:
+
+    - name: Unset list of RHEL repos, SAP NetWeaver
+      set_fact:
+        __sap_general_preconfigure_req_netweaver_repos: ''
+      when: not sap_general_preconfigure_use_netweaver_repos
+
+    - name: Unset list of RHEL repos, SAP HANA
+      set_fact:
+        __sap_general_preconfigure_req_hana_repos: ''
+      when: not sap_general_preconfigure_use_hana_repos
+
+    - name: Unset list of RHEL repos, HA
+      set_fact:
+        __sap_general_preconfigure_req_ha_repos: ''
+      when: not sap_general_preconfigure_use_ha_repos
+
+    - name: Set final list of repos
+      set_fact:
+        __sap_general_preconfigure_req_repos:
+          "{{ __sap_general_preconfigure_req_os_repos | list }} +
+           {{ __sap_general_preconfigure_req_netweaver_repos | list }} +
+           {{ __sap_general_preconfigure_req_hana_repos | list }} +
+           {{ __sap_general_preconfigure_req_ha_repos | list }}"
+
+    - name: debug __sap_general_preconfigure_req_repos
+      debug:
+        var: __sap_general_preconfigure_req_repos
+
+  when:
+    - sap_general_preconfigure_enable_repos
+    - ansible_os_family == 'RedHat'
 
 - name: Set filename prefix to empty string if role is run in normal mode
   set_fact:
