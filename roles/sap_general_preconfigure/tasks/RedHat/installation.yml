@@ -18,7 +18,7 @@
         __sap_general_preconfigure_req_ha_repos: ''
       when: not sap_general_preconfigure_use_ha_repos
 
-    - name: Set final list of repos
+    - name: Set final list of repos, auto
       set_fact:
         __sap_general_preconfigure_req_repos:
           "{{ __sap_general_preconfigure_req_os_repos | list }} +
@@ -27,7 +27,7 @@
            {{ __sap_general_preconfigure_req_ha_repos | list }}"
       when: sap_general_preconfigure_req_repos is undefined
 
-    - name: Set final list of repos
+    - name: Set final list of repos, manual
       set_fact:
         __sap_general_preconfigure_req_repos: "{{ sap_general_preconfigure_req_repos }}"
       when: sap_general_preconfigure_req_repos is defined
@@ -52,18 +52,20 @@
         __sap_general_preconfigure_fact_subscription_manager_command:
           "subscription-manager repos {{ __sap_general_preconfigure_fact_disable_all_other_repos_arg }} {{ __sap_general_preconfigure_fact_required_repos_args | map('quote') | join(' ') }}"
 
-    - name: Show the subscription-manager command
+    - name: Display the subscription-manager command
       debug:
         msg: "Command: {{ __sap_general_preconfigure_fact_subscription_manager_command }}"
 
-    - name: Enable required repositories
+    - name: Run the subscription-manager command
       command: "{{ __sap_general_preconfigure_fact_subscription_manager_command }}"
-      register: __sap_general_preconfigure_register_subscription_enable_repos
 
 # Reason for noqa: We need the output of the yum command
     - name: Get list of enabled repositories
       command: "yum repolist" # noqa command-instead-of-module
       register: __sap_general_preconfigure_register_yum_repolist
+      args:
+        warn: false
+      changed_when: false
 
     - name: Display the list of enabled repositories
       debug:
