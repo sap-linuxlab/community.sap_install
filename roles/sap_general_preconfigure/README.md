@@ -54,37 +54,46 @@ Default is `no`, meaning that the role will fail for any assertion error which i
 sap_general_preconfigure_assert_ignore_errors
 ```
 
-### (RHEL only): Use SAP NetWeaver repo
-If the following variable is set to `yes`, the role will enable the SAP NetWeaver repo if variable
-`sap_general_preconfigure_enable_repos` is set to `yes`. Default is `no`.
+### (RHEL only): Enable repos
+If the following variable is set to `yes`, the role will enable all repos as per definitions below. Default is `no`.
 ```yaml
-sap_general_preconfigure_use_netweaver_repo
+sap_general_preconfigure_enable_repos
+```
+
+### (RHEL only): Use SAP NetWeaver repo
+If the following variable is set to `no`, the role will not enable the SAP NetWeaver(s) repo if variable
+`sap_general_preconfigure_enable_repos` is set to `yes`. Default is `yes`.
+```yaml
+sap_general_preconfigure_use_netweaver_repos
 ```
 
 ### (RHEL only): Enable SAP HANA repo
-If the following variable is set to `yes`, the role will enable the SAP HANA repo if variable
-`sap_general_preconfigure_enable_repos` is set to `yes`. Default is `no`.
+If the following variable is set to `no`, the role will not enable the SAP HANA repo(s) if variable
+`sap_general_preconfigure_enable_repos` is set to `yes`. Default is `yes`.
 ```yaml
-sap_general_preconfigure_use_hana_repo
+sap_general_preconfigure_use_hana_repos
 ```
 
 ### (RHEL only): Enable HA repo
-If the following variable is set to `yes`, the role will enable the Highavailability repo if variable
-`sap_general_preconfigure_enable_repos` is set to `yes`. Default is `no`.
+If the following variable is set to `no`, the role will not enable the high availability repo(s) if variable
+`sap_general_preconfigure_enable_repos` is set to `yes`. Default is `yes`.
 ```yaml
-sap_general_preconfigure_use_ha_repo
+sap_general_preconfigure_use_ha_repos
 ```
 
-### (RHEL only): If variable `sap_general_preconfigure_enable_repos` is set to `yes`, use the
-following variable to set the repository type. Valid values are `normal`, `eus`, and `e4s`.
+### (RHEL only): Disable all other repos
+Set the following variable to `no` to leave all currently enabled repos enabled. The default is `yes`, which means
+that the subscription-manager command will disable all repos before enabling the desired ones.
 ```yaml
-sap_general_preconfigure_repo_type:
+sap_general_preconfigure_disable_all_other_repos
 ```
 
-### (RHEL only): Enable repos
-If the following variable is set to `yes`, the role will enable all repos as per definitions above. Default is `no`.
+### (RHEL only): Provide your own list of repos to enable
+# If you want to provide your own list of repos (e.g. on cloud systems), set the following variable accordingly.
+# Otherwise, the RHEL default repo names with the maximum support duration for the RHEL minor release are chosen automatically
+# (e.g. normal repos for RHEL 8.3, e4s repos for RHEL 8.4).
 ```yaml
-sap_general_preconfigure_enable_repos
+sap_general_preconfigure_req_repos
 ```
 
 ### (RHEL only): Set the minor release lock
@@ -92,7 +101,7 @@ Set to `yes` if you want the role to set the RHEL minor release, which is a requ
 Note: If you set the RHEL minor release lock, then it is strongly recommended to also set variable
 `sap_general_preconfigure_repo_type` (see below) to `e4s`.
 ```yaml
-sap_general_preconfigure_set_minor_release: no
+sap_general_preconfigure_set_minor_release
 ```
 
 ### Minimum package check

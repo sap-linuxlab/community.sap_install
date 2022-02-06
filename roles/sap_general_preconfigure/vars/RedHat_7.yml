@@ -8,7 +8,7 @@ __sap_general_preconfigure_sapnotes_versions:
   - { number: '1391070', version: '41' }
   - { number: '0941735', version: '11' }
 
-# RHEL 7 arch strings:
+# RHEL 7 arch strings for setting the repo names:
 __sap_general_preconfigure_rhel_7_arch_string_x86_64: 'server'
 __sap_general_preconfigure_rhel_7_arch_string_ppc64le: 'for-power-le'
 __sap_general_preconfigure_rhel_7_arch_string_ppc64: 'for-power'
@@ -16,14 +16,29 @@ __sap_general_preconfigure_rhel_7_arch_string_s390x: 'for-system-z'
 
 __sap_general_preconfigure_rhel_7_arch_string: "{{ lookup('vars','__sap_general_preconfigure_rhel_7_arch_string_' + ansible_architecture ) }}"
 
+__sap_general_preconfigure_max_repo_type_x86_64: 'e4s'
+__sap_general_preconfigure_max_repo_type_ppc64le: 'e4s'
+__sap_general_preconfigure_max_repo_type_ppc64: 'eus'
+__sap_general_preconfigure_max_repo_type_s390x: 'eus'
+
+__sap_general_preconfigure_max_repo_type: "{{ lookup('vars','__sap_general_preconfigure_max_repo_type_' + ansible_architecture) }}"
+
+# RHEL 7 minor releases maximum repo support duration
+__sap_general_preconfigure_max_repo_type_string_7_6: '{{ __sap_general_preconfigure_max_repo_type }}-'
+__sap_general_preconfigure_max_repo_type_string_7_7: '{{ __sap_general_preconfigure_max_repo_type }}-'
+__sap_general_preconfigure_max_repo_type_string_7_8: ''
+__sap_general_preconfigure_max_repo_type_string_7_9: ''
+
+__sap_general_preconfigure_max_repo_type_string: "{{ lookup('vars','__sap_general_preconfigure_max_repo_type_string_' + ansible_distribution_version|replace (\".\", \"_\")) }}"
+
 __sap_general_preconfigure_req_os_repos:
-  - rhel-{{ ansible_distribution_major_version }}-{{ __sap_general_preconfigure_rhel_7_arch_string }}-{{ __sap_general_preconfigure_fact_repo_type_string }}rpms
+  - rhel-{{ ansible_distribution_major_version }}-{{ __sap_general_preconfigure_rhel_7_arch_string }}-{{ __sap_general_preconfigure_max_repo_type_string }}rpms
 __sap_general_preconfigure_req_netweaver_repos:
-  - rhel-sap-for-rhel-{{ ansible_distribution_major_version }}-{{ __sap_general_preconfigure_rhel_7_arch_string }}-{{ __sap_general_preconfigure_fact_repo_type_string }}rpms
+  - rhel-sap-for-rhel-{{ ansible_distribution_major_version }}-{{ __sap_general_preconfigure_rhel_7_arch_string }}-{{ __sap_general_preconfigure_max_repo_type_string }}rpms
 __sap_general_preconfigure_req_hana_repos:
-  - rhel-sap-hana-for-rhel-{{ ansible_distribution_major_version }}-{{ __sap_general_preconfigure_rhel_7_arch_string }}-{{ __sap_general_preconfigure_fact_repo_type_string }}rpms
+  - rhel-sap-hana-for-rhel-{{ ansible_distribution_major_version }}-{{ __sap_general_preconfigure_rhel_7_arch_string }}-{{ __sap_general_preconfigure_max_repo_type_string }}rpms
 __sap_general_preconfigure_req_ha_repos:
-  - rhel-ha-for-rhel-{{ ansible_distribution_major_version }}-{{ __sap_general_preconfigure_rhel_7_arch_string }}-{{ __sap_general_preconfigure_fact_repo_type_string }}rpms
+  - rhel-ha-for-rhel-{{ ansible_distribution_major_version }}-{{ __sap_general_preconfigure_rhel_7_arch_string }}-{{ __sap_general_preconfigure_max_repo_type_string }}rpms
 
 __sap_general_preconfigure_envgroups: ""
 
