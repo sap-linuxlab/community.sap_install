@@ -35,13 +35,15 @@
 # Inner loop, loop variable sapcar_any:
 #   For each SAPCAR*EXE file, the 'file' command is executed. It displays the hardware architecture in the
 #   second output field, using a string which is different from the output of the 'uname -m' command. So we
-#   replace those strings by the "correct" ones. For ppc64 ad ppc64le, the second output field is identical
-#   so in this case, we also look at the third output field.
-#   Next, we select only the SAPCAR EXE file(s) which match(es) the architecture of the managed node.
+#   replace those strings by the "correct" ones. For ppc64 and ppc64le, the second output field is identical.
+#   So in this case, we also look at the third output field, to handle cases where a ppc64 SAPCAR executable
+#   is present in the software directory.
+#   The resulting list of the inner loop contains the SAPCAR EXE file(s) which match(es) the architecture
+#   of the managed node.
 # Outer loop, loop variable sapcar_matching_arch:
-#   We then print the name, version, and patch number for each SAPCAR EXE file for the architecture, sort numerically
-#   by the version and patch number and finally select the SAPCAR EXE file with the highest version.
-    - name: SAP HANA hdblcm prepare - Get SAPCAR executable file from folder - {{ sap_hana_install_software_directory }}
+#   We then print the name, version, and patch number for each SAPCAR EXE file for the architecture, sort
+#   numerically by the version and patch number and finally select the SAPCAR EXE file with the highest version.
+    - name: SAP HANA hdblcm prepare - Get SAPCAR executable file from folder '{{ sap_hana_install_software_directory }}'
       shell: |
         set -o pipefail &&
         for sapcar_matching_arch in $(

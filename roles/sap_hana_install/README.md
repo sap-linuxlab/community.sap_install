@@ -42,10 +42,10 @@ Place the following files in directory /software/hana or in any other directory 
     -rwxr-xr-x. 1 nobody nobody   89285401 Sep 30 04:24 SAPHOSTAGENT51_51-20009394.SAR
     ```
 
-For security reasons, the file names and checksums of the SAPCAR EXE file and the SAR files need to be specified
-in two role variables: `sap_hana_install_sapcar_file` and `sap_hana_install_sarfiles`. You can find exanples in
-file `defaults/main.yml`. The checksums can be found in the "Related Info" -> "Content Info" page for each SAP
-software package in the SAP software center.
+For security reasons, it is recommended to specify the file names and checksums of the SAPCAR EXE file and the
+SAR files in two role variables: `sap_hana_install_sapcar_file` and `sap_hana_install_sarfiles`. You can find
+examples for these in file `defaults/main.yml`. The checksums can be found in the "Related Info" -> "Content Info"
+page for each SAP software package in the SAP software center.
 
 Example:
 ```
@@ -59,6 +59,14 @@ sap_hana_install_sarfiles:
 For the SAPCAR EXE file and the SAR files to be installed, a file named `<filename>.sha256sum` containing
 the output of the sha256sum command will be created by the role if it does not yet exist in the software
 download directory `sap_hana_install_software_directory`.
+
+If variable `sap_hana_install_sapcar_file` is not specified, the role will attempt to automatically detect the
+SAPCAR EXE file in the software directory which matches the architecture, and choose the latest available version.
+
+If variable `sap_hana_install_sarfiles` is not specified, the role will extract all SAR files found in the
+software directory, and use them for installation. If more than one version of the same software is found,
+the attempt to move the extracted files from any consecutive SAR file to its final destination in
+`sap_hana_install_software_extract_directory` will fail.
 
 #### Extracted SAP HANA Software Installation Files
 
