@@ -17,7 +17,7 @@ for configuring system settings.
 Place the following files in directory /software/hana or in any other directory specified by variable
 `sap_hana_install_software_directory`:
 
-1. The SAPCAR executable
+1. The SAPCAR executable for the correct hardware architecture
 
 2. The SAP HANA Installation .SAR file
     - SAP HANA 2.0 Server - `IMDB_SERVER*.SAR` file
@@ -42,13 +42,37 @@ Place the following files in directory /software/hana or in any other directory 
     -rwxr-xr-x. 1 nobody nobody   89285401 Sep 30 04:24 SAPHOSTAGENT51_51-20009394.SAR
     ```
 
+If more than one SAPCAR EXE file is present in the software directory, the role will select the latest version
+for the current hardware architecture. Alternatively, the file name of the SAPCAR EXE file can also be set with
+variable `sap_hana_install_sapcar_filename`.
+
+If more than one SAR file for a certain software product is present in the software directory, the automatic
+handling of such SAR files will fail after extraction, when moving the newly created product directories
+(like `SAP_HOST_AGENT`) to already existing destinations.
+For avoiding such situations, use following variable to provide a list of SAR files to extract:
+`sap_hana_install_sarfiles_list`.
+
+Example:
+```
+sap_hana_install_sarfiles_list:
+  - SAPHOSTAGENT54_54-80004822.SAR
+  - IMDB_SERVER20_060_0-80002031.SAR
+```
+
 #### Extracted SAP HANA Software Installation Files
 
-This role will detect if there is a pre-extracted SAP_HANA_DATABASE component already present
-in the directory specified by variable sap_hana_install_software_directory or in any directory below.
-If found, it will skip the .SAR extraction phase and proceed with the installation.
+This role will detect if there is a file `hdblcm` already present in the directory specified by variable
+`sap_hana_install_software_extract_directory` or in any directory below. If If found, it will skip
+the .SAR extraction phase and proceed with the installation.
 
-- Sample directory `sap_hana_install_software_directory` containing extracted SAP HANA software installation files
+The default for `sap_hana_install_software_extract_directory` is `{{ sap_hana_install_software_directory }}/extracted` but it
+can be set to a different directory.
+
+If this role is executed on more than one host in parallel and the software extraction directory is shared among those hosts,
+the role will only extract the files on the first host on which the extraction has started. The role will proceed on the other hosts
+after the extraction of SAR files has completed.
+
+- Sample directory `sap_hana_install_software_extract_directory` containing extracted SAP HANA software installation files
     ```console
     [root@hanahost extracted]# ll -lrt
     drwxr-xr-x 4 root root 4096 Sep 30 04:55 SAP_HANA_AFL
@@ -92,6 +116,8 @@ Sample Ansible Playbook Execution
 ```yaml
 ---
 - hosts: all
+  collections:
+    - community.sap_install
   become: true
   vars:
     sap_hana_install_software_directory: /software/hana
@@ -107,10 +133,13 @@ Sample Ansible Playbook Execution
 ```yaml
 ---
 - hosts: all
+  collections:
+    - community.sap_install
   become: true
   vars:
     sap_hana_install_software_directory: /software/hana
     sap_hana_install_common_master_password: 'NewPass$321'
+    sap_hana_install_root_password: 'NewPass$321'
     sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02'
     sap_hana_install_sid: 'H01'
     sap_hana_install_instance_number: '00'
@@ -123,19 +152,22 @@ Sample Ansible Playbook Execution
 ```yaml
 ---
 - hosts: all
+  collections:
+    - community.sap_install
   become: true
   vars:
     sap_hana_install_software_directory: /software/hana
     sap_hana_install_new_system: no
     sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02'
     sap_hana_install_common_master_password: 'NewPass$321'
+    sap_hana_install_root_password: 'NewPass$321'
     sap_hana_install_sid: 'H01'
     sap_hana_install_instance_number: '00'
   roles:
     - sap_hana_install
 ```
 
-You can find more complex playbooks in directory `playbooks` of the collection community.sap_install.
+You can find more complex playbooks in directory `playbooks` of the collection `community.sap_install`.
 
 ## Flow
 
@@ -143,12 +175,12 @@ You can find more complex playbooks in directory `playbooks` of the collection c
 
 #### Perform Initial Checks
 
-- If variable sap_hana_install_check_sidadm_user is undefined or set to `y`: Check if user sidadm exists. If yes,
+- If variable `sap_hana_install_check_sidadm_user` is undefined or set to `y`: Check if user sidadm exists. If yes,
   abort the role.
 
-- Check if directory /hana/shared/sid exists. If yes, abort the role.
+- Check if directory `/hana/shared/<sid>` exists. If yes, abort the role.
 
-- Check if directory /usr/sap/sid exists. If yes, abort the role.
+- Check if directory `/usr/sap/<sid>` exists. If yes, abort the role.
 
 #### Pre-Install 
 
@@ -156,7 +188,7 @@ You can find more complex playbooks in directory `playbooks` of the collection c
 
 - Prepare software located in directory `sap_hana_install_software_directory`
 
-    - If `SAP_HANA_DATABASE` is found, proceed to 4.
+    - If file `hdblcm` is found, proceed to 4.
 
     - If not, proceed to 3.
 

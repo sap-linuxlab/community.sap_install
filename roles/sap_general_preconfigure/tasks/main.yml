@@ -4,7 +4,7 @@
   debug:
     var: role_path
 
-- name: Include OS specific vars
+- name: Include OS specific vars, specific
   include_vars: '{{ item }}'
   with_first_found:
     - '{{ ansible_distribution }}_{{ ansible_distribution_version }}.yml'
@@ -68,8 +68,14 @@
 - name: Gather package facts
   package_facts:
 
-- include_tasks: '{{ __sap_general_preconfigure_fact_assert_filename_prefix }}installation.yml'
+- include_tasks: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}installation.yml'
   when: sap_general_preconfigure_config_all|d(true) or sap_general_preconfigure_installation|d(false)
+  with_first_found:
+    - '{{ ansible_distribution.split("_")[0] }}'
+    - '{{ ansible_distribution }}'
 
-- include_tasks: '{{ __sap_general_preconfigure_fact_assert_filename_prefix }}configuration.yml'
+- include_tasks: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}configuration.yml'
   when: sap_general_preconfigure_config_all|d(true) or sap_general_preconfigure_configuration|d(false)
+  with_first_found:
+    - '{{ ansible_distribution.split("_")[0] }}'
+    - '{{ ansible_distribution }}'

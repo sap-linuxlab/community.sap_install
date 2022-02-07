@@ -11,7 +11,7 @@
 
 - name: SAP HANA Add Hosts - Show the additional hosts to be added
   debug:
-    msg: "Additional hosts: __sap_hana_install_addhosts_hosts"
+    msg: "Additional hosts: {{ __sap_hana_install_addhosts_hosts }}"
 
 - name: SAP HANA Add Hosts - Make sure the additional hosts are not yet part of the exiting SAP HANA system - file checks
   include_tasks: assert-addhosts-loop-block.yml
@@ -40,9 +40,9 @@
       assert:
         that: "'{{ line_item }}' not in __sap_hana_install_register_hdblcm_list_systems.stdout"
         fail_msg:
-          - "FAIL: Host {{ line_item }} is already part of system {{ sap_hana_install_sid }}"
+          - "FAIL: Host {{ line_item }} is already part of system '{{ sap_hana_install_sid }}'"
           - "Because of this, the addhost operation will not be performed."
-        success_msg: "PASS: Host {{ line_item }} is not yet part of system {{ sap_hana_install_sid }}."
+        success_msg: "PASS: Host '{{ line_item }}' is not yet part of system '{{ sap_hana_install_sid }}'."
       loop: "{{ __sap_hana_install_addhosts_hosts }}"
       loop_control:
         loop_var: line_item
