@@ -19,11 +19,26 @@
     group: root
   when: "'SAPHOST' in passed_sap_hana_install_components_sar"
 
-- name: SAP HANA hdblcm prepare - Extracting file '{{ passed_sap_hana_install_components_sar }}'
+- name: Display name and checksum of SAR file
+  debug:
+    msg: "Name and checksum of SAR file: {{ passed_sap_hana_install_components_sar.name }}, {{ passed_sap_hana_install_components_sar.checksum }}"
+
+- name: SAP HANA hdblcm prepare - Get sha256sum of the SAR file
+  command: "awk '{print $1}' {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}.sha256sum"
+  register: __sap_hana_install_register_sarfile_sha256sum
+  changed_when: no
+
+- name: SAP HANA hdblcm prepare - Assert that the checksum of the SAR file is correct
+  assert:
+    that: __sap_hana_install_register_sarfile_sha256sum.stdout == passed_sap_hana_install_components_sar.checksum
+    fail_msg: "FAIL: The checksum of file '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}' does not match the content of variable sap_hana_install_sarfiles[].checksum."
+    success_msg: "PASS: The checksum of file '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}' matches the content of variable sap_hana_install_sarfiles[].checksum."
+
+- name: SAP HANA hdblcm prepare - Extracting file '{{ passed_sap_hana_install_components_sar.name }}'
   command: >-
     {{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_file_name }} \
     -R {{ __sap_hana_install_tmp_software_extract_directory }} \
-    -xvf {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }} \
+    -xvf {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }} \
     -manifest SIGNATURE.SMF
   register: __sap_hana_install_register_extract
   args:
@@ -37,13 +52,13 @@
     mv ${extracted_dir} ..
   args:
     chdir: "{{ __sap_hana_install_tmp_software_extract_directory }}"
-  when: "'SAPHOST' not in passed_sap_hana_install_components_sar"
+  when: "'SAPHOST' not in passed_sap_hana_install_components_sar.name"
 
 - name: SAP HANA hdblcm prepare - Move files into the correct place, SAP Host Agent
   command: mv ./tmp/SAP_HOST_AGENT .
   args:
     chdir: "{{ sap_hana_install_software_extract_directory }}"
-  when: "'SAPHOST' in passed_sap_hana_install_components_sar"
+  when: "'SAPHOST' in passed_sap_hana_install_components_sar.name"
 
 - name: SAP HANA hdblcm prepare - Remove temporary extraction directory '{{ sap_hana_install_software_extract_directory }}/tmp'
   ansible.builtin.file:

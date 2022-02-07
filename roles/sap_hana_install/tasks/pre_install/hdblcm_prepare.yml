@@ -21,61 +21,33 @@
     state: touch
     mode: '0755'
 
-- name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable if sap_hana_install_sapcar_filename is defined
+- name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable
   set_fact:
-    __sap_hana_install_fact_sapcar_file_name: "{{ sap_hana_install_sapcar_filename }}"
-  when: sap_hana_install_sapcar_filename is defined
-
-- name: SAP HANA hdblcm prepare - Determine file name of SAPCAR*EXE
-  block:
-# We need the file package for the file command, which we need in the next task.
-# RHEL: The file package is contained in the Base software group, which should be installed already.
-
-# In case there is more than one SAPCAR*EXE file in the software directory, we need to get the correct one.
-# In case of ppc64 and ppc64le, the file command displays the same architecture in the second column.
-# We could use the binutils package but we can also find out the correct file by just attempting to execute it.
-# Inner loop, loop variable sapcar_any:
-#   We first replace the architecture string as reported by the file command by the string as reported by uname -m.
-#   Next, we select only the SAPCAR*EXE files which matches the architecture of the managed node.
-# Outer loop, loop variable sapcar_matching_arch:
-#   We then execute each of the matching SAPCAR*EXE files and if the return code is 0, we execute it again,
-#   print the version and patch number, sort numerically by the version and patch number and finally
-#   select the SAPCAR*EXE file with the highest version.
-    - name: SAP HANA hdblcm prepare - Get SAPCAR executable file from folder - {{ sap_hana_install_software_directory }}
-      shell: |
-        set -o pipefail && for sapcar_matching_arch in $(
-             for sapcar_any in SAPCAR*EXE; do
-                file ${sapcar_any} |
-                  awk '{gsub ("x86-64", "x86_64"); gsub ("64-bit PowerPC", "ppc64le"); gsub ("IBM S/390", "s390x");
-                  split ($0, a, ":"); split (a[2], b, ","); sub ("^ ", "", b[2]); printf ("%s %s\n", a[1], b[2])}'
-             done | awk '/'"{{ ansible_architecture }}"'/{print $1}'); do
-          ./${sapcar_matching_arch} --version >/dev/null 2>&1 && (
-          printf "%s " ${sapcar_matching_arch}
-          ./${sapcar_matching_arch} --version |
-            awk '/kernel release/{rel=$NF}/patch number/{printf ("%s %s\n", rel, $NF)}')
-          done | sort -k 2 -nr -k 3 -nr | awk 'NR==1{print $1}'
-      args:
-        chdir: "{{ sap_hana_install_software_directory }}"
-      register: __sap_hana_install_register_sapcar_file
-      changed_when: no
-
-    - name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable
-      set_fact:
-        __sap_hana_install_fact_sapcar_file_name: "{{ __sap_hana_install_register_sapcar_file.stdout }}"
-
-  when: sap_hana_install_sapcar_filename is not defined
+    __sap_hana_install_fact_sapcar_file_name: "{{ sap_hana_install_sapcar_file[0].name }}"
 
 - name: SAP HANA hdblcm prepare - Get info about the SAPCAR executable
   stat:
     path: "{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_file_name }}"
   register: __sap_hana_install_register_sapcar_stat_result
+  changed_when: no
   failed_when: no
 
 - name: SAP HANA hdblcm prepare - Assert that the SAPCAR executable is available
   assert:
     that: __sap_hana_install_register_sapcar_stat_result.stat.exists
-    fail_msg: "FAIL: No valid SAPCAR executable could be found. Consider setting variable 'sap_hana_install_sapcar_filename'."
-    success_msg: "Using '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_file_name }}' for extracting SAR files."
+    fail_msg: "FAIL: File '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_file_name }}' does not exist."
+    success_msg: "PASS: File '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_file_name }}' exists."
+
+- name: SAP HANA hdblcm prepare - Get sha256sum of the SAPCAR executable
+  command: "awk '{print $1}' {{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_file_name }}.sha256sum"
+  register: __sap_hana_install_register_sapcar_sha256sum
+  changed_when: no
+
+- name: SAP HANA hdblcm prepare - Assert that the SAPCAR checksum is correct
+  assert:
+    that: __sap_hana_install_register_sapcar_sha256sum.stdout == sap_hana_install_sapcar_file[0].checksum
+    fail_msg: "FAIL: The checksum of file '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_file_name }}' executable does not match the content of variable sap_hana_install_sapcar_file[0].checksum."
+    success_msg: "PASS: The checksum of file '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_file_name }}' matches the content of variable sap_hana_install_sapcar_file[0].checksum."
 
 - name: SAP HANA hdblcm prepare - Make sure SAPCAR has execute permissions and is owned by root
   ansible.builtin.file:
@@ -84,28 +56,10 @@
     owner: root
     group: root
 
-- name: Handle SAR files in folder '{{ sap_hana_install_software_directory }}'
-  block:
-
-    - name: SAP HANA hdblcm prepare - Get all SAR files in folder '{{ sap_hana_install_software_directory }}'
-      shell: |
-        ls *.SAR
-      args:
-        chdir: "{{ sap_hana_install_software_directory }}"
-      register: __sap_hana_install_register_sarfiles_list
-      changed_when: no
-
-    - name: SAP HANA hdblcm prepare - Set fact list of SAR files from output of ls command
-      set_fact:
-        __sap_hana_install_fact_components_sar: "{{ __sap_hana_install_register_sarfiles_list.stdout.split() }}"
-      when: __sap_hana_install_register_sarfiles_list.stdout | length > 0
-
-  when: sap_hana_install_sarfiles_list is not defined
-
 - name: SAP HANA hdblcm prepare - Set fact list of SAR files from variable if defined
   set_fact:
-    __sap_hana_install_fact_components_sar: "{{ sap_hana_install_sarfiles_list }}"
-  when: sap_hana_install_sarfiles_list is defined
+    __sap_hana_install_fact_components_sar: "{{ sap_hana_install_sarfiles }}"
+  when: sap_hana_install_sarfiles is defined
 
 - name: SAP HANA hdblcm prepare - Display SAR files to be extracted
   debug:
