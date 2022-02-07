@@ -1,5 +1,14 @@
 ---
 
+- name: Warn if the role is used without specifying SAPCAR executable and SAR files
+  debug:
+    msg: "WARN: The role is used without variables 'sap_hana_install_sapcar_file'
+          or 'sap_hana_install_sarfiles' being configured, so the SAPCAR executable
+          and the SAR files in directory {{ sap_hana_install_software_directory }}
+          will be determined automatically."
+  when: sap_hana_install_sapcar_file is undefined or
+        sap_hana_install_sarfiles is undefined
+
 - import_tasks: hana_exists.yml
   when: sap_hana_install_new_system|d(true)
 

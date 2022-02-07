@@ -23,27 +23,32 @@
   debug:
     msg: "Name and checksum of SAR file: {{ passed_sap_hana_install_components_sar.name }}, {{ passed_sap_hana_install_components_sar.checksum }}"
 
-- name: SAP HANA hdblcm prepare - Get info about file '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}.sha256sum'
-  stat:
-    path: "{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}.sha256sum"
-  register: __sap_hana_install_register_sarfile_sha256sum_stat_result
-  changed_when: no
-  failed_when: no
+- name: SAP HANA hdblcm prepare - Verify checksum for SAR file
+  block:
 
-- name: SAP HANA hdblcm prepare - Create checksum file for the SAR file if it does not exist
-  shell: "sha256sum {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }} > {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}.sha256sum"
-  when: not __sap_hana_install_register_sarfile_sha256sum_stat_result.stat.exists
+    - name: SAP HANA hdblcm prepare - Get info about file '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}.sha256sum'
+      stat:
+        path: "{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}.sha256sum"
+      register: __sap_hana_install_register_sarfile_sha256sum_stat_result
+      changed_when: no
+      failed_when: no
 
-- name: SAP HANA hdblcm prepare - Get sha256sum from the SAR file
-  command: "awk '{print $1}' {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}.sha256sum"
-  register: __sap_hana_install_register_sarfile_sha256sum
-  changed_when: no
+    - name: SAP HANA hdblcm prepare - Create checksum file for the SAR file if it does not exist
+      shell: "sha256sum {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }} > {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}.sha256sum"
+      when: not __sap_hana_install_register_sarfile_sha256sum_stat_result.stat.exists
 
-- name: SAP HANA hdblcm prepare - Assert that the checksum of the SAR file is correct
-  assert:
-    that: __sap_hana_install_register_sarfile_sha256sum.stdout == passed_sap_hana_install_components_sar.checksum
-    fail_msg: "FAIL: The checksum of file '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}' does not match the content of variable sap_hana_install_sarfiles[].checksum."
-    success_msg: "PASS: The checksum of file '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}' matches the content of variable sap_hana_install_sarfiles[].checksum."
+    - name: SAP HANA hdblcm prepare - Get sha256sum from the SAR file
+      command: "awk '{print $1}' {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}.sha256sum"
+      register: __sap_hana_install_register_sarfile_sha256sum
+      changed_when: no
+
+    - name: SAP HANA hdblcm prepare - Assert that the checksum of the SAR file is correct
+      assert:
+        that: __sap_hana_install_register_sarfile_sha256sum.stdout == passed_sap_hana_install_components_sar.checksum
+        fail_msg: "FAIL: The checksum of file '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}' does not match the content of variable sap_hana_install_sarfiles[].checksum."
+        success_msg: "PASS: The checksum of file '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}' matches the content of variable sap_hana_install_sarfiles[].checksum."
+
+  when: sap_hana_install_sarfiles is defined
 
 - name: SAP HANA hdblcm prepare - Extracting file '{{ passed_sap_hana_install_components_sar.name }}'
   command: >-
@@ -75,4 +80,3 @@
   ansible.builtin.file:
     path: "{{ sap_hana_install_software_extract_directory }}/tmp"
     state: absent
-  when: "'SAPHOST' not in passed_sap_hana_install_components_sar.name"
