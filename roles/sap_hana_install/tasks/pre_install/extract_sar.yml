@@ -3,12 +3,12 @@
 - name: SAP HANA hdblcm prepare - Set fact for temporary extraction destination, default
   set_fact:
     __sap_hana_install_tmp_software_extract_directory: "{{ sap_hana_install_software_extract_directory }}/tmp"
-  when: "'SAPHOST' not in passed_sap_hana_install_components_sar"
+  when: "'SAPHOST' not in passed_sap_hana_install_components_sar.name"
 
 - name: SAP HANA hdblcm prepare - Set fact for temporary extraction destination, SAP Host Agent
   set_fact:
     __sap_hana_install_tmp_software_extract_directory: "{{ sap_hana_install_software_extract_directory }}/tmp/SAP_HOST_AGENT"
-  when: "'SAPHOST' in passed_sap_hana_install_components_sar"
+  when: "'SAPHOST' in passed_sap_hana_install_components_sar.name"
 
 - name: SAP HANA hdblcm prepare - Create temporary extraction destination '{{ __sap_hana_install_tmp_software_extract_directory }}'
   ansible.builtin.file:
@@ -17,13 +17,24 @@
     mode: 0755
     owner: root
     group: root
-  when: "'SAPHOST' in passed_sap_hana_install_components_sar"
+  when: "'SAPHOST' in passed_sap_hana_install_components_sar.name"
 
 - name: Display name and checksum of SAR file
   debug:
     msg: "Name and checksum of SAR file: {{ passed_sap_hana_install_components_sar.name }}, {{ passed_sap_hana_install_components_sar.checksum }}"
 
-- name: SAP HANA hdblcm prepare - Get sha256sum of the SAR file
+- name: SAP HANA hdblcm prepare - Get info about file '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}.sha256sum'
+  stat:
+    path: "{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}.sha256sum"
+  register: __sap_hana_install_register_sarfile_sha256sum_stat_result
+  changed_when: no
+  failed_when: no
+
+- name: SAP HANA hdblcm prepare - Create checksum file for the SAR file if it does not exist
+  shell: "sha256sum {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }} > {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}.sha256sum"
+  when: not __sap_hana_install_register_sarfile_sha256sum_stat_result.stat.exists
+
+- name: SAP HANA hdblcm prepare - Get sha256sum from the SAR file
   command: "awk '{print $1}' {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar.name }}.sha256sum"
   register: __sap_hana_install_register_sarfile_sha256sum
   changed_when: no
@@ -64,3 +75,4 @@
   ansible.builtin.file:
     path: "{{ sap_hana_install_software_extract_directory }}/tmp"
     state: absent
+  when: "'SAPHOST' not in passed_sap_hana_install_components_sar.name"

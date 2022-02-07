@@ -32,7 +32,7 @@ Place the following files in directory /software/hana or in any other directory 
 
 - Sample directory `sap_hana_install_software_directory` containing SAP HANA software installation files
     ```console
-    [root@hanahost SAP_HANA_INSTALLATION]# ll -lrt
+    [root@hanahost SAP_HANA_INSTALLATION]# ls -l *.EXE *.SAR
     -rwxr-xr-x. 1 nobody nobody  149561376 Mar  4  2021 IMDB_AFL20_054_1-80001894.SAR
     -rwxr-xr-x. 1 nobody nobody  211762405 Mar  4  2021 IMDB_CLIENT20_007_23-80002082.SAR
     -rwxr-xr-x. 1 nobody nobody    4483040 Mar  4  2021 SAPCAR_1010-70006178.EXE
@@ -42,22 +42,23 @@ Place the following files in directory /software/hana or in any other directory 
     -rwxr-xr-x. 1 nobody nobody   89285401 Sep 30 04:24 SAPHOSTAGENT51_51-20009394.SAR
     ```
 
-If more than one SAPCAR EXE file is present in the software directory, the role will select the latest version
-for the current hardware architecture. Alternatively, the file name of the SAPCAR EXE file can also be set with
-variable `sap_hana_install_sapcar_filename`.
-
-If more than one SAR file for a certain software product is present in the software directory, the automatic
-handling of such SAR files will fail after extraction, when moving the newly created product directories
-(like `SAP_HOST_AGENT`) to already existing destinations.
-For avoiding such situations, use following variable to provide a list of SAR files to extract:
-`sap_hana_install_sarfiles_list`.
+For security reasons, the file names and checksums of the SAPCAR EXE file and the SAR files need to be specified
+in two role variables: `sap_hana_install_sapcar_file` and `sap_hana_install_sarfiles`. You can find exanples in
+file `defaults/main.yml`. The checksums can be found in the "Related Info" -> "Content Info" page for each SAP
+software package in the SAP software center.
 
 Example:
 ```
-sap_hana_install_sarfiles_list:
-  - SAPHOSTAGENT54_54-80004822.SAR
-  - IMDB_SERVER20_060_0-80002031.SAR
+sap_hana_install_sapcar_file:
+- { name: 'SAPCAR_XXXX-XXXXXXXX.EXE', checksum: 'XXX' }
+sap_hana_install_sarfiles:
+- { name: 'IMDB_SERVERXXXXX_X-XXXXXXXX.SAR', checksum: 'XXX' }
+- { name: 'SAPHOSTAGENTXXXXX-XXXXXXXX.SAR', checksum: 'XXX' }
 ```
+
+For the SAPCAR EXE file and the SAR files to be installed, a file named `<filename>.sha256sum` containing
+the output of the sha256sum command will be created by the role if it does not yet exist in the software
+download directory `sap_hana_install_software_directory`.
 
 #### Extracted SAP HANA Software Installation Files
 
