@@ -12,9 +12,9 @@
     - name: Assert that there is no sidadm user # noqa var-spacing
       assert:
         that: __sap_hana_install_register_getent_passwd_sidadm.rc != 0
-        fail_msg: "FAIL: User {{ sap_hana_install_sid | lower}}adm exists.
-                   Because of this, SAP HANA with SID {{ sap_hana_install_sid }} will not be installed."
-        success_msg: "PASS: User {{ sap_hana_install_sid | lower}}adm does not exist."
+        fail_msg: "FAIL: User '{{ sap_hana_install_sid | lower}}adm' exists!
+                   Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
+        success_msg: "PASS: User '{{ sap_hana_install_sid | lower}}adm' does not exist."
 
   when: sap_hana_install_check_sidadm_user|d(true)
 
@@ -31,11 +31,11 @@
     - name: In case there is a group sapsys, assert that its group ID is identical to sap_hana_install_groupid
       assert:
         that: "{{ __sap_hana_install_register_getent_group_sapsys.stdout.split(':')[2] }} == {{ sap_hana_install_groupid }}"
+        success_msg: "PASS: The group ID of 'sapsys' is identical to the value of variable
+                      sap_hana_install_groupid, which is '{{ sap_hana_install_groupid }}'"
         fail_msg: "FAIL: Group sapsys exists but with a different group ID than '{{ sap_hana_install_groupid }}',
 	           which has been specified in variable sap_hana_install_groupid.
 	           Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
-        success_msg: "PASS: The group is of sapsys is identical to the value of variable
-                      sap_hana_install_groupid, which is '{{ sap_hana_install_groupid }}'"
       when: __sap_hana_install_register_getent_group_sapsys.rc == 0
 
   when:
@@ -52,7 +52,7 @@
 - name: "Assert that directory '/hana/shared/{{ sap_hana_install_sid }}' does not exist"
   assert:
     that: not __sap_hana_install_register_stat_hana_shared_sid_assert.stat.exists
-    fail_msg: "FAIL: Directory '/hana/shared/{{ sap_hana_install_sid }}' exists.
+    fail_msg: "FAIL: Directory '/hana/shared/{{ sap_hana_install_sid }}' exists!
                Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
     success_msg: "PASS: Directory '/hana/shared/{{ sap_hana_install_sid }}' does not exist."
 
@@ -65,7 +65,7 @@
 - name: "Assert that directory '/usr/sap/{{ sap_hana_install_sid }}' does not exist"
   assert:
     that: not __sap_hana_install_register_stat_usr_sap_sid_assert.stat.exists
-    fail_msg: "FAIL: Directory '/usr/sap/{{ sap_hana_install_sid }}' exists.
+    fail_msg: "FAIL: Directory '/usr/sap/{{ sap_hana_install_sid }}' exists!
                Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
     success_msg: "PASS: Directory '/usr/sap/{{ sap_hana_install_sid }}' does not exist."
 
