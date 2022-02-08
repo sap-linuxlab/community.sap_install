@@ -192,51 +192,53 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 
 #### Pre-Install 
 
-- Set all passwords to follow master password if set to 'y'
+- Set all passwords to follow master password if set to 'y'.
 
-- Prepare software located in directory `sap_hana_install_software_directory`
+- Prepare software located in directory `sap_hana_install_software_directory`:
 
-    - If file `hdblcm` is found, proceed to 4.
+    - If file `hdblcm` is found, skip the next step and proceed with the `hdblcm` existence check.
 
-    - If not, proceed to 3.
+    - If file `hdblcm` ist not found, proceed with the next step.
 
-- Prepare .SAR files for `hdblcm` 
+- Prepare SAR files for `hdblcm`:
 
-    - Get all .SAR files from `sap_hana_install_software_directory`
+    - Get the correct SAPCAR executable from `sap_hana_install_software_directory` in case its file name is not provided by role variable.
 
-    - Extract all .SAR files from `sap_hana_install_software_directory`
+    - Get all SAR files from `sap_hana_install_software_directory` or use the SAR files provided by role variable.
 
-- Check existence of `hdblcm` in `SAP_HANA_DATABASE` directory from the extracted SAR files
+    - Extract all SAR files from `sap_hana_install_software_directory`.
 
-- Process SAP HANA `configfile` based on input parameters
+- Check existence of `hdblcm` in `SAP_HANA_DATABASE` directory from the extracted SAR files.
+
+- Process SAP HANA `configfile` based on input parameters.
 
 #### SAP HANA Install
 
-- Execute hdblcm
+- Execute hdblcm.
 
 #### Post-Install
 
-- Create and Store Connection Info in hdbuserstore
+- Create and Store Connection Info in hdbuserstore.
 
-- Set Log Mode key to overwrite value and apply to system
+- Set Log Mode key to overwrite value and apply to system.
 
-- Apply SAP HANA license to the new deployed instance if set to 'y'
+- Apply SAP HANA license to the new deployed instance if set to `y`.
 
-- Set expiry of Unix created users to 'never'
+- Set expiry of Unix created users to `never`.
 
-- Update `/etc/hosts` (optional - yes by default)
+- Update `/etc/hosts` (optional - `yes` by default).
 
-- Apply firewall rules (optional - no by default)
+- Apply firewall rules (optional - `no` by default).
 
-- Generate input file for `sap_swpm`
+- Generate input file for `sap_swpm`.
 
-- Print a short summary of the result of the installation
+- Print a short summary of the result of the installation.
 
 ### Add hosts to an existing SAP HANA Installation
 
 #### Pre-Install 
 
-- Process SAP HANA `configfile` based on input parameters
+- Process SAP HANA configfile based on input parameters.
 
 #### SAP HANA Add Hosts
 
@@ -246,8 +248,8 @@ You can find more complex playbooks in directory `playbooks` of the collection `
   - an entry in the output of `./hdblcm --list_systems`
   If any of the above is true, abort the role.
 
-- Execute hdblcm
+- Execute hdblcm.
 
 #### Post-Install
 
-- Print a short summary of the result of the installation
+- Print a short summary of the result of the installation.
