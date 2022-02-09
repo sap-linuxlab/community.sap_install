@@ -83,14 +83,14 @@
   debug:
     msg: "The RHEL minor release lock is set correctly to '{{ __sap_general_preconfigure_register_subscription_manager_release.stdout }}'."
   when:
-    - __sap_general_preconfigure_register_subscription_manager_release.stdout == ansible_distribution_version
     - sap_general_preconfigure_set_minor_release
+    - __sap_general_preconfigure_register_subscription_manager_release.stdout == ansible_distribution_version
 
 - name: Set the minor RHEL release
   command: subscription-manager release --set="{{ ansible_distribution_version }}"
   when:
-    - __sap_general_preconfigure_register_subscription_manager_release.stdout != ansible_distribution_version
     - sap_general_preconfigure_set_minor_release
+    - __sap_general_preconfigure_register_subscription_manager_release.stdout != ansible_distribution_version
 
 - name: Ensure that the required package groups are installed, RHEL 7
   command: "yum install {{ sap_general_preconfigure_packagegroups|join(' ') }} -y"
