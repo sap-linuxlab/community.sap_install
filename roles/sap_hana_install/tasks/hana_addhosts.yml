@@ -47,6 +47,8 @@
       loop_control:
         loop_var: line_item
 
+  when: not ansible_check_mode
+
 - name: SAP HANA Add Hosts - Add hosts to the existing SAP HANA installation
   command: "./hdblcm {{ sap_hana_install_hdblcm_extraargs }}
             --action=add_hosts
@@ -58,10 +60,12 @@
   args:
     chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
   changed_when: "'SAP HANA Lifecycle Management' in __sap_hana_install_register_hdblcm_add_hosts.stdout"
+  when: not ansible_check_mode
 
 - name: SAP HANA Add Hosts - Show the result of hdblcm add_hosts
   debug:
     var: __sap_hana_install_register_hdblcm_add_hosts.stdout
+  when: not ansible_check_mode
 
 - name: SAP HANA Add Hosts - Run 'hdblcm --list_systems' after the installation
   shell: |
@@ -76,7 +80,9 @@
     chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
   register: __sap_hana_install_register_addhosts_result
   changed_when: no
+  when: not ansible_check_mode
 
 - name: SAP HANA Add Hosts - Show the HANA version and hosts
   debug:
     msg: "HANA system '{{ sap_hana_install_sid }}': {{ __sap_hana_install_register_addhosts_result.stdout }}"
+  when: not ansible_check_mode

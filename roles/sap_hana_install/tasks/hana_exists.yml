@@ -4,6 +4,7 @@
   block:
     - name: Check for sidadm user
       command: getent passwd {{ sap_hana_install_sid | lower }}adm
+      check_mode: no
       register: __sap_hana_install_register_getent_passwd_sidadm
       changed_when: no
       failed_when: no
@@ -22,8 +23,10 @@
 # The SAP HANA installation will fail if there is already a group named sapsys but with a different ID. Let's better fail before.
 - name: Check HANA admin group
   block:
+
     - name: Get info about the ID of the sapsys group
       command: getent group sapsys
+      check_mode: no
       register: __sap_hana_install_register_getent_group_sapsys
       changed_when: no
       failed_when: no
@@ -46,6 +49,7 @@
 - name: "Get info about directory '/hana/shared/{{ sap_hana_install_sid }}'"
   stat:
     path: "/hana/shared/{{ sap_hana_install_sid }}"
+  check_mode: no
   register: __sap_hana_install_register_stat_hana_shared_sid_assert
   failed_when: no
 
@@ -59,6 +63,7 @@
 - name: "Get info about directory '/usr/sap/{{ sap_hana_install_sid }}'"
   stat:
     path: "/usr/sap/{{ sap_hana_install_sid }}"
+  check_mode: no
   register: __sap_hana_install_register_stat_usr_sap_sid_assert
   failed_when: no
 
