@@ -21,9 +21,22 @@
     state: touch
     mode: '0755'
 
-- name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable
-  set_fact:
-    __sap_hana_install_fact_sapcar_filename: "{{ sap_hana_install_sapcar_filename }}"
+- name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable and copy to {{ sap_hana_install_software_extract_directory }}
+  block:
+
+    - name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable
+      set_fact:
+        __sap_hana_install_fact_sapcar_filename: "{{ sap_hana_install_sapcar_filename }}"
+
+    - name:  SAP HANA hdblcm prepare - copy sapcar to {{ sap_hana_install_software_extract_directory }}
+      copy:
+        src: "{{ sap_hana_install_software_directory }}/{{ sap_hana_install_sapcar_filename }}"
+        dest: "{{ sap_hana_install_software_extract_directory }}/{{ sap_hana_install_sapcar_filename }}"
+        remote_src: true
+        owner: 'root'
+        group: 'root'
+        mode: '0755'
+
   when: sap_hana_install_sapcar_filename is defined
 
 - name: SAP HANA hdblcm prepare - Determine file name of SAPCAR*EXE
@@ -43,6 +56,7 @@
 # Outer loop, loop variable sapcar_matching_arch:
 #   We then print the name, version, and patch number for each SAPCAR EXE file for the architecture, sort
 #   numerically by the version and patch number and finally select the SAPCAR EXE file with the highest version.
+
     - name: SAP HANA hdblcm prepare - Get SAPCAR executable file from folder '{{ sap_hana_install_software_directory }}'
       shell: |
         set -o pipefail &&
@@ -58,7 +72,9 @@
                    done | awk '$2=="{{ ansible_architecture }}"{print $1}'
                 ); do
            ( printf "%s " ${sapcar_matching_arch}
-             ./${sapcar_matching_arch} --version |
+             cp ${sapcar_matching_arch} {{ sap_hana_install_software_extract_directory }} &&\
+             chmod 755 {{ sap_hana_install_software_extract_directory }}/${sapcar_matching_arch}
+             {{ sap_hana_install_software_extract_directory }}/${sapcar_matching_arch} --version |
              awk '/kernel release/{rel=$NF}/patch number/{printf ("%s %s\n", rel, $NF)}'
            )
         done | sort -k 2 -nr -k 3 -nr | awk 'NR==1{print $1}'
@@ -127,7 +143,7 @@
 
 - name: SAP HANA hdblcm prepare - Make sure SAPCAR has execute permissions and is owned by root
   ansible.builtin.file:
-    path: "{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}"
+    path: "{{ sap_hana_install_software_extract_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}"
     mode: '0755'
     owner: root
     group: root
