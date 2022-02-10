@@ -19,9 +19,58 @@
     group: root
   when: "'SAPHOST' in passed_sap_hana_install_components_sar"
 
+- name: Display the name of the SAR file
+  debug:
+    msg: "Name of SAR file: '{{ passed_sap_hana_install_components_sar }}'"
+
+- name: SAP HANA hdblcm prepare - Get info about file '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}.sha256sum'
+  stat:
+    path: "{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}.sha256sum"
+  check_mode: no
+  register: __sap_hana_install_register_sarfile_sha256sum_stat_result
+  changed_when: no
+
+- name: SAP HANA hdblcm prepare - Notify if checksum verification will be skipped for SAR file
+  debug:
+    msg: "INFO: File '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}.sh256sum' does not exist,
+          so no checksum verification will be performed for file
+          '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}'."
+  when: not __sap_hana_install_register_sarfile_sha256sum_stat_result.stat.exists
+
+- name: SAP HANA hdblcm prepare - Verify checksum for SAR file if checksum file exists
+  block:
+
+    - name: SAP HANA hdblcm prepare - Read the sha256sum from the checksum file
+      command: "awk '{print $1}' {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}.sha256sum"
+      check_mode: no
+      register: __sap_hana_install_register_sarfile_sha256sum_from_file
+      changed_when: no
+
+    - name: SAP HANA hdblcm prepare - Get info about file '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}'
+      stat:
+        path: "{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}"
+        checksum_algorithm: sha256
+      register: __sap_hana_install_register_sarfile_stat_result
+      changed_when: no
+
+    - name: SAP HANA hdblcm prepare - Assert that the checksum of the SAR file is correct
+      assert:
+        that: __sap_hana_install_register_sarfile_stat_result.stat.checksum ==
+              __sap_hana_install_register_sarfile_sha256sum_from_file.stdout.split(' ').0
+        fail_msg: "FAIL: The checksum of file
+           '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}'
+           does not match the checksum stored in file
+           '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}.sha256sum'!"
+        success_msg: "PASS: The checksum of file
+           '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}'
+           matches the checksum stored in file
+           '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}.sha256sum'."
+
+  when: __sap_hana_install_register_sarfile_sha256sum_stat_result.stat.exists
+
 - name: SAP HANA hdblcm prepare - Extracting file '{{ passed_sap_hana_install_components_sar }}'
   command: >-
-    {{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_file_name }} \
+    {{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }} \
     -R {{ __sap_hana_install_tmp_software_extract_directory }} \
     -xvf {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }} \
     -manifest SIGNATURE.SMF

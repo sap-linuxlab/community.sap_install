@@ -61,14 +61,17 @@
     chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
   register: __sap_hana_install_register_install_result
   changed_when: no
+  when: not ansible_check_mode
 
 - name: Set fact - HANA version
   set_fact:
     __sap_hana_install_fact_hana_version: "{{ __sap_hana_install_register_install_result.stdout.split(';')[0] }}"
+  when: not ansible_check_mode
 
 - name: Set fact - HANA hosts
   set_fact:
     __sap_hana_install_fact_hana_hosts: "{{ __sap_hana_install_register_install_result.stdout.split(';')[1] }}"
+  when: not ansible_check_mode
 
 - name: SAP HANA Deployment - Finished
   debug:
@@ -83,3 +86,4 @@
 #      - '  IP               -       {{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}'
 #      - '  Host             -       {{ ansible_hostname }}'
 #      - '  FQDN             -       {{ ansible_fqdn }}'
+  when: not ansible_check_mode

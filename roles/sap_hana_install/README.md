@@ -32,7 +32,7 @@ Place the following files in directory /software/hana or in any other directory 
 
 - Sample directory `sap_hana_install_software_directory` containing SAP HANA software installation files
     ```console
-    [root@hanahost SAP_HANA_INSTALLATION]# ll -lrt
+    [root@hanahost SAP_HANA_INSTALLATION]# ls -l *.EXE *.SAR
     -rwxr-xr-x. 1 nobody nobody  149561376 Mar  4  2021 IMDB_AFL20_054_1-80001894.SAR
     -rwxr-xr-x. 1 nobody nobody  211762405 Mar  4  2021 IMDB_CLIENT20_007_23-80002082.SAR
     -rwxr-xr-x. 1 nobody nobody    4483040 Mar  4  2021 SAPCAR_1010-70006178.EXE
@@ -44,7 +44,10 @@ Place the following files in directory /software/hana or in any other directory 
 
 If more than one SAPCAR EXE file is present in the software directory, the role will select the latest version
 for the current hardware architecture. Alternatively, the file name of the SAPCAR EXE file can also be set with
-variable `sap_hana_install_sapcar_filename`.
+variable `sap_hana_install_sapcar_filename`. Example:
+```
+sap_hana_install_sapcar_filename: SAPCAR_1115-70006178.EXE
+```
 
 If more than one SAR file for a certain software product is present in the software directory, the automatic
 handling of such SAR files will fail after extraction, when moving the newly created product directories
@@ -58,6 +61,11 @@ sap_hana_install_sarfiles_list:
   - SAPHOSTAGENT54_54-80004822.SAR
   - IMDB_SERVER20_060_0-80002031.SAR
 ```
+
+If there is a file named `<filename>.sha256sum` in the software download directory
+`sap_hana_install_software_directory` which contains the checksum and the file name similar to the output
+of the sha256sum command, the role will examine the sha256sum for the corresponding SAPCAR or SAR file and the
+processing will continue only if the checksum matches.
 
 #### Extracted SAP HANA Software Installation Files
 
@@ -184,51 +192,53 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 
 #### Pre-Install 
 
-- Set all passwords to follow master password if set to 'y'
+- Set all passwords to follow master password if set to 'y'.
 
-- Prepare software located in directory `sap_hana_install_software_directory`
+- Prepare software located in directory `sap_hana_install_software_directory`:
 
-    - If file `hdblcm` is found, proceed to 4.
+    - If file `hdblcm` is found, skip the next step and proceed with the `hdblcm` existence check.
 
-    - If not, proceed to 3.
+    - If file `hdblcm` ist not found, proceed with the next step.
 
-- Prepare .SAR files for `hdblcm` 
+- Prepare SAR files for `hdblcm`:
 
-    - Get all .SAR files from `sap_hana_install_software_directory`
+    - Get the correct SAPCAR executable from `sap_hana_install_software_directory` in case its file name is not provided by role variable.
 
-    - Extract all .SAR files from `sap_hana_install_software_directory`
+    - Get all SAR files from `sap_hana_install_software_directory` or use the SAR files provided by role variable.
 
-- Check existence of `hdblcm` in `SAP_HANA_DATABASE` directory from the extracted SAR files
+    - Extract all SAR files from `sap_hana_install_software_directory`.
 
-- Process SAP HANA `configfile` based on input parameters
+- Check existence of `hdblcm` in `SAP_HANA_DATABASE` directory from the extracted SAR files.
+
+- Process SAP HANA `configfile` based on input parameters.
 
 #### SAP HANA Install
 
-- Execute hdblcm
+- Execute hdblcm.
 
 #### Post-Install
 
-- Create and Store Connection Info in hdbuserstore
+- Create and Store Connection Info in hdbuserstore.
 
-- Set Log Mode key to overwrite value and apply to system
+- Set Log Mode key to overwrite value and apply to system.
 
-- Apply SAP HANA license to the new deployed instance if set to 'y'
+- Apply SAP HANA license to the new deployed instance if set to `y`.
 
-- Set expiry of Unix created users to 'never'
+- Set expiry of Unix created users to `never`.
 
-- Update `/etc/hosts` (optional - yes by default)
+- Update `/etc/hosts` (optional - `yes` by default).
 
-- Apply firewall rules (optional - no by default)
+- Apply firewall rules (optional - `no` by default).
 
-- Generate input file for `sap_swpm`
+- Generate input file for `sap_swpm`.
 
-- Print a short summary of the result of the installation
+- Print a short summary of the result of the installation.
 
 ### Add hosts to an existing SAP HANA Installation
 
 #### Pre-Install 
 
-- Process SAP HANA `configfile` based on input parameters
+- Process SAP HANA configfile based on input parameters.
 
 #### SAP HANA Add Hosts
 
@@ -238,8 +248,8 @@ You can find more complex playbooks in directory `playbooks` of the collection `
   - an entry in the output of `./hdblcm --list_systems`
   If any of the above is true, abort the role.
 
-- Execute hdblcm
+- Execute hdblcm.
 
 #### Post-Install
 
-- Print a short summary of the result of the installation
+- Print a short summary of the result of the installation.

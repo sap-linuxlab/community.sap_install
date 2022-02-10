@@ -24,6 +24,7 @@
     - name: SAP HANA Pre Install - Check availability of software directory '{{ sap_hana_install_software_directory }}'
       stat:
         path: "{{ sap_hana_install_software_directory }}"
+      check_mode: no
       register: __sap_hana_install_register_stat_software_directory
       failed_when: no
 
@@ -58,11 +59,12 @@
     - name: SAP HANA Pre Install - Get info about software extract directory '{{ sap_hana_install_software_extract_directory }}'
       stat:
         path: "{{ sap_hana_install_software_extract_directory }}"
+      check_mode: no
       register: __sap_hana_install_register_stat_software_extract_directory
       failed_when: no
 
 # In case more than on installation is ongoing and extracting to the same shared directory, wait until the extraction has completed:
-    - name: SAP HANA Pre Install - Proceed if extraction status file '{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__' is absent
+    - name: SAP HANA Pre Install - Suspending if extraction status file '{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__' exists
       wait_for:
         path: "{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__"
         state: absent
@@ -84,9 +86,10 @@
           set_fact:
             __sap_hana_install_fact_hdblcm_path: "{{ __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0].path }}"
 
-        - name: SAP HANA Pre Install - Get info about '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' if found initially
+        - name: SAP HANA Pre Install - Get info about '{{ __sap_hana_install_fact_hdblcm_path }}/hdblcm' if found initially
           stat:
             path: "{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}"
+          check_mode: no
           register: __sap_hana_install_register_stat_hdblcm_initial
           failed_when: no
 
@@ -110,9 +113,10 @@
           debug:
             var: __sap_hana_install_fact_hdblcm_path
 
-        - name: SAP HANA Pre Install - Get info about '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}'
+        - name: SAP HANA Pre Install - Get info about '{{ __sap_hana_install_fact_hdblcm_path }}/hdblcm'
           stat:
             path: "{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}"
+          check_mode: no
           register: __sap_hana_install_register_stat_hdblcm
           failed_when: no
 
@@ -135,6 +139,12 @@
     state: directory
     suffix: hanaconfig
   register: __sap_hana_install_register_tmpdir
+
+- name: SAP HANA Pre Install - Fill variable __sap_hana_install_register_tmpdir for check mode only
+  set_fact:
+    __sap_hana_install_register_tmpdir:
+      path: '/tmp'
+  when: ansible_check_mode
 
 - name: SAP HANA Pre Install - Process HANA configfile template
   template:
