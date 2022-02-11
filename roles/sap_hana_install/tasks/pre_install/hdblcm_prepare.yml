@@ -30,7 +30,7 @@
 - name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable and copy to '{{ sap_hana_install_software_extract_directory }}/sapcar'
   block:
 
-    - name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable
+    - name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable from variable
       set_fact:
         __sap_hana_install_fact_sapcar_filename: "{{ sap_hana_install_sapcar_filename }}"
 
@@ -98,7 +98,7 @@
       register: __sap_hana_install_register_sapcar_file
       changed_when: no
 
-    - name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable
+    - name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable from autodetection
       set_fact:
         __sap_hana_install_fact_sapcar_filename: "{{ __sap_hana_install_register_sapcar_file.stdout }}"
 
@@ -115,6 +115,8 @@
       ansible.builtin.file:
         path: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp"
         state: absent
+
+  when: sap_hana_install_sapcar_filename is not defined
 
 - name: SAP HANA hdblcm prepare - Get info about the SAPCAR executable
   stat:
