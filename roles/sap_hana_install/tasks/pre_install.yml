@@ -34,15 +34,6 @@
         fail_msg: "FAIL: The software directory '{{ sap_hana_install_software_directory }}' does not exist!"
         success_msg: "PASS: The software directory '{{ sap_hana_install_software_directory }}' exist."
 
-    - name: SAP HANA Pre Install - Change ownership of software directory '{{ sap_hana_install_software_directory }}'
-      ansible.builtin.file:
-        path: "{{ sap_hana_install_software_directory }}"
-        state: directory
-        recurse: yes
-        mode: '0755'
-        owner: root
-        group: root
-
     - name: SAP HANA Pre Install - Change ownership of HANA directories
       ansible.builtin.file:
         path: "{{ item }}"
@@ -63,7 +54,16 @@
       register: __sap_hana_install_register_stat_software_extract_directory
       failed_when: no
 
-# In case more than on installation is ongoing and extracting to the same shared directory, wait until the extraction has completed:
+    - name: SAP HANA Pre Install - Change ownership of software extract directory '{{ sap_hana_install_software_extract_directory }}'
+      ansible.builtin.file:
+        path: "{{ sap_hana_install_software_extract_directory }}"
+        state: directory
+        recurse: yes
+        mode: '0755'
+        owner: root
+        group: root
+
+# In case more than one installation is ongoing and extracting to the same shared directory, wait until the extraction has completed:
     - name: SAP HANA Pre Install - Suspending if extraction status file '{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__' exists
       wait_for:
         path: "{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__"
