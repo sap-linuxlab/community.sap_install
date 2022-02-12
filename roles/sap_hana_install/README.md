@@ -53,11 +53,11 @@ If more than one SAR file for a certain software product is present in the softw
 handling of such SAR files will fail after extraction, when moving the newly created product directories
 (like `SAP_HOST_AGENT`) to already existing destinations.
 For avoiding such situations, use following variable to provide a list of SAR files to extract:
-`sap_hana_install_sarfiles_list`.
+`sap_hana_install_sarfiles`.
 
 Example:
 ```
-sap_hana_install_sarfiles_list:
+sap_hana_install_sarfiles:
   - SAPHOSTAGENT54_54-80004822.SAR
   - IMDB_SERVER20_060_0-80002031.SAR
 ```
