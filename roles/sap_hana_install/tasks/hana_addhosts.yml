@@ -49,13 +49,23 @@
 
   when: not ansible_check_mode
 
-- name: SAP HANA Add Hosts - Add hosts to the existing SAP HANA installation
-  command: "./hdblcm {{ sap_hana_install_hdblcm_extraargs }}
+- name: SAP HANA Add Hosts - Set fact for hdblcm command line
+  set_fact:
+    __sap_hana_install_hdblcm_command_line: "./hdblcm {{ sap_hana_install_hdblcm_extraargs }}
             --action=add_hosts
             --addhosts={{ sap_hana_install_addhosts }}
             --password={{ sap_hana_install_sidadm_password }}
             --configfile={{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg
             -b"
+  tags: sap_hana_install_tag_hdblcm_commandline
+
+- name: SAP HANA Add Hosts - Show the hdblcm addhosts command line
+  debug:
+    msg: "SAP HANA addhosts command: '{{ __sap_hana_install_hdblcm_command_line }}'"
+  tags: sap_hana_install_tag_hdblcm_commandline
+
+- name: SAP HANA Add Hosts - Add hosts to the existing SAP HANA installation
+  command: "{{ __sap_hana_install_hdblcm_command_line }}"
   register: __sap_hana_install_register_hdblcm_add_hosts
   args:
     chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
