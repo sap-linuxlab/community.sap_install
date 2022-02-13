@@ -13,6 +13,7 @@
     sap_hana_install_lss_user_password: "{{ sap_hana_install_common_master_password }}"
     sap_hana_install_lss_backup_password: "{{ sap_hana_install_common_master_password }}"
   when: sap_hana_install_use_master_password == 'y'
+  tags: sap_hana_install_tag_create_configfile
 
 ################
 # Prepare software path
@@ -46,6 +47,7 @@
         - '/hana/shared'
         - '/hana/log'
         - '/hana/data'
+      tags: sap_hana_install_tag_chown_hana_directories
 
     - name: SAP HANA Pre Install - Get info about software extract directory '{{ sap_hana_install_software_extract_directory }}'
       stat:
@@ -62,6 +64,7 @@
         mode: '0755'
         owner: root
         group: root
+      when: __sap_hana_install_register_stat_software_extract_directory.stat.exists
 
 # In case more than one installation is ongoing and extracting to the same shared directory, wait until the extraction has completed:
     - name: SAP HANA Pre Install - Suspending if extraction status file '{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__' exists
@@ -139,12 +142,16 @@
     state: directory
     suffix: hanaconfig
   register: __sap_hana_install_register_tmpdir
+  tags:
+    - sap_hana_install_tag_create_configfile
+    - sap_hana_install_tag_hdblcm_commandline
 
 - name: SAP HANA Pre Install - Fill variable __sap_hana_install_register_tmpdir for check mode only
   set_fact:
     __sap_hana_install_register_tmpdir:
       path: '/tmp'
   when: ansible_check_mode
+  tags: sap_hana_install_tag_create_configfile
 
 - name: SAP HANA Pre Install - Process HANA configfile template
   template:
@@ -152,3 +159,9 @@
     dest: "{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg"
     mode: '0644'
   register: __sap_hana_install_register_cftemplate
+  tags: sap_hana_install_tag_create_configfile
+
+- name: SAP HANA Pre Install - Display the path name of the HANA configfile
+  debug:
+    msg: "The HANA configfile has been created as '{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg'"
+  tags: sap_hana_install_tag_create_configfile

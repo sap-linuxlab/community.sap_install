@@ -53,11 +53,11 @@ If more than one SAR file for a certain software product is present in the softw
 handling of such SAR files will fail after extraction, when moving the newly created product directories
 (like `SAP_HOST_AGENT`) to already existing destinations.
 For avoiding such situations, use following variable to provide a list of SAR files to extract:
-`sap_hana_install_sarfiles_list`.
+`sap_hana_install_sarfiles`.
 
 Example:
 ```
-sap_hana_install_sarfiles_list:
+sap_hana_install_sarfiles:
   - SAPHOSTAGENT54_54-80004822.SAR
   - IMDB_SERVER20_060_0-80002031.SAR
 ```
@@ -253,3 +253,29 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 #### Post-Install
 
 - Print a short summary of the result of the installation.
+
+## Tags
+
+By using certain tags, the role can be called to perform certain activities only:
+- tag `sap_hana_install_tag_preinstall`: Only perform pre-install activities.
+- tag `sap_hana_install_tag_chown_hana_directories`: Only perform the chown of the SAP HANA directories
+  `/hana`, `/hana/shared`, `/hana/log`, and `/hana/data`. When using --skip-tags, this task can be skipped,
+  which is useful when using tag `sap_hana_install_tag_preinstall`.
+- tag `sap_hana_install_tag_create_configfile`: Only create the SAP HANA hdblcm configfile from the template
+  file /templates/configfile.j2.
+- tag `sap_hana_install_tag_hdblcm_commandline`: Only show the hdblcm command line.
+
+Sample call for only processing the SAPCAR and SAR files:
+```
+# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_tag_preinstall --skip-tags=sap_hana_install_tag_chown_hana_directories
+```
+
+Sample call for only creating the SAP HANA hdblcm configfile from the template file `/templates/configfile.j2`:
+```
+# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_tag_create_configfile
+```
+
+Sample call for only displaying the SAP HANA hdblcm command line:
+```
+# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_tag_hdblcm_commandline
+```
