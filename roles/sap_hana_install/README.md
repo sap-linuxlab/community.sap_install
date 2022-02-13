@@ -63,7 +63,7 @@ sap_hana_install_sarfiles:
   - IMDB_SERVER20_060_0-80002031.SAR
 ```
 
-If there is a file named `<filename>.sha256sum` in the software download directory
+If there is a file named `<filename>.sha256` in the software download directory
 `sap_hana_install_software_directory` which contains the checksum and the file name similar to the output
 of the sha256sum command, the role will examine the sha256sum for the corresponding SAPCAR or SAR file and the
 processing will continue only if the checksum matches.
