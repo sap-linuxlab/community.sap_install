@@ -1,16 +1,16 @@
 ---
 
-- name: SAP HANA hdblcm prepare - Set fact for temporary extraction destination, default
+- name: SAP HANA hdblcm prepare - Set fact for temporary extraction directory, default
   set_fact:
     __sap_hana_install_tmp_software_extract_directory: "{{ sap_hana_install_software_extract_directory }}/tmp"
   when: "'SAPHOST' not in passed_sap_hana_install_components_sar"
 
-- name: SAP HANA hdblcm prepare - Set fact for temporary extraction destination, SAP Host Agent
+- name: SAP HANA hdblcm prepare - Set fact for temporary extraction directory, SAP Host Agent
   set_fact:
     __sap_hana_install_tmp_software_extract_directory: "{{ sap_hana_install_software_extract_directory }}/tmp/SAP_HOST_AGENT"
   when: "'SAPHOST' in passed_sap_hana_install_components_sar"
 
-- name: SAP HANA hdblcm prepare - Create temporary extraction destination '{{ __sap_hana_install_tmp_software_extract_directory }}'
+- name: SAP HANA hdblcm prepare - Create temporary extraction directory '{{ __sap_hana_install_tmp_software_extract_directory }}'
   ansible.builtin.file:
     path: "{{ __sap_hana_install_tmp_software_extract_directory }}"
     state: directory
@@ -18,7 +18,7 @@
     owner: root
     group: root
 
-- name: SAP HANA hdblcm prepare - Create temporary SAR file destination 
+- name: SAP HANA hdblcm prepare - Create temporary SAR file directory '{{ sap_hana_install_software_extract_directory }}/sarfiles'
   ansible.builtin.file:
     path: "{{ sap_hana_install_software_extract_directory }}/sarfiles"
     state: directory
@@ -43,7 +43,7 @@
 
 - name: SAP HANA hdblcm prepare - Set fact for directory for copied SAR files 
   set_fact:
-    __sap_hana_install_fact_path_to_sarfile: "{{ sap_hana_install_software_extract_directory }}/sarfiles/"
+    __sap_hana_install_fact_path_to_sarfile: "{{ sap_hana_install_software_extract_directory }}/sarfiles"
   when: sap_hana_install_copy_sarfiles 
 
 - name: SAP HANA hdblcm prepare - Set fact for SAR file directory, default
@@ -55,20 +55,20 @@
   stat:
     path: "{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}.sha256"
   check_mode: no
-  register: __sap_hana_install_register_sarfile_sha256_stat_result
+  register: __sap_hana_install_register_stat_sarfile_sha256
   changed_when: no
 
 - name: SAP HANA hdblcm prepare - Notify if checksum verification will be skipped for SAR file
   debug:
     msg: "INFO: File '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}.sh256' does not exist,
           so no checksum verification will be performed for file
-          '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}'."
-  when: not __sap_hana_install_register_sarfile_sha256_stat_result.stat.exists
+          '{{ __sap_hana_install_fact_path_to_sarfile }}/{{ passed_sap_hana_install_components_sar }}'."
+  when: not __sap_hana_install_register_stat_sarfile_sha256.stat.exists
 
 - name: SAP HANA hdblcm prepare - Verify checksum for SAR file if checksum file exists
   block:
 
-    - name: SAP HANA hdblcm prepare - Read the sha256 from the checksum file
+    - name: SAP HANA hdblcm prepare - Read the sha256 checksum from the checksum file
       command: "awk '{print $1}' {{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}.sha256"
       check_mode: no
       register: __sap_hana_install_register_sarfile_sha256_from_file
@@ -78,12 +78,12 @@
       stat:
         path: "{{ __sap_hana_install_fact_path_to_sarfile }}/{{ passed_sap_hana_install_components_sar }}"
         checksum_algorithm: sha256
-      register: __sap_hana_install_register_sarfile_stat_result
+      register: __sap_hana_install_register_stat_sarfile
       changed_when: no
 
     - name: SAP HANA hdblcm prepare - Assert that the checksum of the SAR file is correct
       assert:
-        that: __sap_hana_install_register_sarfile_stat_result.stat.checksum ==
+        that: __sap_hana_install_register_stat_sarfile.stat.checksum ==
               __sap_hana_install_register_sarfile_sha256_from_file.stdout.split(' ').0
         fail_msg: "FAIL: The checksum of file
            '{{ __sap_hana_install_fact_path_to_sarfile }}/{{ passed_sap_hana_install_components_sar }}'
@@ -94,9 +94,9 @@
            matches the checksum stored in file
            '{{ sap_hana_install_software_directory }}/{{ passed_sap_hana_install_components_sar }}.sha256'."
 
-  when: __sap_hana_install_register_sarfile_sha256_stat_result.stat.exists
+  when: __sap_hana_install_register_stat_sarfile_sha256.stat.exists
 
-- name: SAP HANA hdblcm prepare - Extract file '{{ passed_sap_hana_install_components_sar }}'
+- name: SAP HANA hdblcm prepare - Extract file '{{ __sap_hana_install_fact_path_to_sarfile }}/{{ passed_sap_hana_install_components_sar }}'
   command: >-
     {{ sap_hana_install_software_extract_directory }}/sapcar/{{ __sap_hana_install_fact_sapcar_filename }} \
     -R {{ __sap_hana_install_tmp_software_extract_directory }} \
@@ -124,12 +124,12 @@
 
 - name: SAP HANA hdblcm prepare - Remove temporary extraction directory '{{ sap_hana_install_software_extract_directory }}/tmp'
   ansible.builtin.file:
-    path: "{{ sap_hana_install_software_extract_directory }}/tmp"
+    path: "{{ sap_hana_install_software_extract_directory }}/tmp/"
     state: absent
 
-- name: SAP HANA hdblcm prepare - Remove temporary SAR file
+- name: SAP HANA hdblcm prepare - Remove temporary SAR file directory '{{ sap_hana_install_software_extract_directory }}/sarfiles'
   ansible.builtin.file:
-    path: "{{ sap_hana_install_software_extract_directory }}/sarfiles/{{ passed_sap_hana_install_components_sar }}"
+    path: "{{ sap_hana_install_software_extract_directory }}/sarfiles/"
     state: absent
   when: 
     - sap_hana_install_copy_sarfiles 
