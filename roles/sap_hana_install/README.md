@@ -257,12 +257,13 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 ## Tags
 
 By using certain tags, the role can be called to perform certain activities only:
-- tag `sap_hana_install_tag_preinstall`: Only process the SAPCAR and SAR files
+- tag `sap_hana_install_tag_preinstall`: Only perform pre-install activities.
 - tag `sap_hana_install_tag_chown_hana_directories`: Only perform the chown of the SAP HANA directories
   `/hana`, `/hana/shared`, `/hana/log`, and `/hana/data`. When using --skip-tags, this task can be skipped,
   which is useful when using tag `sap_hana_install_tag_preinstall`.
 - tag `sap_hana_install_tag_create_configfile`: Only create the SAP HANA hdblcm configfile from the template
-  file /templates/configfile.j2
+  file /templates/configfile.j2.
+- tag `sap_hana_install_tag_hdblcm_commandline`: Only show the hdblcm command line.
 
 Sample call for only processing the SAPCAR and SAR files:
 ```
@@ -272,4 +273,9 @@ Sample call for only processing the SAPCAR and SAR files:
 Sample call for only creating the SAP HANA hdblcm configfile from the template file `/templates/configfile.j2`:
 ```
 # ansible-playbook sap-hana-install.yml --tags=sap_hana_install_tag_create_configfile
+```
+
+Sample call for only displaying the SAP HANA hdblcm command line:
+```
+# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_tag_hdblcm_commandline
 ```
