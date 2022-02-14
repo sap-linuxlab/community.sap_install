@@ -2,10 +2,30 @@
 
 - name: Rename some variables used by hdblcm configfile
   set_fact:
+    sap_hana_install_sid: "{{ sap_hana_sid|d(sap_hana_install_sid)|d('') }}"
+    sap_hana_install_number: "{{ sap_hana_instance_number|d(sap_hana_install_instance_number|d(sap_hana_install_number)|d('')) }}"
     sap_hana_install_master_password: "{{ sap_hana_install_common_master_password|d(sap_hana_install_master_password) }}"
-    sap_hana_install_number: "{{ sap_hana_install_instance_number|d(sap_hana_install_number) }}"
     sap_hana_install_system_usage: "{{ sap_hana_install_env_type|d(sap_hana_install_system_usage) }}"
     sap_hana_install_restrict_max_mem: "{{ sap_hana_install_mem_restrict|d(sap_hana_install_restrict_max_mem) }}"
+  tags:
+    - sap_hana_install_tag_preinstall
+    - sap_hana_install_tag_create_configfile
+
+- name: Check if necessary variable 'sap_hana_install_sid' is configured
+  fail:
+    msg: "Variable 'sap_hana_install_sid' is not configured."
+  when: sap_hana_install_sid | length == 0
+  tags:
+    - sap_hana_install_tag_preinstall
+    - sap_hana_install_tag_create_configfile
+
+- name: Check if necessary variable 'sap_hana_install_number' is configured
+  fail:
+    msg: "Variable 'sap_hana_install_number' is not configured."
+  when: sap_hana_install_number | length == 0
+  tags:
+    - sap_hana_install_tag_preinstall
+    - sap_hana_install_tag_create_configfile
 
 - import_tasks: hana_exists.yml
   when: sap_hana_install_new_system|d(true)
