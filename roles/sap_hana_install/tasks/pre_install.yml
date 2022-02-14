@@ -55,6 +55,7 @@
       check_mode: no
       register: __sap_hana_install_register_stat_software_extract_directory
       failed_when: no
+      tags: sap_hana_install_tag_create_configfile
 
     - name: SAP HANA Pre Install - Change ownership of software extract directory '{{ sap_hana_install_software_extract_directory }}'
       ansible.builtin.file:
@@ -81,6 +82,7 @@
         patterns: 'SAP_HANA_DATABASE'
       register: __sap_hana_install_register_find_directory_sap_hana_database_initial
       when: __sap_hana_install_register_stat_software_extract_directory.stat.exists
+      tags: sap_hana_install_tag_create_configfile
 
     - name: SAP HANA Pre Install - Set directory of 'hdblcm' from successful find result
       block:
@@ -105,6 +107,7 @@
       when:
         - __sap_hana_install_register_stat_software_extract_directory.stat.exists
         - __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is defined
+      tags: sap_hana_install_tag_create_configfile
 
     - name: SAP HANA Pre Install - Extract SAR files if file 'hdblcm' was not found initially
       block:
@@ -115,6 +118,12 @@
         - name: SAP HANA Pre Install - Display 'hdblcm' installer directory
           debug:
             var: __sap_hana_install_fact_hdblcm_path
+          tags: sap_hana_install_tag_create_configfile
+
+        - name: SAP HANA Pre Install - Set __sap_hana_install_fact_hdblcm_path in case of check mode
+          set_fact:
+            __sap_hana_install_fact_hdblcm_path: '/software/hana/extracted'
+          when: ansible_check_mode
 
         - name: SAP HANA Pre Install - Get info about '{{ __sap_hana_install_fact_hdblcm_path }}/hdblcm'
           stat:
@@ -122,12 +131,15 @@
           check_mode: no
           register: __sap_hana_install_register_stat_hdblcm
           failed_when: no
+          tags: sap_hana_install_tag_create_configfile
 
         - name: SAP HANA Pre Install - Assert that file 'hdblcm' is available
           assert:
             that: __sap_hana_install_register_stat_hdblcm.stat.exists
             fail_msg: "FAIL: File 'hdblcm' could not be found. Installation of SAP HANA is not possible."
             success_msg: "Using file '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' for the installation of SAP HANA."
+          when: not ansible_check_mode
+          tags: sap_hana_install_tag_create_configfile
 
       when: __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is not defined
 
@@ -153,15 +165,6 @@
   when: ansible_check_mode
   tags: sap_hana_install_tag_create_configfile
 
-- name: SAP HANA Pre Install - Process HANA configfile template
-  template:
-    src: "{{ role_path }}/templates/configfile.j2"
-    dest: "{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg"
-    mode: '0644'
-  register: __sap_hana_install_register_cftemplate
-  tags: sap_hana_install_tag_create_configfile
-
-- name: SAP HANA Pre Install - Display the path name of the HANA configfile
-  debug:
-    msg: "The HANA configfile has been created as '{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg'"
+- name: SAP HANA Pre Install - Process the hdblcm configfile
+  import_tasks: pre_install/hdblcm_configfile.yml
   tags: sap_hana_install_tag_create_configfile
