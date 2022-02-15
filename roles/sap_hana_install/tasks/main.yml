@@ -7,31 +7,25 @@
     sap_hana_install_master_password: "{{ sap_hana_install_common_master_password|d(sap_hana_install_master_password) }}"
     sap_hana_install_system_usage: "{{ sap_hana_install_env_type|d(sap_hana_install_system_usage) }}"
     sap_hana_install_restrict_max_mem: "{{ sap_hana_install_mem_restrict|d(sap_hana_install_restrict_max_mem) }}"
-  tags:
-    - sap_hana_install_tag_preinstall
-    - sap_hana_install_tag_create_configfile
+  tags: sap_hana_install_preinstall
 
 - name: Check if necessary variable 'sap_hana_install_sid' is configured
   fail:
     msg: "Variable 'sap_hana_install_sid' is not configured."
   when: sap_hana_install_sid | length == 0
-  tags:
-    - sap_hana_install_tag_preinstall
-    - sap_hana_install_tag_create_configfile
+  tags: sap_hana_install_preinstall
 
 - name: Check if necessary variable 'sap_hana_install_number' is configured
   fail:
     msg: "Variable 'sap_hana_install_number' is not configured."
   when: sap_hana_install_number | length == 0
-  tags:
-    - sap_hana_install_tag_preinstall
-    - sap_hana_install_tag_create_configfile
+  tags: sap_hana_install_preinstall
 
 - import_tasks: hana_exists.yml
   when: sap_hana_install_new_system|d(true)
 
 - import_tasks: pre_install.yml
-  tags: sap_hana_install_tag_preinstall
+  tags: sap_hana_install_preinstall
 
 - import_tasks: hana_install.yml
   when: sap_hana_install_new_system|d(true)
