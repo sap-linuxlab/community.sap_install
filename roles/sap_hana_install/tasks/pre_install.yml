@@ -5,15 +5,14 @@
 
 - name: SAP HANA Pre Install - Set password facts when using master password
   set_fact:
-    sap_hana_install_sapadm_password: "{{ sap_hana_install_common_master_password }}"
-    sap_hana_install_sidadm_password: "{{ sap_hana_install_common_master_password }}"
-    sap_hana_install_db_system_password: "{{ sap_hana_install_common_master_password }}"
-    sap_hana_install_ase_user_password: "{{ sap_hana_install_common_master_password }}"
-    sap_hana_install_xs_org_password: "{{ sap_hana_install_common_master_password }}"
-    sap_hana_install_lss_user_password: "{{ sap_hana_install_common_master_password }}"
-    sap_hana_install_lss_backup_password: "{{ sap_hana_install_common_master_password }}"
+    sap_hana_install_sapadm_password: "{{ sap_hana_install_master_password }}"
+    sap_hana_install_sidadm_password: "{{ sap_hana_install_master_password }}"
+    sap_hana_install_db_system_password: "{{ sap_hana_install_master_password }}"
+    sap_hana_install_ase_user_password: "{{ sap_hana_install_master_password }}"
+    sap_hana_install_xs_org_password: "{{ sap_hana_install_master_password }}"
+    sap_hana_install_lss_user_password: "{{ sap_hana_install_master_password }}"
+    sap_hana_install_lss_backup_password: "{{ sap_hana_install_master_password }}"
   when: sap_hana_install_use_master_password == 'y'
-  tags: sap_hana_install_tag_create_configfile
 
 ################
 # Prepare software path
@@ -47,7 +46,7 @@
         - '/hana/shared'
         - '/hana/log'
         - '/hana/data'
-      tags: sap_hana_install_tag_chown_hana_directories
+      tags: sap_hana_install_chown_hana_directories
 
     - name: SAP HANA Pre Install - Get info about software extract directory '{{ sap_hana_install_software_extract_directory }}'
       stat:
@@ -116,6 +115,11 @@
           debug:
             var: __sap_hana_install_fact_hdblcm_path
 
+        - name: SAP HANA Pre Install - Set __sap_hana_install_fact_hdblcm_path in case of check mode
+          set_fact:
+            __sap_hana_install_fact_hdblcm_path: '/software/hana/extracted'
+          when: ansible_check_mode
+
         - name: SAP HANA Pre Install - Get info about '{{ __sap_hana_install_fact_hdblcm_path }}/hdblcm'
           stat:
             path: "{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}"
@@ -128,6 +132,7 @@
             that: __sap_hana_install_register_stat_hdblcm.stat.exists
             fail_msg: "FAIL: File 'hdblcm' could not be found. Installation of SAP HANA is not possible."
             success_msg: "Using file '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' for the installation of SAP HANA."
+          when: not ansible_check_mode
 
       when: __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is not defined
 
@@ -142,26 +147,13 @@
     state: directory
     suffix: hanaconfig
   register: __sap_hana_install_register_tmpdir
-  tags:
-    - sap_hana_install_tag_create_configfile
-    - sap_hana_install_tag_hdblcm_commandline
+  tags: sap_hana_install_hdblcm_commandline
 
 - name: SAP HANA Pre Install - Fill variable __sap_hana_install_register_tmpdir for check mode only
   set_fact:
     __sap_hana_install_register_tmpdir:
       path: '/tmp'
   when: ansible_check_mode
-  tags: sap_hana_install_tag_create_configfile
 
-- name: SAP HANA Pre Install - Process HANA configfile template
-  template:
-    src: "{{ role_path }}/templates/configfile.j2"
-    dest: "{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg"
-    mode: '0644'
-  register: __sap_hana_install_register_cftemplate
-  tags: sap_hana_install_tag_create_configfile
-
-- name: SAP HANA Pre Install - Display the path name of the HANA configfile
-  debug:
-    msg: "The HANA configfile has been created as '{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg'"
-  tags: sap_hana_install_tag_create_configfile
+- name: SAP HANA Pre Install - Process the hdblcm configfile
+  import_tasks: pre_install/hdblcm_configfile.yml

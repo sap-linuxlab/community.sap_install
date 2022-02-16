@@ -92,6 +92,33 @@ after the extraction of SAR files has completed.
     drwxr-xr-x 4 root root 4096 Sep 30 04:58 VCH_AFL_2020
     ```
 
+#### SAP HANA hdblcm Configfile Processing
+
+By default, the hdblcm configfile will be created dynamically in each run, as follows: After the role has
+found the hdblcm command or extracted the SAP HANA SAR file, it will call the hdblcm command with the
+option `dump_configfile_template` to create a configfile template, which will then be converted into
+a Jinja2 configfile template according to the following rules: For each hdblcm parameter, the value
+will be either the value of the role variable prepended by the role name and an underscore, or a
+default (if present in the hdblcm configfile template).
+
+Example: The value of hdblcm parameter `system_usage` will be set to the value of role variable
+`sap_hana_install_system_usage` or to `custom` in case the role variable has not been set.
+
+The result of the templating is a new, customized hdblcm configfile, which will be used by the
+hdblcm command for the SAP HANA installation.
+
+This provides great flexibility for handling different SAP HANA releases, which typically have a slightly
+different set of hdblcm parameters. For preparing the installation of a new SAP HANA system, it can be useful
+to run the role with tag `sap_hana_install_preinstall` first. This will display the full path names of the
+hdblcm configfile template, the Jinja2 template, and the result of the templating. By comparing the hdblcm
+configfile template with the templating result, it can be easily determined if all role variables for the
+hdblcm command are set correctly.
+
+Note: If there is a file named `configfile.cfg` in the directory specified by role variable
+`sap_hana_install_configfile_directory`, this file will be used and no dynamic hdblcm configfile processing
+will be performed. Be aware that when using this file, any modifications to role variables after creation
+of this file will not be reflected.
+
 ## Further Variables and Parameters
 
 ### Input Parameters
@@ -195,7 +222,7 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 
 - Set all passwords to follow master password if set to 'y'.
 
-- Prepare software located in directory `sap_hana_install_software_directory`:
+- Prepare the software located in directory `sap_hana_install_software_directory`:
 
     - If file `hdblcm` is found, skip the next step and proceed with the `hdblcm` existence check.
 
@@ -207,15 +234,29 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 
     - Get all SAR files from `sap_hana_install_software_directory` or use the SAR files provided by role variable.
 
-    - Extract all SAR files from `sap_hana_install_software_directory`.
+    - Extract all SAR files into `sap_hana_install_software_extract_directory`.
+
+    - For the SAPCAR executable which will be used for extracting the SAR files and for each SAR file specified or identified, if there is a file with the same name, appended by `sha256`, perform a checksum verification.
 
 - Check existence of `hdblcm` in `SAP_HANA_DATABASE` directory from the extracted SAR files.
 
-- Process SAP HANA `configfile` based on input parameters.
+- Check the existence of file `configfile.cfg` in the directory `configfiles` below `sap_hana_install_software_extract_directory`.
+
+If this file exists, copy it to a temporary directory for use by the hdblcm command. Be aware that when using this file,
+any modifications to role variables after creation of this file will not be reflected.
+
+If this file is not present, perform the following three steps:
+
+- Create a hdblcm configfile template directly from the hdblcm command, using option `dump_configfile_template`.
+
+- Convert the configfile template into a Jinja2 template and download it to the control node.
+
+- Process the Jinja2 template, using the configured role variables or default settings, to create a customized hdblm configfile
+in a temporary directory for use by the hdblcm command in the next step.
 
 #### SAP HANA Install
 
-- Execute hdblcm.
+- Execute hdblcm, using the configfile mentioned above.
 
 #### Post-Install
 
@@ -257,26 +298,23 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 
 ## Tags
 
-By using certain tags, the role can be called to perform certain activities only:
-- tag `sap_hana_install_tag_preinstall`: Only perform pre-install activities.
-- tag `sap_hana_install_tag_chown_hana_directories`: Only perform the chown of the SAP HANA directories
-  `/hana`, `/hana/shared`, `/hana/log`, and `/hana/data`. When using --skip-tags, this task can be skipped,
-  which is useful when using tag `sap_hana_install_tag_preinstall`.
-- tag `sap_hana_install_tag_create_configfile`: Only create the SAP HANA hdblcm configfile from the template
-  file /templates/configfile.j2.
-- tag `sap_hana_install_tag_hdblcm_commandline`: Only show the hdblcm command line.
+With the following tags, the role can be called to perform certain activities only:
+- tag `sap_hana_install_preinstall`: Only perform pre-install activities. This includes extracting
+  the SAR files if necessary, searching for hdblcm, and creating the hdblcm configfile.
+- tag `sap_hana_install_chown_hana_directories`: Only perform the chown of the SAP HANA directories
+  `/hana`, `/hana/shared`, `/hana/log`, and `/hana/data`. The main purpose of this tag is to use it
+  with `--skip-tags`, to skip modifying these directories. This can be useful when using tag
+  `sap_hana_install_preinstall`.
+- tag `sap_hana_install_hdblcm_commandline`: Only show the hdblcm command line, without processing
+  the hdblcm template. This can be useful for checking the hdblcm command line options, expecially
+  when using the `addhosts` function.
 
-Sample call for only processing the SAPCAR and SAR files:
+Sample call for only processing the SAPCAR and SAR files and creating the hdblcm configfile:
 ```
-# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_tag_preinstall --skip-tags=sap_hana_install_tag_chown_hana_directories
-```
-
-Sample call for only creating the SAP HANA hdblcm configfile from the template file `/templates/configfile.j2`:
-```
-# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_tag_create_configfile
+# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_preinstall --skip-tags=sap_hana_install_chown_hana_directories
 ```
 
 Sample call for only displaying the SAP HANA hdblcm command line:
 ```
-# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_tag_hdblcm_commandline
+# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_hdblcm_commandline
 ```
