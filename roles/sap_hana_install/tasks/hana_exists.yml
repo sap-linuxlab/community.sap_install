@@ -1,6 +1,6 @@
 ---
 
-- name: HANA admin user check
+- name: SAP HANA Checks - HANA admin user check
   block:
     - name: Check for sidadm user
       command: getent passwd {{ sap_hana_install_sid | lower }}adm
@@ -10,7 +10,7 @@
       failed_when: no
 
 # Reason for noqa: The variable is a substring of a user name
-    - name: Assert that there is no sidadm user # noqa var-spacing
+    - name: SAP HANA Checks - Assert that there is no sidadm user # noqa var-spacing
       assert:
         that: __sap_hana_install_register_getent_passwd_sidadm.rc != 0
         fail_msg: "FAIL: User '{{ sap_hana_install_sid | lower}}adm' exists!
@@ -21,17 +21,17 @@
 
 # The role supports specifying the SAP HANA group id in variable `sap_hana_install_groupid`, which is the id of the sapsys group.
 # The SAP HANA installation will fail if there is already a group named sapsys but with a different ID. Let's better fail before.
-- name: Check HANA admin group
+- name: SAP HANA Checks - Check HANA admin group
   block:
 
-    - name: Get info about the ID of the sapsys group
+    - name: SAP HANA Checks - Get info about the ID of the sapsys group
       command: getent group sapsys
       check_mode: no
       register: __sap_hana_install_register_getent_group_sapsys
       changed_when: no
       failed_when: no
 
-    - name: In case there is a group sapsys, assert that its group ID is identical to sap_hana_install_groupid
+    - name: SAP HANA Checks - In case there is a group sapsys, assert that its group ID is identical to sap_hana_install_groupid
       assert:
         that: "{{ __sap_hana_install_register_getent_group_sapsys.stdout.split(':')[2] }} == {{ sap_hana_install_groupid }}"
         success_msg: "PASS: The group ID of 'sapsys' is identical to the value of variable
@@ -46,39 +46,30 @@
     - sap_hana_install_groupid | string != "None"
     - sap_hana_install_groupid | string | length > 0
 
-- name: "Get info about directory '/hana/shared/{{ sap_hana_install_sid }}'"
+- name: SAP HANA Checks - Get info about directory '/hana/shared/{{ sap_hana_install_sid }}'
   stat:
     path: "/hana/shared/{{ sap_hana_install_sid }}"
   check_mode: no
   register: __sap_hana_install_register_stat_hana_shared_sid_assert
   failed_when: no
 
-- name: "Assert that directory '/hana/shared/{{ sap_hana_install_sid }}' does not exist"
+- name: SAP HANA Checks - Assert that directory '/hana/shared/{{ sap_hana_install_sid }}' does not exist
   assert:
     that: not __sap_hana_install_register_stat_hana_shared_sid_assert.stat.exists
     fail_msg: "FAIL: Directory '/hana/shared/{{ sap_hana_install_sid }}' exists!
                Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
     success_msg: "PASS: Directory '/hana/shared/{{ sap_hana_install_sid }}' does not exist."
 
-- name: "Get info about directory '/usr/sap/{{ sap_hana_install_sid }}'"
+- name: SAP HANA Checks - Get info about directory '/usr/sap/{{ sap_hana_install_sid }}'
   stat:
     path: "/usr/sap/{{ sap_hana_install_sid }}"
   check_mode: no
   register: __sap_hana_install_register_stat_usr_sap_sid_assert
   failed_when: no
 
-- name: "Assert that directory '/usr/sap/{{ sap_hana_install_sid }}' does not exist"
+- name: SAP HANA Checks - Assert that directory '/usr/sap/{{ sap_hana_install_sid }}' does not exist
   assert:
     that: not __sap_hana_install_register_stat_usr_sap_sid_assert.stat.exists
     fail_msg: "FAIL: Directory '/usr/sap/{{ sap_hana_install_sid }}' exists!
                Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
     success_msg: "PASS: Directory '/usr/sap/{{ sap_hana_install_sid }}' does not exist."
-
-#    - name: Check if there is already a SAP HANA system with SID {{ sap_hana_install_sid }} and instance {{ sap_hana_install_instance_number }}
-#      command: sapcontrol -nr {{ sap_hana_install_instance_number }} -function GetProcessList
-#      register: __sap_hana_install_register_sapcontrol
-#      failed_when: no
-#
-#    - name: display __sap_hana_install_register_sapcontrol
-#      debug:
-#        var: __sap_hana_install_register_sapcontrol

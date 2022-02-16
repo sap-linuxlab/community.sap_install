@@ -15,23 +15,32 @@
     state: directory
     mode: '0755'
 
+- name: SAP HANA hdblcm prepare - Create directory '{{ sap_hana_install_software_extract_directory }}/sapcar'
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_software_extract_directory }}/sapcar"
+    state: directory
+    mode: '0755'
+
 - name: SAP HANA hdblcm prepare - Create status file '{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__'
   ansible.builtin.file:
     path: "{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__"
     state: touch
     mode: '0755'
 
-- name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable and copy to {{ sap_hana_install_software_extract_directory }}
+- name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable and copy to '{{ sap_hana_install_software_extract_directory }}/sapcar'
   block:
 
-    - name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable
+    - name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable from variable
       set_fact:
         __sap_hana_install_fact_sapcar_filename: "{{ sap_hana_install_sapcar_filename }}"
 
-    - name:  SAP HANA hdblcm prepare - copy sapcar to {{ sap_hana_install_software_extract_directory }}
+# We cannot always use the SAPCAR executable in sap_hana_install_software_directory because there are
+# some configurations in which executing files in this directory is not possible. So we copy SAPCAR
+# to sap_hana_install_software_extract_directory. We do not copy the SAPCAR checksum file.
+    - name:  SAP HANA hdblcm prepare - Copy SAPCAR to '{{ sap_hana_install_software_extract_directory }}/sapcar'
       copy:
         src: "{{ sap_hana_install_software_directory }}/{{ sap_hana_install_sapcar_filename }}"
-        dest: "{{ sap_hana_install_software_extract_directory }}/{{ sap_hana_install_sapcar_filename }}"
+        dest: "{{ sap_hana_install_software_extract_directory }}/sapcar/{{ sap_hana_install_sapcar_filename }}"
         remote_src: true
         owner: 'root'
         group: 'root'
@@ -57,6 +66,12 @@
 #   We then print the name, version, and patch number for each SAPCAR EXE file for the architecture, sort
 #   numerically by the version and patch number and finally select the SAPCAR EXE file with the highest version.
 
+    - name: SAP HANA hdblcm prepare - Create directory '{{ sap_hana_install_software_extract_directory }}/sapcar_tmp'
+      ansible.builtin.file:
+        path: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp"
+        state: directory
+        mode: '0755'
+
     - name: SAP HANA hdblcm prepare - Get SAPCAR executable file from folder '{{ sap_hana_install_software_directory }}'
       shell: |
         set -o pipefail &&
@@ -72,9 +87,9 @@
                    done | awk '$2=="{{ ansible_architecture }}"{print $1}'
                 ); do
            ( printf "%s " ${sapcar_matching_arch}
-             cp ${sapcar_matching_arch} {{ sap_hana_install_software_extract_directory }} &&\
-             chmod 755 {{ sap_hana_install_software_extract_directory }}/${sapcar_matching_arch}
-             {{ sap_hana_install_software_extract_directory }}/${sapcar_matching_arch} --version |
+             cp ${sapcar_matching_arch} {{ sap_hana_install_software_extract_directory }}/sapcar_tmp/ &&\
+             chmod 755 {{ sap_hana_install_software_extract_directory }}/sapcar_tmp/${sapcar_matching_arch}
+             {{ sap_hana_install_software_extract_directory }}/sapcar_tmp/${sapcar_matching_arch} --version |
              awk '/kernel release/{rel=$NF}/patch number/{printf ("%s %s\n", rel, $NF)}'
            )
         done | sort -k 2 -nr -k 3 -nr | awk 'NR==1{print $1}'
@@ -83,67 +98,81 @@
       register: __sap_hana_install_register_sapcar_file
       changed_when: no
 
-    - name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable
+    - name: SAP HANA hdblcm prepare - Set fact for SAPCAR executable from autodetection
       set_fact:
         __sap_hana_install_fact_sapcar_filename: "{{ __sap_hana_install_register_sapcar_file.stdout }}"
 
-  when: sap_hana_install_sapcar_file is not defined
+    - name:  SAP HANA hdblcm prepare - Copy the SAPCAR executable to '{{ sap_hana_install_software_extract_directory }}/sapcar'
+      copy:
+        src: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp/{{ __sap_hana_install_fact_sapcar_filename }}"
+        dest: "{{ sap_hana_install_software_extract_directory }}/sapcar/{{ __sap_hana_install_fact_sapcar_filename }}"
+        remote_src: true
+        owner: 'root'
+        group: 'root'
+        mode: '0755'
+
+    - name: SAP HANA hdblcm prepare - Remove directory '{{ sap_hana_install_software_extract_directory }}/sapcar_tmp'
+      ansible.builtin.file:
+        path: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp"
+        state: absent
+
+  when: sap_hana_install_sapcar_filename is not defined
 
 - name: SAP HANA hdblcm prepare - Get info about the SAPCAR executable
   stat:
-    path: "{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}"
+    path: "{{ sap_hana_install_software_extract_directory }}/sapcar/{{ __sap_hana_install_fact_sapcar_filename }}"
     checksum_algorithm: sha256
   check_mode: no
-  register: __sap_hana_install_register_sapcar_stat_result
+  register: __sap_hana_install_register_stat_sapcar
   changed_when: no
   failed_when: no
 
 - name: SAP HANA hdblcm prepare - Assert that the SAPCAR executable is available
   assert:
-    that: __sap_hana_install_register_sapcar_stat_result.stat.exists
-    fail_msg: "FAIL: File '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}' does not exist!"
-    success_msg: "PASS: File '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}' exists."
+    that: __sap_hana_install_register_stat_sapcar.stat.exists
+    fail_msg: "FAIL: File '{{ sap_hana_install_software_extract_directory }}/sapcar/{{ __sap_hana_install_fact_sapcar_filename }}' does not exist!"
+    success_msg: "PASS: File '{{ sap_hana_install_software_extract_directory }}/sapcar/{{ __sap_hana_install_fact_sapcar_filename }}' exists."
 
-- name: SAP HANA hdblcm prepare - Get info about file '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}.sha256sum'
+- name: SAP HANA hdblcm prepare - Get info about file '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}.sha256'
   stat:
-    path: "{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}.sha256sum"
+    path: "{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}.sha256"
   check_mode: no
-  register: __sap_hana_install_register_sapcar_sha256sum_stat_result
+  register: __sap_hana_install_register_stat_sapcar_sha256
   changed_when: no
 
 - name: SAP HANA hdblcm prepare - Notify if checksum verification will be skipped for SAPCAR executable
   debug:
-    msg: "INFO: File '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}.sh256sum' does not exist,
+    msg: "INFO: File '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}.sha256' does not exist,
           so no checksum verification will be performed for file
-          '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}'."
-  when: not __sap_hana_install_register_sapcar_sha256sum_stat_result.stat.exists
+          '{{ sap_hana_install_software_extract_directory }}/sapcar/{{ __sap_hana_install_fact_sapcar_filename }}'."
+  when: not __sap_hana_install_register_stat_sapcar_sha256.stat.exists
 
 - name: SAP HANA hdblcm prepare - Verify checksum for SAPCAR executable if checksum file exists
   block:
 
-    - name: SAP HANA hdblcm prepare - Read the sha256sum from the checksum file
-      command: "awk '{print $1}' {{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}.sha256sum"
-      register: __sap_hana_install_register_sapcar_sha256sum_from_file
+    - name: SAP HANA hdblcm prepare - Read the sha256 checksum from the checksum file
+      command: "awk '{print $1}' {{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}.sha256"
+      register: __sap_hana_install_register_sapcar_sha256_from_file
       changed_when: no
 
     - name: SAP HANA hdblcm prepare - Assert that the SAPCAR checksum is correct
       assert:
-        that: __sap_hana_install_register_sapcar_stat_result.stat.checksum ==
-              __sap_hana_install_register_sapcar_sha256sum_from_file.stdout.split(' ').0
+        that: __sap_hana_install_register_stat_sapcar.stat.checksum ==
+              __sap_hana_install_register_sapcar_sha256_from_file.stdout.split(' ').0
         fail_msg: "FAIL: The checksum of file
-           '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}'
+           '{{ sap_hana_install_software_extract_directory }}/sapcar/{{ __sap_hana_install_fact_sapcar_filename }}'
            does not match the checksum stored in file
-           {{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}.sha256sum!"
+           {{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}.sha256!"
         success_msg: "PASS: The checksum of file
-           '{{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}'
+           '{{ sap_hana_install_software_extract_directory }}/sapcar/{{ __sap_hana_install_fact_sapcar_filename }}'
            matches the checksum stored in file
-           {{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}.sha256sum."
+           {{ sap_hana_install_software_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}.sha256."
 
-  when: __sap_hana_install_register_sapcar_sha256sum_stat_result.stat.exists
+  when: __sap_hana_install_register_stat_sapcar_sha256.stat.exists
 
 - name: SAP HANA hdblcm prepare - Make sure SAPCAR has execute permissions and is owned by root
   ansible.builtin.file:
-    path: "{{ sap_hana_install_software_extract_directory }}/{{ __sap_hana_install_fact_sapcar_filename }}"
+    path: "{{ sap_hana_install_software_extract_directory }}/sapcar/{{ __sap_hana_install_fact_sapcar_filename }}"
     mode: '0755'
     owner: root
     group: root
