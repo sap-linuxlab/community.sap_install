@@ -222,7 +222,7 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 
 - Set all passwords to follow master password if set to 'y'.
 
-- Prepare software located in directory `sap_hana_install_software_directory`:
+- Prepare the software located in directory `sap_hana_install_software_directory`:
 
     - If file `hdblcm` is found, skip the next step and proceed with the `hdblcm` existence check.
 
