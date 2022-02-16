@@ -10,11 +10,17 @@
     - name: SAP HANA Post Install - Setup Firewall if included in packages
       block:
 
-        - name: SAP HANA Post Install - Service firewalld state - enable
-          command: "systemctl enable firewalld"
+#        - name: SAP HANA Post Install - Service firewalld state - enable
+#          command: "systemctl enable firewalld"
 
-        - name: SAP HANA Post Install - Service firewalld state - start
-          command: "systemctl start firewalld"
+#        - name: SAP HANA Post Install - Service firewalld state - start
+#          command: "systemctl start firewalld"
+
+        - name: SAP HANA Post Install - Enable and start firewalld
+          systemd:
+            name: firewalld
+            enabled: yes
+            state: started
 
         - name: SAP HANA Post Install - Generate Ports Based on NR - {{ sap_hana_install_number }}
           set_fact:
@@ -50,15 +56,24 @@
           loop_control:
             loop_var: passed_port
 
-        - name: SAP HANA Post Install - Reload Firewall
-          shell: |
-            firewall-cmd --reload
+#        - name: SAP HANA Post Install - Reload Firewall
+#          shell: |
+#            firewall-cmd --reload
+
+        - name: SAP HANA Post Install - Reload firewalld
+          systemd:
+            name: firewalld
+            state: reloaded
 
     # Stop firewall for now
-        - name: SAP HANA Post Install - Service firewalld state - stop
-          command: "systemctl stop firewalld"
+#        - name: SAP HANA Post Install - Service firewalld state - stop
+#          command: "systemctl stop firewalld"
 
-      when:
-        - '"firewalld" in ansible_facts.packages'
+        - name: SAP HANA Post Install - Stop firewalld
+          systemd:
+            name: firewalld
+            state: stopped
+
+      when: '"firewalld" in ansible_facts.packages'
 
   when: ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
