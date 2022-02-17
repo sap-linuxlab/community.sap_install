@@ -134,7 +134,7 @@ for par1 in __tests:
         command += str(par2)
     command += '"'
     if (par1['compact_assert_output'] == True):
-        command += ' | ./beautify-assert-output.sh'
+        command += ' | ../tools/beautify-assert-output.sh font_color_white'
     print ("command: " + command)
     _py_rc = os.system(command)
     par1['rc'] = str(int(_py_rc/256))
