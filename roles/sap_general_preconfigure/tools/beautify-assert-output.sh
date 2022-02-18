@@ -1,15 +1,14 @@
 #!/bin/bash
 
-if [[ ${1}. == "bright_font". ]]; then
-   awk 'BEGIN{printf ("\033[37mResetting font color\n")}'
-   exit
-elif [[ ${1}. == "dark_font". ]]; then
-   awk 'BEGIN{printf ("\033[30mResetting font color\n")}'
-   exit
+if [[ ${1}. == "font_color_white". ]]; then
+   __FONT_COLOR=37m
+elif [[ ${1}. == "font_color_black". ]]; then
+   __FONT_COLOR=30m
 fi
 
-if [[ ${__FONT_COLOR}. = "." ]]; then
-    __FONT_COLOR=30m
+if [[ ${2}. == "reset." ]]; then
+   awk 'BEGIN{printf ("\033['${__FONT_COLOR}'Resetting font color\n")}'
+   exit
 fi
 
 awk '{sub ("    \"msg\": ", "")}

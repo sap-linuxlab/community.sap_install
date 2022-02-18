@@ -32,20 +32,7 @@ __tests = [
     },
     {
         'number': '2',
-        'name': 'Run in assert mode on new system. Ignore a final error.',
-        'command_line_parameter': '',
-        'ignore_error_final': True,
-        'compact_assert_output': False,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_general_preconfigure_assert': True
-            }
-        ]
-    },
-    {
-        'number': '3',
-        'name': 'Run in assert mode on new system, check for possible RHEL update, ignore any assert error.',
+        'name': 'Run in assert mode on new system, check for enabled repos and for minor release lock, check for possible RHEL update, ignore any assert error.',
         'command_line_parameter': '',
         'ignore_error_final': False,
         'compact_assert_output': False,
@@ -54,27 +41,14 @@ __tests = [
             {
                 'sap_general_preconfigure_assert': True,
                 'sap_general_preconfigure_assert_ignore_errors': True,
-                'sap_general_preconfigure_update': True
+                'sap_general_preconfigure_update': True,
+                'sap_general_preconfigure_enable_repos': True,
+                'sap_general_preconfigure_set_minor_release': True
             }
         ]
     },
     {
-        'number': '4',
-        'name': 'Run in assert mode on new system, check for possible RHEL update, compact output, ignore any assert or final error.',
-        'command_line_parameter': '',
-        'ignore_error_final': True,
-        'compact_assert_output': True,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_general_preconfigure_assert': True,
-                'sap_general_preconfigure_assert_ignore_errors': True,
-                'sap_general_preconfigure_update': True
-            }
-        ]
-    },
-    {
-        'number': '5',
+        'number': '3',
         'name': 'Run in normal mode on new system, no reboot.',
         'command_line_parameter': '',
         'ignore_error_final': False,
@@ -87,45 +61,8 @@ __tests = [
         ]
     },
     {
-        'number': '6',
-        'name': 'Run in check mode on configured system.',
-        'command_line_parameter': '--check ',
-        'ignore_error_final': False,
-        'compact_assert_output': False,
-        'rc': '99',
-        'role_vars': []
-    },
-    {
-        'number': '7',
-        'name': 'Run in assert mode on modified system. Ignore a final error.',
-        'command_line_parameter': '',
-        'ignore_error_final': True,
-        'compact_assert_output': False,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_general_preconfigure_assert': True
-            }
-        ]
-    },
-    {
-        'number': '8',
-        'name': 'Run in assert mode on modified system, check for possible RHEL update, ignore any assert or final error.',
-        'command_line_parameter': '',
-        'ignore_error_final': True,
-        'compact_assert_output': True,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_general_preconfigure_assert': True,
-                'sap_general_preconfigure_assert_ignore_errors': True,
-                'sap_general_preconfigure_update': True
-            }
-        ]
-    },
-    {
-        'number': '9',
-        'name': 'Run in normal mode. Update to the latest packages. Allow a reboot.',
+        'number': '4',
+        'name': 'Run in normal mode on modified system, enable repos and set minor release lock, check for possible RHEL update, set SELinux to permisive, allow a reboot.',
         'command_line_parameter': '',
         'ignore_error_final': False,
         'compact_assert_output': False,
@@ -133,38 +70,49 @@ __tests = [
         'role_vars': [
             {
                 'sap_general_preconfigure_update': True,
+                'sap_general_preconfigure_enable_repos': True,
+                'sap_general_preconfigure_set_minor_release': True,
+                'sap_general_preconfigure_selinux_state': 'permissive',
                 'sap_general_preconfigure_reboot_ok': True
             }
         ]
     },
     {
-        'number': '10',
-        'name': 'Run in assert mode on modified system. Ignore a final error.',
+        'number': '5',
+        'name': 'Run in assert mode on modified system, enable repos and set minor release lock, check for possible RHEL update, set SELinux to permisive, ignore any assert errors.',
         'command_line_parameter': '',
-        'ignore_error_final': True,
+        'ignore_error_final': False,
         'compact_assert_output': False,
         'rc': '99',
         'role_vars': [
             {
-                'sap_general_preconfigure_assert': True
+                'sap_general_preconfigure_assert': True,
+                'sap_general_preconfigure_assert_ignore_errors': True,
+                'sap_general_preconfigure_update': True,
+                'sap_general_preconfigure_enable_repos': True,
+                'sap_general_preconfigure_set_minor_release': True,
+                'sap_general_preconfigure_selinux_state': 'permissive'
             }
         ]
     },
     {
-        'number': '11',
-        'name': 'Run in assert mode on modified system, check for possible RHEL update, compact output, ignore any assert error.',
+        'number': '6',
+        'name': 'Run in assert mode on modified system, enable repos and set minor release lock, check for possible RHEL update, set SELinux to permisive, ignore any assert errors.',
         'command_line_parameter': '',
-        'ignore_error_final': True,
+        'ignore_error_final': False,
         'compact_assert_output': True,
         'rc': '99',
         'role_vars': [
             {
                 'sap_general_preconfigure_assert': True,
                 'sap_general_preconfigure_assert_ignore_errors': True,
-                'sap_general_preconfigure_update': True
+                'sap_general_preconfigure_update': True,
+                'sap_general_preconfigure_enable_repos': True,
+                'sap_general_preconfigure_set_minor_release': True,
+                'sap_general_preconfigure_selinux_state': 'permissive'
             }
         ]
-    }
+    },
 ]
 
 for par1 in __tests:
@@ -179,7 +127,7 @@ for par1 in __tests:
         command += str(par2)
     command += '"'
     if (par1['compact_assert_output'] == True):
-        command += ' | ./beautify-assert-output.sh'
+        command += ' | ../tools/beautify-assert-output.sh font_color_white'
     print ("command: " + command)
     _py_rc = os.system(command)
     par1['rc'] = str(int(_py_rc/256))
