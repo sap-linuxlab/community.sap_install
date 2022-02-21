@@ -1,0 +1,67 @@
+---
+
+  - name: SAP HANA hdblcm prepare - Set flag for enforcing checksum verification
+    ansible.builtin.set_fact:
+      __sap_hana_install_fact_verify_checksum: "{{ __sap_hana_install_passed_file_dict.enforce_checksum_verification }}"
+
+  - name: SAP HANA hdblcm prepare - Calculate checksum of '{{ __sap_hana_install_passed_file_dict.file }}'
+    ansible.builtin.stat:
+      path: "{{ __sap_hana_install_passed_file_dict.dir }}/{{ __sap_hana_install_passed_file_dict.file }}"
+      checksum_algorithm: "{{ sap_hana_install_checksum_algorithm }}"
+    register: __sap_hana_install_register_stat_file
+
+  - name: SAP HANA hdblcm prepare - Check if checksum file exists
+    ansible.builtin.stat:
+      path: "{{ __sap_hana_install_passed_file_dict.checksum_file }}"
+    register: __sap_hana_install_register_stat_checksum_file
+
+  - name: SAP HANA hdblcm prepare - Compare checksums
+    block:
+
+      - name: SAP HANA hdblcm prepare - Get expected checksum from file
+        ansible.builtin.command: "awk 'BEGIN{a=0}/{{ __sap_hana_install_passed_file_dict.file }}/{a++; print $1}END{if (a==0){print \"Missing entry\"}}' {{ __sap_hana_install_passed_file_dict.checksum_file }}"
+        check_mode: no
+        register: __sap_hana_install_register_checksum_from_file
+        changed_when: no
+
+      - name: Handle missing file record in checksum file
+        block:
+
+          - name: Fail if an entry for file '{{ __sap_hana_install_passed_file_dict.file }}' is missing in '{{ __sap_hana_install_passed_file_dict.checksum_file }}'
+            ansible.builtin.fail:
+              msg: "FAIL: Missing entry for file '{{ __sap_hana_install_passed_file_dict.file }}' in '{{ __sap_hana_install_passed_file_dict.checksum_file }}'!"
+            when: __sap_hana_install_fact_verify_checksum
+
+          - name: Report if an entry for file '{{ __sap_hana_install_passed_file_dict.file }}' is missing in '{{ __sap_hana_install_passed_file_dict.checksum_file }}'
+            ansible.builtin.debug:
+              msg: "INFO: Missing entry for file '{{ __sap_hana_install_passed_file_dict.file }}' in '{{ __sap_hana_install_passed_file_dict.checksum_file }}' -> No checksum verification!"
+            when: not __sap_hana_install_fact_verify_checksum
+
+        when: __sap_hana_install_register_checksum_from_file.stdout == 'Missing entry'
+
+      - name: SAP HANA hdblcm prepare - Assert that the checksum of the SAR file is correct
+        ansible.builtin.assert:
+          that: __sap_hana_install_register_stat_file.stat.checksum ==
+                __sap_hana_install_register_checksum_from_file.stdout.split(' ').0
+          fail_msg: "FAIL: The checksum of file '{{ __sap_hana_install_passed_file_dict.dir }}/{{ __sap_hana_install_passed_file_dict.file }}'
+             does not match the checksum stored in file '{{ __sap_hana_install_passed_file_dict.checksum_file }}'!"
+          success_msg: "PASS: The checksum of file '{{ __sap_hana_install_passed_file_dict.dir }}/{{ __sap_hana_install_passed_file_dict.file }}'
+             matches the checksum stored in file '{{ __sap_hana_install_passed_file_dict.checksum_file }}'."
+        when: __sap_hana_install_register_checksum_from_file.stdout != 'Missing entry'
+
+    when: __sap_hana_install_register_stat_checksum_file.stat.exists
+
+  - name: Handle missing checksum file
+    block:
+
+      - name: SAP HANA hdblcm prepare - Fail if no checksum verification will be performed
+        ansible.builtin.fail:
+          msg: "FAIL: Missing checksum file '{{ __sap_hana_install_passed_file_dict.checksum_file }}'!"
+        when: __sap_hana_install_fact_verify_checksum
+
+      - name: SAP HANA hdblcm prepare - Notify if no checksum verification will be performed
+        ansible.builtin.debug:
+          msg: "INFO: Missing checksum file {{ __sap_hana_install_passed_file_dict.checksum_file }} -> No checksum verification!"
+        when: not __sap_hana_install_fact_verify_checksum
+
+    when: not __sap_hana_install_register_stat_checksum_file.stat.exists

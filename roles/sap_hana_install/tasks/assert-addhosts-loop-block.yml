@@ -1,17 +1,17 @@
 ---
 
 - name: SAP HANA Add Hosts - Check for SAP HANA instance profile for '{{ line_item }}'
-  stat:
+  ansible.builtin.stat:
     path: "/hana/shared/{{ sap_hana_install_sid }}/profile/{{ sap_hana_install_sid }}_HDB{{ sap_hana_install_number }}_{{ line_item }}"
   register: __sap_hana_install_register_instance_profile_addhost
 
 - name: SAP HANA Add Hosts - Show the path name of the instance profile
-  debug:
+  ansible.builtin.debug:
     msg: "Instance profile: '/hana/shared/{{ sap_hana_install_sid }}/profile/\
           {{ sap_hana_install_sid }}_HDB{{ sap_hana_install_number }}_{{ line_item }}'"
 
 - name: SAP HANA Add Hosts - Assert that there is no instance profile for the addional hosts
-  assert:
+  ansible.builtin.assert:
     that: not __sap_hana_install_register_instance_profile_addhost.stat.exists
     fail_msg:
       - "FAIL: There is already an instance profile for host '{{ line_item }}', at location:"
@@ -20,16 +20,16 @@
     success_msg: "PASS: No instance profile was found for host '{{ line_item }}'."
 
 - name: SAP HANA Add Hosts - Check for SAP HANA instance directory in '/usr/sap'
-  stat:
+  ansible.builtin.stat:
     path: "/usr/sap/{{ sap_hana_install_sid }}/HDB{{ sap_hana_install_number }}/{{ line_item }}"
   register: __sap_hana_install_register_usr_sap_instance_directory
 
 - name: SAP HANA Add Hosts - Show the path name of the instance directory in '/usr/sap'
-  debug:
+  ansible.builtin.debug:
     msg: "Instance directory in /usr/sap: '/usr/sap/{{ sap_hana_install_sid }}/HDB{{ sap_hana_install_number }}/{{ line_item }}'"
 
 - name: SAP HANA Add Hosts - Assert that there is no SAP HANA instance directory in '/usr/sap' for the addional hosts
-  assert:
+  ansible.builtin.assert:
     that: not __sap_hana_install_register_usr_sap_instance_directory.stat.exists
     fail_msg:
       - "FAIL: There is already an instance directory for host '{{ sap_hana_install_addhosts.split(':')[0] }}', at location:"

@@ -299,12 +299,23 @@ in a temporary directory for use by the hdblcm command in the next step.
 ## Tags
 
 With the following tags, the role can be called to perform certain activities only:
-- tag `sap_hana_install_preinstall`: Only perform pre-install activities. This includes extracting
-  the SAR files if necessary, searching for hdblcm, and creating the hdblcm configfile.
+- tag `sap_hana_install_preinstall`: Only perform pre-install activities. This includes selecting
+  the SAPCAR EXE file, extracting the SAR files if necessary, searching for hdblcm, and creating
+  the hdblcm configfile.
 - tag `sap_hana_install_chown_hana_directories`: Only perform the chown of the SAP HANA directories
   `/hana`, `/hana/shared`, `/hana/log`, and `/hana/data`. The main purpose of this tag is to use it
   with `--skip-tags`, to skip modifying these directories. This can be useful when using tag
   `sap_hana_install_preinstall`.
+- tag `sap_hana_install_prepare_sapcar`: Only copy the SAPCAR EXE files for the current architecture
+  to the extraction directory, verify the checksums of these files, and select the latest
+  version. Or copy the SAPCAR EXE file if given by role variable `sap_hana_install_sapcar_filename`
+  and then verify the checksum.
+- tag `sap_hana_install_prepare_sarfiles`: Run the steps of tag `sap_hana_install_prepare_sapcar`
+  to select the correct SAPCAR file, then copy the selected or provided SAR files to the
+  extraction directory (if requested), then verify the checksums of each SAR file. Lastly, extract
+  these SAR files to the extraction directory.
+- tag `sap_hana_install_extract_sarfiles`: Use this flag with `--skip-tags' to run the SAR file
+  preparation steps of tag `sap_hana_install_prepare_sarfiles` without extracting the SAR files.
 - tag `sap_hana_install_hdblcm_commandline`: Only show the hdblcm command line, without processing
   the hdblcm template. This can be useful for checking the hdblcm command line options, expecially
   when using the `addhosts` function.
@@ -312,6 +323,16 @@ With the following tags, the role can be called to perform certain activities on
 Sample call for only processing the SAPCAR and SAR files and creating the hdblcm configfile:
 ```
 # ansible-playbook sap-hana-install.yml --tags=sap_hana_install_preinstall --skip-tags=sap_hana_install_chown_hana_directories
+```
+
+Sample call for only processing the SAPCAR files:
+```
+# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_prepare_sapcar
+```
+
+Sample call for only processing the SAPCAR and SAR files, without extracting the SAR files:
+```
+# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_prepare_sarfiles --skip-tags=sap_hana_install_extract_sarfiles
 ```
 
 Sample call for only displaying the SAP HANA hdblcm command line:

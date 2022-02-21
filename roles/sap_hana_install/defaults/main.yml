@@ -12,8 +12,8 @@ sap_hana_install_software_directory: '/software/hana'
 sap_hana_install_software_extract_directory: "{{ sap_hana_install_software_directory }}/extracted"
 
 # Set this variabe to yes if you want to copy the SAR files from `sap_hana_install_software_directory`
-# to `sap_hana_install_software_extract_directory` before extracting.
-# This might be useful if the sarfiles are on a slow fileshare
+# to `sap_hana_install_software_extract_directory/sarfiles` before extracting.
+# This might be useful if the SAR files are on a slow fileshare.
 sap_hana_install_copy_sarfiles: no
 
 # Set the following variable to `yes` if you want to keep the copied SAR files. By default, the SAR files will be
@@ -30,7 +30,21 @@ sap_hana_install_keep_copied_sarfiles: no
 #  - SAPHOSTAGENT54_54-80004822.SAR
 #  - IMDB_SERVER20_060_0-80002031.SAR
 
-# hdblcm configfile variables:
+# Set the following variable to yes to let the role abort if any checksum verification fails. Note:
+# No matter how this variable is set, if sap_hana_install_sapcar_filename is not specified, checksum verification
+# is enforced for SAPCAR EXE file autodetection.
+# No matter how this variable is set, if sap_hana_install_sarfiles is not specified, checksum verification
+# is enforced for all SAR files in the software directory.
+sap_hana_install_enforce_checksum_verification: no
+
+# Checksum algorithm for checksum verification. Default is sha256, for which a checksum is available in the SAP software
+# download pages.
+sap_hana_install_checksum_algorithm: sha256
+
+# In case a global checksum file is present, use the following variable to specify the full path to this file:
+#sap_hana_install_global_checksum_file: "{{ sap_hana_install_software_directory }}/SHA256"
+
+# hdblcm configfile related variables:
 # Directory where to store the hdblcm configfile template and the Jinja2 template:
 sap_hana_install_configfile_directory: "{{ sap_hana_install_software_extract_directory }}/configfiles"
 

@@ -4,17 +4,17 @@
   block:
 
     - name: SAP HANA Post Install - Store connection information
-      include_tasks: post_install/hdbuserstore.yml
+      ansible.builtin.include_tasks: post_install/hdbuserstore.yml
 
     - name: SAP HANA Post Install - Set log_mode
-      include_tasks: post_install/log_mode.yml
+      ansible.builtin.include_tasks: post_install/log_mode.yml
 
     - name: SAP HANA Post Install - Apply license
-      include_tasks: post_install/license.yml
+      ansible.builtin.include_tasks: post_install/license.yml
       when: sap_hana_install_apply_license
 
     - name: SAP HANA Post Install - Set '{{ sap_hana_install_sid | lower }}adm' to no expire
-      shell: |
+      ansible.builtin.shell: |
           chage -m 0 -M 99999 -I -1 -E -1 {{ sap_hana_install_sid | lower }}adm
       args:
         executable: /bin/bash
@@ -26,18 +26,18 @@
 
 # not needed because already done in sap_general_preconfigure
 #- name: SAP HANA Post Install - Update /etc/hosts
-#  include_tasks: post_install/update_etchosts.yml
+#  ansible.builtin.include_tasks: post_install/update_etchosts.yml
 #  when:
 #    - "sap_hana_install_update_etchosts | bool"
 
     - name: SAP HANA Post Install - Firewall
-      include_tasks: post_install/firewall.yml
+      ansible.builtin.include_tasks: post_install/firewall.yml
       when:
         - "sap_hana_install_update_firewall | bool"
 
     - name: SAP HANA Post Install - Generate Input File for SAP Application Deployment
         '{{ sap_hana_install_nw_input_location }}/{{ sap_hana_install_sid }}.info.nw.install'
-      template:
+      ansible.builtin.template:
         src: "{{ role_path }}/templates/sap-nw-input.j2"
         dest: "{{ sap_hana_install_nw_input_location }}/{{ sap_hana_install_sid }}.info.nw.install"
         mode: 0644
@@ -49,7 +49,7 @@
 ################
 
 - name: SAP HANA Install - Run 'hdblcm --list_systems' after the installation
-  shell: |
+  ansible.builtin.shell: |
       set -o pipefail && ./hdblcm --list_systems | awk '/\/hana\/shared\/{{ sap_hana_install_sid }}/{a=1}
       /version:/{if (a==1){
         gsub ("^\\s*version: ", "");printf ("%s;", $NF)}
@@ -64,17 +64,17 @@
   when: not ansible_check_mode
 
 - name: Set fact - HANA version
-  set_fact:
+  ansible.builtin.set_fact:
     __sap_hana_install_fact_hana_version: "{{ __sap_hana_install_register_install_result.stdout.split(';')[0] }}"
   when: not ansible_check_mode
 
 - name: Set fact - HANA hosts
-  set_fact:
+  ansible.builtin.set_fact:
     __sap_hana_install_fact_hana_hosts: "{{ __sap_hana_install_register_install_result.stdout.split(';')[1] }}"
   when: not ansible_check_mode
 
 - name: SAP HANA Deployment - Finished
-  debug:
+  ansible.builtin.debug:
     msg:
       - '  SAP HANA deployment successfully completed:'
       - ' '
