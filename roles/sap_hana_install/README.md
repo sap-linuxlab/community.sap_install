@@ -96,7 +96,7 @@ after the extraction of SAR files has completed.
 
 By default, the hdblcm configfile will be created dynamically in each run, as follows: After the role has
 found the hdblcm command or extracted the SAP HANA SAR file, it will call the hdblcm command with the
-option `dump_configfile_template` to create a configfile template, which will then be converted into
+option `--dump_configfile_template` to create a configfile template, which will then be converted into
 a Jinja2 configfile template according to the following rules: For each hdblcm parameter, the value
 will be either the value of the role variable prepended by the role name and an underscore, or a
 default (if present in the hdblcm configfile template).
@@ -111,8 +111,16 @@ This provides great flexibility for handling different SAP HANA releases, which 
 different set of hdblcm parameters. For preparing the installation of a new SAP HANA system, it can be useful
 to run the role with tag `sap_hana_install_preinstall` first. This will display the full path names of the
 hdblcm configfile template, the Jinja2 template, and the result of the templating. By comparing the hdblcm
-configfile template with the templating result, it can be easily determined if all role variables for the
-hdblcm command are set correctly.
+configfile template with the templating result (indicated by placeholder `TEMPLATING_RESULT` below), you
+can quickly check if all role variables for the hdblcm command are set correctly and make any necessary
+adjustments to the role variables.
+
+For displaying only the modified default lines, in two columns, use:
+`# diff -y --suppress-common-lines hdblcm_configfile_template.cfg TEMPLATING_RESULT`
+
+For checking and comparing all non-empty hdblcm parameter settings, use:
+`# diff -y <(awk 'BEGIN{FS="="}/^[a-z]/&&length($2)>0{print $0}' hdblcm_configfile_template.cfg)
+   <(awk 'BEGIN{FS="="}/^[a-z]/&&length($2)>0{print $0}' TEMPLATING_RESULT)`
 
 Note: If there is a file named `configfile.cfg` in the directory specified by role variable
 `sap_hana_install_configfile_directory`, this file will be used and no dynamic hdblcm configfile processing
@@ -124,8 +132,8 @@ of this file will not be reflected.
 ### Input Parameters
 
 If the variable `sap_hana_install_check_sidadm_user` is set to `no`, the role will install SAP HANA even
-if there the sidadm user exists. Default is `yes`, in which case the installation will not be performed if the
-sidadm user is contained in the user database.
+if the sidadm user exists. Default is `yes`, in which case the installation will not be performed if the
+sidadm user exists.
 
 The variable `sap_hana_install_new_system` determines if the role will perform a fresh SAP HANA installation or
 if it will add further hosts to an existing SAP HANA system as specified by variable
@@ -230,13 +238,20 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 
 - Prepare SAR files for `hdblcm`:
 
-    - Get the correct SAPCAR executable from `sap_hana_install_software_directory` in case its file name is not provided by role variable.
+    - Get a list of hardware matching SAPCAR executables from `sap_hana_install_software_directory` in case its file name is not
+      provided by role variable.
 
-    - Get all SAR files from `sap_hana_install_software_directory` or use the SAR files provided by role variable.
+    - For the SAPCAR executable which matches the hardware architecture, perform a checksum verification against a specific checksum file
+      (the SAPCAR file name appended by `.sha256`) or a global checksum file.
+
+    - Select the most recent version of SAPCAR from the hardware matching SAPCAR executables identified before.
+
+    - Get all SAR files from `sap_hana_install_software_directory` or use the SAR files provided by the corresponding role variable, if set.
+
+    - For each SAR file specified or identified, if there is a file with the same name, appended by `.sha256` or a global checksum file,
+      perform a checksum verification.
 
     - Extract all SAR files into `sap_hana_install_software_extract_directory`.
-
-    - For the SAPCAR executable which will be used for extracting the SAR files and for each SAR file specified or identified, if there is a file with the same name, appended by `sha256`, perform a checksum verification.
 
 - Check existence of `hdblcm` in `SAP_HANA_DATABASE` directory from the extracted SAR files.
 
