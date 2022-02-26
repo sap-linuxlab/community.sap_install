@@ -331,6 +331,9 @@ With the following tags, the role can be called to perform certain activities on
 - tag `sap_hana_install_hdblcm_commandline`: Only show the hdblcm command line, without processing
   the hdblcm template. This can be useful for checking the hdblcm command line options, expecially
   when using the `addhosts` function.
+- tag `sap_hana_install_set_log_mode`: Only set the log mode of an existing HANA installation to
+  `overwrite`.
+- tag `sap_hana_install_store_connection_information`: Only run the hdbuserstore command
 
 Sample call for only processing the SAPCAR and SAR files and creating the hdblcm configfile:
 ```
