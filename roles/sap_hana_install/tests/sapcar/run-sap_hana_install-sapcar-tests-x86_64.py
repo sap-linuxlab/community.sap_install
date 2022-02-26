@@ -9,13 +9,14 @@ import re
 _field_delimiter = '\t'
 
 if (len(sys.argv) != 3):
-    _managed_node=input("Provide name of managed node: ")
-    _username=input("Provide username for connecting to managed node: ")
+    print('Please provide the name of the managed node and the user name for logging in.')
+    _managed_node=input('Name of managed node: ')
+    _username=input('User name for connecting to managed node: ')
 else:
     _managed_node=sys.argv[1]
     _username=sys.argv[2]
 
-print('Running preinstall tests for role sap_hana_install...\n')
+print('Running sapcar preinstall tests for role sap_hana_install...\n')
 print('Managed node: ' + _managed_node)
 print('Username: ' + _username)
 
@@ -33,7 +34,7 @@ __tests = [
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_install_enforce_checksum_verification': True
+                'sap_hana_install_verify_checksums': True
             }
         ]
     },
@@ -45,7 +46,7 @@ __tests = [
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_install_enforce_checksum_verification': True
+                'sap_hana_install_verify_checksums': True
             }
         ]
     },
@@ -57,7 +58,7 @@ __tests = [
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_install_enforce_checksum_verification': True
+                'sap_hana_install_verify_checksums': True
             }
         ]
     },
@@ -69,7 +70,7 @@ __tests = [
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_install_enforce_checksum_verification': True,
+                'sap_hana_install_verify_checksums': True,
                 'sap_hana_install_global_checksum_file': "{{ sap_hana_install_software_directory }}/SHA256"
             }
         ]
@@ -82,7 +83,7 @@ __tests = [
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_install_enforce_checksum_verification': True,
+                'sap_hana_install_verify_checksums': True,
                 'sap_hana_install_global_checksum_file': "{{ sap_hana_install_software_directory }}/SHA256"
             }
         ]
@@ -94,7 +95,7 @@ __tests = [
 #           + _managed_node)
 #_py_rc = os.system(command)
 
-for par1 in __tests:
+for par1 in __tests[0:5]:
     print ('\n' + 'Test ' + par1['number'] + ': ' + par1['name'])
     command = ('ansible-playbook prepare-test-'
                + par1['number']
@@ -145,7 +146,7 @@ print ('\n#'
        + 'expected error string' + _field_delimiter
        + 'role_vars')
 
-for par1 in __tests:
+for par1 in __tests[0:5]:
     print (par1['number'] + _field_delimiter
            + par1['rc'] + _field_delimiter
            + par1['name'] + _field_delimiter

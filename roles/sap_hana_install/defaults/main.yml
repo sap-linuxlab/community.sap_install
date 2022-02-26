@@ -30,12 +30,9 @@ sap_hana_install_keep_copied_sarfiles: no
 #  - SAPHOSTAGENT54_54-80004822.SAR
 #  - IMDB_SERVER20_060_0-80002031.SAR
 
-# Set the following variable to yes to let the role abort if any checksum verification fails. Note:
-# No matter how this variable is set, if sap_hana_install_sapcar_filename is not specified, checksum verification
-# is enforced for SAPCAR EXE file autodetection.
-# No matter how this variable is set, if sap_hana_install_sarfiles is not specified, checksum verification
-# is enforced for all SAR files in the software directory.
-sap_hana_install_enforce_checksum_verification: no
+# Set the following variable to yes to let the role abort if checksum verification fails for any SAPCAR or SAR file
+# called or used by the role.
+sap_hana_install_verify_checksums: no
 
 # Checksum algorithm for checksum verification. Default is sha256, for which a checksum is available in the SAP software
 # download pages.
@@ -70,9 +67,9 @@ sap_hana_install_new_system: yes
 # Components should be comma separated
 sap_hana_install_components: 'all'
 
-# Pass some extra arguments to the hdblcm cli, e.g.  --ignore=<check1>[,<check2>]...
-# Specifies failing preequisite checks that the SAP HANA platform lifecycle management tools should ignore.
-sap_hana_install_hdblcm_extraargs:
+# Pass some extra arguments to hdblcm, see some examples below.
+#sap_hana_install_hdblcm_extraargs: '--verify_signature'
+#sap_hana_install_hdblcm_extraargs: '--ignore=check_diskspace,check_min_mem'
 
 # Instance details
 sap_hana_install_sid:
@@ -91,19 +88,22 @@ sap_hana_install_groupid:
 # Passwords
 # Setting master password to 'y' will use that master password for all passwords - recommended
 sap_hana_install_use_master_password: 'y'
-sap_hana_install_master_password:
-sap_hana_install_sidadm_password:
-sap_hana_install_db_system_password:
-sap_hana_install_lss_user_password:
-sap_hana_install_lss_backup_password:
-sap_hana_install_ase_user_password:
-sap_hana_install_root_password:
-sap_hana_install_sapadm_password:
-sap_hana_install_xs_org_password:
+# Set one or more of the following password variables in your playbook or inventory.
+#sap_hana_install_master_password:
+#sap_hana_install_sidadm_password:
+#sap_hana_install_db_system_password:
+#sap_hana_install_lss_user_password:
+#sap_hana_install_lss_backup_password:
+#sap_hana_install_ase_user_password:
+#sap_hana_install_root_password:
+#sap_hana_install_sapadm_password:
+#sap_hana_install_xs_org_password:
 
 # Optional steps
 sap_hana_install_update_firewall: no
-sap_hana_install_update_etchosts: yes
+
+# The following variable is no longer used. Setting /etc/hosts entries is done in role sap_general_preconfigure.
+#sap_hana_install_update_etchosts: yes
 
 # Post install parameters
 sap_hana_install_hdbuserstore_key: 'HDB_SYSTEMDB'
@@ -111,8 +111,8 @@ sap_hana_install_nw_input_location: '/tmp'
 
 # License
 sap_hana_install_apply_license: no
-sap_hana_install_license_path:
-sap_hana_install_license_file_name:
+#sap_hana_install_license_path:
+#sap_hana_install_license_file_name:
 
 # Misc
 

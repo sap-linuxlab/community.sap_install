@@ -3,22 +3,22 @@
 # Password Facts
 ################
 
-- name: SAP HANA Pre Install - Set password facts when using master password
-  ansible.builtin.set_fact:
-    sap_hana_install_sapadm_password: "{{ sap_hana_install_master_password }}"
-    sap_hana_install_sidadm_password: "{{ sap_hana_install_master_password }}"
-    sap_hana_install_db_system_password: "{{ sap_hana_install_master_password }}"
-    sap_hana_install_ase_user_password: "{{ sap_hana_install_master_password }}"
-    sap_hana_install_xs_org_password: "{{ sap_hana_install_master_password }}"
-    sap_hana_install_lss_user_password: "{{ sap_hana_install_master_password }}"
-    sap_hana_install_lss_backup_password: "{{ sap_hana_install_master_password }}"
-  when: sap_hana_install_use_master_password == 'y'
+#- name: SAP HANA Pre Install - Set password facts when using master password
+#  ansible.builtin.set_fact:
+#    sap_hana_install_sapadm_password: "{{ sap_hana_install_master_password }}"
+#    sap_hana_install_sidadm_password: "{{ sap_hana_install_master_password }}"
+#    sap_hana_install_db_system_password: "{{ sap_hana_install_master_password }}"
+#    sap_hana_install_ase_user_password: "{{ sap_hana_install_master_password }}"
+#    sap_hana_install_xs_org_password: "{{ sap_hana_install_master_password }}"
+#    sap_hana_install_lss_user_password: "{{ sap_hana_install_master_password }}"
+#    sap_hana_install_lss_backup_password: "{{ sap_hana_install_master_password }}"
+#  when: sap_hana_install_use_master_password == 'y'
 
 ################
 # Prepare software path
 ################
 
-- name: Prepare the HANA software for installation
+- name: Prepare the HANA software for installation, new system
   block:
 
     - name: SAP HANA Pre Install - Check availability of software directory '{{ sap_hana_install_software_directory }}'
@@ -137,6 +137,25 @@
       when: __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is not defined
 
   when: sap_hana_install_new_system|d(true)
+
+# For an addhosts operation, we first use the hdblcm command for creating a new configfile template, which
+# we then process with the templating engine. The actual addhosts installation is done via the resident hdblcm.
+- name: Set the path to hdblcm, addhosts
+  block:
+
+    - name: SAP HANA Pre Install - Find directory 'SAP_HANA_DATABASE' in '{{ sap_hana_install_software_extract_directory }}'
+      ansible.builtin.find:
+        paths: "{{ sap_hana_install_software_extract_directory }}"
+        recurse: yes
+        file_type: directory
+        patterns: 'SAP_HANA_DATABASE'
+      register: __sap_hana_install_register_find_directory_sap_hana_database_addhosts
+
+    - name: SAP HANA Pre Install - Set fact for 'hdblcm' installer directory, addhosts
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_hdblcm_path: "{{ __sap_hana_install_register_find_directory_sap_hana_database_addhosts.files[0].path }}"
+
+  when: not sap_hana_install_new_system|d(true)
 
 ################
 # Pre Install Steps

@@ -55,7 +55,7 @@
         loop_var: __sap_hana_install_passed_file_dict
       when:
         - __sap_hana_install_fact_sapcar_dict | length > 0
-        - sap_hana_install_enforce_checksum_verification
+        - sap_hana_install_verify_checksums
 
     - name: SAP HANA hdblcm prepare - SAPCAR defined - Set fact for the SAPCAR executable from variable
       ansible.builtin.set_fact:
@@ -68,7 +68,6 @@
 # We need the 'file' package for the 'file' command, which we need in the next task.
 # RHEL: The 'file' package is contained in the Base software group, which should be installed already.
 
-# For automatic SAPCAR EXE file detection, we are enforcing checksum verification.
 # In the first step, we execute the file command for each of the SAPCAR EXE files. It displays the
 # hardware architecture in the second output field, using a string which is different from the output
 # of the 'uname -m' command. So we replace those strings by the "correct" ones. For ppc64 and ppc64le,
@@ -76,7 +75,7 @@
 # to handle cases where a ppc64 SAPCAR executable is present in the software directory.
 # After selecting the SAPCAR EXE files for the current architecture, we copy them to a temporary
 # directory sapcar_tmp in the software extract directory and then perform a checksum verification
-# for these files.
+# for these files if the corresponding variable is set.
     - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Create directory '{{ sap_hana_install_software_extract_directory }}/sapcar_tmp'
       ansible.builtin.file:
         path: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp"
@@ -149,17 +148,14 @@
       ansible.builtin.debug:
         var: __sap_hana_install_fact_sapcar_dict
 
-    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Explain why checksum verification is enforced
-      debug:
-        msg: "INFO: Checksum verification is enforced for SAPCAR executable autodetection."
-      when: not sap_hana_install_enforce_checksum_verification|d('false')
-
     - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Verify checksum for SAPCAR executables
       ansible.builtin.include_tasks: verify_checksum.yml
       loop: "{{ __sap_hana_install_fact_sapcar_dict }}"
       loop_control:
         loop_var: __sap_hana_install_passed_file_dict
-      when: __sap_hana_install_fact_sapcar_dict | length > 0
+      when:
+        - __sap_hana_install_fact_sapcar_dict | length > 0
+        - sap_hana_install_verify_checksums
 
 # For each file in temporary directory sapcar_tmp in the software extract directory, we run it with option
 # --version and then identify the most recent one, which is then copied to directory sapcar.

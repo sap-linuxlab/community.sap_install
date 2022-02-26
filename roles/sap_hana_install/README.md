@@ -241,17 +241,14 @@ You can find more complex playbooks in directory `playbooks` of the collection `
     - Get a list of hardware matching SAPCAR executables from `sap_hana_install_software_directory` in case its file name is not
       provided by role variable.
 
-    - For the SAPCAR executable which matches the hardware architecture, perform a checksum verification against a specific checksum file
-      (the SAPCAR file name appended by `.sha256`) or a global checksum file.
-
     - Select the most recent version of SAPCAR from the hardware matching SAPCAR executables identified before.
 
     - Get all SAR files from `sap_hana_install_software_directory` or use the SAR files provided by the corresponding role variable, if set.
 
-    - For each SAR file specified or identified, if there is a file with the same name, appended by `.sha256` or a global checksum file,
-      perform a checksum verification.
-
     - Extract all SAR files into `sap_hana_install_software_extract_directory`.
+
+Note: For each SAPCAR or SAR file called or used by the role, if variable `sap_hana_install_verify_checksums`
+is set to `yes`, the role will perform a checksum verification against a specific or global checksum file.
 
 - Check existence of `hdblcm` in `SAP_HANA_DATABASE` directory from the extracted SAR files.
 

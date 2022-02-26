@@ -84,16 +84,6 @@
       checksum_file: "{{ sap_hana_install_software_directory }}/{{ item }}.sha256"
   when: sap_hana_install_global_checksum_file is not defined
 
-# We are verifying checksums for SAR files if either variable `sap_hana_install_enforce_checksum_verification`
-# is set or variable `sap_hana_install_sarfiles` is undefined, meaning that all the SAR files in the
-# software directory are being verified.
-- name: SAP HANA hdblcm prepare - Explain why checksum verification is enforced
-  debug:
-    msg: "INFO: Checksum verification is enforced for SAR files if not provided in role variable 'sap_hana_install_sarfiles'."
-  when:
-    - not sap_hana_install_enforce_checksum_verification|d('false')
-    - sap_hana_install_sarfiles is not defined
-
 - name: SAP HANA hdblcm prepare - Verify checksums for all SAR files in folder '{{ __sap_hana_install_fact_sar_dir }}'
   ansible.builtin.include_tasks: verify_checksum.yml
   loop: "{{ __sap_hana_install_fact_sarfiles_dict }}"
@@ -102,7 +92,7 @@
   when:
     - __sap_hana_install_fact_sarfiles | length > 0
     - not ansible_check_mode
-    - ( sap_hana_install_enforce_checksum_verification|d(false) or sap_hana_install_sarfiles is not defined )
+    - sap_hana_install_verify_checksums
 
 - name: SAP HANA hdblcm prepare - Extract all SAR files in folder '{{ sap_hana_install_software_directory }}'
   ansible.builtin.include_tasks: extract_sarfile.yml
