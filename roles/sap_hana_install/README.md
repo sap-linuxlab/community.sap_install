@@ -326,7 +326,7 @@ With the following tags, the role can be called to perform certain activities on
   to select the correct SAPCAR file, then copy the selected or provided SAR files to the
   extraction directory (if requested), then verify the checksums of each SAR file. Lastly, extract
   these SAR files to the extraction directory.
-- tag `sap_hana_install_extract_sarfiles`: Use this flag with `--skip-tags' to run the SAR file
+- tag `sap_hana_install_extract_sarfiles`: Use this flag with `--skip-tags` to run the SAR file
   preparation steps of tag `sap_hana_install_prepare_sarfiles` without extracting the SAR files.
 - tag `sap_hana_install_hdblcm_commandline`: Only show the hdblcm command line, without processing
   the hdblcm template. This can be useful for checking the hdblcm command line options, expecially
