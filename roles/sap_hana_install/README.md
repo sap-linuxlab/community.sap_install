@@ -96,7 +96,7 @@ after the extraction of SAR files has completed.
 
 By default, the hdblcm configfile will be created dynamically in each run, as follows: After the role has
 found the hdblcm command or extracted the SAP HANA SAR file, it will call the hdblcm command with the
-option `dump_configfile_template` to create a configfile template, which will then be converted into
+option `--dump_configfile_template` to create a configfile template, which will then be converted into
 a Jinja2 configfile template according to the following rules: For each hdblcm parameter, the value
 will be either the value of the role variable prepended by the role name and an underscore, or a
 default (if present in the hdblcm configfile template).
@@ -111,8 +111,16 @@ This provides great flexibility for handling different SAP HANA releases, which 
 different set of hdblcm parameters. For preparing the installation of a new SAP HANA system, it can be useful
 to run the role with tag `sap_hana_install_preinstall` first. This will display the full path names of the
 hdblcm configfile template, the Jinja2 template, and the result of the templating. By comparing the hdblcm
-configfile template with the templating result, it can be easily determined if all role variables for the
-hdblcm command are set correctly.
+configfile template with the templating result (indicated by placeholder `TEMPLATING_RESULT` below), you
+can quickly check if all role variables for the hdblcm command are set correctly and make any necessary
+adjustments to the role variables.
+
+For displaying only the modified default lines, in two columns, use:
+`# diff -y --suppress-common-lines hdblcm_configfile_template.cfg TEMPLATING_RESULT`
+
+For checking and comparing all non-empty hdblcm parameter settings, use:
+`# diff -y <(awk 'BEGIN{FS="="}/^[a-z]/&&length($2)>0{print $0}' hdblcm_configfile_template.cfg)
+   <(awk 'BEGIN{FS="="}/^[a-z]/&&length($2)>0{print $0}' TEMPLATING_RESULT)`
 
 Note: If there is a file named `configfile.cfg` in the directory specified by role variable
 `sap_hana_install_configfile_directory`, this file will be used and no dynamic hdblcm configfile processing
@@ -124,8 +132,8 @@ of this file will not be reflected.
 ### Input Parameters
 
 If the variable `sap_hana_install_check_sidadm_user` is set to `no`, the role will install SAP HANA even
-if there the sidadm user exists. Default is `yes`, in which case the installation will not be performed if the
-sidadm user is contained in the user database.
+if the sidadm user exists. Default is `yes`, in which case the installation will not be performed if the
+sidadm user exists.
 
 The variable `sap_hana_install_new_system` determines if the role will perform a fresh SAP HANA installation or
 if it will add further hosts to an existing SAP HANA system as specified by variable
@@ -230,13 +238,17 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 
 - Prepare SAR files for `hdblcm`:
 
-    - Get the correct SAPCAR executable from `sap_hana_install_software_directory` in case its file name is not provided by role variable.
+    - Get a list of hardware matching SAPCAR executables from `sap_hana_install_software_directory` in case its file name is not
+      provided by role variable.
 
-    - Get all SAR files from `sap_hana_install_software_directory` or use the SAR files provided by role variable.
+    - Select the most recent version of SAPCAR from the hardware matching SAPCAR executables identified before.
+
+    - Get all SAR files from `sap_hana_install_software_directory` or use the SAR files provided by the corresponding role variable, if set.
 
     - Extract all SAR files into `sap_hana_install_software_extract_directory`.
 
-    - For the SAPCAR executable which will be used for extracting the SAR files and for each SAR file specified or identified, if there is a file with the same name, appended by `sha256`, perform a checksum verification.
+Note: For each SAPCAR or SAR file called or used by the role, if variable `sap_hana_install_verify_checksums`
+is set to `yes`, the role will perform a checksum verification against a specific or global checksum file.
 
 - Check existence of `hdblcm` in `SAP_HANA_DATABASE` directory from the extracted SAR files.
 
@@ -299,19 +311,43 @@ in a temporary directory for use by the hdblcm command in the next step.
 ## Tags
 
 With the following tags, the role can be called to perform certain activities only:
-- tag `sap_hana_install_preinstall`: Only perform pre-install activities. This includes extracting
-  the SAR files if necessary, searching for hdblcm, and creating the hdblcm configfile.
+- tag `sap_hana_install_preinstall`: Only perform pre-install activities. This includes selecting
+  the SAPCAR EXE file, extracting the SAR files if necessary, searching for hdblcm, and creating
+  the hdblcm configfile.
 - tag `sap_hana_install_chown_hana_directories`: Only perform the chown of the SAP HANA directories
   `/hana`, `/hana/shared`, `/hana/log`, and `/hana/data`. The main purpose of this tag is to use it
   with `--skip-tags`, to skip modifying these directories. This can be useful when using tag
   `sap_hana_install_preinstall`.
+- tag `sap_hana_install_prepare_sapcar`: Only copy the SAPCAR EXE files for the current architecture
+  to the extraction directory, verify the checksums of these files, and select the latest
+  version. Or copy the SAPCAR EXE file if given by role variable `sap_hana_install_sapcar_filename`
+  and then verify the checksum.
+- tag `sap_hana_install_prepare_sarfiles`: Run the steps of tag `sap_hana_install_prepare_sapcar`
+  to select the correct SAPCAR file, then copy the selected or provided SAR files to the
+  extraction directory (if requested), then verify the checksums of each SAR file. Lastly, extract
+  these SAR files to the extraction directory.
+- tag `sap_hana_install_extract_sarfiles`: Use this flag with `--skip-tags' to run the SAR file
+  preparation steps of tag `sap_hana_install_prepare_sarfiles` without extracting the SAR files.
 - tag `sap_hana_install_hdblcm_commandline`: Only show the hdblcm command line, without processing
   the hdblcm template. This can be useful for checking the hdblcm command line options, expecially
   when using the `addhosts` function.
+- tag `sap_hana_install_set_log_mode`: Only set the log mode of an existing HANA installation to
+  `overwrite`.
+- tag `sap_hana_install_store_connection_information`: Only run the hdbuserstore command
 
 Sample call for only processing the SAPCAR and SAR files and creating the hdblcm configfile:
 ```
 # ansible-playbook sap-hana-install.yml --tags=sap_hana_install_preinstall --skip-tags=sap_hana_install_chown_hana_directories
+```
+
+Sample call for only processing the SAPCAR files:
+```
+# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_prepare_sapcar
+```
+
+Sample call for only processing the SAPCAR and SAR files, without extracting the SAR files:
+```
+# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_prepare_sarfiles --skip-tags=sap_hana_install_extract_sarfiles
 ```
 
 Sample call for only displaying the SAP HANA hdblcm command line:

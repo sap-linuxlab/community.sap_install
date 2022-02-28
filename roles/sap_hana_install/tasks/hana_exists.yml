@@ -2,15 +2,16 @@
 
 - name: SAP HANA Checks - HANA admin user check
   block:
+
     - name: Check for sidadm user
-      command: getent passwd {{ sap_hana_install_sid | lower }}adm
+      ansible.builtin.command: getent passwd {{ sap_hana_install_sid | lower }}adm
       check_mode: no
       register: __sap_hana_install_register_getent_passwd_sidadm
       changed_when: no
       failed_when: no
 
     - name: SAP HANA Checks - Assert that there is no sidadm user
-      assert:
+      ansible.builtin.assert:
         that: __sap_hana_install_register_getent_passwd_sidadm.rc != 0
         fail_msg: "FAIL: User '{{ sap_hana_install_sid | lower }}adm' exists!
                    Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
@@ -24,14 +25,14 @@
   block:
 
     - name: SAP HANA Checks - Get info about the ID of the sapsys group
-      command: getent group sapsys
+      ansible.builtin.command: getent group sapsys
       check_mode: no
       register: __sap_hana_install_register_getent_group_sapsys
       changed_when: no
       failed_when: no
 
     - name: SAP HANA Checks - In case there is a group sapsys, assert that its group ID is identical to sap_hana_install_groupid
-      assert:
+      ansible.builtin.assert:
         that: "{{ __sap_hana_install_register_getent_group_sapsys.stdout.split(':')[2] }} == {{ sap_hana_install_groupid }}"
         success_msg: "PASS: The group ID of 'sapsys' is identical to the value of variable
                       sap_hana_install_groupid, which is '{{ sap_hana_install_groupid }}'"
@@ -46,28 +47,28 @@
     - sap_hana_install_groupid | string | length > 0
 
 - name: SAP HANA Checks - Get info about directory '/hana/shared/{{ sap_hana_install_sid }}'
-  stat:
+  ansible.builtin.stat:
     path: "/hana/shared/{{ sap_hana_install_sid }}"
   check_mode: no
   register: __sap_hana_install_register_stat_hana_shared_sid_assert
   failed_when: no
 
 - name: SAP HANA Checks - Assert that directory '/hana/shared/{{ sap_hana_install_sid }}' does not exist
-  assert:
+  ansible.builtin.assert:
     that: not __sap_hana_install_register_stat_hana_shared_sid_assert.stat.exists
     fail_msg: "FAIL: Directory '/hana/shared/{{ sap_hana_install_sid }}' exists!
                Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
     success_msg: "PASS: Directory '/hana/shared/{{ sap_hana_install_sid }}' does not exist."
 
 - name: SAP HANA Checks - Get info about directory '/usr/sap/{{ sap_hana_install_sid }}'
-  stat:
+  ansible.builtin.stat:
     path: "/usr/sap/{{ sap_hana_install_sid }}"
   check_mode: no
   register: __sap_hana_install_register_stat_usr_sap_sid_assert
   failed_when: no
 
 - name: SAP HANA Checks - Assert that directory '/usr/sap/{{ sap_hana_install_sid }}' does not exist
-  assert:
+  ansible.builtin.assert:
     that: not __sap_hana_install_register_stat_usr_sap_sid_assert.stat.exists
     fail_msg: "FAIL: Directory '/usr/sap/{{ sap_hana_install_sid }}' exists!
                Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."

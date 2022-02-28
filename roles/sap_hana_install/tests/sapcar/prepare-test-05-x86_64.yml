@@ -1,0 +1,22 @@
+---
+
+- name: 
+  hosts: all
+  become: true
+  vars_files: 
+    - sapcar-vars.yml
+    - sapcar-vars-x86_64.yml
+  vars:
+    sap_hana_install_global_checksum_file: "{{ sap_hana_install_software_directory }}/SHA256"
+  gather_facts: no
+
+  tasks:
+    - name: Prepare test 05 - Make sure there is no checksum file
+      ansible.builtin.file:
+        path: "{{ sap_hana_install_software_directory }}/{{ sap_hana_install_sapcar_filename }}.sha256"
+        state: absent
+
+    - name: Prepare test 05 - Create correct checksum in global checksum file
+      ansible.builtin.shell:
+        cmd: (sha256sum /usr/bin/bash; sha256sum "{{ sap_hana_install_sapcar_filename }}"; sha256sum /usr/bin/ls) > "{{ sap_hana_install_global_checksum_file }}"
+        chdir: "{{ sap_hana_install_software_directory }}"

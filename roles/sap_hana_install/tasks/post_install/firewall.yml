@@ -4,26 +4,26 @@
   block:
 
     - name: SAP HANA Post Install - Gathering Firewall Facts
-      package_facts:
+      ansible.builtin.package_facts:
         manager: auto
 
     - name: SAP HANA Post Install - Setup Firewall if included in packages
       block:
 
 #        - name: SAP HANA Post Install - Service firewalld state - enable
-#          command: "systemctl enable firewalld"
+#          ansible.builtin.command: "systemctl enable firewalld"
 
 #        - name: SAP HANA Post Install - Service firewalld state - start
-#          command: "systemctl start firewalld"
+#          ansible.builtin.command: "systemctl start firewalld"
 
         - name: SAP HANA Post Install - Enable and start firewalld
-          systemd:
+          ansible.builtin.systemd:
             name: firewalld
             enabled: yes
             state: started
 
         - name: SAP HANA Post Install - Generate Ports Based on NR - {{ sap_hana_install_number }}
-          set_fact:
+          ansible.builtin.set_fact:
             sap_hana_firewall_ports:
               - "1128"
               - "1129"
@@ -50,27 +50,27 @@
               - "64997"
 
         - name: SAP HANA Post Install - Add Ports Based on NR - {{ sap_hana_install_number }}
-          include_tasks: update_firewall.yml
+          ansible.builtin.include_tasks: update_firewall.yml
 #          include_tasks: post_install_update_firewall.yml
           loop: "{{ sap_hana_firewall_ports }}"
           loop_control:
             loop_var: passed_port
 
 #        - name: SAP HANA Post Install - Reload Firewall
-#          shell: |
+#          ansible.builtin.shell: |
 #            firewall-cmd --reload
 
         - name: SAP HANA Post Install - Reload firewalld
-          systemd:
+          ansible.builtin.systemd:
             name: firewalld
             state: reloaded
 
     # Stop firewall for now
 #        - name: SAP HANA Post Install - Service firewalld state - stop
-#          command: "systemctl stop firewalld"
+#          ansible.builtin.command: "systemctl stop firewalld"
 
         - name: SAP HANA Post Install - Stop firewalld
-          systemd:
+          ansible.builtin.systemd:
             name: firewalld
             state: stopped
 
