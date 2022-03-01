@@ -1,6 +1,6 @@
 ---
 
-- name: SAP HANA Post Install - Recreate tenant database
+- name: SAP HANA Post Install - Recreate the tenant database
   ansible.builtin.shell: |
       LD_LIBRARY_PATH=/usr/sap/{{ sap_hana_install_sid }}/HDB{{ sap_hana_install_number }}/exe \
       /usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbsql \
@@ -21,9 +21,7 @@
   when: not ansible_check_mode
   changed_when: no
   register: __sap_hana_install_register_recreate_tenant_database
-  tags: sap_hana_install_recreate_tenant_database
 
-- name: SAP HANA Post Install - Display the result of the hdblcm command
+- name: SAP HANA Post Install - Display the result of the hdbsql command
   ansible.builtin.debug:
     var: __sap_hana_install_register_recreate_tenant_database.stdout_lines
-  tags: sap_hana_install_recreate_tenant_database

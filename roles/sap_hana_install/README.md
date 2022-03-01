@@ -335,7 +335,6 @@ With the following tags, the role can be called to perform certain activities on
   to select the correct SAPCAR file, then copy the selected or provided SAR files to the
   extraction directory (if requested), then verify the checksums of each SAR file. Lastly, extract
   these SAR files to the extraction directory.
-- tag `sap_hana_install_recreate_tenant_database`: Re-create the initial tenant database.
 - tag `sap_hana_install_set_log_mode`: Only set the log mode of an existing HANA installation to
   `overwrite`.
 - tag `sap_hana_install_store_connection_information`: Only run the hdbuserstore command
