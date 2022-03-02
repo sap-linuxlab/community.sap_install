@@ -12,7 +12,8 @@
       -m <<EOF
       ALTER SYSTEM STOP DATABASE {{ sap_hana_install_sid }};
       DROP DATABASE {{ sap_hana_install_sid }};
-      CREATE DATABASE {{ sap_hana_install_sid }} SYSTEM USER PASSWORD {{ sap_hana_install_db_system_password|d(sap_hana_install_master_password) }};
+      CREATE DATABASE {{ sap_hana_install_sid }} ADD 'xsengine' SYSTEM USER PASSWORD {{ sap_hana_install_db_system_password|d(sap_hana_install_master_password) }};
+      SELECT DATABASE_NAME, SERVICE_NAME, PORT, SQL_PORT, (PORT + 2) HTTP_PORT FROM SYS_DATABASES.M_SERVICES;
       EOF
   args:
      executable: /bin/bash
