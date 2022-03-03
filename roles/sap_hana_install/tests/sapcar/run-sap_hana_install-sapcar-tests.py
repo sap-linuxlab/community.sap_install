@@ -30,11 +30,9 @@ _vars_file = 'sapcar-vars.yml'
 with open(_vars_file, 'r') as _file:
   _vars_1 = yaml.safe_load(_file)
 
-print(_vars_1)
+#print(_vars_1)
 sap_hana_install_sapcar_filename = _vars_1.get('sap_hana_install_sapcar_filename_' + _mn_hw_arch)
 print('sap_hana_install_sapcar_filename: ' + sap_hana_install_sapcar_filename)
-
-#input('Press RETURN to continue: ')
 
 __tests = [
     {
@@ -106,20 +104,13 @@ __tests = [
     },
 ]
 
-#command = ('ansible-playbook prepare-sapcar-tests.yml '
-#           + '-l '
-#           + _managed_node)
-#_py_rc = os.system(command)
+command = ('ansible-playbook prepare-sapcar-tests.yml '
+           + '-l '
+           + _managed_node)
+_py_rc = os.system(command)
 
 for par1 in __tests[0:5]:
     print ('\n' + 'Test ' + par1['number'] + ': ' + par1['name'])
-#    command = ('ansible-playbook prepare-test-'
-#               + par1['number']
-#               + '-'
-#               + _mn_hw_arch
-#               + '.yml '
-#               + '-l '
-#               + _managed_node)
     command = ('ansible-playbook prepare-test-'
                + par1['number']
                + '.yml '
