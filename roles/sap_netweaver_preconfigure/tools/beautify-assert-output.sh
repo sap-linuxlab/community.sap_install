@@ -1,8 +1,11 @@
 #!/bin/bash
 
-if [[ ${1}. == "font_color_white". ]]; then
+# default font color: Light Cyan, which should be readable on both bright and dark background
+__FONT_COLOR=36m
+
+if [[ ${1}. == "font_light_gray". ]]; then
    __FONT_COLOR=37m
-elif [[ ${1}. == "font_color_black". ]]; then
+elif [[ ${1}. == "font_no_color". ]]; then
    __FONT_COLOR=30m
 fi
 
