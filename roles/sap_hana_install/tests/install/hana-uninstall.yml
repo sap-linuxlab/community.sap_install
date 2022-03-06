@@ -1,0 +1,17 @@
+- hosts: all
+  become: true
+  vars_files:
+    - install-vars.yml
+
+  tasks:
+    - name: "Uninstalling SAP HANA installation '{{ sap_hana_install_sid }}' after 5 seconds"
+      pause:
+        seconds: 5
+
+    - name: "Force uninstall SAP HANA '{{ sap_hana_install_sid }}' on '{{ ansible_hostname }}'"
+      shell: echo "y" | "{{ sap_hana_install_software_extract_directory }}/SAP_HANA_DATABASE/hdbuninst" -s "{{ sap_hana_install_sid }}"
+      register: shell_output
+
+    - name: Display the hdbuninst output
+      debug:
+        var: shell_output
