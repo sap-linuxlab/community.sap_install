@@ -20,29 +20,33 @@ The following steps have to be performed to prepare the tests:
 For a SAP HANA scale-out test, the server(s) specified by variable `sap_hana_install_addhosts` in file
 `run-install-test-03.yml` (e.g. `node02`) need(s) to have the following file systems mounted from the node on
 which the test is run:
-- /hana/data
-- /hana/log
-- /hana/shared
+- `/hana/data`
+- `/hana/log`
+- `/hana/shared`
 
-Note: There should be no group named `sapsys` in file /etc/group on any of the test system(s).
+Note: There should be no group named `sapsys` in file `/etc/group` on any of the test system(s), or if
+there is one, its group id should match the value of `sap_hana_install_groupid` (default `79`) in file
+install-vars.yml.
 
 Each test cycle is running the following steps:
-- ansible-playbook prepare-install-test-NN.yml -l managed_node
-- ansible-playbook run-install-test-NN.yml [...] -l managed_node -e [...]
-- ansible-playbook hana-uninstall.yml -l managed_node
+- `ansible-playbook prepare-install-test-NN.yml -l managed_node`
+- `ansible-playbook run-install-test-NN.yml [...] -l managed_node -e [...]`
+- `ansible-playbook hana-uninstall.yml -l managed_node`
 
 All screen outputs are saved in a newly created directory with the following name pattern:
 `hana-install-test-logs-` + rhel_release + `_` + hardware_architecture + `_` + date_time_string
+
 Example:
 `hana-install-test-logs-8.4_x86_64_2022-03-06_23:29:34`
 
 For each of the tests, there will be three output files in the log directory (shown with
 example file names for the directory mentioned above):
-`hana-install-test-2022-03-06_23:29:34-prepare-01.log`
-`hana-install-test-2022-03-06_23:29:34-run-01.log`
-`hana-install-test-2022-03-06_23:29:34-uninstall-01.log`
-and an additional file name at the end of the tests, named
-`hana-install-test-2022-03-06_23:29:34-result.log`
+- `hana-install-test-2022-03-06_23:29:34-prepare-01.log`
+- `hana-install-test-2022-03-06_23:29:34-run-01.log`
+- `hana-install-test-2022-03-06_23:29:34-uninstall-01.log`
+
+and an additional file name at the end of all tests, named
+- `hana-install-test-2022-03-06_23:29:34-result.log`
 
 If the return code of a test is `0`, the test has succeeded. If it is not `0` (default is `99`),
 the test has failed.
