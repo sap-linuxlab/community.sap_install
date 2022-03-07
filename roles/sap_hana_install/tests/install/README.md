@@ -50,3 +50,6 @@ and an additional file name at the end of all tests, named
 
 If the return code of a test is `0`, the test has succeeded. If it is not `0` (default is `99`),
 the test has failed.
+
+A test succeeds if the string specified in variable `expected_output_string` for each test is found
+in the output of the test run.
