@@ -317,6 +317,8 @@ With the following tags, the role can be called to perform certain activities on
   `/hana`, `/hana/shared`, `/hana/log`, and `/hana/data`. The main purpose of this tag is to use it
   with `--skip-tags`, to skip modifying these directories. This can be useful when using tag
   `sap_hana_install_preinstall`.
+- tag `sap_hana_install_configure_firewall`: Use this flag to configure the firewall ports for
+  SAP HANA
 - tag `sap_hana_install_extract_sarfiles`: Use this flag with `--skip-tags` to run the SAR file
   preparation steps of tag `sap_hana_install_prepare_sarfiles` without extracting the SAR files.
 - tag `sap_hana_install_generate_input_file`: Only generate the input file for SAP Application
