@@ -4,6 +4,7 @@ import os
 import sys
 import subprocess
 import re
+import yaml
 
 # output field delimiter for displaying the results:
 _field_delimiter = '\t'
@@ -25,16 +26,25 @@ print('Managed node Red Hat release: ' + _mn_rhel_release)
 _mn_hw_arch = subprocess.getoutput("ssh " + _username + "@" + _managed_node + " uname -m")
 print('Managed node HW architecture: ' + _mn_hw_arch)
 
+_vars_file = 'sapcar-vars.yml'
+with open(_vars_file, 'r') as _file:
+  _vars_1 = yaml.safe_load(_file)
+
+#print(_vars_1)
+sap_hana_install_sapcar_filename = _vars_1.get('sap_hana_install_sapcar_filename_' + _mn_hw_arch)
+print('sap_hana_install_sapcar_filename: ' + sap_hana_install_sapcar_filename)
+
 __tests = [
     {
         'number': '01',
         'name': 'SAPCAR checksum test, missing sha256 file',
         'command_line_parameter': '--tags=sap_hana_install_prepare_sapcar ',
-        'expected_output_string': 'FAIL: Missing checksum file \'/software/sap_hana_install_test/SAPCAR_1115-70006178.EXE.sha256\'!',
+        'expected_output_string': 'FAIL: Missing checksum file \'/software/sap_hana_install_test/' + sap_hana_install_sapcar_filename + '.sha256\'!',
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_install_verify_checksums': True
+                'sap_hana_install_verify_checksums': True,
+                'sap_hana_install_sapcar_filename': sap_hana_install_sapcar_filename
             }
         ]
     },
@@ -42,11 +52,12 @@ __tests = [
         'number': '02',
         'name': 'SAPCAR checksum test, sha256 file exists but checksum is not correct',
         'command_line_parameter': '--tags=sap_hana_install_prepare_sapcar ',
-        'expected_output_string': ' does not match the checksum stored in file \'/software/sap_hana_install_test/SAPCAR_1115-70006178.EXE.sha256\'!',
+        'expected_output_string': ' does not match the checksum stored in file \'/software/sap_hana_install_test/' + sap_hana_install_sapcar_filename + '.sha256\'!',
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_install_verify_checksums': True
+                'sap_hana_install_verify_checksums': True,
+                'sap_hana_install_sapcar_filename': sap_hana_install_sapcar_filename
             }
         ]
     },
@@ -54,11 +65,12 @@ __tests = [
         'number': '03',
         'name': 'SAPCAR checksum test, sha256 file exists with correct checksum',
         'command_line_parameter': '--tags=sap_hana_install_prepare_sapcar ',
-        'expected_output_string': ' matches the checksum stored in file \'/software/sap_hana_install_test/SAPCAR_1115-70006178.EXE.sha256\'.',
+        'expected_output_string': ' matches the checksum stored in file \'/software/sap_hana_install_test/' + sap_hana_install_sapcar_filename + '.sha256\'.',
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_install_verify_checksums': True
+                'sap_hana_install_verify_checksums': True,
+                'sap_hana_install_sapcar_filename': sap_hana_install_sapcar_filename
             }
         ]
     },
@@ -71,6 +83,7 @@ __tests = [
         'role_vars': [
             {
                 'sap_hana_install_verify_checksums': True,
+                'sap_hana_install_sapcar_filename': sap_hana_install_sapcar_filename,
                 'sap_hana_install_global_checksum_file': "{{ sap_hana_install_software_directory }}/SHA256"
             }
         ]
@@ -84,39 +97,40 @@ __tests = [
         'role_vars': [
             {
                 'sap_hana_install_verify_checksums': True,
+                'sap_hana_install_sapcar_filename': sap_hana_install_sapcar_filename,
                 'sap_hana_install_global_checksum_file': "{{ sap_hana_install_software_directory }}/SHA256"
             }
         ]
     },
 ]
 
-#command = ('ansible-playbook prepare-sapcar-tests.yml '
-#           + '-l '
-#           + _managed_node)
-#_py_rc = os.system(command)
+command = ('ansible-playbook prepare-sapcar-tests.yml '
+           + '-l '
+           + _managed_node)
+_py_rc = os.system(command)
 
 for par1 in __tests[0:5]:
     print ('\n' + 'Test ' + par1['number'] + ': ' + par1['name'])
     command = ('ansible-playbook prepare-test-'
                + par1['number']
-               + '-'
-               + _mn_hw_arch
                + '.yml '
                + '-l '
-               + _managed_node)
+               + _managed_node
+               + ' -e "'
+               + '{ sap_hana_install_sapcar_filename: '
+               + sap_hana_install_sapcar_filename
+               + ' }"')
+    print('command: >' + command + '<')
     _py_rc = os.system(command)
-    command = ('ansible-playbook run-sapcar-test-'
-               + _mn_hw_arch
-               + '.yml '
+    command = ('ansible-playbook run-sapcar-test.yml '
                + par1['command_line_parameter']
                + '-l '
                + _managed_node
-               + ' '
-               + '-e "')
+               + ' -e "')
     for par2 in par1['role_vars']:
         command += str(par2)
     command += '"'
-    print ("command: " + command)
+    print ("command: >" + command + '<')
 #    _py_rc = os.system(command)
 #    _py_rc = os.popen(command).read()
 #    _output = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)

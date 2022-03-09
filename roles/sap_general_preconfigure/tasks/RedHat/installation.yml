@@ -101,6 +101,11 @@
   register: __sap_general_preconfigure_register_yum_group_install
   when: ansible_distribution_major_version == '7'
 
+- name: Display the output of the yum install command
+  debug:
+    var: __sap_general_preconfigure_register_yum_group_install
+  when: ansible_distribution_major_version == '7'
+
 - name: Ensure that the required package groups are installed, RHEL 8 and RHEL 9
 # Note: We want to avoid unwanted package upgrades, see bug 1983749.
   command: "yum install {{ sap_general_preconfigure_packagegroups|join(' ') }} --nobest --exclude=kernel* -y"
@@ -112,6 +117,7 @@
 - name: Display the output of the yum install command
   debug:
     var: __sap_general_preconfigure_register_yum_group_install
+  when: ansible_distribution_major_version == '8' or ansible_distribution_major_version == '9'
 
 - name: Ensure that the required packages are installed
   package:
