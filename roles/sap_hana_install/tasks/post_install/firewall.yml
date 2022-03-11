@@ -1,79 +1,71 @@
 ---
 
-- name: SAP HANA Post Install - Firewall Setup
-  block:
+  - name: SAP HANA Post Install - Enable and start the firewalld service
+    ansible.builtin.systemd:
+      name: firewalld
+      state: started
+      enabled: yes
+    tags: sap_hana_install_configure_firewall
 
-    - name: SAP HANA Post Install - Gathering Firewall Facts
-      ansible.builtin.package_facts:
-        manager: auto
+  - name: SAP HANA Post Install - Construct the argument list for 'firewall-cmd --add-port'
+    ansible.builtin.set_fact:
+      __sap_hana_install_fact_firewall_cmd_args:
+        "{{ ['--add-port='] | product(sap_hana_install_firewall[0].port) | map('join') | list }}"
+    when: sap_hana_install_firewall[0].state == 'enabled'
+    tags: sap_hana_install_configure_firewall
 
-    - name: SAP HANA Post Install - Setup Firewall if included in packages
-      block:
+  - name: SAP HANA Post Install - Construct the argument list for 'firewall-cmd --remove-port'
+    ansible.builtin.set_fact:
+      __sap_hana_install_fact_firewall_cmd_args:
+        "{{ ['--remove-port='] | product(sap_hana_install_firewall[0].port) | map('join') | list }}"
+    when: sap_hana_install_firewall[0].state == 'disabled'
+    tags: sap_hana_install_configure_firewall
 
-#        - name: SAP HANA Post Install - Service firewalld state - enable
-#          ansible.builtin.command: "systemctl enable firewalld"
+  - name: SAP HANA Post Install - Set fact for the 'firewall-cmd' command
+    ansible.builtin.set_fact:
+      __sap_hana_install_fact_firewall_cmd_command:
+        "firewall-cmd --zone=public {{ __sap_hana_install_fact_firewall_cmd_args | map('quote') | join(' ') }}"
+    tags: sap_hana_install_configure_firewall
 
-#        - name: SAP HANA Post Install - Service firewalld state - start
-#          ansible.builtin.command: "systemctl start firewalld"
+  - name: SAP HANA Post Install - Display the 'firewall-cmd' command
+    ansible.builtin.debug:
+      var: __sap_hana_install_fact_firewall_cmd_command
+    tags: sap_hana_install_configure_firewall
 
-        - name: SAP HANA Post Install - Enable and start firewalld
-          ansible.builtin.systemd:
-            name: firewalld
-            enabled: yes
-            state: started
+# No matter if the ports have already been enabled or not, the changed state
+# of the command is always true. For avoiding ansible-lint to report a violation
+# of the no-changed-when rule, we just set changed_when to true here.
+  - name: SAP HANA Post Install - Enable the required ports immediately
+    ansible.builtin.command: "{{ __sap_hana_install_fact_firewall_cmd_command }}"
+    changed_when: yes
+    tags: sap_hana_install_configure_firewall
 
-        - name: SAP HANA Post Install - Generate Ports Based on NR - {{ sap_hana_install_number }}
-          ansible.builtin.set_fact:
-            sap_hana_firewall_ports:
-              - "1128"
-              - "1129"
-              - "43{{ sap_hana_install_number }}"
-              - "5050"
-              - "9090"
-              - "9091"
-              - "9092"
-              - "9093"
-              - "3{{ sap_hana_install_number }}00-3{{ sap_hana_install_number }}90"
-              - "30105"
-              - "30107"
-              - "30140"
-              - "4{{ sap_hana_install_number }}01"
-              - "4{{ sap_hana_install_number }}02"
-              - "4{{ sap_hana_install_number }}06"
-              - "4{{ sap_hana_install_number }}12"
-              - "4{{ sap_hana_install_number }}14"
-              - "4{{ sap_hana_install_number }}40"
-              - "5{{ sap_hana_install_number }}00"
-              - "5{{ sap_hana_install_number }}13"
-              - "5{{ sap_hana_install_number }}14"
-              - "51000"
-              - "64997"
+  - name: SAP HANA Post Install - Get the current firewall configuration of the default zone
+    ansible.builtin.command: firewall-cmd --list-all
+    changed_when: no
+    register: __sap_hana_install_register_current_firewall_ports
+    tags: sap_hana_install_configure_firewall
 
-        - name: SAP HANA Post Install - Add Ports Based on NR - {{ sap_hana_install_number }}
-          ansible.builtin.include_tasks: update_firewall.yml
-#          include_tasks: post_install_update_firewall.yml
-          loop: "{{ sap_hana_firewall_ports }}"
-          loop_control:
-            loop_var: passed_port
+  - name: SAP HANA Post Install - Display the current firewall configuration of the default zone
+    ansible.builtin.debug:
+      var: __sap_hana_install_register_current_firewall_ports.stdout_lines
+    tags: sap_hana_install_configure_firewall
 
-#        - name: SAP HANA Post Install - Reload Firewall
-#          ansible.builtin.shell: |
-#            firewall-cmd --reload
+# No matter if the ports have already been enabled or not, the changed state
+# of the command is always true. For avoiding ansible-lint to report a violation
+# of the no-changed-when rule, we just set changed_when to true here.
+  - name: SAP HANA Post Install - Enable the required ports permanently
+    ansible.builtin.command: "{{ __sap_hana_install_fact_firewall_cmd_command }} --permanent"
+    changed_when: yes
+    tags: sap_hana_install_configure_firewall
 
-        - name: SAP HANA Post Install - Reload firewalld
-          ansible.builtin.systemd:
-            name: firewalld
-            state: reloaded
+  - name: SAP HANA Post Install - Get the permanent firewall configuration of the default zone
+    ansible.builtin.command: firewall-cmd --list-all
+    changed_when: no
+    register: __sap_hana_install_register_permanent_firewall_ports
+    tags: sap_hana_install_configure_firewall
 
-    # Stop firewall for now
-#        - name: SAP HANA Post Install - Service firewalld state - stop
-#          ansible.builtin.command: "systemctl stop firewalld"
-
-        - name: SAP HANA Post Install - Stop firewalld
-          ansible.builtin.systemd:
-            name: firewalld
-            state: stopped
-
-      when: '"firewalld" in ansible_facts.packages'
-
-  when: ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
+  - name: SAP HANA Post Install - Display the permanent firewall configuration of the default zone
+    ansible.builtin.debug:
+      var: __sap_hana_install_register_permanent_firewall_ports.stdout_lines
+    tags: sap_hana_install_configure_firewall
