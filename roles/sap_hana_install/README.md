@@ -319,7 +319,7 @@ in a temporary directory for use by the hdblcm command in the next step.
 ## Tags
 
 With the following tags, the role can be called to perform certain activities only:
-- tag `sap_hana_install_check_installation`: Perform an installation check, using hdbcheck or
+- tag `sap_hana_install_check_installation`: Perform an installation check, using `hdbcheck` or
   `hdblcm --action=check_installation`.
 - tag `sap_hana_install_chown_hana_directories`: Only perform the chown of the SAP HANA directories
   `/hana`, `/hana/shared`, `/hana/log`, and `/hana/data`. The main purpose of this tag is to use it
