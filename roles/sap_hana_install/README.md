@@ -135,9 +135,17 @@ If the variable `sap_hana_install_check_sidadm_user` is set to `no`, the role wi
 if the sidadm user exists. Default is `yes`, in which case the installation will not be performed if the
 sidadm user exists.
 
-The variable `sap_hana_install_new_system` determines if the role will perform a fresh SAP HANA installation or
-if it will add further hosts to an existing SAP HANA system as specified by variable
+The variable `sap_hana_install_new_system` determines if the role will perform a fresh SAP HANA installation
+or if it will add further hosts to an existing SAP HANA system as specified by variable
 `sap_hana_install_addhosts`. Default is `yes` for a fresh SAP HANA installation.
+
+The role can be configured to also set the required firewall ports for SAP HANA. If this is desired, set
+the variable `sap_hana_install_update_firewall` to `yes` (default is `no`). The firewall ports are defined
+in a variable which is compatible with the variable structure used by Linux System Role `firewall`.
+The firewall ports for SAP HANA are defined in member `port` of the first field of variable
+`sap_hana_install_firewall` (`sap_hana_install_firewall[0].port`), see file `defaults/main.yml`. If the
+member `state` is set to `enabled`, the ports will be enabled. If the member `state` is set to `disabled`,
+the ports will be disabled, which might be useful for testing.
 
 ### Default Parameters
 
@@ -312,13 +320,14 @@ in a temporary directory for use by the hdblcm command in the next step.
 
 With the following tags, the role can be called to perform certain activities only:
 - tag `sap_hana_install_check_installation`: Perform an installation check, using hdbcheck or
-  hdblcm --action=check_installation
+  `hdblcm --action=check_installation`.
 - tag `sap_hana_install_chown_hana_directories`: Only perform the chown of the SAP HANA directories
   `/hana`, `/hana/shared`, `/hana/log`, and `/hana/data`. The main purpose of this tag is to use it
   with `--skip-tags`, to skip modifying these directories. This can be useful when using tag
   `sap_hana_install_preinstall`.
-- tag `sap_hana_install_configure_firewall`: Use this flag to configure the firewall ports for
-  SAP HANA
+- tag `sap_hana_install_configure_firewall`: Use this flag to only configure the firewall ports for
+  SAP HANA. Note: The role variable `sap_hana_install_update_firewall` has to be set to `yes` as
+  well.
 - tag `sap_hana_install_extract_sarfiles`: Use this flag with `--skip-tags` to run the SAR file
   preparation steps of tag `sap_hana_install_prepare_sarfiles` without extracting the SAR files.
 - tag `sap_hana_install_generate_input_file`: Only generate the input file for SAP Application
@@ -339,7 +348,7 @@ With the following tags, the role can be called to perform certain activities on
   these SAR files to the extraction directory.
 - tag `sap_hana_install_set_log_mode`: Only set the log mode of an existing HANA installation to
   `overwrite`.
-- tag `sap_hana_install_store_connection_information`: Only run the hdbuserstore command
+- tag `sap_hana_install_store_connection_information`: Only run the `hdbuserstore` command
 
 Sample call for only processing the SAPCAR and SAR files and creating the hdblcm configfile:
 ```
