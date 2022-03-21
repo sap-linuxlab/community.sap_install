@@ -20,7 +20,7 @@
     - name: SAP HANA hdblcm prepare - SAPCAR defined - Copy the SAPCAR executable to '{{ sap_hana_install_software_extract_directory }}/sapcar'
       ansible.builtin.copy:
         src: "{{ sap_hana_install_software_directory }}/{{ sap_hana_install_sapcar_filename }}"
-        dest: "{{ sap_hana_install_software_extract_directory }}/sapcar/{{ sap_hana_install_sapcar_filename }}"
+        dest: "{{ sap_hana_install_software_extract_directory }}/sapcar/{{ sap_hana_install_sapcar_filename | basename }}"
         remote_src: true
         owner: 'root'
         group: 'root'
@@ -30,7 +30,7 @@
       ansible.builtin.set_fact:
         __sap_hana_install_fact_sapcar_dict_tmp: {
           dir: "{{ sap_hana_install_software_extract_directory }}/sapcar",
-          file: "{{ sap_hana_install_sapcar_filename }}",
+          file: "{{ sap_hana_install_sapcar_filename | basename }}",
           checksum_file: "{{ sap_hana_install_global_checksum_file }}",
         }
       when: sap_hana_install_global_checksum_file is defined
@@ -39,7 +39,7 @@
       ansible.builtin.set_fact:
         __sap_hana_install_fact_sapcar_dict_tmp: {
             dir: "{{ sap_hana_install_software_extract_directory }}/sapcar",
-            file: "{{ sap_hana_install_sapcar_filename }}",
+            file: "{{ sap_hana_install_sapcar_filename | basename }}",
             checksum_file: "{{ sap_hana_install_software_directory }}/{{ sap_hana_install_sapcar_filename }}.sha256",
         }
       when: sap_hana_install_global_checksum_file is not defined
@@ -59,7 +59,7 @@
 
     - name: SAP HANA hdblcm prepare - SAPCAR defined - Set fact for the SAPCAR executable from variable
       ansible.builtin.set_fact:
-        __sap_hana_install_fact_selected_sapcar_filename: "{{ sap_hana_install_sapcar_filename }}"
+        __sap_hana_install_fact_selected_sapcar_filename: "{{ sap_hana_install_sapcar_filename | basename }}"
 
   when: sap_hana_install_sapcar_filename is defined
 
