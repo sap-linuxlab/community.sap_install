@@ -1,0 +1,35 @@
+---
+
+- name:
+  hosts: all
+  become: true
+  vars_files:
+    - install-vars.yml
+  vars:
+    software_host: hostname
+    software_host_user: username
+    software_host_directory: /software/hana_store
+  gather_facts: no
+
+  tasks:
+    - name: Remove '{{ sap_hana_install_software_directory }}'
+      ansible.builtin.file:
+        path: "{{ sap_hana_install_software_directory }}/"
+        state: absent
+
+    - name: Create '{{ sap_hana_install_software_directory }}'
+      ansible.builtin.file:
+        path: "{{ sap_hana_install_software_directory }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Copy SAPCAR to software directory
+      ansible.builtin.shell: "scp {{ software_host_user }}@{{ software_host }}:{{ software_host_directory }}/ppc64le/SAPCAR_1115-70006238.EXE* {{ sap_hana_install_software_directory }}/"
+
+    - name: Copy HANA rev 59.01 to software directory
+      ansible.builtin.shell: "scp {{ software_host_user }}@{{ software_host }}:{{ software_host_directory }}/ppc64le/IMDB_SERVER20_059_1-80002046.SAR* {{ sap_hana_install_software_directory }}/"
+
+    - name: Copy SAP Hostagent to software directory
+      ansible.builtin.shell: "scp {{ software_host_user }}@{{ software_host }}:{{ software_host_directory }}/ppc64le/SAPHOSTAGENT55_55-80004831.SAR* {{ sap_hana_install_software_directory }}/"

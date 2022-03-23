@@ -1,0 +1,113 @@
+---
+# hdblcm prepare sarfiles
+
+- name: SAP HANA hdblcm prepare - Set fact for final location of SAR files, default
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_sar_dir: "{{ sap_hana_install_software_directory }}"
+
+- name: SAP HANA hdblcm prepare - Set fact list of SAR files if 'sap_hana_install_sarfiles' is defined
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_sarfiles: "{{ sap_hana_install_sarfiles }}"
+  when: sap_hana_install_sarfiles is defined
+
+- name: Display the resulting list of file names from variable
+  ansible.builtin.debug:
+    var: __sap_hana_install_fact_sarfiles
+  when: sap_hana_install_sarfiles is defined
+
+- name: SAP HANA hdblcm prepare - Find all SAR files if 'sap_hana_install_sarfiles' is undefined
+  block:
+
+    - name: SAP HANA hdblcm prepare - Find all SAR files in '{{ sap_hana_install_software_directory }}'
+      ansible.builtin.find:
+        paths: "{{ sap_hana_install_software_directory }}"
+        recurse: no
+        file_type: file
+        patterns: '*.SAR'
+      register: __sap_hana_install_register_find_sarfiles
+
+    - name: SAP HANA hdblcm prepare - Create list of file names from the find result
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_sarfiles: "{{ __sap_hana_install_fact_sarfiles|d([]) + [ item.path | basename ] }}"
+      loop: "{{ __sap_hana_install_register_find_sarfiles.files }}"
+
+    - name: Display the resulting list of file names after find
+      ansible.builtin.debug:
+        var: __sap_hana_install_fact_sarfiles
+
+  when: sap_hana_install_sarfiles is not defined
+
+- name: Copy SAR files to final destination if 'sap_hana_install_copy_sarfiles' is 'yes'
+  block:
+
+    - name: SAP HANA hdblcm prepare - Create directory '{{ sap_hana_install_software_extract_directory }}/sarfiles'
+      ansible.builtin.file:
+        path: "{{ sap_hana_install_software_extract_directory }}/sarfiles"
+        state: directory
+        mode: '0755'
+
+    - name: SAP HANA hdblcm prepare - Copy SAR files to '{{ sap_hana_install_software_extract_directory }}/sarfiles'
+      ansible.builtin.copy:
+        src: "{{ sap_hana_install_software_directory }}/{{ item }}"
+        dest: "{{ sap_hana_install_software_extract_directory }}/sarfiles/{{ item }}"
+        remote_src: true
+        mode: 0755
+        owner: root
+        group: root
+      with_items: "{{ __sap_hana_install_fact_sarfiles }}"
+
+    - name: SAP HANA hdblcm prepare - Set fact for final location of SAR files, copy_sarfiles
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_sar_dir: "{{ sap_hana_install_software_extract_directory }}/sarfiles"
+
+  when: sap_hana_install_copy_sarfiles
+
+- name: SAP HANA hdblcm prepare - Fill list of dicts containing dir, file, and global checksum file
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_sarfiles_dict: "{{ __sap_hana_install_fact_sarfiles_dict|d([]) + [ __sap_hana_install_tmp_sarfiles_dict ] }}"
+  with_items: "{{ __sap_hana_install_fact_sarfiles }}"
+  vars:
+    __sap_hana_install_tmp_sarfiles_dict:
+      dir: "{{ __sap_hana_install_fact_sar_dir }}"
+      file: "{{ item }}"
+      checksum_file: "{{ sap_hana_install_global_checksum_file }}"
+  when: sap_hana_install_global_checksum_file is defined
+
+- name: SAP HANA hdblcm prepare - Fill list of dicts containing dir, file, and specific checksum file
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_sarfiles_dict: "{{ __sap_hana_install_fact_sarfiles_dict|d([]) + [ __sap_hana_install_tmp_sarfiles_dict ] }}"
+  with_items: "{{ __sap_hana_install_fact_sarfiles }}"
+  vars:
+    __sap_hana_install_tmp_sarfiles_dict:
+      dir: "{{ __sap_hana_install_fact_sar_dir }}"
+      file: "{{ item }}"
+      checksum_file: "{{ sap_hana_install_software_directory }}/{{ item }}.sha256"
+  when: sap_hana_install_global_checksum_file is not defined
+
+- name: SAP HANA hdblcm prepare - Verify checksums for all SAR files in folder '{{ __sap_hana_install_fact_sar_dir }}'
+  ansible.builtin.include_tasks: verify_checksum.yml
+  loop: "{{ __sap_hana_install_fact_sarfiles_dict }}"
+  loop_control:
+    loop_var: __sap_hana_install_passed_file_dict
+  when:
+    - __sap_hana_install_fact_sarfiles | length > 0
+    - not ansible_check_mode
+    - sap_hana_install_verify_checksums
+
+- name: SAP HANA hdblcm prepare - Extract all SAR files in folder '{{ sap_hana_install_software_directory }}'
+  ansible.builtin.include_tasks: extract_sarfile.yml
+  loop: "{{ __sap_hana_install_fact_sarfiles }}"
+  loop_control:
+    loop_var: __sap_hana_install_passed_sarfile
+  when:
+    - __sap_hana_install_fact_sarfiles | length > 0
+    - not ansible_check_mode
+  tags: sap_hana_install_extract_sarfiles
+
+- name: SAP HANA hdblcm prepare - Remove temporary SAR file directory '{{ sap_hana_install_software_extract_directory }}/sarfiles'
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_software_extract_directory }}/sarfiles/"
+    state: absent
+  when:
+    - sap_hana_install_copy_sarfiles
+    - not sap_hana_install_keep_copied_sarfiles

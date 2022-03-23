@@ -6,7 +6,66 @@
 # Directory containing the IMDB SAR files and all components
 sap_hana_install_software_directory: '/software/hana'
 
-# If the following variable is set to `no`, the role will install SAP HANA even if there is already a sidadm user.
+# Directory into which the SAR files will be extracted. Defaults is {{ sap_hana_install_software_directory }}/extracted .
+# Note: In case the directory SAP_HANA_DATABASE does not exist in this directory, the directory will be removed and
+# created again before the extraction starts.
+sap_hana_install_software_extract_directory: "{{ sap_hana_install_software_directory }}/extracted"
+
+# Set this variabe to `yes` if you want to copy the SAR files from `sap_hana_install_software_directory`
+# to `sap_hana_install_software_extract_directory/sarfiles` before extracting.
+# This might be useful if the SAR files are on a slow fileshare.
+sap_hana_install_copy_sarfiles: no
+
+# Set the following variable to `yes` if you want to keep the copied SAR files. By default, the SAR files will be
+# removed after extraction.
+sap_hana_install_keep_copied_sarfiles: no
+
+# File name of SAPCAR*EXE in the software directory. If the variable is not set and there is more than one SAPCAR executable
+# in the software directory, the latest SAPCAR executable for the CPU architecture will be selected automatically.
+#sap_hana_install_sapcar_filename: SAPCAR_1115-70006178.EXE
+
+# List of file names of SAR files to extract. Can be set in case there are more SAR files in the software directory
+# than needed or desired for the HANA installation.
+#sap_hana_install_sarfiles:
+#  - SAPHOSTAGENT54_54-80004822.SAR
+#  - IMDB_SERVER20_060_0-80002031.SAR
+
+# Set the following variable to `yes` to let the role abort if checksum verification fails for any SAPCAR or SAR file
+# called or used by the role.
+sap_hana_install_verify_checksums: no
+
+# Checksum algorithm for checksum verification. Default is sha256, for which a checksum is available in the SAP software
+# download pages.
+sap_hana_install_checksum_algorithm: sha256
+
+# In case a global checksum file is present, use the following variable to specify the full path to this file:
+#sap_hana_install_global_checksum_file: "{{ sap_hana_install_software_directory }}/SHA256"
+
+# Set the following variable to `yes` to let hdbclm verify SAR file signatures. This corresponds to the hdblcm command line
+# argument `--verify_signature`.
+sap_hana_install_verify_signature: no
+
+# hdblcm configfile related variables:
+# Directory where to store the hdblcm configfile template and the Jinja2 template:
+sap_hana_install_configfile_directory: "{{ sap_hana_install_software_extract_directory }}/configfiles"
+
+# File name prefix for the hdblcm configfile template and the Jinja2 template:
+sap_hana_install_configfile_template_prefix: "hdblcm_configfile_template"
+
+# Directory where to download the Jinja2 template:
+sap_hana_install_local_configfile_directory: '/tmp'
+
+# If you would like to perform an installation check after the installation, set the following variable to 'yes'.
+# Note: This only works if there is no static configfile available in sap_hana_install_configfile_directory.
+sap_hana_install_check_installation: no
+
+# Only if sap_hana_install_check_installation (above) is set to 'yes', you can select which command to use by setting the
+# following variable to `yes` or `no`.
+# yes: use the command 'hdbcheck', with parameters `--remote_execution=ssh` and `--scope=system`
+# no: use the command `hdblcm --action=check_installation`
+sap_hana_install_use_hdbcheck: yes
+
+# If the following variable is set to `no`, the role will attempt to install SAP HANA even if there is already a sidadm user.
 # Default is `yes`.
 sap_hana_install_check_sidadm_user: yes
 
@@ -15,6 +74,10 @@ sap_hana_install_check_sidadm_user: yes
 # an existing HANA system.
 sap_hana_install_new_system: yes
 
+# The first tenant database is using a port range not within the range of the ports of additional tenant databases.
+# In case this is not desired, you can set the following parameter to `yes` to recreate the initial tenant database.
+sap_hana_install_recreate_tenant_database: no
+
 ################
 # Parameters for hdblcm:
 ################
@@ -22,18 +85,18 @@ sap_hana_install_new_system: yes
 # Components should be comma separated
 sap_hana_install_components: 'all'
 
-# Pass some extra arguments to the hdblcm cli, e.g.  --ignore=<check1>[,<check2>]...
-# Specifies failing preequisite checks that the SAP HANA platform lifecycle management tools should ignore.
-sap_hana_install_hdblcm_extraargs:
+# Pass some extra arguments to hdblcm, see some examples below.
+#sap_hana_install_hdblcm_extraargs: '--verify_signature'
+#sap_hana_install_hdblcm_extraargs: '--ignore=check_diskspace,check_min_mem'
 
 # Instance details
-sap_hana_install_sid: "{{ sap_hana_sid }}"
-sap_hana_install_instance_number: "{{ sap_hana_instance_number }}"
+sap_hana_install_sid:
+sap_hana_install_number:
 sap_hana_install_install_path: '/hana/shared'
 
 # Adjust these accordingly for your installation type
-sap_hana_install_env_type: 'custom'
-sap_hana_install_mem_restrict: 'n'
+sap_hana_install_system_usage: 'custom'
+sap_hana_install_restrict_max_mem: 'n'
 sap_hana_install_max_mem:
 
 # hdblcm will use default ids if blank
@@ -43,19 +106,46 @@ sap_hana_install_groupid:
 # Passwords
 # Setting master password to 'y' will use that master password for all passwords - recommended
 sap_hana_install_use_master_password: 'y'
-sap_hana_install_common_master_password:
-sap_hana_install_sidadm_password:
-sap_hana_install_db_system_password:
-sap_hana_install_lss_user_password:
-sap_hana_install_lss_backup_password:
-sap_hana_install_ase_user_password:
-sap_hana_install_root_password:
-sap_hana_install_sapadm_password:
-sap_hana_install_xs_org_password:
+# Set one or more of the following password variables in your playbook or inventory.
+#sap_hana_install_master_password:
+#sap_hana_install_sidadm_password:
+#sap_hana_install_db_system_password:
+#sap_hana_install_lss_user_password:
+#sap_hana_install_lss_backup_password:
+#sap_hana_install_ase_user_password:
+#sap_hana_install_root_password:
+#sap_hana_install_sapadm_password:
+#sap_hana_install_xs_org_password:
 
 # Optional steps
 sap_hana_install_update_firewall: no
-sap_hana_install_update_etchosts: yes
+
+# List of firewall ports for SAP HANA. Note: The structure of the variable is compatible
+# with the variable `firewall` of Linux System Role `firewall`.
+sap_hana_install_firewall:
+  - { port:
+      ['1128-1129/tcp',
+       '43{{ sap_hana_install_number }}/tcp',
+       '5050/tcp',
+       '9090-9093/tcp',
+       '3{{ sap_hana_install_number }}00-3{{ sap_hana_install_number }}90/tcp',
+       '30105/tcp',
+       '30107/tcp',
+       '30140/tcp',
+       '4{{ sap_hana_install_number }}01-4{{ sap_hana_install_number }}02/tcp',
+       '4{{ sap_hana_install_number }}06/tcp',
+       '4{{ sap_hana_install_number }}12/tcp',
+       '4{{ sap_hana_install_number }}14/tcp',
+       '4{{ sap_hana_install_number }}40/tcp',
+       '5{{ sap_hana_install_number }}00/tcp',
+       '5{{ sap_hana_install_number }}13-5{{ sap_hana_install_number }}14/tcp',
+       '51000/tcp',
+       '64997/tcp'],
+      state: 'enabled'
+    }
+
+# The following variable is no longer used. Setting /etc/hosts entries is done in role sap_general_preconfigure.
+#sap_hana_install_update_etchosts: yes
 
 # Post install parameters
 sap_hana_install_hdbuserstore_key: 'HDB_SYSTEMDB'
@@ -63,8 +153,8 @@ sap_hana_install_nw_input_location: '/tmp'
 
 # License
 sap_hana_install_apply_license: no
-sap_hana_install_license_path:
-sap_hana_install_license_file_name:
+#sap_hana_install_license_path:
+#sap_hana_install_license_file_name:
 
 # Misc
 
@@ -76,6 +166,8 @@ sap_hana_install_certificates_hostmap:
 sap_hana_install_system_restart: 'n'
 
 # If the following variable is undefined or set to `y`, the role will create an initial tenant database.
+# corresponding entry in the hdblcm configfile:
+# create_initial_tenant, default: 'y'
 sap_hana_install_create_initial_tenant: 'y'
 
 # If the following variable is specified, the role will perform a scaleout installation or it will add additional
@@ -84,23 +176,6 @@ sap_hana_install_create_initial_tenant: 'y'
 # Example:
 #sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02'
 
-sap_hana_install_hostname:
-sap_hana_install_ip:
-sap_hana_install_fqdn:
-
-sap_hana_install_xs_install: 'n'
-sap_hana_install_xs_path:
-sap_hana_install_xs_orgname: 'orgname'
-sap_hana_install_xs_org_user: 'XSA_ADMIN'
-sap_hana_install_xs_prod_space: 'PROD'
-sap_hana_install_xs_routing_mode: 'ports'
-sap_hana_install_xs_domain_name:
-sap_hana_install_xs_sap_space_user:
-sap_hana_install_xs_customer_space_user:
-sap_hana_install_xs_components:
-sap_hana_install_xs_components_nostart: 'none'
-
-sap_hana_install_lss_user:
-sap_hana_install_lss_group:
-
-sap_hana_install_deploy_hostagent: 'y'
+# The hostname is set by 'hdblcm --dump_configfile_template' during the preinstall phase but can also
+# be set to a different value in your playbook or hostvars:
+# sap_hana_install_hostname:

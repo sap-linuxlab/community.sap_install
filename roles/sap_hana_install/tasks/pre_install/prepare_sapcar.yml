@@ -1,0 +1,207 @@
+---
+# hdblcm prepare SAPCAR
+
+- name: SAP HANA hdblcm prepare - SAPCAR defined - Prepare the SAPCAR executable if 'sap_hana_install_sapcar_filename' is defined
+  block:
+
+    - name: SAP HANA hdblcm prepare - SAPCAR defined - Check if the SAPCAR executable exists
+      ansible.builtin.stat:
+        path: "{{ sap_hana_install_software_directory }}/{{ sap_hana_install_sapcar_filename }}"
+      register: __sap_hana_install_register_sapcar_stat
+
+    - name: SAP HANA hdblcm prepare - SAPCAR defined - Fail if the SAPCAR executable does not exist
+      ansible.builtin.fail:
+        msg: "FAIL: The SAPCAR EXE file '{{ sap_hana_install_software_directory }}/{{ sap_hana_install_sapcar_filename }}' does not exist!"
+      when: not __sap_hana_install_register_sapcar_stat.stat.exists
+
+# We cannot always use the SAPCAR executable in sap_hana_install_software_directory because there are
+# some configurations in which executing files in this directory is not possible. So we always copy SAPCAR
+# to directory 'sapcar' in sap_hana_install_software_extract_directory. We do not copy the SAPCAR checksum file.
+    - name: SAP HANA hdblcm prepare - SAPCAR defined - Copy the SAPCAR executable to '{{ sap_hana_install_software_extract_directory }}/sapcar'
+      ansible.builtin.copy:
+        src: "{{ sap_hana_install_software_directory }}/{{ sap_hana_install_sapcar_filename }}"
+        dest: "{{ sap_hana_install_software_extract_directory }}/sapcar/{{ sap_hana_install_sapcar_filename | basename }}"
+        remote_src: true
+        owner: 'root'
+        group: 'root'
+        mode: '0755'
+
+    - name: SAP HANA hdblcm prepare - SAPCAR defined - Separate file from directory names and add the global checksum file path
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_sapcar_dict_tmp: {
+          dir: "{{ sap_hana_install_software_extract_directory }}/sapcar",
+          file: "{{ sap_hana_install_sapcar_filename | basename }}",
+          checksum_file: "{{ sap_hana_install_global_checksum_file }}",
+        }
+      when: sap_hana_install_global_checksum_file is defined
+
+    - name: SAP HANA hdblcm prepare - SAPCAR defined - Separate file from directory names and add the specific checksum file path
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_sapcar_dict_tmp: {
+            dir: "{{ sap_hana_install_software_extract_directory }}/sapcar",
+            file: "{{ sap_hana_install_sapcar_filename | basename }}",
+            checksum_file: "{{ sap_hana_install_software_directory }}/{{ sap_hana_install_sapcar_filename }}.sha256",
+        }
+      when: sap_hana_install_global_checksum_file is not defined
+
+    - name: SAP HANA hdblcm prepare - SAPCAR defined - Create a list of one dict for checksum verification
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_sapcar_dict: "{{ __sap_hana_install_fact_sapcar_dict|d([]) + [ __sap_hana_install_fact_sapcar_dict_tmp ] }}"
+
+    - name: SAP HANA hdblcm prepare - SAPCAR defined - Verify checksum for the SAPCAR executable
+      ansible.builtin.include_tasks: verify_checksum.yml
+      loop: "{{ __sap_hana_install_fact_sapcar_dict }}"
+      loop_control:
+        loop_var: __sap_hana_install_passed_file_dict
+      when:
+        - __sap_hana_install_fact_sapcar_dict | length > 0
+        - sap_hana_install_verify_checksums
+
+    - name: SAP HANA hdblcm prepare - SAPCAR defined - Set fact for the SAPCAR executable from variable
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_selected_sapcar_filename: "{{ sap_hana_install_sapcar_filename | basename }}"
+
+  when: sap_hana_install_sapcar_filename is defined
+
+- name: SAP HANA hdblcm prepare - SAPCAR autodetection - Prepare the SAPCAR executable if 'sap_hana_install_sapcar_filename' is not defined
+  block:
+# We need the 'file' package for the 'file' command, which we need in the next task.
+# RHEL: The 'file' package is contained in the Base software group, which should be installed already.
+
+# In the first step, we execute the file command for each of the SAPCAR EXE files. It displays the
+# hardware architecture in the second output field, using a string which is different from the output
+# of the 'uname -m' command. So we replace those strings by the "correct" ones. For ppc64 and ppc64le,
+# the second output field is identical. So in this case, we also look at the third and forth output field,
+# to handle cases where a ppc64 SAPCAR executable is present in the software directory.
+# After selecting the SAPCAR EXE files for the current architecture, we copy them to a temporary
+# directory sapcar_tmp in the software extract directory and then perform a checksum verification
+# for these files if the corresponding variable is set.
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Create directory '{{ sap_hana_install_software_extract_directory }}/sapcar_tmp'
+      ansible.builtin.file:
+        path: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp"
+        state: directory
+        mode: '0755'
+
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Identify matching SAR executables in '{{ sap_hana_install_software_directory }}'
+      ansible.builtin.shell: |
+          set -o pipefail &&
+          for sapcar_any in SAPCAR*EXE; do
+             file ${sapcar_any} | awk '{
+                split ($0, a, ":"); split (a[2], b, ","); sub ("^ ", "", b[2]);
+                sub ("x86-64", "x86_64", b[2]);
+                if (index (b[2], "64-bit PowerPC") > 0) {
+                   if ((index (b[3], "GNU/Linux") > 0)||(index (b[4], "GNU/Linux") > 0)) {sub ("64-bit PowerPC", "ppc64le", b[2])};
+                   if ((index (b[3], "SYSV") > 0)||(index (b[4], "SYSV") > 0)) {sub ("64-bit PowerPC", "ppc64", b[2])};
+                }
+                sub ("IBM S/390", "s390x", b[2]);
+                printf ("%s %s %s\n", a[1], b[2], b[3])}'
+             done | awk '$2=="{{ ansible_architecture }}"{printf ("%s\n", $1)}'
+      args:
+        chdir: "{{ sap_hana_install_software_directory }}"
+      register: __sap_hana_install_register_sapcar_matching_arch
+      changed_when: no
+
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Fail if no matching SAPCAR executable could be found
+      ansible.builtin.fail:
+        msg: "FAIL: No SAPCAR EXE file for architecture '{{ ansible_architecture }}' was found in
+              {{ sap_hana_install_software_directory }}!"
+      when: __sap_hana_install_register_sapcar_matching_arch.stdout | length == 0
+
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Create a list of files from SAPCAR executables of the matching architecture
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_sapcar_filenames_matching_arch: "{{ __sap_hana_install_fact_sapcar_filenames_matching_arch|d([]) + [ item ] }}"
+      loop: "{{ __sap_hana_install_register_sapcar_matching_arch.stdout_lines }}"
+
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Copy matching SAPCAR executables to '{{ sap_hana_install_software_extract_directory }}/sapcar_tmp/'
+      ansible.builtin.copy:
+        src: "{{ sap_hana_install_software_directory }}/{{ item }}"
+        dest: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp/{{ item }}"
+        remote_src: true
+        owner: 'root'
+        group: 'root'
+        mode: '0755'
+      with_items: "{{ __sap_hana_install_fact_sapcar_filenames_matching_arch }}"
+
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Fill list of dicts containing dir, file, and global checksum file
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_sapcar_dict: "{{ __sap_hana_install_fact_sapcar_dict|d([]) + [ __sap_hana_install_tmp_sapcar_dict ] }}"
+      with_items: "{{ __sap_hana_install_fact_sapcar_filenames_matching_arch }}"
+      vars:
+        __sap_hana_install_tmp_sapcar_dict:
+          dir: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp"
+          file: "{{ item }}"
+          checksum_file: "{{ sap_hana_install_global_checksum_file }}"
+      when: sap_hana_install_global_checksum_file is defined
+
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Fill list of dicts containing dir, file, and specific checksum file
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_sapcar_dict: "{{ __sap_hana_install_fact_sapcar_dict|d([]) + [ __sap_hana_install_tmp_sapcar_dict ] }}"
+      with_items: "{{ __sap_hana_install_fact_sapcar_filenames_matching_arch }}"
+      vars:
+        __sap_hana_install_tmp_sapcar_dict:
+          dir: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp"
+          file: "{{ item }}"
+          checksum_file: "{{ sap_hana_install_software_directory }}/{{ item }}.sha256"
+      when: sap_hana_install_global_checksum_file is not defined
+
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Display __sap_hana_install_fact_sapcar_dict
+      ansible.builtin.debug:
+        var: __sap_hana_install_fact_sapcar_dict
+
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Verify checksum for SAPCAR executables
+      ansible.builtin.include_tasks: verify_checksum.yml
+      loop: "{{ __sap_hana_install_fact_sapcar_dict }}"
+      loop_control:
+        loop_var: __sap_hana_install_passed_file_dict
+      when:
+        - __sap_hana_install_fact_sapcar_dict | length > 0
+        - sap_hana_install_verify_checksums
+
+# For each file in temporary directory sapcar_tmp in the software extract directory, we run it with option
+# --version and then identify the most recent one, which is then copied to directory sapcar.
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Identify the SAPCAR executable with the latest version
+      ansible.builtin.shell: |
+        set -o pipefail &&
+        for sapcar_matching_arch in "{{ __sap_hana_install_fact_sapcar_filenames_matching_arch | map('quote') | join(' ') }}"; do
+           ( printf "%s " $(basename ${sapcar_matching_arch})
+             {{ sap_hana_install_software_extract_directory }}/sapcar_tmp/$(basename ${sapcar_matching_arch}) --version |
+             awk '/kernel release/{rel=$NF}/patch number/{printf ("%s %s\n", rel, $NF)}'
+           )
+        done | sort -k 2 -nr -k 3 -nr | awk 'NR==1{printf ("%s - SAP kernel: %s; Patch number: %s\n", $1, $2, $3)}'
+      args:
+        chdir: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp"
+      register: __sap_hana_install_register_latest_sapcar_file
+      changed_when: no
+
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Display SAPCAR executable file name, SAP kernel release, and patch number
+      ansible.builtin.debug:
+        msg: "Using SAPCAR executable: {{ __sap_hana_install_register_latest_sapcar_file.stdout }}"
+
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Set fact for SAPCAR executable from autodetection
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_selected_sapcar_filename: "{{ __sap_hana_install_register_latest_sapcar_file.stdout.split(' ').0 }}"
+
+    - name:  SAP HANA hdblcm prepare - SAPCAR autodetection - Copy the autodetected SAPCAR executable to '{{ sap_hana_install_software_extract_directory }}/sapcar'
+      ansible.builtin.copy:
+        src: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp/{{ __sap_hana_install_fact_selected_sapcar_filename }}"
+        dest: "{{ sap_hana_install_software_extract_directory }}/sapcar/{{ __sap_hana_install_fact_selected_sapcar_filename }}"
+        remote_src: true
+        owner: 'root'
+        group: 'root'
+        mode: '0755'
+      when: not ansible_check_mode
+
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Remove directory '{{ sap_hana_install_software_extract_directory }}/sapcar_tmp'
+      ansible.builtin.file:
+        path: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp"
+        state: absent
+
+  when: sap_hana_install_sapcar_filename is not defined
+
+- name: SAP HANA hdblcm prepare - Make sure the SAPCAR executable has execute permissions and is owned by root
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_software_extract_directory }}/sapcar/{{ __sap_hana_install_fact_selected_sapcar_filename }}"
+    mode: '0755'
+    owner: root
+    group: root
+  when: not ansible_check_mode

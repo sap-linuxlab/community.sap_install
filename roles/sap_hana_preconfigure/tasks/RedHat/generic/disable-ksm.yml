@@ -1,26 +1,33 @@
 ---
 
-- name: Create file /etc/init.d/boot.local if it does not exist
-  file:
-    path: /etc/init.d/boot.local
-    state: touch
-    mode: 0755
-
 - name: Configure - Get info about file /etc/init.d/boot.local
   stat:
     path: /etc/init.d/boot.local
   register: __sap_hana_preconfigure_register_stat_boot_local_ksm
 
+- name: Create file /etc/init.d/boot.local if it does not exist
+  file:
+    path: /etc/init.d/boot.local
+    state: touch
+    mode: 0755
+  when: not __sap_hana_preconfigure_register_stat_boot_local_ksm.stat.exists
+
 - name: Disable KSM at boot time
   lineinfile:
     dest: /etc/init.d/boot.local
     line: "echo 0 > /sys/kernel/mm/ksm/run"
-  when: __sap_hana_preconfigure_register_stat_boot_local_ksm.stat.exists
+
+- name: Configure - Get initial status of KSM
+  command: cat /sys/kernel/mm/ksm/run
+  check_mode: no
+  register: __sap_hana_preconfigure_register_ksm_status_before
+  ignore_errors: true
+  changed_when: false
 
 - name: Disable KSM on the running system
   shell: echo 0 > /sys/kernel/mm/ksm/run
   register: __sap_hana_preconfigure_register_disable_ksm
-  changed_when: true
+  when: __sap_hana_preconfigure_register_ksm_status_before.stdout != '0'
 
 - name: Configure - Get status of KSM
   command: cat /sys/kernel/mm/ksm/run
