@@ -13,3 +13,79 @@
 #  failed_when: sap_swpm_stdout_register.rc != 0
 #  changed_when: "'SAPinst build information' in sap_swpm_stdout_register.stdout"
 ##  changed_when: "'instslana' in sap_swpm_stdout_register.stdout"
+
+
+### Async method
+
+# Required for Ansible Module pids
+- name: Install Python devel and gcc to system Python
+  yum:
+    name:
+    - python3-devel
+    - gcc
+    state: present
+
+# Required for Ansible Module pids
+- name: Install Python dependency psutil to system Python
+  pip:
+    name:
+      - psutil
+#    executable: pip3.6
+
+# Execute SAP SWPM
+- name: SAP SWPM - {{ sap_swpm_swpm_installation_header }}
+  command: >-
+    ./sapinst \
+    {{ sap_swpm_swpm_command_inifile }} \
+    {{ sap_swpm_swpm_command_product_id }} \
+    {{ sap_swpm_swpm_command_extra_args }}
+  register: sap_swpm_async_job
+  args:
+    chdir: "{{ sap_swpm_sapinst_path }}"
+  async: 32400 # Seconds for maximum runtime, set to 9 hours
+  poll: 0 # Seconds between polls, use 0 to run Ansible Tasks concurrently
+
+# Monitor sapinst process (i.e. ps aux | grep sapinst) and wait for exit
+- name: SAP SWPM - Wait for sapinst process to exit, poll every 60 seconds
+  pids:
+    name: sapinst
+  register: pids_sapinst
+  until: "pids_sapinst.pids | length == 0"
+  retries: 1000
+  delay: 60
+
+- name: SAP SWPM - Verify if sapinst process finished successfully
+  async_status:
+    jid: "{{ sap_swpm_async_job.ansible_job_id }}"
+  register: sap_swpm_stdout_register
+  failed_when: sap_swpm_stdout_register.finished != 1 or sap_swpm_stdout_register.rc != 0
+  #until: sap_swpm_stdout_register.finished
+  #retries: 1000
+  #delay: 60
+
+#- name: SAP SWPM - debug SAP SWPM return/exit code
+#  debug:
+#    msg: "{{ sap_swpm_stdout_register.rc }}"
+
+#- name: SAP SWPM - debug SAP SWPM stdout
+#  debug:
+#    msg: "{{ sap_swpm_stdout_register.stdout_lines }}"
+
+- name: SAP SWPM - Find last installation location
+  command: cat /tmp/sapinst_instdir/.lastInstallationLocation
+  register: swpm_last_install_path
+
+- name: SAP SWPM - Verify if SWPM success file exists
+  stat:
+    path: "{{ swpm_last_install_path.stdout }}/installationSuccesfullyFinished.dat"
+  register: swpm_success_file
+  failed_when: swpm_success_file.stat.exists == false
+
+# Equivalent to running: cat $(cat /tmp/sapinst_instdir/.lastInstallationLocation)/installationSuccesfullyFinished.dat
+- name: SAP SWPM - Get success file
+  command: "cat {{ swpm_last_install_path.stdout }}/installationSuccesfullyFinished.dat"
+  register: swpm_success_file_contents
+
+- name: SAP SWPM - Display installation finished from success file
+  debug:
+    msg: "{{ swpm_success_file_contents.stdout_lines }}"
