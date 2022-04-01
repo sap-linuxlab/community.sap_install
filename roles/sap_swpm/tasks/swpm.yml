@@ -1,10 +1,15 @@
-- name:  SAP SWPM - {{ sap_swpm_swpm_installation_header }}
-  command: >-
-    ./sapinst \
-    {{ sap_swpm_swpm_command_inifile }} \
-    {{ sap_swpm_swpm_command_product_id }} \
-    {{ sap_swpm_swpm_command_extra_args }}
-  register: sap_swpm_installswpm_reg
-  args:
-    chdir: "{{ sap_swpm_sapinst_path }}"
-  changed_when: "'SAPinst build information' in sap_swpm_installswpm_reg.stdout"
+### Deprecated standard method, can fail to detect process exit (e.g. hang errors with SAP SWPM 2.0 SP11)
+### Detect changed when using 'SAPinst build information' from beginning of stdout
+### Or detect changed when using instslana.xml at end of stdout (this is the Process XML file aka. SAPInst Software Logistics Toolset Analytics XML file, which records the installation information)
+#- name:  SAP SWPM - {{ sap_swpm_swpm_installation_header }}
+#  command: >-
+#    ./sapinst \
+#    {{ sap_swpm_swpm_command_inifile }} \
+#    {{ sap_swpm_swpm_command_product_id }} \
+#    {{ sap_swpm_swpm_command_extra_args }}
+#  register: sap_swpm_stdout_register
+#  args:
+#    chdir: "{{ sap_swpm_sapinst_path }}"
+#  failed_when: sap_swpm_stdout_register.rc != 0
+#  changed_when: "'SAPinst build information' in sap_swpm_stdout_register.stdout"
+##  changed_when: "'instslana' in sap_swpm_stdout_register.stdout"
