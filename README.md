@@ -1,20 +1,8 @@
-# community.sap_install Ansible Collection ![Ansible Lint](https://github.com/infrasap/community.sap_install/workflows/Ansible%20Lint/badge.svg?branch=main)
+# community.sap_install Ansible Collection ![Ansible Lint](https://github.com/sap-linuxlab/community.sap_install/workflows/ansible-lint.yml/badge.svg?branch=main)
 
 This Ansible Collection executes various SAP Software installations and configuration tasks for running SAP software on Linux operating systems; with handlers for SAP HANA database lifecycle manager (HDBLCM) and SAP Software Provisioning Manager (SWPM) for programmatic deployment of any SAP solution scenario.
 
 This can be combined with other Ansible Collections to provide end-to-end automation, from download of SAP software installation media through to technical configuration and burstable SAP NetWeaver application servers (start/stop).
-
-## TEMP
-
-linux-system-roles / sap_general_preconfigure `Changed to Apache-2.0 in meta.yml, README, LICENSE`
-8bf82d719ff078ade1d55e0d46e8e12cadacdafe
-
-linux-system-roles / sap_hana_preconfigure `Change to Apache-2.0 in meta.yml, README to match the Apache 2.0 in LICENSE`
-f290f3bb336c5708fbdafd502edb1b687c1a5796
-
-linux-system-roles / sap_netweaver_preconfigure `Changed to Apache-2.0 in meta.yml, README, LICENSE`
-e89e3193641aed1cc424006f8cbc2fba56cc3e50
-
 
 ## Functionality
 
@@ -73,7 +61,6 @@ Within this Ansible Collection, there are various Ansible Roles and no custom An
 | [sap_hana_preconfigure](/roles/sap_hana_preconfigure) | [![Ansible Lint for sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_preconfigure.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_preconfigure.yml) |
 | [sap_hana_install](/roles/sap_hana_install) | [![Ansible Lint for sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_install.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_install.yml) |
 
-
 ***Notes:***
 - Ansible Playbook localhost executions may have limitations on SAP Software installations
 - Ansible Roles for HA/DR are all designed for execution with Terraform
@@ -90,12 +77,17 @@ There are various methods to execute the Ansible Collection, dependant on the us
 
 ### Operating System requirements
 
-Designed for Linux operating systems, e.g. RHEL and SLES.
+Designed for Linux operating systems, e.g. RHEL (7.x and 8.x) and SLES (15.x).
 
-This role has not been tested and amended for SAP NetWeaver Application Server instantiations on IBM AIX or Windows Server.
+This Ansible Collection has not been tested and amended for SAP NetWeaver Application Server instantiations on IBM AIX or Windows Server.
 
-Assumptions for executing this role include:
-- Registered OS License and OS Package repositories are available (from the relevant content delivery network of the OS vendor)
+Assumptions for executing the Ansible Roles from this Ansible Collection include:
+- Registered OS
+- OS Package repositories are available (from the relevant content delivery network of the OS vendor)
+
+N.B. The Ansible Collection works with SLES from version 15 SP3 and upwards, for the following reasons:
+- firewalld is used within the Ansible Collection. In SLES 15 SP3, firewalld became the replacement for nftables. See changelog [SLE-16300](https://www.suse.com/releasenotes/x86_64/SUSE-SLES/15-SP3/index.html#jsc-SLE-16300)
+- SELinux is used within the Ansible Collection. While introduced earlier with community support, full support for SELinux was provided as of SLES 15 SP3. See changelog [SLE-17307](https://www.suse.com/releasenotes/x86_64/SUSE-SLES/15-SP3/index.html#jsc-SLE-17307)
 
 ### Python requirements
 
