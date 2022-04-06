@@ -244,11 +244,20 @@ sap_hana_preconfigure_fail_if_reboot_required
 ```
 
 ### Use tuned profile sap-hana
-By default, the role will activate tuned profile `sap-hana` for configuring kernel parameters (where possible). If you do not want to use the tuned profile sap-hana,
-set the following variable to `no`. In this case, the role will also modify GRUB_CMDLINE_LINUX, no matter how variable `sap_hana_preconfigure_modify_grub_cmdline_linux` (see below) is set.
-Note: If this variable is set to `yes`, the role may still modify GRUB_CMDLINE_LINUX in /etc/default/grub, by setting variable `sap_hana_preconfigure_modify_grub_cmdline_linux` to `yes`. This provides more flexibility for setting certain kernel parameters.
+By default, the role will activate tuned profile `sap-hana` for configuring kernel parameters (where possible). If you do not want
+to use the tuned profile sap-hana, set the following variable to `no`. In this case, the role will also modify GRUB_CMDLINE_LINUX,
+no matter how variable `sap_hana_preconfigure_modify_grub_cmdline_linux` (see below) is set.
+Note: If this variable is set to `yes`, the role may still modify GRUB_CMDLINE_LINUX in /etc/default/grub, by setting variable
+`sap_hana_preconfigure_modify_grub_cmdline_linux` to `yes`. This provides more flexibility for setting certain kernel parameters.
 ```yaml
 sap_hana_preconfigure_use_tuned
+```
+
+### Specify your own tuned profile
+Use the following variable to set a tuned profile string other than the default `sap-hana`. The tuned profile must reside in directory
+`/etc/tuned/my_own_profile`, as file named `tuned.conf` (example for a tuned profile named `my_own_profile`).
+```yaml
+sap_hana_preconfigure_tuned_profile
 ```
 
 ### Modify grub2 line GRUB_CMDLINE_LINUX

@@ -19,7 +19,9 @@
       set_fact:
         __sap_hana_preconfigure_fact_required_repos_args: "{{ ['--enable='] | product(__sap_hana_preconfigure_fact_required_repos) | map('join') | list }}"
 
-    - name: Enable required repositories
+# Reason for noqa: Avoid calling one more command for getting the currently enabled repos
+# and then having to compare the output against the list of required repos
+    - name: Enable required repositories # noqa no-changed-when
       command: "subscription-manager repos {{ __sap_hana_preconfigure_fact_required_repos_args | map('quote') | join(' ') }}"
       register: __sap_hana_preconfigure_register_subscription_enable_repos
 

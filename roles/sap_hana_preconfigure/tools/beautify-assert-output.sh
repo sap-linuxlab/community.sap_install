@@ -1,15 +1,17 @@
 #!/bin/bash
 
-if [[ ${1}. == "bright_font". ]]; then
-   awk 'BEGIN{printf ("\033[37mResetting font color\n")}'
-   exit
-elif [[ ${1}. == "dark_font". ]]; then
-   awk 'BEGIN{printf ("\033[30mResetting font color\n")}'
-   exit
+# default font color: Light Cyan, which should be readable on both bright and dark background
+__FONT_COLOR=36m
+
+if [[ ${1}. == "font_light_gray". ]]; then
+   __FONT_COLOR=37m
+elif [[ ${1}. == "font_no_color". ]]; then
+   __FONT_COLOR=30m
 fi
 
-if [[ ${__FONT_COLOR}. = "." ]]; then
-    __FONT_COLOR=30m
+if [[ ${2}. == "reset." ]]; then
+   awk 'BEGIN{printf ("\033['${__FONT_COLOR}'Resetting font color\n")}'
+   exit
 fi
 
 awk '{sub ("    \"msg\": ", "")}

@@ -1,0 +1,50 @@
+---
+
+- name: SAP HANA hdblcm prepare - Set fact for temporary extraction directory, default
+  ansible.builtin.set_fact:
+    __sap_hana_install_tmp_software_extract_directory: "{{ sap_hana_install_software_extract_directory }}/tmp"
+  when: "'SAPHOST' not in __sap_hana_install_passed_sarfile"
+
+- name: SAP HANA hdblcm prepare - Set fact for temporary extraction directory, SAP Host Agent
+  ansible.builtin.set_fact:
+    __sap_hana_install_tmp_software_extract_directory: "{{ sap_hana_install_software_extract_directory }}/tmp/SAP_HOST_AGENT"
+  when: "'SAPHOST' in __sap_hana_install_passed_sarfile"
+
+- name: SAP HANA hdblcm prepare - Create temporary extraction directory '{{ __sap_hana_install_tmp_software_extract_directory }}'
+  ansible.builtin.file:
+    path: "{{ __sap_hana_install_tmp_software_extract_directory }}"
+    state: directory
+    mode: 0755
+    owner: root
+    group: root
+
+- name: SAP HANA hdblcm prepare - Extract file '{{ __sap_hana_install_fact_sar_dir }}/{{ __sap_hana_install_passed_sarfile }}'
+  ansible.builtin.command: >-
+    {{ sap_hana_install_software_extract_directory }}/sapcar/{{ __sap_hana_install_fact_selected_sapcar_filename }} \
+    -R {{ __sap_hana_install_tmp_software_extract_directory }} \
+    -xvf {{ __sap_hana_install_fact_sar_dir }}/{{ __sap_hana_install_passed_sarfile }} \
+    -manifest SIGNATURE.SMF
+  register: __sap_hana_install_register_extract
+  args:
+    chdir: "{{ sap_hana_install_software_extract_directory }}"
+  changed_when: "'SAPCAR: processing archive' in __sap_hana_install_register_extract.stdout"
+
+- name: SAP HANA hdblcm prepare - Move files into the correct place, default
+  ansible.builtin.shell: |
+    extracted_dir=$(ls -d */)
+    mv SIGNATURE.SMF ${extracted_dir}
+    mv ${extracted_dir} ..
+  args:
+    chdir: "{{ __sap_hana_install_tmp_software_extract_directory }}"
+  when: "'SAPHOST' not in __sap_hana_install_passed_sarfile"
+
+- name: SAP HANA hdblcm prepare - Move files into the correct place, SAP Host Agent
+  ansible.builtin.command: mv ./tmp/SAP_HOST_AGENT .
+  args:
+    chdir: "{{ sap_hana_install_software_extract_directory }}"
+  when: "'SAPHOST' in __sap_hana_install_passed_sarfile"
+
+- name: SAP HANA hdblcm prepare - Remove temporary extraction directory '{{ sap_hana_install_software_extract_directory }}/tmp'
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_software_extract_directory }}/tmp/"
+    state: absent

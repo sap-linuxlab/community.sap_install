@@ -1,0 +1,78 @@
+---
+
+- name: SAP HANA Pre Install - Create the hdblcm configfile directory '{{ sap_hana_install_configfile_directory }}' if it does not exist
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_configfile_directory }}"
+    state: directory
+    mode: '0755'
+
+- name: SAP HANA Pre Install - Check if file '{{ sap_hana_install_configfile_directory }}/configfile.cfg' exists
+  ansible.builtin.stat:
+    path: "{{ sap_hana_install_configfile_directory }}/configfile.cfg"
+  check_mode: no
+  register: __sap_hana_install_register_stat_hdblcm_configfile
+
+- name: SAP HANA Pre Install - Notify about existing hdblcm configfile
+  ansible.builtin.debug:
+    msg: "INFO: Using existing static hdblcm configfile '{{ sap_hana_install_configfile_directory }}/configfile.cfg'."
+  when: __sap_hana_install_register_stat_hdblcm_configfile.stat.exists
+
+- name: SAP HANA Pre Install - Make the existing static hdblcm configfile available for the SAP HANA installation
+  ansible.builtin.copy:
+    src: "{{ sap_hana_install_configfile_directory }}/configfile.cfg"
+    dest: "{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg"
+    remote_src: true
+    owner: 'root'
+    group: 'root'
+    mode: '0755'
+  when: __sap_hana_install_register_stat_hdblcm_configfile.stat.exists
+
+- name: Create the hdblcm configfile dynamically
+  block:
+
+    - name: SAP HANA Pre Install - Create the hdblcm configfile template '{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg'
+      ansible.builtin.command: "{{ __sap_hana_install_fact_hdblcm_path }}/hdblcm --dump_configfile_template={{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg"
+      register: __sap_hana_install_register_hdblcm_output
+      changed_when: no
+
+    - name: SAP HANA Pre Install - Display the output of the hdblcm command
+      ansible.builtin.debug:
+        msg: "Output of hdblcm command: {{ __sap_hana_install_register_hdblcm_output.stdout_lines }}"
+
+    - name: SAP HANA Pre Install - Create a Jinja2 template from the hdblcm configfile template
+      ansible.builtin.shell: |
+        set -o pipefail &&
+        awk 'BEGIN{FS="="; printf ("\{\{ ansible_managed | comment \}\}\n# File created on: \{\{ template_host \}\}\n# Template file:   \{\{ template_path \}\}\n#\n")}
+          !/^[a-z]/{print}
+          /^[a-z]/{printf ("%s=\{\{ sap_hana_install_%s|d(\047%s\047) \}\}\n", $1, $1, $2)}' {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg > {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.j2
+      register: __sap_hana_install_create_jinja2_template
+      changed_when: no
+
+    - name: SAP HANA Pre Install - Display the location of the remote Jinja2 template
+      ansible.builtin.debug:
+        msg: "The Jinja2 template for creating the hdblcm configfile has been saved to '{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.j2'."
+
+    - name: SAP HANA Pre Install - Download the Jinja2 template
+      ansible.builtin.fetch:
+        src: "{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.j2"
+        dest: "{{ sap_hana_install_local_configfile_directory }}"
+      register: __sap_hana_install_register_fetch_hdblcm_configfile_jinja2_template
+
+    - name: SAP HANA Pre Install - Display the location of the local Jinja2 template
+      ansible.builtin.debug:
+        msg: "The Jinja2 template has been downloaded to '{{ __sap_hana_install_register_fetch_hdblcm_configfile_jinja2_template.dest }}'."
+      when: not ansible_check_mode
+
+    - name: SAP HANA Pre Install - Process the Jinja2 template to create the hdblcm configfile
+      ansible.builtin.template:
+        src: "{{ __sap_hana_install_register_fetch_hdblcm_configfile_jinja2_template.dest }}"
+        dest: "{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg"
+        mode: '0644'
+      register: __sap_hana_install_register_cftemplate
+      when: not ansible_check_mode
+
+  when: not __sap_hana_install_register_stat_hdblcm_configfile.stat.exists
+
+- name: SAP HANA Pre Install - Display the path name of the hdblcm configfile
+  ansible.builtin.debug:
+    msg: "The hdblcm configfile is: '{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg'"
