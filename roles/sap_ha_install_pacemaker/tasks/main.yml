@@ -10,32 +10,77 @@
 # Part 1
 # Installs the necessary software and preconfiguration
 
-- name: SAP Pacemaker Part 1 - Software Setup
+- name: "SAP Pacaemaker - Check pcs"
+  shell: |
+      rpm -qa pcs
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: root
+  register: sap_ha_install_pacemaker_check_pcs
+  changed_when: '"pcs" in sap_ha_install_pacemaker_check_pcs.stdout'
+
+- name: "SAP Pacemaker Part 1 - Software Setup"
   include_tasks: software_setup.yml
   when:
-    - sap_ha_install_pacemaker_part == '1'
+    - sap_ha_install_pacemaker_check_pcs.rc != '0'
+#    - sap_ha_install_pacemaker_part == '1'
 
 - name: SAP Pacemaker Part 1 - Preconfig
   include_tasks: preconfig.yml
-  when:
-    - sap_ha_install_pacemaker_part == '1'
+#  when:
+#    - ansible_nodename == sap_ha_install_hana_hsr_primary_hostname
+#    - sap_ha_install_pacemaker_part == '1'
 
 # Part 2
 # Cluster Setup, Service Principal, Stonith Configuration
 
+- name: "SAP Pacemaker Part 2 - Check Cluster"
+  tags: pacemaker
+  shell: |
+      pcs cluster config
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: root
+  register: sap_ha_install_pacemaker_check_cluster
+  changed_when: '"Cluster Name" in sap_ha_install_pacemaker_check_cluster.stdout'
+  
+- name: "SAP Pacemaker Part 2- Debug Check cluster"
+  debug:
+    var: sap_ha_install_pacemaker_check_cluster
+  tags: pacemaker
+
 - name: SAP Pacemaker Part 2 - Cluster Setup
   include_tasks: cluster_setup.yml
   when:
-    - sap_ha_install_pacemaker_part == '2'
-
-# Service principal setup is in TF
-#- name: SAP Pacemaker Part 2 - Service Principal
-#  include_tasks: service_principal.yml
-#  when:
-#    - sap_ha_install_pacemaker_part == '2'
+    - ansible_nodename == sap_ha_install_hana_hsr_primary_hostname
+    - sap_ha_install_pacemaker_check_cluster.changed == false
 
 - name: SAP Pacemaker Part 2 - Stonith Configuration
   include_tasks: stonith_config.yml
   when:
-    - sap_ha_install_pacemaker_part == '2'
+    - ansible_nodename == sap_ha_install_hana_hsr_primary_hostname
 
+
+- name: SAP Pacemaker Part 3 - Sudoer Configuration
+  include_tasks: cluster_sudoer.yml
+  tags:
+    - pacemaker
+
+- name: SAP Pacemaker Part 3 - Resource Configuration
+  include_tasks: cluster_resources.yml
+  tags:
+    - pacemaker
+  when:
+    - ansible_nodename == sap_ha_install_hana_hsr_primary_hostname
+
+- name: "SAP Pacemaker Part 4 - srhooks Configurationi"
+  include_tasks: cluster_srhook.yml
+  tags:
+    - srhook
+
+- name: SAP Pacemaker Part 5 - Constraints Configuration
+  include_tasks: cluster_constraint.yml
+  tags:
+    - constraint

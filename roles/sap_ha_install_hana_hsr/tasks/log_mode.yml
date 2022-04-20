@@ -1,5 +1,23 @@
+---
 # [A] Set parameter log_mode
+- name: SAP HSR - [A] check log_mode
+  tags: hsr_logmode
+  become: true
+  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
+  shell: |
+        grep "log_mode" /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/hdb/custom/config/global.ini | grep normal
+  register: sap_ha_install_hana_hsr_log_mode
+
+- name: SAP HSR - [A] Skipping Log-mode
+  tags: hsr_logmode
+  debug:
+    msg: "SAP HSR log_mode is set: skipping set log_mode"
+  when: sap_ha_install_hana_hsr_log_mode.rc==0
+
 - name: SAP HSR - [A] Set log_mode to normal
+  tags: hsr_logmode
+  become: true
+  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   shell: |
         /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql \
         -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
@@ -9,6 +27,7 @@
         EOF
   args:
     executable: /bin/bash
-  become: true
-  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
+  ignore_errors: true
+  when: sap_ha_install_hana_hsr_log_mode.rc!=0
+
 

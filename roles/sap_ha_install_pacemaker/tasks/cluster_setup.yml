@@ -9,6 +9,10 @@
   when:
     - sap_ha_install_pacemaker_role == 'primary'
 
+- name: "SAP Pacemaker Setup - print pcs reg"
+  debug:
+    var: pcs_host_auth_reg
+
 # [1] Setup Pacemaker cluster
 - name: SAP Pacemaker Setup - [1] Setup Pacemaker cluster
   shell: |
@@ -43,6 +47,7 @@
 
 # [1] Allow concurrent fence actions
 - name: SAP Pacemaker Setup - [1] Allow concurrent fence actions
+  serial: 1
   shell: |
     pcs property set concurrent-fencing=true
   when:

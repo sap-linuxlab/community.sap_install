@@ -20,7 +20,20 @@
   register: pcs_stonith_create
   when:
     - sap_ha_install_pacemaker_role == 'primary'
+    - sap_ha_install_pacemaker_stonith_fence_agent == 'fence-agents-azure-arm'
 #     pcmk_host_map="prod-cl1-0:prod-cl1-0-{{ sap_hana_ha_pacemaker_node1_hostname }};prod-cl1-1:prod-cl1-1-{{ sap_hana_ha_pacemaker_node2_hostname }}" \
+
+# [1] Configure the fence device
+- name: Configure the rhevm fence device
+  shell: |
+    pcs stonith create {{ sap_ha_install_pacemaker_stonith_name }} {{ sap_ha_install_pacemaker_stonith_fence_agent }} \
+    disable_http_filter=1 {{ sap_ha_install_pacemaker_stonith_credential }} \
+    pcmk_host_map="{{ sap_ha_install_pacemaker_stonith_pcmk_host_map }}" \
+    power_wait=3 ssl=1 ssl_insecure=1
+  register: pcs_stonith_rhevm_create
+  when:
+    - sap_ha_install_pacemaker_role == 'primary'
+    - sap_ha_install_pacemaker_stonith_fence_agent == 'fence_rhevm'
 
 # [1] Enable the use of a STONITH device
 - name: Create the STONITH devices

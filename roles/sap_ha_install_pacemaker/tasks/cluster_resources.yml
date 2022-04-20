@@ -1,0 +1,134 @@
+
+# [1] Check Resources please check https://access.redhat.com/articles/3569621
+- name: SAP Pacemaker Setup - [1] Check SAP HANA TopologyResources
+  tags: pacemaker
+  run_once: True
+  shell: |
+    pcs resource config
+  args:
+    executable: /bin/bash
+  register: sap_ha_install_pacemaker_check_resource
+
+# [1] Check Resources
+- name: "SAP Pacemaker Setup - [1] Check SAP HANA Resources Topology"
+  tags: pacemaker
+  ignore_errors: True
+  run_once: True
+  shell: |
+    pcs resource config SAPHanaTopology_{{ sap_ha_install_pacemaker_sid }}_{{ sap_ha_install_pacemaker_instance_number }}
+  register: sap_ha_install_pacemaker_check_resource_topology
+
+# [1] Setup Pacemaker SAP HANA Resource Topology
+- name: "SAP Pacemaker Setup - [1] Update default values"
+  tags: pacemaker
+  run_once: True
+  shell: |
+    pcs resource defaults update resource-stickiness=1000
+#  when:
+#    - sap_ha_install_pacemaker_role == 'primary'
+
+# [1] Setup Pacemaker SAP HANA Resource Topology
+- name: "SAP Pacemaker Setup - [1] Update default values"
+  tags: pacemaker
+  run_once: True
+  shell: |
+    pcs resource defaults update migration-threshold=5000
+
+# [1] Setup Pacemaker SAP HANA Resource Topology
+- name: "SAP Pacemaker Setup - [1] Create SAP HANA Resource Topology"
+  debugger: on_failed
+  tags: pacemaker
+  run_once: True
+  shell: |
+    pcs resource create \
+    SAPHanaTopology_{{ sap_ha_install_pacemaker_sid }}_{{ sap_ha_install_pacemaker_instance_number }} \
+    SAPHanaTopology SID={{ sap_ha_install_pacemaker_sid }} \
+    InstanceNumber={{ sap_ha_install_pacemaker_instance_number }} \ 
+    op start timeout=600 op stop timeout=600 op monitor interval=10 timeout=600 \
+    clone clone-max=2 clone-node-max=1 interleave=true
+  register: pcs_cluster_create_SAPHanaTopology_resource
+  when:
+     - sap_ha_install_pacemaker_check_resource_topology.rc == 1
+#    - '"type=SAPHanaTopology" not in sap_ha_install_pacemaker_check_resource.stdout'
+
+# [1] Check Resources
+- name: "SAP Pacemaker Setup - [1] Check SAP HANA Resources Hana"
+  tags: pacemaker
+  run_once: True
+  ignore_errors: True
+  shell: |
+    pcs resource config SAPHana_{{ sap_ha_install_pacemaker_sid }}_{{ sap_ha_install_pacemaker_instance_number }}
+  register: sap_ha_install_pacemaker_check_resource_hana
+
+# [1] Setup Pacemaker SAP HANA Resource HANA
+- name: "SAP Pacemaker Setup - [1] Create SAP HANA Resource HANA"
+  run_once: True
+  tags: pacemaker
+  shell: |
+    pcs resource create \
+    SAPHana_{{ sap_ha_install_pacemaker_sid }}_{{ sap_ha_install_pacemaker_instance_number }} \
+    SAPHana SID={{ sap_ha_install_pacemaker_sid }} \
+    InstanceNumber={{ sap_ha_install_pacemaker_instance_number }} \ 
+    PREFER_SITE_TAKEOVER=true DUPLICATE_PRIMARY_TIMEOUT=900 AUTOMATED_REGISTER=true \
+    op start timeout=3600 op stop timeout=3600 \
+    op monitor interval=121 role="Slave" timeout=700 \
+    op monitor interval=119 role="Master" timeout=700 \
+    op promote timeout=3600 \
+    op demote timeout=3600 \
+    promotable notify=true \
+    clone-max=2 clone-node-max=1 interleave=true 
+  register: pcs_cluster_create_SAPHana_resource
+  when:
+     - sap_ha_install_pacemaker_check_resource_hana.rc == 1
+#    - "'type=SAPHanaTopology' not in sap_ha_install_pacemaker_check_resource.stdout"
+
+# [1] Check Resources
+- name: "SAP Pacemaker Setup - [1] Check SAP HANA Resources VIP"
+  tags: pacemaker
+  run_once: True
+  ignore_errors: True
+  shell: |
+    pcs resource config vip_{{ sap_ha_install_pacemaker_sid }}_{{ sap_ha_install_pacemaker_instance_number }}_MASTER 
+  register: sap_ha_install_pacemaker_check_resource_vip
+  when: sap_ha_install_pacemaker_vip1 is defined
+
+# [1] Setup Pacemaker SAP HANA Resource HANA
+- name: "SAP Pacemaker Setup - [1] Create SAP HANA Resource HANA"
+  run_once: True
+  tags: pacemaker
+  shell: |
+    pcs resource create \
+    vip_{{ sap_ha_install_pacemaker_sid }}_{{ sap_ha_install_pacemaker_instance_number }}_MASTER \
+    IPaddr2 ip="{{ sap_ha_install_pacemaker_vip1 }}" 
+  register: pcs_cluster_create_SAPHana_resource
+  when:
+     - sap_ha_install_pacemaker_check_resource_vip.rc == 1
+#    - "'type=SAPHanaTopology' not in sap_ha_install_pacemaker_check_resource.stdout"
+
+# [1] Start Pacemaker cluster
+- name: SAP Pacemaker Setup - [1] Start Pacemaker cluster
+  run_once: True
+  tags: pacemaker
+  shell: |
+    pcs cluster start --all
+  register: pcs_cluster_start_reg
+
+# [1] Check Pacemaker cluster
+- name: SAP Pacemaker Setup - [1] Check Pacemaker cluster
+  run_once: True
+  shell: |
+    pcs status
+  register: pcs_status_reg
+
+# [A] Set Expected Votes
+- name: SAP Pacemaker Setup - [1] Set Expected Votes
+  run_once: True
+  shell: |
+    pcs quorum expected-votes 2
+  register: pcs_quorum_expected_votes_reg
+
+# [1] Allow concurrent fence actions
+- name: SAP Pacemaker Setup - [1] Allow concurrent fence actions
+  run_once: True
+  shell: |
+    pcs property set concurrent-fencing=true
