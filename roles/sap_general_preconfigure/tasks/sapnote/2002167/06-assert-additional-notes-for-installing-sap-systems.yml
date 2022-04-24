@@ -1,23 +1,23 @@
 ---
 
 - name: Assert 2002167-6
-  debug:
+  ansible.builtin.debug:
     msg: "SAP note 2002167 Step 6: Additional notes for installing SAP systems"
 
 - name: Get info about file /usr/lib64/libldap.so.199
-  stat:
+  ansible.builtin.stat:
     path: /usr/lib64/libldap.so.199
   register: __sap_general_preconfigure_register_stat_libldap_assert
 
 - name: Assert that file /usr/lib64/libldap.so.199 exists
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_stat_libldap_assert.stat.exists
     fail_msg: "FAIL: File /usr/lib64/libldap.so.199 does not exist!"
     success_msg: "PASS: File /usr/lib64/libldap.so.199 exist."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Assert that file /usr/lib64/libldap.so.199 is a link
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_stat_libldap_assert.stat.islnk
     fail_msg: "FAIL: File /usr/lib64/libldap.so.199 is not a link!"
     success_msg: "PASS: File /usr/lib64/libldap.so.199 is a link."
@@ -25,7 +25,7 @@
   when: __sap_general_preconfigure_register_stat_libldap_assert.stat.exists
 
 - name: Assert that file /usr/lib64/libldap.so.199 is a link to /usr/lib64/libldap-2.3.so.0
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_stat_libldap_assert.stat.lnk_target == '/usr/lib64/libldap-2.3.so.0'
     fail_msg: "FAIL: File /usr/lib64/libldap.so.199 is not a link to /usr/lib64/libldap-2.3.so.0!"
     success_msg: "PASS: File /usr/lib64/libldap.so.199 is a link to /usr/lib64/libldap-2.3.so.0."
@@ -33,19 +33,19 @@
   when: __sap_general_preconfigure_register_stat_libldap_assert.stat.exists
 
 - name: Get info about file /usr/lib64/liblber.so.199
-  stat:
+  ansible.builtin.stat:
     path: /usr/lib64/liblber.so.199
   register: __sap_general_preconfigure_register_stat_liblber_assert
 
 - name: Assert that file /usr/lib64/liblber.so.199 exists
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_stat_liblber_assert.stat.exists
     fail_msg: "FAIL: File /usr/lib64/liblber.so.199 does not exist!"
     success_msg: "PASS: File /usr/lib64/liblber.so.199 exist."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Assert that file /usr/lib64/liblber.so.199 exists and is a link
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_stat_liblber_assert.stat.islnk
     fail_msg: "FAIL: File /usr/lib64/liblber.so.199 is not a link!"
     success_msg: "PASS: File /usr/lib64/liblber.so.199 is a link."
@@ -53,11 +53,11 @@
   when: __sap_general_preconfigure_register_stat_liblber_assert.stat.exists
 
 - name: Assert that file /usr/lib64/liblber.so.199 is a link to /usr/lib64/liblber-2.3.so.0
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_stat_liblber_assert.stat.lnk_target == '/usr/lib64/liblber-2.3.so.0'
     fail_msg: "FAIL: File /usr/lib64/liblber.so.199 is not a link to /usr/lib64/liblber-2.3.so.0!"
     success_msg: "PASS: File /usr/lib64/liblber.so.199 is a link to /usr/lib64/liblber-2.3.so.0."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
   when: __sap_general_preconfigure_register_stat_liblber_assert.stat.exists
 
-- import_tasks: ../../RedHat/generic/assert-systemd-tmpfiles.yml
+- ansible.builtin.import_tasks: ../../RedHat/generic/assert-systemd-tmpfiles.yml
