@@ -7,8 +7,8 @@ while true; do
    if [[ ${_HDBLCM_PID}. != "." ]]; then
 # apparently a wrong catch by shellcheck: We are using braces inside awk, not inside the shell.
 # shellcheck disable=SC2125
-      _HDBLCM_TRC_FILE=/var/tmp/hdblcm_$(ps -ef | awk '/hdblcm/{print}' | \
-        awk 'BEGIN{RS=" "}/instlog_dir/{split ($0, a, "install_"); print a[2]}')*.trc
+      _HDBLCM_TRC_FILE=$(echo /var/tmp/hdblcm_$(ps -ef | awk '/hdblcm/{print}' | \
+        awk 'BEGIN{RS=" "}/instlog_dir/{split ($0, a, "install_"); print a[2]}')*.trc)
       echo "hdblcm trace file: ${_HDBLCM_TRC_FILE}"
       tail -100f "${_HDBLCM_TRC_FILE}"
    else
