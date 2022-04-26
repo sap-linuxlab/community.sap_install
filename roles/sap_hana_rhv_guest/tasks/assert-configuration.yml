@@ -1,0 +1,16 @@
+---
+# tasks file for sap-hana-rhv-hypervisor
+
+- name: Get kernel command line
+  command: cat /proc/cmdline
+  register: __sap_hana_rhv_guest_register_kernelcmdline_assert
+
+ 
+- name: Assert - check Kernel command line
+  block:
+    - assert:
+        that: "'tsx=on' in __sap_hana_rhv_guest_register_kernelcmdline_assert.stdout"
+        fail_msg: "FAIL: tsx=on not on Kernel command line"
+        success_msg: "PASS: tsx=on on Kernel command line"
+      ignore_errors: "{{ sap_hana_rhv_guest_ignore_failed_assertion }}"
+

@@ -1,0 +1,53 @@
+---
+# handlers file for sap_hana_rhv_guest
+
+- name: "Check if server is booted in BIOS or UEFI mode"
+  stat:
+    path: /sys/firmware/efi
+    get_checksum: no
+  register: efi_exists
+  listen: "Regenerate grub2 conf handler"
+  when:
+    - sap_hana_rhv_guest_run_grub2_mkconfig|d(true)
+
+- debug:
+    var: efi_exists.stat.exists
+  listen: "Regenerate grub2 conf handler"
+  when:
+    - sap_hana_rhv_guest_run_grub2_mkconfig|d(true)
+
+- name: "Run grub-mkconfig (BIOS mode)"
+  command: grub2-mkconfig -o /boot/grub2/grub.cfg
+  register: command_result
+  listen: "Regenerate grub2 conf handler"
+  when:
+    - not efi_exists.stat.exists
+    - sap_hana_rhv_guest_run_grub2_mkconfig|d(true)
+
+- debug:
+    var: command_result.stdout_lines, command_result.stderr_lines
+  listen: "Regenerate grub2 conf handler"
+  when:
+    - not efi_exists.stat.exists
+    - sap_hana_rhv_guest_run_grub2_mkconfig|d(true)
+
+- name: "Run grub-mkconfig (UEFI mode)"
+  command: grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg
+  register: command_result
+  listen: "Regenerate grub2 conf handler"
+  when:
+    - efi_exists.stat.exists
+    - sap_hana_rhv_guest_run_grub2_mkconfig|d(true)
+
+- debug:
+    var: command_result.stdout_lines, command_result.stderr_lines
+  listen: "Regenerate grub2 conf handler"
+  when:
+    - efi_exists.stat.exists
+    - sap_hana_rhv_guest_run_grub2_mkconfig|d(true)
+
+- name: "Reboot handler"
+  fail:
+    msg: Reboot is required!
+  when: sap_hana_rhv_guest_fail_if_reboot_required|d(true)
+
