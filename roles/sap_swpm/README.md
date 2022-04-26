@@ -10,7 +10,7 @@ This role has been tested and working for the following scenarios
 -   High Avalability Installation
 
 This role has been tested and working for the following SAP products
--   SAP S/4HANA 1809, 1909, 2020
+-   SAP S/4HANA 1809, 1909, 2020, 2021
 -   SAP B/4HANA
 -   SAP Solution Manager 7.2
 -   SAP Netweaver Business Suite Applications (ECC, GRC, etc)

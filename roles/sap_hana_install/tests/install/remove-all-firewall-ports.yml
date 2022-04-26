@@ -1,0 +1,67 @@
+---
+
+- name: Remove all defined firewall ports as per field 'ports' in 'firewall-cmd --list-all'
+  hosts: all
+  become: true
+  vars_files:
+    - install-vars.yml
+  gather_facts: no
+
+  tasks:
+    - name: Get the defined current firewall ports before removal
+      shell: |
+        firewall-cmd --list-all | awk '/  ports: /{gsub ("  ports: ", ""); print}'
+      register: __register_firewall_ports_current_before_removal
+
+    - name: Display the defined current firewall ports before removal
+      debug:
+        var: __register_firewall_ports_current_before_removal.stdout
+
+    - name: Remove all defined current ports in the default zone
+      shell: |
+        firewall-cmd --list-all | \
+        awk '/  ports: /{gsub ("  ports: ", ""); if (length($0)!=0)print}' | \
+        awk 'BEGIN{RS=" "}{printf ("--remove-port=%s\n", $0)}' | \
+        eval $(awk 'BEGIN{printf("firewall-cmd ")}{printf ("%s ", $0)}END{print("")}')
+      register: __register_firewall_remove_ports_current
+      when: __register_firewall_ports_current_before_removal.stdout | length > 0
+
+    - name: Get the defined current firewall ports after removal
+      shell: |
+        firewall-cmd --list-all | awk '/  ports: /{gsub ("  ports: ", ""); print}'
+      register: __register_firewall_ports_current_after_removal
+      when: __register_firewall_ports_current_before_removal.stdout | length > 0
+
+    - name: Display the defined current firewall ports after removal
+      debug:
+        var: __register_firewall_ports_current_after_removal.stdout
+      when: __register_firewall_ports_current_before_removal.stdout | length > 0
+
+    - name: Get the defined permanent firewall ports before removal
+      shell: |
+        firewall-cmd --list-all --permanent | awk '/  ports: /{gsub ("  ports: ", ""); print}'
+      register: __register_firewall_ports_permanent_before_removal
+
+    - name: Display the defined current firewall ports before removal
+      debug:
+        var: __register_firewall_ports_permanent_before_removal.stdout
+
+    - name: Remove all defined permanent ports in the default zone
+      shell: |
+        firewall-cmd --list-all --permanent | \
+        awk '/  ports: /{gsub ("  ports: ", ""); if (length($0)!=0)print}' | \
+        awk 'BEGIN{RS=" "}{printf ("--remove-port=%s\n", $0)}' | \
+        eval $(awk 'BEGIN{printf("firewall-cmd --permanent ")}{printf ("%s ", $0)}END{print("")}')
+      register: __register_firewall_remove_ports_permanent
+      when: __register_firewall_ports_permanent_before_removal.stdout | length > 0
+
+    - name: Get the defined permanent firewall ports after removal
+      shell: |
+        firewall-cmd --list-all --permanent | awk '/  ports: /{gsub ("  ports: ", ""); print}'
+      register: __register_firewall_ports_permanent_after_removal
+      when: __register_firewall_ports_current_before_removal.stdout | length > 0
+
+    - name: Display the defined current firewall ports after removal
+      debug:
+        var: __register_firewall_ports_permanent_after_removal.stdout
+      when: __register_firewall_ports_current_before_removal.stdout | length > 0

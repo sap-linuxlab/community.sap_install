@@ -29,9 +29,11 @@
             dest: /etc/rc.d/rc.local
             line: "cpupower frequency-set -g performance"
 
+# Reason for changed_when being set to yes: Avoid calling one more command for getting the current CPU Governor setting
         - name: Configure CPU Governor for performance on the running system (x86_64 platform only)
           command: cpupower frequency-set -g performance
           register: __sap_hana_preconfigure_register_cpupower_frequency_set
+          changed_when: yes
 
         - name: Display the output of the cpupower frequency-set command
           debug:
@@ -43,7 +45,6 @@
           register: __sap_hana_preconfigure_register_cpupower_frequency_info
           ignore_errors: true
           changed_when: false
-
 
         - name: Display the output of the cpupower frequency-info -g command again
           debug:
