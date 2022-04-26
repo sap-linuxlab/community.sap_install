@@ -1,9 +1,10 @@
 ---
 
 - name: SAP HANA Post Install - Apply the SAP HANA license
-  shell: |
-      /usr/sap/{{ sap_hana_install_sid | upper }}/HDB{{ sap_hana_install_instance_number }}/exe/hdbsql \
-      -i {{ sap_hana_install_instance_number }} -u SYSTEM -p {{ sap_hana_install_db_system_password }} -m <<EOF
+  ansible.builtin.shell: |
+      /usr/sap/{{ sap_hana_install_sid | upper }}/HDB{{ sap_hana_install_number }}/exe/hdbsql \
+      -i {{ sap_hana_install_number }} -u SYSTEM
+      -p {{ sap_hana_install_db_system_password|d(sap_hana_install_master_password) }} -m <<EOF
       SET SYSTEM LICENSE '$(cat {{ sap_hana_install_license_path }}/{{ sap_hana_install_license_file_name }})';
       EOF
   args:

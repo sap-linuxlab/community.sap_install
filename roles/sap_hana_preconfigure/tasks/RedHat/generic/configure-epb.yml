@@ -30,9 +30,12 @@
             dest: /etc/init.d/boot.local
             line: "cpupower set -b 0"
 
+# Reason for changed_when being set to yes: We unconditionally configure EPB without first determining
+# the current state
         - name: Configure EPB on the running system
           command: cpupower set -b 0
           register: __sap_hana_preconfigure_register_cpupower_set
+          changed_when: yes
 
         - name: Display the output of the cpupower set command
           debug:

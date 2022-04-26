@@ -28,6 +28,7 @@
           command: sysctl net.ipv4.tcp_wmem
           check_mode: no
           register: __sap_hana_preconfigure_register_sysctl_ipv4_tcp_wmem
+          changed_when: no
 
         - name: Display the maximum value of net.ipv4.tcp_wmem
           debug:
@@ -37,6 +38,7 @@
           command: sysctl net.ipv4.tcp_rmem
           check_mode: no
           register: __sap_hana_preconfigure_register_sysctl_ipv4_tcp_rmem
+          changed_when: no
 
         - name: Display the maximum value of net.ipv4.tcp_rmem
           debug:
@@ -64,7 +66,8 @@
         - not sap_hana_preconfigure_use_netapp_settings_nfs|d(false)
         - not ansible_architecture == 'ppc64le'
 
-    - name: Reload kernel parameters from file '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}'
+# Reason for noqa: We unconditionally reload the kernel parameters without first checking the current values
+    - name: Reload kernel parameters from file '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}' # noqa no-changed-when
       command: sysctl -p "{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}"
       register: __sap_hana_preconfigure_register_saphana_conf_sysctl_p_output
 
