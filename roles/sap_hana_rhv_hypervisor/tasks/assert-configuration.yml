@@ -91,15 +91,15 @@
   block:
     - name: Get amount of 1G hugepages
       shell: hugeadm --pool-list | grep 1073741824 | awk '{print $3}'
-      register:  __sap_hana_rhv_hypervisor_1Ghugepages_assert
+      register: __sap_hana_rhv_hypervisor_1Ghugepages_assert
 
     - name: "Check that at least {{ sap_hana_rhv_hypervisor_reserved_ram }} GB are available for the hypervisor and the rest are 1G hugepages"
       assert:
         that: "{{ ( ansible_memtotal_mb / 1024 )|int - sap_hana_rhv_hypervisor_reserved_ram }} >= {{ __sap_hana_rhv_hypervisor_1Ghugepages_assert.stdout }}"
         fail_msg: "FAIL: Not enough memory reserved for hypervisor"
-        success_msg: "PASS: Enough memory reserved for hypervisor" 
+        success_msg: "PASS: Enough memory reserved for hypervisor"
       ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
- 
+
 - name: Assert - check Kernel command line
   block:
     - assert:
