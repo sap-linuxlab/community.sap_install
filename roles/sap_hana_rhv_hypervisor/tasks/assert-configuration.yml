@@ -37,9 +37,9 @@
     __sap_hana_rhv_hypervisor_cpu_stepping_assert: "{{ __sap_hana_rhv_hypervisor_cpu_stepping_output_assert.stdout }}"
 
 - name: Print CPU Stepping
-  debug: 
+  debug:
     var: __sap_hana_rhv_hypervisor_cpu_stepping_assert
- 
+
 # skylake:
 - name: Assert - Check Intel Skylake CPU Platform
   block:
@@ -50,21 +50,19 @@
 
     - name: Assert - Check if ple_gap=0
       assert:
-        that: "__sap_hana_rhv_hypervisor_skylake_plegap_assert.rc == 0" 
+        that: "__sap_hana_rhv_hypervisor_skylake_plegap_assert.rc == 0"
         fail_msg: "FAIL: ple_gap is not set to 0"
         success_msg: "PASS: ple_gap is set to 0"
       ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
 
-    - name: Assert - Check for spectre_v2=retpoline 
+    - name: Assert - Check for spectre_v2=retpoline
       assert:
         that: "'spectre_v2=retpoline' in __sap_hana_rhv_hypervisor_kernelcmdline_assert.stdout"
         fail_msg: "FAIL: spectre_v2=retpoline is not on Kernel command line"
         success_msg: "PASS: spectre_v2=retpoline is on Kernel command line"
       ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
-
   when: __sap_hana_rhv_hypervisor_cpu_stepping_assert == "4"
- 
- 
+
 - name: Assert - check sap_hana_rhv_hypervisor_nx_huge_pages
   block:
     - name: "Assert - Check kvm.nx_huge_pages is {{ sap_hana_rhv_hypervisor_nx_huge_pages }}"
@@ -101,7 +99,6 @@
         fail_msg: "FAIL: Not enough memory reserved for hypervisor"
         success_msg: "PASS: Enough memory reserved for hypervisor" 
       ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
-
  
 - name: Assert - check Kernel command line
   block:
@@ -110,7 +107,6 @@
         fail_msg: "FAIL: intel_iommu=on not on Kernel command line"
         success_msg: "PASS: intel_iommu=on on Kernel command line"
       ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
-
 
     - assert:
         that: "'iommu=pt' in __sap_hana_rhv_hypervisor_kernelcmdline_assert.stdout"
