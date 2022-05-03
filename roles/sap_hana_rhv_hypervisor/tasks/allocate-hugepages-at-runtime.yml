@@ -1,12 +1,8 @@
-#libhugetlbfs-utils
-#libhugetlbfs
-#hugeadm --pool-pages-min 1G:5920
-#
+---
 - name: Install libhugetlbfs
   yum:
     name: libhugetlbfs, libhugetlbfs-utils
     state: present
-
 
 #XXX better location than rc.local?
 - name: Add hugepage allocation to /etc/rc.local
@@ -29,40 +25,4 @@
      - hugepagesz=1GB
   notify: "Regenerate grub2 conf handler"
   tags: grubconfig
-
-
-#XXX not working
-##- name: Add allocate_hugepages.sh for tuned sap-hana-kvm-host
-#  copy:
-#    dest: "/usr/lib/tuned/sap-hana-kvm-host/allocate_hugepages.sh"
-#    mode: 0744
-#    content: |
-#        #!/bin/bash
-#
-#        if [ "$1" == "start" ]; then
-#            hugeadm --create-mounts --pool-pages-min 1G:$(free -g | grep "Mem:" | awk '{print $2-"{{ sap_hana_rhv_hypervisor_reserved_ram }}"}')
-#        fi
-#
-#        if [ "$1" == "stop" ]; then
-#            hugeadm  --pool-pages-min 1G:0
-#        fi
-    
-
-#- name: Add hugepage allocation to tuned profile sap-hana-kvm-host
-#  blockinfile:
-#    path: /usr/lib/tuned/sap-hana-kvm-host/tuned.conf
-#    marker: ""
-#    block: |
-#        [allocate_hugepage]
-#        type=script
-#        script=${i:PROFILE_DIR}/allocate_hugepages.sh 
-
-#- name: Customize sap-hana-kvm-host tuned by setting reserved memory
-#  replace:
-#    path: /usr/lib/tuned/sap-hana-kvm-host/allocate_hugepages.sh
-#    regexp: "<sap_hana_rhv_hypervisor_reserved_ram>"
-#    replace: "{{ sap_hana_rhv_hypervisor_reserved_ram }}"
-
-#- name: Re-set tuned profile sap-hana-kvm-host
-#  command: tuned-adm profile sap-hana-kvm-host
-
+...
