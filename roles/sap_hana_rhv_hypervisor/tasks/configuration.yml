@@ -68,7 +68,7 @@
     regexp: '^(GRUB_CMDLINE_LINUX=(?!.* {{ item }}).*). *$'
     line: "\\1 {{ item }}\""
   with_items:
-     - "kvm.nx_huge_pages={{ sap_hana_rhv_hypervisor_kvm_nx_huge_pages }}"
+    - "kvm.nx_huge_pages={{ sap_hana_rhv_hypervisor_kvm_nx_huge_pages }}"
   notify: "Regenerate grub2 conf handler"
   tags: grubconfig
   when: sap_hana_rhv_hypervisor_kvm_nx_huge_pages is defined
@@ -84,9 +84,9 @@
 
 - name: Trigger tuned profile sap-hana-kvm activation
   include_tasks: allocate-hugepages-at-runtime.yml
-  when: sap_hana_rhv_hypervisor_reserve_hugepages == "runtime"  
+  when: sap_hana_rhv_hypervisor_reserve_hugepages == "runtime" 
 
-- name: Reserve Hugepages statically 
+- name: Reserve Hugepages statically
   lineinfile:
     path: /etc/default/grub
     backup: yes
@@ -95,14 +95,14 @@
     regexp: '^(GRUB_CMDLINE_LINUX=(?!.* {{ item }}).*). *$'
     line: "\\1 {{ item }}\""
   with_items:
-     - default_hugepagesz=1GB 
-     - hugepagesz=1GB 
-     - hugepages={{ ( ansible_memtotal_mb / 1024 )|int - sap_hana_rhv_hypervisor_reserved_ram }}
+    - default_hugepagesz=1GB
+    - hugepagesz=1GB
+    - hugepages={{ ( ansible_memtotal_mb / 1024 )|int - sap_hana_rhv_hypervisor_reserved_ram }}
   notify: "Regenerate grub2 conf handler"
   tags: grubconfig
   when: sap_hana_rhv_hypervisor_reserve_hugepages == "static"
 
-- name: Enable IOMMU PT 
+- name: Enable IOMMU PT
   lineinfile:
     path: /etc/default/grub
     backup: yes
@@ -111,8 +111,8 @@
     regexp: '^(GRUB_CMDLINE_LINUX=(?!.* {{ item }}).*). *$'
     line: "\\1 {{ item }}\""
   with_items:
-     - intel_iommu=on 
-     - iommu=pt
+    - intel_iommu=on
+    - iommu=pt
   notify: "Regenerate grub2 conf handler"
   tags: grubconfig
 
