@@ -1,0 +1,131 @@
+---
+# tasks file for sap_hana_rhv_hypervisor
+
+- name: Get kernel command line
+  command: cat /proc/cmdline
+  register: __sap_hana_rhv_hypervisor_kernelcmdline_assert
+
+- name: "Assert - Kernel same page merging (KSM): Get status"
+  shell: systemctl status ksm
+  register: __sap_hana_rhv_hypervisor_ksmstatus_assert
+  ignore_errors: yes
+
+- name: "Assert - Kernel same page merging (KSM): Check if stopped"
+  assert:
+    that: "'Active: inactive (dead)' in __sap_hana_rhv_hypervisor_ksmstatus_assert.stdout"
+    fail_msg: "FAIL: ksm is running"
+    success_msg: "PASS: ksm not running"
+  ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
+
+- name: "Assert - Kernel same page merging (KSM) Tuning Daemon: Get status"
+  shell: systemctl status ksmtuned
+  register: __sap_hana_rhv_hypervisor_ksmtunedstatus_assert
+  ignore_errors: yes
+
+- name: "Assert - Kernel same page merging (KSM) Tuning Daemon: Check if stopped"
+  assert:
+    that: "'Active: inactive (dead)' in __sap_hana_rhv_hypervisor_ksmtunedstatus_assert.stdout"
+    fail_msg: "FAIL: ksmtuned is running"
+    success_msg: "PASS: ksmtuned not running"
+  ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
+
+- name: Check CPU Stepping
+  shell: lscpu | awk '/Stepping/{print $2}'
+  register: __sap_hana_rhv_hypervisor_cpu_stepping_output_assert
+
+- set_fact:
+    __sap_hana_rhv_hypervisor_cpu_stepping_assert: "{{ __sap_hana_rhv_hypervisor_cpu_stepping_output_assert.stdout }}"
+
+- name: Print CPU Stepping
+  debug: 
+    var: __sap_hana_rhv_hypervisor_cpu_stepping_assert
+ 
+# skylake:
+- name: Assert - Check Intel Skylake CPU Platform
+  block:
+    - name: Get ple_gap
+      command: grep -E '^options\s+kvm_intel.*?ple_gap\s*=\s*0.*$' /etc/modprobe.d/kvm.conf
+      register: __sap_hana_rhv_hypervisor_skylake_plegap_assert
+      ignore_errors: yes
+
+    - name: Assert - Check if ple_gap=0
+      assert:
+        that: "__sap_hana_rhv_hypervisor_skylake_plegap_assert.rc == 0" 
+        fail_msg: "FAIL: ple_gap is not set to 0"
+        success_msg: "PASS: ple_gap is set to 0"
+      ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
+
+    - name: Assert - Check for spectre_v2=retpoline 
+      assert:
+        that: "'spectre_v2=retpoline' in __sap_hana_rhv_hypervisor_kernelcmdline_assert.stdout"
+        fail_msg: "FAIL: spectre_v2=retpoline is not on Kernel command line"
+        success_msg: "PASS: spectre_v2=retpoline is on Kernel command line"
+      ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
+
+  when: __sap_hana_rhv_hypervisor_cpu_stepping_assert == "4"
+ 
+ 
+- name: Assert - check sap_hana_rhv_hypervisor_nx_huge_pages
+  block:
+    - name: "Assert - Check kvm.nx_huge_pages is {{ sap_hana_rhv_hypervisor_nx_huge_pages }}"
+      assert:
+        that: "'kvm.nx_huge_pages={{ sap_hana_rhv_hypervisor_nx_huge_pages }}' in __sap_hana_rhv_hypervisor_kernelcmdline_assert.stdout"
+        fail_msg: "FAIL: kvm.nx_huge_pages is not {{ sap_hana_rhv_hypervisor_nx_huge_pages }}"
+        success_msg: "PASS: kvm.nx_huge_pages is {{ sap_hana_rhv_hypervisor_nx_huge_pages }}"
+      ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
+
+  when: sap_hana_rhv_hypervisor_nx_huge_pages is defined
+
+- name: Assert - check seccomp_sanbox=0
+  block:
+    - command: grep -E '^seccomp_sandbox\s+=\s+0.*$' /etc/libvirt/qemu.conf
+      register: __sap_hana_rhv_hypervisor_seccomp_assert
+      ignore_errors: yes
+
+    - name: "Assert - Check seccomp_sanbox=0 is in /etc/libvirt/qemu.conf"
+      assert:
+        that: "{{ __sap_hana_rhv_hypervisor_seccomp_assert.rc }} == 0"
+        fail_msg: "FAIL: seccomp_sandbox != 0"
+        success_msg: "PASS: seccomp_sanbox == 0"
+      ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
+
+- name: Assert - check amount of 1G hugepages
+  block:
+    - name: Get amount of 1G hugepages
+      shell: hugeadm --pool-list | grep 1073741824 | awk '{print $3}'
+      register:  __sap_hana_rhv_hypervisor_1Ghugepages_assert
+
+    - name: "Check that at least {{ sap_hana_rhv_hypervisor_reserved_ram }} GB are available for the hypervisor and the rest are 1G hugepages"
+      assert:
+        that: "{{ ( ansible_memtotal_mb / 1024 )|int - sap_hana_rhv_hypervisor_reserved_ram }} >= {{ __sap_hana_rhv_hypervisor_1Ghugepages_assert.stdout }}"
+        fail_msg: "FAIL: Not enough memory reserved for hypervisor"
+        success_msg: "PASS: Enough memory reserved for hypervisor" 
+      ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
+
+ 
+- name: Assert - check Kernel command line
+  block:
+    - assert:
+        that: "'intel_iommu=on' in __sap_hana_rhv_hypervisor_kernelcmdline_assert.stdout"
+        fail_msg: "FAIL: intel_iommu=on not on Kernel command line"
+        success_msg: "PASS: intel_iommu=on on Kernel command line"
+      ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
+
+
+    - assert:
+        that: "'iommu=pt' in __sap_hana_rhv_hypervisor_kernelcmdline_assert.stdout"
+        fail_msg: "FAIL: iommu=pt not on Kernel command line"
+        success_msg: "PASS: iommu=pt on Kernel command line"
+      ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
+
+    - assert:
+        that: "'tsx=off' in __sap_hana_rhv_hypervisor_kernelcmdline_assert.stdout"
+        fail_msg: "FAIL: tsx=off not on Kernel command line"
+        success_msg: "PASS: tsx=off on Kernel command line"
+      ignore_errors: "{{ sap_hana_rhv_hypervisor_ignore_failed_assertion }}"
+
+
+#- name: Trigger tuned profile sap-hana-kvm activation
+#  include_tasks: set-tuned-profile.yml
+#
+##### install hooks: HP, cpufreq
