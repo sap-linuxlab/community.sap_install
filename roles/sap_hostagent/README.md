@@ -108,7 +108,7 @@ The upstream version of this role can be found [here](https://github.com/linux-s
 ```yaml
     - hosts: servers
       roles:
-      - role: sap-hostagent
+      - role: sap_hostagent
 ```
 
 ## Example Inventory
