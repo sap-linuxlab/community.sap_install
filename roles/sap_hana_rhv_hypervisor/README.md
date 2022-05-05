@@ -1,40 +1,70 @@
-sap-hana-rhv-hypervisor
+sap_hana_rhv_hypervisor
 =======================
 
-TODO
-
-A brief description of the role goes here.
+This role will set and check the required settings and parameters for a hypervisor running VMs for SAP HANA.
 
 Requirements
 ------------
-
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+A RHV hypervisor. 
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+`sap_hana_rhv_hypervisor_reserved_ram (default: 100)` Reserve memory [GB] for hypervisor host. Depending in the use case should be at least 50-100GB. 
 
-Dependencies
-------------
+`sap_hana_rhv_hypervisor_reserve_hugepages (default: static)` Hugepage allocation method: {static|runtime}.
+static: done at kernel command line which is slow, but safe
+runtime: done with hugeadm which is faster, but can in some cases not ensure all HPs are allocated.
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+`sap_hana_rhv_hypervisor_kvm_nx_huge_pages (default: "auto")` Setting for the huge page shattering kvm.nx_huge_pages: {"auto"|"on"|"off"}. Note the importance of the quotes, otherwise off will be mapped to false. See https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html for additional information:
+```
+        kvm.nx_huge_pages=
+                        [KVM] Controls the software workaround for the
+                        X86_BUG_ITLB_MULTIHIT bug.
+                        force   : Always deploy workaround.
+                        off     : Never deploy workaround.
+                        auto    : Deploy workaround based on the presence of
+                                  X86_BUG_ITLB_MULTIHIT.
+
+                        Default is 'auto'.
+
+                        If the software workaround is enabled for the host,
+                        guests do need not to enable it for nested guests.
+```
+
+`sap_hana_rhv_hypervisor_tsx (default: "off")` Intel Transactional Synchronization Extensions (TSX): {"on"|"off"}. Note the importance of the quotes, otherwise off will be mapped to false.
+
+`sap_hana_rhv_hypervisor_assert (default: false)` In assert mode, the parameters on the system are checked if the confirm with what this role would set.
+
+`sap_hana_rhv_hypervisor_ignore_failed_assertion (default: no)` Fail if assertion is invalid.
+
+`sap_hana_rhv_hypervisor_run_grub2_mkconfig (default: yes)` Update the grub2 config.
+
 
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+Simple example that just sets the parameters.
+```
+- hosts: all
+  roles:
+    - sap_hana_rhv_hypervisor
+```
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
-
+Run in assert mode to verify that parameters have been set.
+```
+- hosts: all
+  roles:
+    - sap_hana_rhv_hypervisor
+  vars:
+    - sap_hana_rhv_hypervisor_assert: yes
+```
 License
 -------
 
-BSD
+Apache 2.0
 
 Author Information
 ------------------
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+Nils Koenig (nkoenig@redhat.com)
