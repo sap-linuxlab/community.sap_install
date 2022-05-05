@@ -87,9 +87,9 @@ sap_general_preconfigure_disable_all_other_repos
 ```
 
 ### (RHEL only): Provide your own list of repos to enable
-# If you want to provide your own list of repos (e.g. on cloud systems), set the following variable accordingly.
-# Otherwise, the RHEL default repo names with the maximum support duration for the RHEL minor release are chosen automatically
-# (e.g. normal repos for RHEL 8.3, e4s repos for RHEL 8.4).
+If you want to provide your own list of repos (e.g. on cloud systems), set the following variable accordingly.
+Otherwise, the RHEL default repo names with the maximum support duration for the RHEL minor release are chosen automatically
+(e.g. normal repos for RHEL 8.3, e4s repos for RHEL 8.4).
 ```yaml
 sap_general_preconfigure_req_repos
 ```
