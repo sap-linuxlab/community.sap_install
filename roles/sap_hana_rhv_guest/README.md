@@ -3,6 +3,7 @@ sap_hana_rhv_guest
 
 This role will check the required settings and parameters for a guest (VM) running on RHV/KVM for SAP HANA. 
 
+
 Requirements
 ------------
 
@@ -13,20 +14,14 @@ The roles sap_preconfigure and sap_hana_preconfigure have been run on that syste
 Role Variables
 --------------
 
-```
-sap_hana_rhv_guest_run_grub2_mkconfig: yes
-```
-Intel Transactional Synchronization Extensions (TSX): {"on"|"off"}
-Note the importance of the quotes, otherwise off will be mapped to false
-```sap_hana_rhv_guest_tsx: "on"```
+`sap_hana_rhv_guest_tsx (default: "on")` Intel Transactional Synchronization Extensions (TSX): {"on"|"off"}.
+Note the importance of the quotes, otherwise off will be mapped to false.
 
-run role in assert mode?
-```sap_hana_rhv_guest_assert: false```
+`sap_hana_rhv_guest_assert (default: false)` In assert mode, the parameters on the system are checked if the confirm with what this role would set.
 
-fail if assertion is invalid
-```
-sap_hana_rhv_guest_ignore_failed_assertion: no
-```
+`sap_hana_rhv_guest_ignore_failed_assertion (default: no)` Fail if assertion is invalid.
+
+`sap_hana_rhv_guest_run_grub2_mkconfig (default: yes)` Update the grub2 config.
 
 
 Dependencies
