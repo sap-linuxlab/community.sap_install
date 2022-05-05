@@ -143,8 +143,8 @@ sap_hostagent_clean_tmp_directory: true
 
 ## License
 
-Apache License 2.0
+Apache license 2.0
 
 ## Author Information
 
-Red Hat SAP Community of Practice
+IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice

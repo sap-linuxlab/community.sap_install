@@ -163,3 +163,10 @@ Ansible role for SAP NW High Availability Setup
 | sap_ha_set_netweaver_pas_instance_ip                     | <none>                                    | <none>      | yes          |
 | sap_ha_set_netweaver_az_netapp_file_volumes              | <none>                                    | 'NFSv4.1'      | yes          |
 
+## License
+
+Apache license 2.0
+
+## Author Information
+
+IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice, Jason Masipiquena, Sherard Guico, Markus Moster
