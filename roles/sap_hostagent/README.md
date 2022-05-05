@@ -1,4 +1,4 @@
-# sap-hostagent ![Ansible Lint](https://github.com/redhat-sap/sap-hostagent/workflows/Ansible%20Lint/badge.svg?branch=master) ![Ansible Galaxy Import](https://github.com/redhat-sap/sap-hostagent/workflows/Ansible%20Galaxy%20Import/badge.svg?branch=master)
+# sap_hostagent Ansible Role
 
 SAP Host Agent is an agent that can accomplish several life-cycle management tasks, such as operating system monitoring, database monitoring, system instance control and provisioning.
 

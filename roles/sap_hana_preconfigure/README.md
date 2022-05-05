@@ -1,4 +1,4 @@
-#sap_hana_preconfigure
+#sap_hana_preconfigure Ansible Role
 
 This role installs additional required packages and performs additional configuration steps for installing and running SAP HANA.
 If you want to configure a RHEL system for the installation and later usage of SAP HANA, you have to first run role sap_general_preconfigure

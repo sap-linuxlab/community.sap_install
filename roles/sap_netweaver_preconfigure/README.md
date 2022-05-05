@@ -1,4 +1,4 @@
-#sap_netweaver_preconfigure
+# sap_netweaver_preconfigure Ansible Role
 
 This role installs additional required packages and performs additional configuration steps for installing and running SAP NetWeaver.
 If you want to configure a RHEL system for the installation and later usage of SAP NetWeaver, you have to first run role sap_general_preconfigure

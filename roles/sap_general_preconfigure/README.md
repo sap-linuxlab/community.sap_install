@@ -1,5 +1,4 @@
-# sap_general_preconfigure
-================
+# sap_general_preconfigure Ansible Role
 
 This role installs required packages and performs configuration steps which are required for installing and running SAP NetWeaver or SAP HANA. Specific installation and configuration steps on top of these basic steps are performed with roles sap-netweaver-preconfigure and sap-hana-preconfigure. Future implementations may reduce the scope of this role, for example if certain installation or configuration steps are done in the more specific roles.
 
