@@ -13,18 +13,20 @@ The roles sap_preconfigure and sap_hana_preconfigure have been run on that syste
 Role Variables
 --------------
 
+```
 sap_hana_rhv_guest_run_grub2_mkconfig: yes
+```
+Intel Transactional Synchronization Extensions (TSX): {"on"|"off"}
+Note the importance of the quotes, otherwise off will be mapped to false
+```sap_hana_rhv_guest_tsx: "on"```
 
-# Intel Transactional Synchronization Extensions (TSX): {"on"|"off"}
-# Note the importance of the quotes, otherwise off will be mapped to false
-sap_hana_rhv_guest_tsx: "on"
+run role in assert mode?
+```sap_hana_rhv_guest_assert: false```
 
-# run role in assert mode?
-sap_hana_rhv_guest_assert: false
-
-# fail if assertion is invalid
+fail if assertion is invalid
+```
 sap_hana_rhv_guest_ignore_failed_assertion: no
-
+```
 
 
 Dependencies
@@ -37,21 +39,20 @@ Example Playbook
 ----------------
 
 Simple example that just sets the parameters.
-
-
+```
 - hosts: all
   roles:
     - sap_hana_rhv_guest
-
+```
 
 Run in assert mode to verify that parameters have been set.
-
+```
 - hosts: all
   roles:
     - sap_hana_rhv_guest
   vars:
     - sap_hana_rhv_guest_assert: yes
-
+```
 
 License
 -------
