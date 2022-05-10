@@ -1,53 +1,94 @@
 ---
-# handlers file for sap_hana_rhv_hypervisor
 
 - name: "Check if server is booted in BIOS or UEFI mode"
   stat:
     path: /sys/firmware/efi
     get_checksum: no
-  register: efi_exists
-  listen: "Regenerate grub2 conf handler"
+  register: __sap_hana_rhv_hypervisor_register_stat_sys_firmware_efi
+  listen: __sap_hana_rhv_hypervisor_regenerate_grub2_conf_handler
   when:
     - sap_hana_rhv_hypervisor_run_grub2_mkconfig|d(true)
 
-- debug:
-    var: efi_exists.stat.exists
-  listen: "Regenerate grub2 conf handler"
+- name: Debug BIOS or UEFI
+  debug:
+    var: __sap_hana_rhv_hypervisor_register_stat_sys_firmware_efi.stat.exists
+  listen: __sap_hana_rhv_hypervisor_regenerate_grub2_conf_handler
   when:
     - sap_hana_rhv_hypervisor_run_grub2_mkconfig|d(true)
 
 - name: "Run grub-mkconfig (BIOS mode)"
   command: grub2-mkconfig -o /boot/grub2/grub.cfg
-  register: command_result
-  listen: "Regenerate grub2 conf handler"
+  register: __sap_hana_rhv_hypervisor_register_grub2_mkconfig_bios_mode
+  listen: __sap_hana_rhv_hypervisor_regenerate_grub2_conf_handler
+  notify: __sap_hana_rhv_hypervisor_reboot_handler
   when:
-    - not efi_exists.stat.exists
+    - not __sap_hana_rhv_hypervisor_register_stat_sys_firmware_efi.stat.exists
     - sap_hana_rhv_hypervisor_run_grub2_mkconfig|d(true)
 
-- debug:
-    var: command_result.stdout_lines, command_result.stderr_lines
-  listen: "Regenerate grub2 conf handler"
+- name: "Debug grub-mkconfig BIOS mode"
+  debug:
+    var: __sap_hana_rhv_hypervisor_register_grub2_mkconfig_bios_mode.stdout_lines,
+         __sap_hana_rhv_hypervisor_register_grub2_mkconfig_bios_mode.stderr_lines
+  listen: __sap_hana_rhv_hypervisor_regenerate_grub2_conf_handler
   when:
-    - not efi_exists.stat.exists
+    - not __sap_hana_rhv_hypervisor_register_stat_sys_firmware_efi.stat.exists
     - sap_hana_rhv_hypervisor_run_grub2_mkconfig|d(true)
+
+- name: "Set the grub.cfg location RHEL"
+  set_fact:
+    __sap_hana_rhv_hypervisor_uefi_boot_dir: /boot/efi/EFI/redhat/grub.cfg
+  when: 
+    - ansible_distribution == 'RedHat'
+
+- name: "Set the grub.cfg location SLES"
+  set_fact:
+    __sap_hana_rhv_hypervisor_uefi_boot_dir: /boot/efi/EFI/BOOT/grub.cfg
+  when: 
+    - ansible_distribution == 'SLES' or ansible_distribution == 'SLES_SAP'    
 
 - name: "Run grub-mkconfig (UEFI mode)"
-  command: grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg
-  register: command_result
-  listen: "Regenerate grub2 conf handler"
+  command: "grub2-mkconfig -o {{ __sap_hana_rhv_hypervisor_uefi_boot_dir }}"
+  register: __sap_hana_rhv_hypervisor_register_grub2_mkconfig_uefi_mode
+  listen: __sap_hana_rhv_hypervisor_regenerate_grub2_conf_handler
+  notify: __sap_hana_rhv_hypervisor_reboot_handler
   when:
-    - efi_exists.stat.exists
+    - __sap_hana_rhv_hypervisor_register_stat_sys_firmware_efi.stat.exists
     - sap_hana_rhv_hypervisor_run_grub2_mkconfig|d(true)
 
-- debug:
-    var: command_result.stdout_lines, command_result.stderr_lines
-  listen: "Regenerate grub2 conf handler"
+- name: "Debug grub-mkconfig UEFI"
+  debug:
+    var: __sap_hana_rhv_hypervisor_register_grub2_mkconfig_uefi_mode.stdout_lines,
+         __sap_hana_rhv_hypervisor_register_grub2_mkconfig_uefi_mode.stderr_lines
+  listen: __sap_hana_rhv_hypervisor_regenerate_grub2_conf_handler
   when:
-    - efi_exists.stat.exists
+    - __sap_hana_rhv_hypervisor_register_stat_sys_firmware_efi.stat.exists
     - sap_hana_rhv_hypervisor_run_grub2_mkconfig|d(true)
 
-- name: "Reboot handler"
+- name: "Run grubby for enabling TSX"
+  command: grubby --args="tsx=on" --update-kernel=ALL
+  register: __sap_hana_rhv_hypervisor_register_grubby_update
+  listen: __sap_hana_rhv_hypervisor_grubby_update_handler
+  notify: __sap_hana_rhv_hypervisor_reboot_handler
+
+- name: Reboot the managed node
+  reboot:
+    test_command: /bin/true
+  listen: __sap_hana_rhv_hypervisor_reboot_handler
+  when:
+    - sap_hana_rhv_hypervisor_reboot_ok|d(false)
+
+- name: Let the role fail if a reboot is required
   fail:
     msg: Reboot is required!
-  when: sap_hana_rhv_hypervisor_fail_if_reboot_required|d(true)
-...
+  listen: __sap_hana_rhv_hypervisor_reboot_handler
+  when:
+    - sap_hana_rhv_hypervisor_fail_if_reboot_required|d(true)
+    - not sap_hana_rhv_hypervisor_reboot_ok|d(false)
+
+- name: Show a warning message if a reboot is required
+  debug:
+    msg: "WARN: Reboot is required!"
+  listen: __sap_hana_rhv_hypervisor_reboot_handler
+  when:
+    - not sap_hana_rhv_hypervisor_fail_if_reboot_required|d(true)
+    - not sap_hana_rhv_hypervisor_reboot_ok|d(false)

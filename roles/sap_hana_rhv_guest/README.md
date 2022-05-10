@@ -1,7 +1,7 @@
 sap_hana_rhv_guest
 ==================
 
-This role will check the required settings and parameters for a guest (VM) running on RHV/KVM for SAP HANA. 
+This role will set and check the required settings and parameters for a guest (VM) running on RHV/KVM for SAP HANA. 
 
 
 Requirements
@@ -14,14 +14,20 @@ The roles sap_preconfigure and sap_hana_preconfigure have been run on that syste
 Role Variables
 --------------
 
-`sap_hana_rhv_guest_tsx (default: "on")` Intel Transactional Synchronization Extensions (TSX): {"on"|"off"}.
-Note the importance of the quotes, otherwise off will be mapped to false.
+### Run the role in assert mode
+```yaml
+sap_hana_rhv_guest_assert (default: no)
+```
+If the following variable is set to `yes`, the role will only check if the configuration of the managed mmachines is according to this role. Default is `no`.
 
-`sap_hana_rhv_guest_assert (default: false)` In assert mode, the parameters on the system are checked if the confirm with what this role would set.
 
-`sap_hana_rhv_guest_ignore_failed_assertion (default: no)` Fail if assertion is invalid.
+### Behavior of the role in assert mode
+```yaml
+sap_hana_rhv_guest_assert_ignore_errors (default: no)
+```
+If the role is run in assert mode and the following variable is set to `yes`, assertion errors will not cause the role to fail. This can be useful for creating reports.
+Default is `no`, meaning that the role will fail for any assertion error which is discovered. This variable has no meaning if the role is not run in assert mode.
 
-`sap_hana_rhv_guest_run_grub2_mkconfig (default: yes)` Update the grub2 config.
 
 
 Dependencies
@@ -37,6 +43,8 @@ Simple example that just sets the parameters.
 ```
 - hosts: all
   roles:
+    - sap_preconfigure
+    - sap_hana_preconfigure
     - sap_hana_rhv_guest
 ```
 
