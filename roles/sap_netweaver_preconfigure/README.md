@@ -1,12 +1,10 @@
-sap_netweaver_preconfigure
-================
+# sap_netweaver_preconfigure Ansible Role
 
 This role installs additional required packages and performs additional configuration steps for installing and running SAP NetWeaver.
 If you want to configure a RHEL system for the installation and later usage of SAP NetWeaver, you have to first run role sap_general_preconfigure
 and then role sap_netweaver_preconfigure.
 
-Requirements
-------------
+## Requirements
 
 To use this role, your system needs to be configured with the basic requirements for SAP NetWeaver or SAP HANA. This is typically done by
 running role sap_general_preconfigure (for RHEL managed nodes before RHEL 7.6, community maintained role sap-base-settings can be used).
@@ -24,8 +22,7 @@ Please check the SAP NetWeaver installation guide for swap space requirements.
 Do not run this role against an SAP NetWeaver or other production system. The role will enforce a certain configuration on the managed
 node(s), which might not be intended.
 
-Role Variables
---------------
+## Role Variables
 
 ### Execute only certain steps of SAP notes
 If the following variable is set to `no`, only the installation or configuration steps of SAP notes will be executed or checked. If this variable is undefined or set to `yes`, all installation and configuration steps of applicable SAP notes will be executed.
@@ -72,8 +69,7 @@ If the following variable is set to `no`, the role will not fail if less than 20
 sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured
 ```
 
-Example Playbook
-----------------
+## Example Playbook
 
 Simple playbook, named sap+netweaver.yml:
 ```yaml
@@ -98,8 +94,7 @@ Simple playbook for an extended check (assert) run, named sap+netweaver-assert.y
     - role: sap_netweaver_preconfigure
 ```
 
-Example Usage
--------------
+## Example Usage
 Normal run, for configuring server host_1 for SAP NetWeaver:
 ```yaml
 ansible-playbook sap+netweaver.yml -l host_1
@@ -139,12 +134,10 @@ In case you need to make an invisible font readable on a terminal with bright ba
 printf "\033[30mreadable font\n"
 ```
 
-License
--------
+## License
 
-GNU General Public License v3.0
+Apache license 2.0
 
-Author Information
-------------------
+## Author Information
 
-Bernd Finger
+Red Hat for SAP Community of Practice, Bernd Finger, Rainer Leber

@@ -79,3 +79,11 @@ This can be used in 2 days
 ## Prerequisites
 
 Disks have been attached to the VM and have the appropriate labels (hanadat, hanashared etc)
+
+## License
+
+Apache license 2.0
+
+## Author Information
+
+IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice

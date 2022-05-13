@@ -112,3 +112,10 @@ Ansible role for SAP HANA High Availability Setup
 | sap_ha_set_hana_site1                 | IP address of the load balancer           | <none>      | yes          |
 | sap_ha_set_hana_site2                 | IP address of the load balancer           | <none>      | yes          |
 
+## License
+
+Apache license 2.0
+
+## Author Information
+
+IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice, Jason Masipiquena, Sherard Guico, Markus Moster
