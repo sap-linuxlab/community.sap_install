@@ -76,7 +76,6 @@ Ansible role for SAP Pacemaker Setup
     sap_ha_install_pacemaker_role: "secondary"
     ```
 
-
 ## Variables / Inputs
 
 ### Inputs
@@ -132,3 +131,11 @@ sap_ha_install_pacemaker_packages_az:
   - fence-agents-azure-arm
   - nmap-ncat
 ```
+
+## License
+
+Apache license 2.0
+
+## Author Information
+
+IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice, Jason Masipiquena, Sherard Guico, Markus Moster

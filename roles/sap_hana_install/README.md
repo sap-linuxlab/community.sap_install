@@ -163,6 +163,7 @@ Sample Ansible Playbook Execution
     - `ansible-playbook -i "<target-host>" sap-hana-install.yml -e "@inputs/HDB.install"`
 
 ## Sample playbooks
+
 ### Sample playbook for installing a new scale-up (=single node) SAP HANA system
 
 ```yaml
@@ -369,3 +370,11 @@ Sample call for only displaying the SAP HANA hdblcm command line:
 ```
 # ansible-playbook sap-hana-install.yml --tags=sap_hana_install_hdblcm_commandline
 ```
+
+## License
+
+Apache license 2.0
+
+## Author Information
+
+Red Hat for SAP Community of Practice, IBM Lab for SAP Solutions, Markus Koch, Thomas Bludau, Bernd Finger, Than Ngo, Rainer Leber

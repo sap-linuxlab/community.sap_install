@@ -1,14 +1,14 @@
 ---
 
 - name: Display host and domain name, and IP address before the modification
-  debug:
+  ansible.builtin.debug:
     msg:
       - "sap_hostname = {{ sap_hostname }}"
       - "sap_domain = {{ sap_domain }}"
       - "sap_ip = {{ sap_ip }}"
 
 - name: Get all hostname aliases of {{ sap_ip }}
-  shell: |
+  ansible.builtin.shell: |
     awk '( $1 == "{{ sap_ip }}" ) {
       for (i=2; i<=NF; ++i) {
         if (( $i != "{{ sap_hostname }}" ) && ( $i != "{{ sap_hostname }}.{{ sap_domain }}" )) { printf " "$i }
@@ -18,23 +18,23 @@
   changed_when: false
 
 - name: Display hostname aliases
-  debug:
+  ansible.builtin.debug:
     var=__sap_general_preconfigure_register_sap_hostname_aliases
 
 - name: Check if ipv4 address, FQDN, and hostname are in /etc/hosts
   block:
     - name: Perform the /etc/hosts completeness check
-      command: awk 'BEGIN{a=0}/{{ sap_ip }}/&&/{{ sap_hostname }}.{{ sap_domain }}/&&/{{ sap_hostname }}/{a++}END{print a}' /etc/hosts
+      ansible.builtin.command: awk 'BEGIN{a=0}/{{ sap_ip }}/&&/{{ sap_hostname }}.{{ sap_domain }}/&&/{{ sap_hostname }}/{a++}END{print a}' /etc/hosts
       register: __sap_general_preconfigure_register_ipv4_fqdn_sap_hostname_once_check
       changed_when: false
 
     - name: Display the output of the /etc/hosts completeness check
-      debug:
+      ansible.builtin.debug:
         var: __sap_general_preconfigure_register_ipv4_fqdn_sap_hostname_once_check.stdout_lines,
              __sap_general_preconfigure_register_ipv4_fqdn_sap_hostname_once_check.stderr_lines
 
     - name: Display the expected output of the /etc/hosts completeness check
-      debug:
+      ansible.builtin.debug:
         msg:
           - "Expected:"
           - "{{ sap_ip }} {{ sap_hostname }}.{{ sap_domain }} {{ sap_hostname }}"
@@ -42,7 +42,7 @@
         - __sap_general_preconfigure_register_ipv4_fqdn_sap_hostname_once_check.stdout != "1"
 
     - name: Fail if ip4 address, FQDN, or hostname are not in /etc/hosts
-      fail:
+      ansible.builtin.fail:
         msg:
           - "Server's ip4 address, FQDN, or hostname are not in /etc/hosts!"
           - "Expected:"
@@ -56,7 +56,7 @@
 
 # We allow more than one line containing sap_ip:
 - name: Check for duplicate entries of {{ sap_ip }} in /etc/hosts
-  shell: |
+  ansible.builtin.shell: |
     n=$(grep "^{{ sap_ip }}\s" /etc/hosts | wc -l)
     if [ $n -gt 1 ]; then
       echo "Duplicate IP entry in /etc/hosts!"
@@ -70,12 +70,12 @@
   when: not ansible_check_mode
 
 - name: Verify that variable sap_domain is set
-  assert:
+  ansible.builtin.assert:
     that: not( (sap_domain is undefined) or (sap_domain is none) or (sap_domain | trim == '') )
     msg: "Variable 'sap_domain' is undefined or empty. Please define it in defaults/main.yml or via --extra-vars!"
 
 - name: Report if there is more than one line with the IP address
-  debug:
+  ansible.builtin.debug:
     msg:
       - "More than one line containing {{ sap_ip }}. File /etc/hosts will not be modified."
   when:
@@ -84,7 +84,7 @@
     - sap_general_preconfigure_modify_etc_hosts | bool
 
 - name: Ensure that the entry in /etc/hosts is correct
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/hosts
     regexp: '^{{ sap_ip }}\s'
     line: "{{ sap_ip }} {{ sap_hostname }}.{{ sap_domain }} {{ sap_hostname }}{{ __sap_general_preconfigure_register_sap_hostname_aliases.stdout }}"
@@ -96,7 +96,7 @@
     - sap_general_preconfigure_modify_etc_hosts | bool
 
 - name: Check for duplicate or missing entries of hostname and fqdn in /etc/hosts
-  shell: |
+  ansible.builtin.shell: |
     n=$(awk 'BEGIN{a=0}/^{{ line_item }}\s/||/\s{{ line_item }}\s/||/\s{{ line_item }}$/{a++}END{print a}' /etc/hosts)
     if [ $n -eq 1 ]; then
       exit 0
@@ -112,5 +112,5 @@
   when: not ansible_check_mode
 
 - name: Check hostname -s and hostname -f settings
-  shell: test "$(hostname -s)" = "$(hostname)" -a "$(hostname -f)" = "$(hostname).$(hostname -d)"
+  ansible.builtin.shell: test "$(hostname -s)" = "$(hostname)" -a "$(hostname -f)" = "$(hostname).$(hostname -d)"
   changed_when: false
