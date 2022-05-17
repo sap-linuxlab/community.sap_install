@@ -1,7 +1,7 @@
 ---
 
 - name: Assert - Display host and domain name, and IP address
-  debug:
+  ansible.builtin.debug:
     msg:
       - "sap_hostname = {{ sap_hostname }}"
       - "sap_domain = {{ sap_domain }}"
@@ -24,20 +24,20 @@
 #    var=sap_hostname_aliases
 
 - name: Check if ipv4 address, FQDN, and hostname are once in /etc/hosts
-  command: awk 'BEGIN{a=0}/{{ sap_ip }}/&&/{{ sap_hostname }}.{{ sap_domain }}/&&/{{ sap_hostname }}/{a++}END{print a}' /etc/hosts
+  ansible.builtin.command: awk 'BEGIN{a=0}/{{ sap_ip }}/&&/{{ sap_hostname }}.{{ sap_domain }}/&&/{{ sap_hostname }}/{a++}END{print a}' /etc/hosts
   register: __sap_general_preconfigure_register_ipv4_fqdn_sap_hostname_once_assert
   ignore_errors: yes
   changed_when: no
 
 - name: Assert that ipv4 address, FQDN, and hostname are once in /etc/hosts
-  assert:
+  ansible.builtin.assert:
     that: "__sap_general_preconfigure_register_ipv4_fqdn_sap_hostname_once_assert.stdout == '1'"
     fail_msg: "FAIL: The line '{{ sap_ip }} {{ sap_hostname }}.{{ sap_domain }} {{ sap_hostname }}' needs to be once in /etc/hosts!"
     success_msg: "PASS: The line '{{ sap_ip }} {{ sap_hostname }}.{{ sap_domain }} {{ sap_hostname }}' is once in /etc/hosts."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
 #- name: Ensure that the entry in /etc/hosts is correct
-#  lineinfile:
+#  ansible.builtin.lineinfile:
 #    path: /etc/hosts
 #    regexp: '^{{ sap_ip }}\s'
 #    line: "{{ sap_ip }} {{ sap_hostname }}.{{ sap_domain }} {{ sap_hostname }} {{ sap_base_settings_register_hostname_aliases.stdout }}"
@@ -45,20 +45,20 @@
 #    - sap_general_preconfigure_assert_modify_etc_hosts | bool
 
 - name: Count the number of sap_ip ({{ sap_ip }}) entries in /etc/hosts
-  command: awk 'BEGIN{a=0}/{{ sap_ip }}/{a++}END{print a}' /etc/hosts
+  ansible.builtin.command: awk 'BEGIN{a=0}/{{ sap_ip }}/{a++}END{print a}' /etc/hosts
   register: __sap_general_preconfigure_register_sap_ip_once_assert
   ignore_errors: yes
   changed_when: no
 
 - name: Assert that there is just one line containing {{ sap_ip }} in /etc/hosts
-  assert:
+  ansible.builtin.assert:
     that: "__sap_general_preconfigure_register_sap_ip_once_assert.stdout == '1'"
     fail_msg: "FAIL: There is no line, or more than one line, containing '{{ sap_ip }}' in /etc/hosts!"
     success_msg: "PASS: There is only one line containing '{{ sap_ip }}' in /etc/hosts."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Check for duplicate or missing entries of {{ sap_hostname }}.{{ sap_domain }} in /etc/hosts
-  command: awk '/^{{ sap_hostname }}.{{ sap_domain }} /||
+  ansible.builtin.command: awk '/^{{ sap_hostname }}.{{ sap_domain }} /||
                 / {{ sap_hostname }}.{{ sap_domain }} /||
                 / {{ sap_hostname }}.{{ sap_domain }}$/{a++}END{print a}' /etc/hosts
   register: __sap_general_preconfigure_register_fqdn_once_assert
@@ -66,14 +66,14 @@
   changed_when: no
 
 - name: Assert that there is just one line containing {{ sap_hostname }}.{{ sap_domain }} in /etc/hosts
-  assert:
+  ansible.builtin.assert:
     that: "__sap_general_preconfigure_register_fqdn_once_assert.stdout == '1'"
     fail_msg: "FAIL: There is no line, or more than one line, containing '{{ sap_hostname }}.{{ sap_domain }}' in /etc/hosts!"
     success_msg: "PASS: There is only one line containing '{{ sap_hostname }}.{{ sap_domain }}' in /etc/hosts."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Check for duplicate or missing entries of {{ sap_hostname }} in /etc/hosts
-  command: awk '/^{{ sap_hostname }} /||
+  ansible.builtin.command: awk '/^{{ sap_hostname }} /||
                 / {{ sap_hostname }} /||
                 / {{ sap_hostname }}$/{a++}END{print a}' /etc/hosts
   register: __sap_general_preconfigure_register_sap_hostname_once_assert
@@ -81,33 +81,33 @@
   changed_when: no
 
 - name: Assert that there is just one line containing {{ sap_hostname }} in /etc/hosts
-  assert:
+  ansible.builtin.assert:
     that: "__sap_general_preconfigure_register_sap_hostname_once_assert.stdout == '1'"
     fail_msg: "FAIL: There is no line, or more than one line, containing '{{ sap_hostname }}' in /etc/hosts!"
     success_msg: "PASS: There is only one line containing '{{ sap_hostname }}' in /etc/hosts."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Check hostname -s
-  shell: test "$(hostname -s)" = "$(hostname)"
+  ansible.builtin.shell: test "$(hostname -s)" = "$(hostname)"
   register: __sap_general_preconfigure_register_hostname_s_assert
   ignore_errors: yes
   changed_when: no
 
 - name: Assert that hostname -s matches the output of hostname
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_hostname_s_assert is success
     fail_msg: "FAIL: The output of 'hostname -s' does not match the output of 'hostname'!"
     success_msg: "PASS: The output of 'hostname -s' matches the output of 'hostname'."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Check hostname -f
-  shell: test "$(hostname -f)" = "$(hostname).$(hostname -d)"
+  ansible.builtin.shell: test "$(hostname -f)" = "$(hostname).$(hostname -d)"
   register: __sap_general_preconfigure_register_hostname_f_assert
   ignore_errors: yes
   changed_when: no
 
 - name: Assert that hostname -f matches the output of hostname.hostname -d
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_hostname_f_assert is success
     fail_msg: "FAIL: The output of 'hostname -f' does not match the output of 'hostname'.'hostname -d'!"
     success_msg: "PASS: The output of 'hostname -f' matches the output of 'hostname'.'hostname -d'."

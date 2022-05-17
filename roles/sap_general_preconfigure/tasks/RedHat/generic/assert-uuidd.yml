@@ -1,7 +1,7 @@
 ---
 
 - name: Assert that uuidd.service exists
-  assert:
+  ansible.builtin.assert:
     that: "'uuidd.service' in ansible_facts.services"
     fail_msg: "FAIL: Service 'uuidd' could not be found!"
     success_msg: "PASS: Service 'uuidd' is available."
@@ -9,7 +9,7 @@
 
 # uuidd is started on demand by uuidd.socket, so it does not need to be running:
 - name: Report uuidd service status
-  debug:
+  ansible.builtin.debug:
     msg: "INFO: The 'uuidd' service is in status '{{ ansible_facts.services['uuidd.service']['status'] }}' and
           in state '{{ ansible_facts.services['uuidd.service']['state'] }}'."
   when: "'uuidd.service' in ansible_facts.services"
@@ -17,24 +17,24 @@
 # uuidd.socket is not contained in ansible_facts.services, so we need to get the status from systemctl:
 # Reason for noqa: We need to get the current status only
 - name: Get status of uuidd.socket # noqa command-instead-of-module
-  command: systemctl status uuidd.socket
+  ansible.builtin.command: systemctl status uuidd.socket
   register: __sap_general_preconfigure_register_uuidd_socket_status_assert
   ignore_errors: yes
   changed_when: no
 
 - name: Report uuidd.socket service status
-  debug:
+  ansible.builtin.debug:
     var: __sap_general_preconfigure_register_uuidd_socket_status_assert.stdout
 
 - name: Assert that uuidd.socket is enabled
-  assert:
+  ansible.builtin.assert:
     that: "'/usr/lib/systemd/system/uuidd.socket; enabled' in __sap_general_preconfigure_register_uuidd_socket_status_assert.stdout"
     fail_msg: "FAIL: Service 'uuidd.socket' is not enabled!"
     success_msg: "PASS: Service 'uuidd.socket' is enabled."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Assert that uuidd.socket is active
-  assert:
+  ansible.builtin.assert:
     that: "'active (running)' in __sap_general_preconfigure_register_uuidd_socket_status_assert.stdout or 'active (listening)'
            in __sap_general_preconfigure_register_uuidd_socket_status_assert.stdout"
     fail_msg: "FAIL: Service 'uuidd.socket' is not active!"

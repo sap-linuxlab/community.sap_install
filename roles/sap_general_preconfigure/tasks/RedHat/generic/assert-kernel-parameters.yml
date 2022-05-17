@@ -1,19 +1,19 @@
 ---
 
 - name: Get info about file {{ __sap_general_preconfigure_etc_sysctl_sap_conf }}
-  stat:
+  ansible.builtin.stat:
     path: "{{ __sap_general_preconfigure_etc_sysctl_sap_conf }}"
   register: __sap_general_preconfigure_register_stat_sysctl_sap_conf_assert
 
 - name: Assert that file /etc/sysctl.d/sap.conf exists
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_stat_sysctl_sap_conf_assert.stat.exists
     fail_msg: "FAIL: File {{ __sap_general_preconfigure_etc_sysctl_sap_conf }} does not exist!"
     success_msg: "PASS: File {{ __sap_general_preconfigure_etc_sysctl_sap_conf }} exist."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Assert that file /etc/sysctl.d/sap.conf is a regular file
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_stat_sysctl_sap_conf_assert.stat.isreg
     fail_msg: "FAIL: File {{ __sap_general_preconfigure_etc_sysctl_sap_conf }} is not a regular file!"
     success_msg: "PASS: File {{ __sap_general_preconfigure_etc_sysctl_sap_conf }} is a regular file."
@@ -21,7 +21,7 @@
   when: __sap_general_preconfigure_register_stat_sysctl_sap_conf_assert.stat.exists
 
 - name: Get and assert kernel tunables
-  include_tasks: assert-kernel-parameters-loop-block.yml
+  ansible.builtin.include_tasks: assert-kernel-parameters-loop-block.yml
   loop: "{{ sap_general_preconfigure_kernel_parameters }}"
   loop_control:
     loop_var: line_item
