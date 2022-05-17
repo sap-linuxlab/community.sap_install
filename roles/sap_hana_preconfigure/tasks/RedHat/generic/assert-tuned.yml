@@ -1,7 +1,7 @@
 ---
 
 - name: Display the version of tuned
-  debug:
+  ansible.builtin.debug:
     msg: "INFO: The installed version of package tuned is: {{ ansible_facts.packages['tuned'][0].version }}"
   when: "'tuned' in ansible_facts.packages and
         (sap_hana_preconfigure_use_tuned or
@@ -9,7 +9,7 @@
         )"
 
 - name: "Assert that tuned.service exists - use_tuned: yes"
-  assert:
+  ansible.builtin.assert:
     that: "'tuned.service' in ansible_facts.services"
     fail_msg: "FAIL: Service 'tuned' could not be found!"
     success_msg: "PASS: Service 'tuned' is available."
@@ -17,7 +17,7 @@
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: "Assert that tuned is enabled - use_tuned: yes"
-  assert:
+  ansible.builtin.assert:
     that: "ansible_facts.services['tuned.service']['status'] == 'enabled'"
     fail_msg: "FAIL: Service 'tuned' is not enabled!"
     success_msg: "PASS: Service 'tuned' is enabled."
@@ -27,7 +27,7 @@
     - sap_hana_preconfigure_use_tuned
 
 - name: "Assert that tuned is active - use_tuned: yes"
-  assert:
+  ansible.builtin.assert:
     that: "ansible_facts.services['tuned.service']['state'] == 'running'"
     fail_msg: "FAIL: Service 'tuned' is not active!"
     success_msg: "PASS: Service 'tuned' is active."
@@ -37,14 +37,14 @@
     - sap_hana_preconfigure_use_tuned
 
 - name: "Report if tuned.service does not exist - use_tuned: no"
-  debug:
+  ansible.builtin.debug:
     msg: "PASS: Service 'tuned' could not be found."
   when:
     - "'tuned.service' not in ansible_facts.services"
     - not sap_hana_preconfigure_use_tuned
 
 - name: "Assert that tuned is disabled - use_tuned: no"
-  assert:
+  ansible.builtin.assert:
     that: "ansible_facts.services['tuned.service']['status'] == 'disabled'"
     fail_msg: "FAIL: Service 'tuned' is not disabled!"
     success_msg: "PASS: Service 'tuned' is disabled."
@@ -54,7 +54,7 @@
     - not sap_hana_preconfigure_use_tuned
 
 - name: "Assert that tuned is inactive - use_tuned: no"
-  assert:
+  ansible.builtin.assert:
     that: "ansible_facts.services['tuned.service']['state'] == 'inactive'"
     fail_msg: "FAIL: Service 'tuned' is not inactive!"
     success_msg: "PASS: Service 'tuned' is inactive."
@@ -64,7 +64,7 @@
     - not sap_hana_preconfigure_use_tuned
 
 - name: Display the version of package tuned-profiles-sap-hana
-  debug:
+  ansible.builtin.debug:
     msg: "INFO: The installed version of package 'tuned-profiles-sap-hana' is: {{ ansible_facts.packages['tuned-profiles-sap-hana'][0].version }}"
   when: "'tuned-profiles-sap-hana' in ansible_facts.packages and
         (sap_hana_preconfigure_use_tuned or
@@ -72,7 +72,7 @@
         )"
 
 - name: Get active tuned profile
-  shell: /usr/sbin/tuned-adm active | grep ":" | cut -d ":" -f 2 | awk '{$1=$1;print}'
+  ansible.builtin.shell: /usr/sbin/tuned-adm active | grep ":" | cut -d ":" -f 2 | awk '{$1=$1;print}'
   check_mode: no
   register: __sap_hana_preconfigure_register_current_tuned_profile_assert
   ignore_errors: yes
@@ -81,7 +81,7 @@
         sap_hana_preconfigure_assert_all_config
 
 - name: Assert - Display the output of the tuned-adm active command
-  debug:
+  ansible.builtin.debug:
     var: __sap_hana_preconfigure_register_current_tuned_profile_assert.stdout_lines,
          __sap_hana_preconfigure_register_current_tuned_profile_assert.stderr_lines
   ignore_errors: yes
@@ -89,7 +89,7 @@
         sap_hana_preconfigure_assert_all_config
 
 - name: Assert that tuned profile '{{ sap_hana_preconfigure_tuned_profile }}' is currently active
-  assert:
+  ansible.builtin.assert:
     that: "__sap_hana_preconfigure_register_current_tuned_profile_assert.stdout == '{{ sap_hana_preconfigure_tuned_profile }}'"
     fail_msg: "FAIL: The tuned profile '{{ sap_hana_preconfigure_tuned_profile }}' is currently not active!
       Currently active profile: '{{ __sap_hana_preconfigure_register_current_tuned_profile_assert.stdout }}'."
