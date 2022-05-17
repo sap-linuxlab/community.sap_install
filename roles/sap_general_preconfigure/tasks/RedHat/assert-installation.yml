@@ -80,29 +80,29 @@
 # Reason for noqa: A double brace might also occur in an awk command sequence.
 - name: Check RHEL 7 package groups
   block:
-  - name: Set yum group list installed command # noqa var-spacing
-    ansible.builtin.set_fact:
-      __sap_general_preconfigure_fact_yum_group_list_installed_command_assert: "yum group list installed hidden ids |
-        awk '/Installed Groups:/{a=1}/Done/{a=0}{if (a==1&&!/:/){print $NF}}' |
-        sed 's,(,,;s,),,'"
+    - name: Set yum group list installed command # noqa var-spacing
+      ansible.builtin.set_fact:
+        __sap_general_preconfigure_fact_yum_group_list_installed_command_assert: "yum group list installed hidden ids |
+          awk '/Installed Groups:/{a=1}/Done/{a=0}{if (a==1&&!/:/){print $NF}}' |
+          sed 's,(,,;s,),,'"
 
-# Reason for noqa: The command to be executed might contain pipes
-  - name: Check if required RHEL 7 package groups are installed # noqa command-instead-of-shell
-    ansible.builtin.shell: "{{ __sap_general_preconfigure_fact_yum_group_list_installed_command_assert }}"
-    register: __sap_general_preconfigure_register_yum_group_assert
-    changed_when: no
-    args:
-      warn: false
+    # Reason for noqa: The command to be executed might contain pipes
+    - name: Check if required RHEL 7 package groups are installed # noqa command-instead-of-shell
+      ansible.builtin.shell: "{{ __sap_general_preconfigure_fact_yum_group_list_installed_command_assert }}"
+      register: __sap_general_preconfigure_register_yum_group_assert
+      changed_when: no
+      args:
+        warn: false
 
-  - name: Assert that all required RHEL 7 package groups are installed
-    ansible.builtin.assert:
-      that: "'{{ line_item }}' in __sap_general_preconfigure_register_yum_group_assert.stdout_lines"
-      fail_msg: "FAIL: Package group '{{ line_item }}' is not installed!"
-      success_msg: "PASS: Package group '{{ line_item }}' is installed."
-    loop: "{{ sap_general_preconfigure_packagegroups | map('replace', '@', '') | list }}"
-    loop_control:
-      loop_var: line_item
-    ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
+    - name: Assert that all required RHEL 7 package groups are installed
+      ansible.builtin.assert:
+        that: "'{{ line_item }}' in __sap_general_preconfigure_register_yum_group_assert.stdout_lines"
+        fail_msg: "FAIL: Package group '{{ line_item }}' is not installed!"
+        success_msg: "PASS: Package group '{{ line_item }}' is installed."
+      loop: "{{ sap_general_preconfigure_packagegroups | map('replace', '@', '') | list }}"
+      loop_control:
+        loop_var: line_item
+      ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
   when:
     - sap_general_preconfigure_packagegroups|d([])
