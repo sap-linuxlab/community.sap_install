@@ -1,0 +1,36 @@
+---
+dependency:
+  name: shell
+  command: |
+    ansible-galaxy install -r $MOLECULE_SCENARIO_DIRECTORY/requirements.yml
+  # pip install -r $MOLECULE_SCENARIO_DIRECTORY/requirements.txt
+
+driver:
+  name: delegated
+platforms:
+  - name: rhel8-4
+    # placement_group:
+    #   name: sap-ppg
+    #   placement_strategy: host
+    # TODO: add management of proximity placement group
+    # see https://github.com/IBM-Cloud/ansible-collection-ibm/blob/bcea72c9b1cb2b7792259d66655b01c6a6d650fb/docs/ibm_compute_placement_group.rst
+
+    # resource_group_name: "rh-pacemaker"
+    # ibm_is_vpc_name: "molecule"
+    # ibm_is_subnet_name: "molecule-subnet"
+    # ibm_is_ssh_public_key_path: "~/.ssh/id_rsa.pub"
+    # ibm_is_ssh_private_key_path: "~/.ssh/id_rsa"
+    instance_profile: "bx2d-16x64"  # 64 Gb
+    instance_image_name: "ibm-redhat-8-4-amd64-sap-hana-2"
+    instance_zone: "us-south-3"
+    # https://cloud.ibm.com/docs/overview?topic=overview-locations
+
+    # ibm_is_floating_ip_create: true
+    # instance_tcp_allowed_ports:
+    #   - port_max: 22
+    #     port_min: 22
+
+provisioner:
+  name: ansible
+verifier:
+  name: ansible

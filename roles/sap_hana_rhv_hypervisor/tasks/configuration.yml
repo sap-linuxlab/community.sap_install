@@ -4,38 +4,56 @@
 - name: Test if kernel same page merging (KSM) exists
   shell: systemctl cat ksm
   register: ksm
-  ignore_errors: yes
+  ignore_errors: true
+  become: true
+  become_user: root
 
 - name: Test if kernel same page merging (KSM) tuning daemon exists
   shell: systemctl cat ksmtuned
   register: ksmtuned
-  ignore_errors: yes
+  ignore_errors: true
+  become: true
+  become_user: root
 
 - name: Stop kernel same page merging (KSM)
   shell: systemctl stop ksm
   when: ksm.rc == 0
+  become: true
+  become_user: root
 
 - name: Disable kernel same page merging (KSM)
   shell: systemctl disable ksm
   when: ksm.rc == 0
+  become: true
+  become_user: root
 
 - name: Stop Kernel Samepage Merging (KSM) Tuning Daemon
   shell: systemctl stop ksmtuned
   when: ksmtuned.rc == 0
+  become: true
+  become_user: root
 
 - name: Disable Kernel Samepage Merging (KSM) Tuning Daemon
   shell: systemctl disable ksmtuned
   when: ksmtuned.rc == 0
+  become: true
+  become_user: root
 
 - name: Check CPU Stepping
   shell: lscpu | awk '/Stepping/{print $2}'
   register: cpu_stepping_output
+  become: true
+  become_user: root
 
 - set_fact:
     cpu_stepping: "{{ cpu_stepping_output.stdout }}"
+  become: true
+  become_user: root
 
 - name: Print CPU Stepping
   shell: echo "{{ cpu_stepping }}"
+  become: true
+  become_user: root
 
 # skylake:
 - name: Set ple_gap=0 on Intel Skylake CPU Platform
@@ -43,6 +61,8 @@
     path: /etc/modprobe.d/kvm.conf
     line: options kvm_intel ple_gap=0
   when: cpu_stepping == "4"
+  become: true
+  become_user: root
 
 # skylake
 - name: Set spectre_v2=retpoline on Intel Skylake CPU Platform
@@ -58,6 +78,8 @@
   notify: "Regenerate grub2 conf handler"
   tags: grubconfig
   when: cpu_stepping == "4"
+  become: true
+  become_user: root
 
 - name: "Set kvm.nx_huge_pages to {{ sap_hana_rhv_hypervisor_kvm_nx_huge_pages }}"
   lineinfile:
@@ -72,6 +94,8 @@
   notify: "Regenerate grub2 conf handler"
   tags: grubconfig
   when: sap_hana_rhv_hypervisor_kvm_nx_huge_pages is defined
+  become: true
+  become_user: root
 
 - name: Set seccomp_sanbox=0
   lineinfile:
@@ -81,6 +105,8 @@
     state: present
     regexp: 'seccomp_sandbox'
     line: "seccomp_sandbox = 0"
+  become: true
+  become_user: root
 
 - name: Trigger tuned profile sap-hana-kvm activation
   include_tasks: allocate-hugepages-at-runtime.yml
@@ -101,6 +127,8 @@
   notify: "Regenerate grub2 conf handler"
   tags: grubconfig
   when: sap_hana_rhv_hypervisor_reserve_hugepages == "static"
+  become: true
+  become_user: root
 
 - name: Enable IOMMU PT
   lineinfile:
@@ -115,6 +143,8 @@
     - iommu=pt
   notify: "Regenerate grub2 conf handler"
   tags: grubconfig
+  become: true
+  become_user: root
 
 - name: Enable TSX
   lineinfile:
@@ -128,4 +158,6 @@
     - "tsx={{ sap_hana_rhv_hypervisor_tsx }}"
   notify: "Regenerate grub2 conf handler"
   tags: grubconfig
+  become: true
+  become_user: root
 ...
