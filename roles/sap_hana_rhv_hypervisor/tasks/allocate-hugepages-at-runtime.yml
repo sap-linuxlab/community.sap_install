@@ -1,19 +1,19 @@
 ---
 - name: Install libhugetlbfs
-  yum:
+  ansible.builtin.yum:
     name: libhugetlbfs, libhugetlbfs-utils
     state: present
 
 #XXX better location than rc.local?
 - name: Add hugepage allocation to /etc/rc.local
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: /etc/rc.local
     marker: ""
     block: |
         hugeadm --create-mounts --pool-pages-min 1G:$(free -g | grep "Mem:" | awk '{print $2-"{{ sap_hana_rhv_hypervisor_reserved_ram }}"}')
 
 - name: Set default hugepage size
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/default/grub
     backup: yes
     backrefs: yes
