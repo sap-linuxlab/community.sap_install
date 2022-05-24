@@ -14,12 +14,12 @@
   block:
 
     - name: Configure - Display SAP note number 2055470 and its version
-      debug:
+      ansible.builtin.debug:
         msg: "SAP note {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2055470$') | first).number }}
               (version {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2055470$') | first).version }}): SAP HANA on POWER settings"
 
     - name: Ensure MTU size is 9000 on all interfaces
-      shell: |
+      ansible.builtin.shell: |
         mtu=$(nmcli conn show {{ line_item }} | grep 802-3-ethernet.mtu | awk -F: '{printf("%d", $2)}')
         if [ "$mtu" != "9000" ]; then
            nmcli conn mod {{ line_item }} 802-3-ethernet.mtu "9000"
@@ -41,7 +41,7 @@
 
 # This only works if interfacename=device name, otherwise it fails
     - name: Add largesend options to interfaces
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/sysconfig/network-scripts/ifcfg-{{ line_item }}
         regexp: '^ETHTOOL_OPTIONS_tso='
         line: ETHTOOL_OPTIONS_tso='-K iface tso on'
@@ -56,7 +56,7 @@
       ignore_errors: true
 
     - name: Add largesend kernel parameters for ppc64le
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/sysctl.d/ibm_largesend.conf
         create: yes
         mode: 0644
@@ -69,11 +69,11 @@
 
 # Reason for noqa: We unconditionally reload the kernel parameters without first checking the current values
     - name: Reload kernel parameters from file '/etc/sysctl.d/ibm_largesend.conf' # noqa no-changed-when
-      command: sysctl -p /etc/sysctl.d/ibm_largesend.conf
+      ansible.builtin.command: sysctl -p /etc/sysctl.d/ibm_largesend.conf
       register: __sap_hana_preconfigure_register_ibm_largesend_sysctl_p_output
 
     - name: Display largesend kernel parameters
-      debug:
+      ansible.builtin.debug:
         var: __sap_hana_preconfigure_register_ibm_largesend_sysctl_p_output.stdout_lines
 
   when: ansible_architecture == 'ppc64le'

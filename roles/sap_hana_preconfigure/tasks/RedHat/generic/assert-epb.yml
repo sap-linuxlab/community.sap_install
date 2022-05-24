@@ -6,33 +6,33 @@
 - name: Assert - Perform steps for checking EPB
   block:
     - name: Check if system supports Intel's performance bias setting (x86_64 platform only)
-      shell: LC_ALL=C cpupower info | head -1 | awk '{print $2, $3, $4}'
+      ansible.builtin.shell: LC_ALL=C cpupower info | head -1 | awk '{print $2, $3, $4}'
       check_mode: no
       register: __sap_hana_preconfigure_register_cpupower_info_epb_supported_assert
       ignore_errors: true
       changed_when: no
 
     - name: Assert - Display the output of the cpupower info command
-      debug:
+      ansible.builtin.debug:
         var: __sap_hana_preconfigure_register_cpupower_info_epb_supported_assert.stdout_lines,
              __sap_hana_preconfigure_register_cpupower_info_epb_supported_assert.stderr_lines
 
     - name: Check EPB if possible (x86_64 platform only)
       block:
         - name: Get info about file /etc/init.d/boot.local
-          stat:
+          ansible.builtin.stat:
             path: /etc/init.d/boot.local
           register: __sap_hana_preconfigure_register_stat_boot_local_epb_assert
 
         - name: Assert that file /etc/init.d/boot.local exists (x86_64 platform only)
-          assert:
+          ansible.builtin.assert:
             that: __sap_hana_preconfigure_register_stat_boot_local_epb_assert.stat.exists
             fail_msg: "FAIL: File /etc/init.d/boot.local does not exist!"
             success_msg: "PASS: File /etc/init.d/boot.local exist."
           ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
 
         - name: Assert that file /etc/init.d/boot.local is a regular file (x86_64 platform only)
-          assert:
+          ansible.builtin.assert:
             that: __sap_hana_preconfigure_register_stat_boot_local_epb_assert.stat.isreg
             fail_msg: "FAIL: File /etc/init.d/boot.local is not a regular file!"
             success_msg: "PASS: File /etc/init.d/boot.local is a regular file."
@@ -40,7 +40,7 @@
           when: __sap_hana_preconfigure_register_stat_boot_local_epb_assert.stat.exists
 
         - name: Assert that the mode of file /etc/init.d/boot.local is 0755 (x86_64 platform only)
-          assert:
+          ansible.builtin.assert:
             that: "__sap_hana_preconfigure_register_stat_boot_local_epb_assert.stat.mode == '0755'"
             fail_msg: "FAIL: File /etc/init.d/boot.local has mode '{{ __sap_hana_preconfigure_register_stat_boot_local_epb_assert.stat.mode }}'
                        but the expected mode is '0755'!"
@@ -49,14 +49,14 @@
           when: __sap_hana_preconfigure_register_stat_boot_local_epb_assert.stat.exists
 
         - name: Get the contents of file /etc/init.d/boot.local (x86_64 platform only)
-          command: grep cpupower /etc/init.d/boot.local
+          ansible.builtin.command: grep cpupower /etc/init.d/boot.local
           register: __sap_hana_preconfigure_register_boot_local_cpupower_assert
           changed_when: no
           ignore_errors: yes
           when: __sap_hana_preconfigure_register_stat_boot_local_epb_assert.stat.exists
 
         - name: Assert that EPB is configured at boot time (x86_64 platform only)
-          assert:
+          ansible.builtin.assert:
             that: "__sap_hana_preconfigure_register_boot_local_cpupower_assert.stdout == 'cpupower set -b 0'"
             fail_msg: "FAIL: EPB is not configured to bet set to '0' ('performance') at boot time!"
             success_msg: "PASS: EPB is configured to bet set to '0' ('performance') at boot time."
@@ -64,17 +64,17 @@
           when: __sap_hana_preconfigure_register_stat_boot_local_epb_assert.stat.exists
 
         - name: Get the current setting of EPB (x86_64 platform only)
-          shell: cpupower info -b | awk '/perf-bias/{print $NF}'
+          ansible.builtin.shell: cpupower info -b | awk '/perf-bias/{print $NF}'
           register: __sap_hana_preconfigure_register_cpupower_info_epb_assert
           changed_when: no
           ignore_errors: yes
 
         - name: Assert - Display the output of the cpupower info command again
-          debug:
+          ansible.builtin.debug:
             var: __sap_hana_preconfigure_register_cpupower_info_epb_assert
 
         - name: Assert that the current setting of EPB is '0' (x86_64 platform only)
-          assert:
+          ansible.builtin.assert:
             that: "__sap_hana_preconfigure_register_cpupower_info_epb_assert.stdout == '0'"
             fail_msg: "FAIL: EPB is currently not set to '0' ('performance')!"
             success_msg: "PASS: EPB is currently set to '0' ('performance')."
@@ -83,7 +83,7 @@
       when: "__sap_hana_preconfigure_register_cpupower_info_epb_supported_assert.stdout != 'does not support'"
 
     - name: Report if the system does not support EPB
-      debug:
+      ansible.builtin.debug:
         msg: "INFO: The system does not support Intel's performance bias setting (EPB)."
       when: "__sap_hana_preconfigure_register_cpupower_info_epb_supported_assert.stdout == 'does not support'"
 

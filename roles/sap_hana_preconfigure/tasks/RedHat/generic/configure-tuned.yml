@@ -4,7 +4,7 @@
   block:
 
     - name: RHEL 8.0 ppc64le - Create directory /etc/tuned/sap-hana-ppc64le
-      file:
+      ansible.builtin.file:
         path: /etc/tuned/sap-hana-ppc64le
         state: directory
         owner: root
@@ -12,7 +12,7 @@
         mode: '0755'
 
     - name: RHEL 8.0 ppc64le - Copy file /etc/tuned/sap-hana-ppc64le/tuned.conf
-      copy:
+      ansible.builtin.copy:
         src: etc/tuned/sap-hana-ppc64le/tuned.conf
         dest: /etc/tuned/sap-hana-ppc64le/tuned.conf
         owner: root
@@ -29,35 +29,35 @@
   block:
 
     - name: Enable and start tuned
-      service:
+      ansible.builtin.service:
         name: tuned
         state: started
         enabled: yes
 
     - name: Get currently active tuned profile
-      shell: /usr/sbin/tuned-adm active | grep ":" | cut -d ":" -f 2 | awk '{$1=$1;print}'
+      ansible.builtin.shell: /usr/sbin/tuned-adm active | grep ":" | cut -d ":" -f 2 | awk '{$1=$1;print}'
       check_mode: no
       register: __sap_hana_preconfigure_register_current_tuned_profile
       changed_when: false
 
     - name: Display the output of the tuned-adm active command
-      debug:
+      ansible.builtin.debug:
         var: __sap_hana_preconfigure_register_current_tuned_profile.stdout_lines, __sap_hana_preconfigure_register_current_tuned_profile.stderr_lines
 
     - name: Switch to tuned profile '{{ sap_hana_preconfigure_tuned_profile }}' if not currently active
       block:
         - name: Switch to tuned profile '{{ sap_hana_preconfigure_tuned_profile }}'
-          command: /usr/sbin/tuned-adm profile '{{ sap_hana_preconfigure_tuned_profile }}'
+          ansible.builtin.command: /usr/sbin/tuned-adm profile '{{ sap_hana_preconfigure_tuned_profile }}'
           changed_when: true
 
         - name: Show new active tuned profile
-          shell: /usr/sbin/tuned-adm active | grep ":" | cut -d ":" -f 2 | awk '{$1=$1;print}'
+          ansible.builtin.shell: /usr/sbin/tuned-adm active | grep ":" | cut -d ":" -f 2 | awk '{$1=$1;print}'
           check_mode: no
           register: __sap_hana_preconfigure_register_new_tuned_profile
           changed_when: false
 
         - name: Display the output of the tuned-adm active command after switching to profile '{{ sap_hana_preconfigure_tuned_profile }}'
-          debug:
+          ansible.builtin.debug:
             var: __sap_hana_preconfigure_register_new_tuned_profile.stdout_lines, __sap_hana_preconfigure_register_new_tuned_profile.stderr_lines
 
       when:

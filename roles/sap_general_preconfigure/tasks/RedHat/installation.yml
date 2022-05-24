@@ -18,14 +18,26 @@
         __sap_general_preconfigure_req_ha_repos: ''
       when: not sap_general_preconfigure_use_ha_repos
 
-    - name: Set final list of repos, auto
+    - name: Set final list of repos, non-s390x, auto
       ansible.builtin.set_fact:
         __sap_general_preconfigure_req_repos:
           "{{ __sap_general_preconfigure_req_os_repos | list }} +
            {{ __sap_general_preconfigure_req_netweaver_repos | list }} +
            {{ __sap_general_preconfigure_req_hana_repos | list }} +
            {{ __sap_general_preconfigure_req_ha_repos | list }}"
-      when: sap_general_preconfigure_req_repos is undefined
+      when:
+        - sap_general_preconfigure_req_repos is undefined
+        - ansible_architecture != 's390x'
+
+    - name: Set final list of repos, s390x, auto
+      ansible.builtin.set_fact:
+        __sap_general_preconfigure_req_repos:
+          "{{ __sap_general_preconfigure_req_os_repos | list }} +
+           {{ __sap_general_preconfigure_req_netweaver_repos | list }} +
+           {{ __sap_general_preconfigure_req_ha_repos | list }}"
+      when:
+        - sap_general_preconfigure_req_repos is undefined
+        - ansible_architecture == 's390x'
 
     - name: Set final list of repos, manual
       ansible.builtin.set_fact:

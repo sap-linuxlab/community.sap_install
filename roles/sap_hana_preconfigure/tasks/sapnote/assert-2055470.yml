@@ -14,12 +14,12 @@
   block:
 
     - name: Assert - Display SAP note number 2055470 and its version
-      debug:
+      ansible.builtin.debug:
         msg: "SAP note {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2055470$') | first).number }}
               (version {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2055470$') | first).version }}): SAP HANA on POWER settings"
 
     - name: Display an info about checking the MTU size
-      debug:
+      ansible.builtin.debug:
         msg: "WARN: Checking of MTU size==9000 on all interfaces not yet implemented. Please check manually!"
 
 #- name: ensure MTU size is 9000 on all interfaces
@@ -44,7 +44,7 @@
 
 # This only works if interfacename=device name, otherwise it fails
     - name: Display an info about checking largesend options
-      debug:
+      ansible.builtin.debug:
         msg: "WARN: Checking of largesend options of interface {{ sap_hana_preconfigure_ppcle_tso_if }} not yet implemented. Please check manually!"
 
 #- name: add largesend options to interface
@@ -60,19 +60,19 @@
     - name: Check /etc/sysctl.d/ibm_largesend.conf
       block:
         - name: Get info about file /etc/sysctl.d/ibm_largesend.conf
-          stat:
+          ansible.builtin.stat:
             path: /etc/sysctl.d/ibm_largesend.conf
           register: __sap_hana_preconfigure_register_stat_sysctl_ibm_largesend_conf_assert
 
         - name: Assert that file /etc/sysctl.d/ibm_largesend.conf exists
-          assert:
+          ansible.builtin.assert:
             that: __sap_hana_preconfigure_register_stat_sysctl_ibm_largesend_conf_assert.stat.exists
             fail_msg: "FAIL: File /etc/sysctl.d/ibm_largesend.conf does not exist!"
             success_msg: "PASS: File /etc/sysctl.d/ibm_largesend.conf exists."
           ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
 
         - name: Assert that file /etc/sysctl.d/ibm_largesend.conf is a regular file
-          assert:
+          ansible.builtin.assert:
             that: __sap_hana_preconfigure_register_stat_sysctl_ibm_largesend_conf_assert.stat.isreg
             fail_msg: "FAIL: File /etc/sysctl.d/ibm_largesend.conf is not a regular file!"
             success_msg: "PASS: File /etc/sysctl.d/ibm_largesend.conf is a regular file."
@@ -82,7 +82,7 @@
       when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2055470|d(false)
 
     - name: Get and assert kernel tunables for ppc64le
-      include_tasks: ../RedHat/generic/assert-2055470-loop-block.yml
+      ansible.builtin.include_tasks: ../RedHat/generic/assert-2055470-loop-block.yml
       loop: "{{ sap_hana_preconfigure_kernel_parameters_ppc64le }}"
       loop_control:
         loop_var: line_item
