@@ -1,15 +1,34 @@
-
 ---
 
 - name: SAP HSR - [A] Enable firewall
   command: "systemctl enable firewalld"
+  become: true
+  tags: hsr_fw
 
 - name: SAP HSR - [A] Start firewall
   command: "systemctl start firewalld"
+  become: true
+  tags: hsr_fw
 
-
+- name: SAP HSR -[A] Check if config is done
+  tags: hsr_fw
+  become: true
+  shell: |
+     firewall-cmd --list-ports | grep 4{{ sap_ha_install_hana_hsr_instance_number }}02/tcp
+  register: sap_ha_install_hana_hsr_check_firewall
+  failed_when: false
+  changed_when: false
+# sap_ha_install_hana_hsr_check_firewall.rc==0 if firewall already defined
+  
+- name: SAP HSR -[A] Check if config is done
+  debug:
+    msg: "SAP HSR Firewall Config already done skipping"
+  when: sap_ha_install_hana_hsr_check_firewall.rc==0
+  tags: hsr_fw
 # [A] Configure firewall
 - name: SAP HSR - [A] Configure firewall
+  tags: hsr_fw
+  become: true
   shell: |
     sudo firewall-cmd --zone=public --add-port=4{{ sap_ha_install_hana_hsr_instance_number }}02/tcp --permanent
     sudo firewall-cmd --zone=public --add-port=4{{ sap_ha_install_hana_hsr_instance_number }}02/tcp
@@ -27,10 +46,15 @@
     sudo firewall-cmd --zone=public --add-port=3{{ sap_ha_install_hana_hsr_instance_number }}341/tcp
     sudo firewall-cmd --zone=public --add-port=3{{ sap_ha_install_hana_hsr_instance_number }}342/tcp --permanent
     sudo firewall-cmd --zone=public --add-port=3{{ sap_ha_install_hana_hsr_instance_number }}42/tcp
+  when: sap_ha_install_hana_hsr_check_firewall.rc != 0
 
 # Will stop the firewall for now because if certain issues arising from the rest of the steps in the HA installation
 - name: SAP HSR - [A] Stop firewall
   command: "systemctl stop firewalld"
+  become: true
+  tags: hsr_fw
 
 - name: SAP HSR - [A] Disable firewall
   command: "systemctl disable firewalld"
+  become: true
+  tags: hsr_fw

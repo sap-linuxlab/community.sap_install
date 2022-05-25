@@ -18,6 +18,7 @@
 
 # [A] Edit global.ini
 - name: SAP HANA HA - [A] Edit global.ini
+  tags: ha
   blockinfile:
     path: /hana/shared/{{ sap_ha_set_hana_sid }}/global/hdb/custom/config/global.ini
     block: |
@@ -30,6 +31,7 @@
 
 # [A] The cluster requires sudoers configuration on each cluster node for <sid>adm. In this example that is achieved by creating a new file. Execute the commands as root
 - name: SAP HANA HA - [A] Configure sudoers
+  tags: ha
   shell: |
     cat << EOF > /etc/sudoers.d/20-saphana
     Cmnd_Alias {{ sap_ha_set_hana_site1 }}_SOK   = /usr/sbin/crm_attribute -n hana_{{ sap_ha_set_hana_sid | lower }}_site_srHook_{{ sap_ha_set_hana_site1 }} -v SOK -t crm_config -s SAPHanaSR
@@ -41,6 +43,7 @@
 
 # [A] Start HDB
 - name: SAP HANA HA - [A] Start HDB
+  tags: ha
   shell: |
       /usr/sap/{{ sap_ha_set_hana_sid | upper }}/HDB{{ sap_ha_set_hana_instance_number }}/HDB start
   args:

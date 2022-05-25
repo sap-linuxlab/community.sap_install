@@ -1,0 +1,51 @@
+
+# [A] Setup Pacemaker SAP check constraint order HANA TOPOLOGY
+- name: "SAP Pacemaker Setup - check constraint order HANA TOPOLOGY"
+  tags: 
+    - constraint
+  run_once: True
+  become: True
+  shell: |
+    pcs constraint order --full | grep "id:"| awk -F "id:" '{ print $2 }' | \
+    grep order-SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone-SAPHana
+  register: sap_ha_set_hana_check_constraint_order_topology
+  ignore_errors: True
+  
+# [1] Setup Pacemaker SAP set constraint order HANA TOPOLOGY
+- name: "SAP Pacemaker Setup - [1] set ORDER Constraints"
+  tags: 
+    - constraint
+  run_once: True
+  shell: |
+    pcs constraint order \
+    SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone then \
+    SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone symmetrical=false 
+  when: 
+    - sap_ha_set_hana_check_constraint_order_topology.rc == 1
+
+# [A] Setup Pacemaker SAP check constraint colocation VIP with MASTER HANA
+- name: "SAP Pacemaker Setup - check constraint colocation VIP with MASTER HANA"
+  tags: 
+    - constraint
+  run_once: True
+  become: True
+  shell: |
+    pcs constraint colocation --full | \
+    grep colocation-vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER-SAPHana
+  register: sap_ha_set_hana_check_constraint_collocation_vip_master
+  ignore_errors: True
+  when: sap_ha_set_hana_vip1 is defined
+  
+# [1] Setup Pacemaker Setup - Constraint: promote HANA then start VIP
+- name: "SAP Pacemaker Setup - [1] Constraint: promote HANA then start VIP"
+  tags: 
+    - constraint
+  run_once: True
+  shell: |
+    pcs constraint colocation add \
+    vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER \
+    with master \
+    SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone 2000
+  when: 
+    - sap_ha_set_hana_check_constraint_collocation_vip_master.rc == 1
+    - sap_ha_set_hana_vip1 is defined

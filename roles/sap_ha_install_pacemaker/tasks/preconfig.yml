@@ -1,4 +1,10 @@
 ---
+- name: "SAP Pacemaker Setup -[A] check pcsd"
+  shell: |
+        systemctl is-active pcsd.service
+  register: sap_ha_install_pacemaker_pcsd_active
+  ignore_errors: true
+  
 
 # [A] Change hacluster password
 - name: SAP Pacemaker Setup - [A] Ensure password for hacluster is configured
@@ -15,6 +21,9 @@
   shell: |
     systemctl start pcsd.service
     systemctl enable pcsd.service
+  become: true
+  when:
+    - sap_ha_install_pacemaker_pcsd_active.rc != 0
 
 # [A] Update /etc/hosts
 
