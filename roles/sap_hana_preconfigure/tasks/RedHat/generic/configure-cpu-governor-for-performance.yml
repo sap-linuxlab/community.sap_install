@@ -5,49 +5,49 @@
 - name: Perform steps for configuring the CPU Governor for performance
   block:
     - name: Check if system is able to set CPU Governor for performance
-      shell: LC_ALL=C cpupower frequency-info -g | awk '/available cpufreq governors/{print $(NF-1), $NF}'
+      ansible.builtin.shell: LC_ALL=C cpupower frequency-info -g | awk '/available cpufreq governors/{print $(NF-1), $NF}'
       check_mode: no
       register: __sap_hana_preconfigure_register_cpupower_frequency_info_supported
       ignore_errors: true
       changed_when: false
 
     - name: Display the output of the cpupower frequency-info -g command
-      debug:
+      ansible.builtin.debug:
         var: __sap_hana_preconfigure_register_cpupower_frequency_info_supported.stdout_lines,
              __sap_hana_preconfigure_register_cpupower_frequency_info_supported.stderr_lines
 
     - name: Configure CPU Governor for performance if possible
       block:
         - name: Create file /etc/rc.d/rc.local if it does not exist
-          file:
+          ansible.builtin.file:
             path: /etc/rc.d/rc.local
             state: touch
             mode: 0644
 
         - name: Configure CPU Governor for performance at boot time (x86_64 platform only)
-          lineinfile:
+          ansible.builtin.lineinfile:
             dest: /etc/rc.d/rc.local
             line: "cpupower frequency-set -g performance"
 
 # Reason for changed_when being set to yes: Avoid calling one more command for getting the current CPU Governor setting
         - name: Configure CPU Governor for performance on the running system (x86_64 platform only)
-          command: cpupower frequency-set -g performance
+          ansible.builtin.command: cpupower frequency-set -g performance
           register: __sap_hana_preconfigure_register_cpupower_frequency_set
           changed_when: yes
 
         - name: Display the output of the cpupower frequency-set command
-          debug:
+          ansible.builtin.debug:
             var: __sap_hana_preconfigure_register_cpupower_frequency_set.stdout_lines,
                  __sap_hana_preconfigure_register_cpupower_frequency_set.stderr_lines
 
         - name: Get status of CPU Governor
-          command: cpupower frequency-info -g
+          ansible.builtin.command: cpupower frequency-info -g
           register: __sap_hana_preconfigure_register_cpupower_frequency_info
           ignore_errors: true
           changed_when: false
 
         - name: Display the output of the cpupower frequency-info -g command again
-          debug:
+          ansible.builtin.debug:
             var: __sap_hana_preconfigure_register_cpupower_frequency_info.stdout_lines, __sap_hana_preconfigure_register_cpupower_frequency_info.stderr_lines
 
       when:

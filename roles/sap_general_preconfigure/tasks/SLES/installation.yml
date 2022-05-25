@@ -1,32 +1,7 @@
 ---
 
-- name: Ensure that the required package groups are installed, RHEL 7
-  command: "yum install {{ sap_general_preconfigure_packagegroups|join(' ') }} -y"
-  args:
-    warn: false
-  register: __sap_general_preconfigure_register_yum_group_install
-  when:
-    - ansible_os_family == 'RedHat'
-    - ansible_distribution_major_version == '7'
-
-- name: Ensure that the required package groups are installed, RHEL 8 and RHEL 9
-# Note: We want to avoid unwanted package upgrades, see bug 1983749.
-  command: "yum install {{ sap_general_preconfigure_packagegroups|join(' ') }} --nobest --exclude=kernel* -y"
-  args:
-    warn: false
-  register: __sap_general_preconfigure_register_yum_group_install
-  when:
-    - ansible_os_family == 'RedHat'
-    - (ansible_distribution_major_version == '8' or
-         ansible_distribution_major_version == '9'
-      )
-
-- name: Display the output of the yum install command
-  debug:
-    var: __sap_general_preconfigure_register_yum_group_install
-
 - name: Ensure that the required packages are installed
-  package:
+  ansible.builtin.package:
     state: present
     name: "{{ sap_general_preconfigure_packages }}"
 
@@ -49,7 +24,7 @@
 #              to be updated.
 # 8 - case 2b: If the first column of the last line of the output is "2", it means that at least of the installed
 #              versions the package is equal to or greater than the required package version.
-      shell: |
+      ansible.builtin.shell: |
         (echo "1 {{ pkg[0] }}-{{ pkg[1] }}";rpm -q --qf "%{NAME}-%{VERSION}-%{RELEASE}\n" {{ pkg[0] }} |
          awk '{printf ("2 %s\n", $0)}') |
          awk '{gsub ("\\.el", ".0.0"); print}' |
@@ -73,11 +48,11 @@
       changed_when: no
 
     - name: Display the content of the minimum package list variable
-      debug:
+      ansible.builtin.debug:
         var: __sap_general_preconfigure_register_minpkglist
 
     - name: Install minimum packages if required
-      yum:
+      ansible.builtin.package:
         name: "{{ line_item.stdout }}"
         state: present
       with_items: "{{ __sap_general_preconfigure_register_minpkglist.results }}"
@@ -90,43 +65,14 @@
 
 # Reason for noqa: Both yum and dnf support "state: latest"
 - name: Ensure that the system is updated to the latest patchlevel # noqa package-latest
-  package:
+  ansible.builtin.package:
     state: latest
     name: "*"
   when: sap_general_preconfigure_update
 
-- name: "Set needs-restarting command in case of RHEL 7"
-  set_fact:
-    __sap_general_preconfigure_fact_needs_restarting_command: "needs-restarting -r"
-  when:
-    - ansible_os_family == 'RedHat'
-    - ansible_distribution_major_version == '7'
-
-- name: "Set needs-restarting command in case of RHEL 8 or RHEL 9, except RHEL 8.0"
-  set_fact:
-    __sap_general_preconfigure_fact_needs_restarting_command: "yum needs-restarting -r"
-  when:
-    - ansible_os_family == 'RedHat'
-    - (ansible_distribution_major_version == '8' or
-         ansible_distribution_major_version == '9'
-      )
-    - ansible_distribution_version != '8.0'
-
-- name: "Set customized needs-restarting command in case of RHEL 8.0"
-  set_fact:
-    __sap_general_preconfigure_fact_needs_restarting_command: "_IKRNL=$(rpm -q --last kernel | awk 'NR==1{sub(/kernel-/,\"\"); print $1}');
-                                                       _CKRNL=$(uname -r); if [ ${_IKRNL} != ${_CKRNL} ]; then exit 1; else exit 0; fi"
-  when:
-    - ansible_os_family == 'RedHat'
-    - ansible_distribution_version == '8.0'
-
-- name: Display the command for checking a reboot requirement
-  debug:
-    var: __sap_general_preconfigure_fact_needs_restarting_command
-
 # Reason for noqa: The command to be executed might contain pipes
 - name: Determine if the system needs to be restarted # noqa command-instead-of-shell
-  shell: "{{ __sap_general_preconfigure_fact_needs_restarting_command }}"
+  ansible.builtin.shell: "zypper ps"
   register: __sap_general_preconfigure_register_needs_restarting
   ignore_errors: true
   changed_when: false
@@ -135,23 +81,23 @@
   check_mode: false
 
 - name: Display the output of the reboot requirement check
-  debug:
+  ansible.builtin.debug:
     var: __sap_general_preconfigure_register_needs_restarting
 
 - name: Set the reboot requirement flag to false
-  set_fact:
+  ansible.builtin.set_fact:
     sap_general_preconfigure_fact_reboot_required: false
 
 - name: needs-restarting - Set the flag that reboot is needed to apply changes
-  set_fact:
+  ansible.builtin.set_fact:
     sap_general_preconfigure_fact_reboot_required: true
   when: __sap_general_preconfigure_register_needs_restarting is failed
 
 - name: needs-restarting - Display the content of sap_general_preconfigure_fact_reboot_required
-  debug:
+  ansible.builtin.debug:
     var: sap_general_preconfigure_fact_reboot_required
 
 - name: Call Reboot handler if necessary
-  command: /bin/true
+  ansible.builtin.command: /bin/true
   notify: __sap_general_preconfigure_reboot_handler
   when: __sap_general_preconfigure_register_needs_restarting is failed

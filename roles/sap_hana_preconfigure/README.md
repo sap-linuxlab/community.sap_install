@@ -204,6 +204,7 @@ In case you want the role to set or check these parameters, set the following va
 
 ```yaml
 sap_hana_preconfigure_use_netapp_settings_nfs
+```
 
 ###  HANA kernel parameters for NetApp NFSv3
 [SAP Note 3024346](https://launchpad.support.sap.com/#/notes/3024346) also contains an additional parameter setting for NetApp when using NFSv3.

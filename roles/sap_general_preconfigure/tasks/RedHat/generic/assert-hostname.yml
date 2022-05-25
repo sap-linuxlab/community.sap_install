@@ -1,20 +1,20 @@
 ---
 
 - name: Check if hostname is set
-  command: hostname
+  ansible.builtin.command: hostname
   register: __sap_general_preconfigure_register_hostname_assert
   ignore_errors: yes
   changed_when: no
 
 - name: Assert that the output of hostname matches the content of variable sap_hostname
-  assert:
+  ansible.builtin.assert:
     that: "__sap_general_preconfigure_register_hostname_assert.stdout == '{{ sap_hostname }}'"
     fail_msg: "FAIL: The output of 'hostname' does not match the content of variable 'sap_hostname'!"
     success_msg: "PASS: The output of 'hostname' matches the content of variable 'sap_hostname'."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: "Assert that the length of the hostname is not longer than 'sap_general_preconfigure_max_hostname_length'"
-  assert:
+  ansible.builtin.assert:
     that: "{{ sap_hostname | length | int }} <= {{ sap_general_preconfigure_max_hostname_length | int }}"
     fail_msg: "FAIL: The length of the hostname is {{ sap_hostname | length | int }} but must be less or equal to {{ sap_general_preconfigure_max_hostname_length }} (variable 'sap_general_preconfigure_max_hostname_length')!"
     success_msg: "PASS: The length of the hostname is {{ sap_hostname | length | int }}, which is less or equal to {{ sap_general_preconfigure_max_hostname_length }} (variable 'sap_general_preconfigure_max_hostname_length')."

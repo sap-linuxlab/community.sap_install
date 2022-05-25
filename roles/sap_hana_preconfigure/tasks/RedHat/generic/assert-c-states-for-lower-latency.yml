@@ -4,38 +4,38 @@
 - name: Assert - Perform steps for checking the required C-State configuration
   block:
     - name: C-States - Get contents of GRUB_CMDLINE_LINUX in /etc/default/grub
-      command: grep GRUB_CMDLINE_LINUX /etc/default/grub
+      ansible.builtin.command: grep GRUB_CMDLINE_LINUX /etc/default/grub
       register: __sap_hana_preconfigure_register_default_grub_cmdline_cstate_assert
       changed_when: no
 
     - name: Assert that processor.max_cstate=1 is in GRUB_CMDLINE_LINUX in /etc/default/grub
-      assert:
+      ansible.builtin.assert:
         that: "'processor.max_cstate=1' in __sap_hana_preconfigure_register_default_grub_cmdline_cstate_assert.stdout"
         fail_msg: "FAIL: 'processor.max_cstate=1' is not in GRUB_CMDLINE_LINUX in /etc/default/grub!"
         success_msg: "PASS: 'processor.max_cstate=1' is in GRUB_CMDLINE_LINUX in /etc/default/grub."
       ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
 
     - name: Assert that intel_idle.max_cstate=1 is in GRUB_CMDLINE_LINUX in /etc/default/grub
-      assert:
+      ansible.builtin.assert:
         that: "'intel_idle.max_cstate=1' in __sap_hana_preconfigure_register_default_grub_cmdline_cstate_assert.stdout"
         fail_msg: "FAIL: 'intel_idle.max_cstate=1' is not in GRUB_CMDLINE_LINUX in /etc/default/grub!"
         success_msg: "PASS: 'intel_idle.max_cstate=1' is in GRUB_CMDLINE_LINUX in /etc/default/grub."
       ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
 
     - name: C-States - Get contents of /proc/cmdline
-      command: cat /proc/cmdline
+      ansible.builtin.command: cat /proc/cmdline
       register: __sap_hana_preconfigure_register_proc_cmdline_cstate_assert
       changed_when: no
 
     - name: Assert that processor.max_cstate=1 is in /proc/cmdline
-      assert:
+      ansible.builtin.assert:
         that: "'processor.max_cstate=1' in __sap_hana_preconfigure_register_proc_cmdline_cstate_assert.stdout"
         fail_msg: "FAIL: 'processor.max_cstate=1' is not in /proc/cmdline!"
         success_msg: "PASS: 'processor.max_cstate=1' is in /proc/cmdline."
       ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
 
     - name: Assert that intel_idle.max_cstate=1 is in /proc/cmdline
-      assert:
+      ansible.builtin.assert:
         that: "'intel_idle.max_cstate=1' in __sap_hana_preconfigure_register_proc_cmdline_cstate_assert.stdout"
         fail_msg: "FAIL: 'intel_idle.max_cstate=1' is not in /proc/cmdline!"
         success_msg: "PASS: 'intel_idle.max_cstate=1' is in /proc/cmdline."

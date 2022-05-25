@@ -1,40 +1,40 @@
 ---
 
 - name: Configure - Get info about file /etc/init.d/boot.local
-  stat:
+  ansible.builtin.stat:
     path: /etc/init.d/boot.local
   register: __sap_hana_preconfigure_register_stat_boot_local_ksm
 
 - name: Create file /etc/init.d/boot.local if it does not exist
-  file:
+  ansible.builtin.file:
     path: /etc/init.d/boot.local
     state: touch
     mode: 0755
   when: not __sap_hana_preconfigure_register_stat_boot_local_ksm.stat.exists
 
 - name: Disable KSM at boot time
-  lineinfile:
+  ansible.builtin.lineinfile:
     dest: /etc/init.d/boot.local
     line: "echo 0 > /sys/kernel/mm/ksm/run"
 
 - name: Configure - Get initial status of KSM
-  command: cat /sys/kernel/mm/ksm/run
+  ansible.builtin.command: cat /sys/kernel/mm/ksm/run
   check_mode: no
   register: __sap_hana_preconfigure_register_ksm_status_before
   ignore_errors: true
   changed_when: false
 
 - name: Disable KSM on the running system
-  shell: echo 0 > /sys/kernel/mm/ksm/run
+  ansible.builtin.shell: echo 0 > /sys/kernel/mm/ksm/run
   register: __sap_hana_preconfigure_register_disable_ksm
   when: __sap_hana_preconfigure_register_ksm_status_before.stdout != '0'
 
 - name: Configure - Get status of KSM
-  command: cat /sys/kernel/mm/ksm/run
+  ansible.builtin.command: cat /sys/kernel/mm/ksm/run
   register: __sap_hana_preconfigure_register_ksm_status
   ignore_errors: true
   changed_when: false
 
 - name: Display the status of KSM
-  debug:
+  ansible.builtin.debug:
     var: __sap_hana_preconfigure_register_ksm_status.stdout_lines, __sap_hana_preconfigure_register_ksm_status.stderr_lines

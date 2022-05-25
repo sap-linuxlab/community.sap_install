@@ -1,20 +1,20 @@
 ---
 
 - name: Check the size of tmpfs
-  command: awk '/\/dev\/shm/&&/tmpfs/{gsub ("defaults,size=", "", $4); print $4}' /etc/fstab
+  ansible.builtin.command: awk '/\/dev\/shm/&&/tmpfs/{gsub ("defaults,size=", "", $4); print $4}' /etc/fstab
   register: __sap_general_preconfigure_register_fstab_tmpfs_size_gb_assert
   ignore_errors: yes
   changed_when: no
 
 - name: Assert that there is an entry for tmpfs in /etc/fstab
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_fstab_tmpfs_size_gb_assert.stdout | length > 0
     fail_msg: "FAIL: There is no entry for 'tmpfs' in /etc/fstab!"
     success_msg: "PASS: An entry for 'tmpfs' in /etc/fstab exists."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Assert that the size of tmpfs is large enough as per /etc/fstab
-  assert:
+  ansible.builtin.assert:
     that: "'{{ sap_general_preconfigure_size_of_tmpfs_gb }}G' in __sap_general_preconfigure_register_fstab_tmpfs_size_gb_assert.stdout"
     fail_msg: "FAIL: The size of tmpfs in /etc/fstab is '{{ __sap_general_preconfigure_register_fstab_tmpfs_size_gb_assert.stdout }}'
                but the expected size is '{{ sap_general_preconfigure_size_of_tmpfs_gb }}G'!"
@@ -23,13 +23,13 @@
   when: __sap_general_preconfigure_register_fstab_tmpfs_size_gb_assert.stdout | length > 0
 
 - name: Check if /dev/shm is available and has the expected size
-  shell: df -kl /dev/shm | awk '/\/dev\/shm/&&/tmpfs/{printf ("%.0fG\n", $2/1024/1024)}'
+  ansible.builtin.shell: df -kl /dev/shm | awk '/\/dev\/shm/&&/tmpfs/{printf ("%.0fG\n", $2/1024/1024)}'
   register: __sap_general_preconfigure_register_df_shm_assert
   ignore_errors: yes
   changed_when: no
 
 - name: Assert that the current size of tmpfs is large enough as per df output
-  assert:
+  ansible.builtin.assert:
     that: "__sap_general_preconfigure_register_df_shm_assert.stdout == '{{ sap_general_preconfigure_size_of_tmpfs_gb }}G'"
     fail_msg: "FAIL: The current size of tmpfs is '{{ __sap_general_preconfigure_register_df_shm_assert.stdout }}'
                but the expected size is '{{ sap_general_preconfigure_size_of_tmpfs_gb }}G'!"

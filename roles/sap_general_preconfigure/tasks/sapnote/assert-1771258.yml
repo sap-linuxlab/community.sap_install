@@ -1,12 +1,10 @@
 ---
 
 # Configure tmpfs
-- block:
-  - name: Assert - Display SAP note number 1771258 and its version
-    debug:
-      msg: "SAP note {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^1771258$') | first).number }}
-            (version {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^1771258$') | first).version }}): User and system resouce limits"
+- name: Assert - Display SAP note number 1771258 and its version
+  ansible.builtin.debug:
+    msg: "SAP note {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^1771258$') | first).number }}
+          (version {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^1771258$') | first).version }}): User and system resouce limits"
 
-  - import_tasks: ../RedHat/generic/assert-nofile-limits.yml
-
+- ansible.builtin.import_tasks: ../RedHat/generic/assert-nofile-limits.yml
   when: sap_general_preconfigure_config_all|d(true) or sap_general_preconfigure_1771258|d(false)

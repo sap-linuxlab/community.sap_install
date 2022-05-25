@@ -1,39 +1,39 @@
 ---
 
 - name: Get info about file /etc/selinux/config
-  stat:
+  ansible.builtin.stat:
     path: /etc/selinux/config
   register: __sap_general_preconfigure_register_stat_selinux_conf_assert
 
 - name: Assert that file /etc/selinux/config exists and is a regular file
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_stat_selinux_conf_assert.stat.isreg
     fail_msg: "FAIL: File /etc/selinux/config does not exist or is not a regular file!"
 #    success_msg: "PASS: File /etc/selinux/config exists and is a regular file."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Warn about SELinux being set to 'enforcing'
-  debug:
+  ansible.builtin.debug:
     msg: "WARN: The SELinux state has been set to 'enforcing' (variable sap_general_preconfigure_selinux_state)."
   ignore_errors: yes
   when: "sap_general_preconfigure_selinux_state == 'enforcing'"
 
 - name: Warn about how SELinux would be set when role is run in normal mode
-  debug:
+  ansible.builtin.debug:
     msg: "INFO: When running in normal mode, the role will set the SELinux state to '{{ sap_general_preconfigure_selinux_state }}'
           (variable sap_general_preconfigure_selinux_state)."
   ignore_errors: yes
   when: "sap_general_preconfigure_selinux_state != 'enforcing'"
 
 - name: "Check if the permanent configuration of the SELinux state is '{{ sap_general_preconfigure_selinux_state }}'"
-  command: awk 'BEGIN{FS="="}/^SELINUX=/{print $NF}' /etc/selinux/config
+  ansible.builtin.command: awk 'BEGIN{FS="="}/^SELINUX=/{print $NF}' /etc/selinux/config
   register: __sap_general_preconfigure_register_selinux_conf_assert
   changed_when: no
   ignore_errors: yes
   when: __sap_general_preconfigure_register_stat_selinux_conf_assert.stat.isreg
 
 - name: "Assert that the permanent configuration of the SELinux state is set to '{{ sap_general_preconfigure_selinux_state }}'"
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_selinux_conf_assert.stdout == "{{ sap_general_preconfigure_selinux_state }}"
     fail_msg: "FAIL: The system is not configured for the SELinux state of '{{ sap_general_preconfigure_selinux_state }}'.
                Current configuration: '{{ __sap_general_preconfigure_register_selinux_conf_assert.stdout }}'."
@@ -42,12 +42,12 @@
   when: __sap_general_preconfigure_register_stat_selinux_conf_assert.stat.isreg
 
 - name: Assert - Determine the current SELinux state
-  command: getenforce
+  ansible.builtin.command: getenforce
   register: __sap_general_preconfigure_register_getenforce_assert
   changed_when: no
 
 - name: Assert that SELinux is set correctly
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_getenforce_assert.stdout | lower == "{{ sap_general_preconfigure_selinux_state }}"
     fail_msg: "FAIL: SELinux is currently not '{{ sap_general_preconfigure_selinux_state }}'!
                The current SELinux state is: '{{ __sap_general_preconfigure_register_getenforce_assert.stdout | lower }}'."

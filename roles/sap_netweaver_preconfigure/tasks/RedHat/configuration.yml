@@ -1,17 +1,18 @@
 ---
 
 - name: Configure - List required SAP Notes
-  debug:
+  ansible.builtin.debug:
     var: __sap_netweaver_preconfigure_sapnotes_versions | difference([''])
 
 - name: Include configuration actions for required sapnotes
-  include_tasks: "sapnote/{{ sap_note_line_item.number }}.yml"
+  ansible.builtin.include_tasks: "sapnote/{{ sap_note_line_item.number }}.yml"
   with_items: "{{ __sap_netweaver_preconfigure_sapnotes_versions | difference(['']) }}"
   loop_control:
     loop_var: sap_note_line_item
+  when: __sap_netweaver_preconfigure_sapnotes_versions is defined
 
 - name: Warn if not enough swap space is configured
-  fail:
+  ansible.builtin.fail:
     msg: "The system has only {{ ansible_swaptotal_mb }} MB of swap space configured,
     which is less than the minimum required amount of {{ sap_netweaver_preconfigure_min_swap_space_mb }} MB for SAP NetWeaver!"
   ignore_errors: yes
@@ -20,7 +21,7 @@
     - not sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured|d(true)
 
 - name: Fail if not enough swap space is configured
-  fail:
+  ansible.builtin.fail:
     msg: "The system has only {{ ansible_swaptotal_mb }} MB of swap space configured,
     which is less than the minimum required amount of {{ sap_netweaver_preconfigure_min_swap_space_mb }} MB for SAP NetWeaver!"
   when:
