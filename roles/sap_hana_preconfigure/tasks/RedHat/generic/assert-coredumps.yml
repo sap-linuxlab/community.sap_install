@@ -1,19 +1,19 @@
 ---
 
 - name: Get info about file /etc/security/limits.d/99-sap.conf
-  stat:
+  ansible.builtin.stat:
     path: /etc/security/limits.d/99-sap.conf
   register: __sap_hana_preconfigure_register_stat_limits_sap_conf_assert
 
 - name: Assert that file /etc/security/limits.d/99-sap.conf exists
-  assert:
+  ansible.builtin.assert:
     that: __sap_hana_preconfigure_register_stat_limits_sap_conf_assert.stat.exists
     fail_msg: "FAIL: File /etc/security/limits.d/99-sap.conf does not exist!"
     success_msg: "PASS: File /etc/security/limits.d/99-sap.conf exist."
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Assert that file /etc/security/limits.d/99-sap.conf is a regular file
-  assert:
+  ansible.builtin.assert:
     that: __sap_hana_preconfigure_register_stat_limits_sap_conf_assert.stat.isreg
     fail_msg: "FAIL: File /etc/security/limits.d/99-sap.conf is not a regular file!"
     success_msg: "PASS: File /etc/security/limits.d/99-sap.conf is a regular file."
@@ -21,14 +21,14 @@
   when: __sap_hana_preconfigure_register_stat_limits_sap_conf_assert.stat.exists
 
 - name: Check if the hard limit of core file creation is 0 for all users
-  command: awk '$1=="*"&&/core/&&/hard/{print $NF}' /etc/security/limits.d/99-sap.conf
+  ansible.builtin.command: awk '$1=="*"&&/core/&&/hard/{print $NF}' /etc/security/limits.d/99-sap.conf
   register: __sap_hana_preconfigure_register_limits_sap_conf_core_hard_assert
   changed_when: no
   ignore_errors: yes
   when: __sap_hana_preconfigure_register_stat_limits_sap_conf_assert.stat.exists
 
 - name: Assert that the hard limit of core file creation is 0 for all users
-  assert:
+  ansible.builtin.assert:
     that: "__sap_hana_preconfigure_register_limits_sap_conf_core_hard_assert.stdout == '0'"
     fail_msg: "FAIL: The hard limit of core file creation for all users in /etc/security/limits.d/99-sap.conf is
                '{{ __sap_hana_preconfigure_register_limits_sap_conf_core_hard_assert.stdout }}' but the expected value is 0!"
@@ -38,14 +38,14 @@
   when: __sap_hana_preconfigure_register_stat_limits_sap_conf_assert.stat.exists
 
 - name: Check if the soft limit of core file creation is 0 for all users
-  command: awk '$1=="*"&&/core/&&/soft/{print $NF}' /etc/security/limits.d/99-sap.conf
+  ansible.builtin.command: awk '$1=="*"&&/core/&&/soft/{print $NF}' /etc/security/limits.d/99-sap.conf
   register: __sap_hana_preconfigure_register_limits_sap_conf_core_soft_assert
   changed_when: no
   ignore_errors: yes
   when: __sap_hana_preconfigure_register_stat_limits_sap_conf_assert.stat.exists
 
 - name: Assert that the soft limit of core file creation is 0 for all users
-  assert:
+  ansible.builtin.assert:
     that: "__sap_hana_preconfigure_register_limits_sap_conf_core_soft_assert.stdout == '0'"
     fail_msg: "FAIL: The soft limit of core file creation for all users in /etc/security/limits.d/99-sap.conf is
                '{{ __sap_hana_preconfigure_register_limits_sap_conf_core_soft_assert.stdout }}' but the expected value is 0!"

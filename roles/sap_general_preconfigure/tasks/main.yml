@@ -1,21 +1,40 @@
 ---
 
 - name: Display the role path
-  debug:
+  ansible.builtin.debug:
     var: role_path
 
 - name: Include OS specific vars, specific
-  include_vars: '{{ item }}'
+  ansible.builtin.include_vars: '{{ item }}'
   with_first_found:
+    - '{{ ansible_distribution.split("_")[0] }}_{{ ansible_distribution_major_version }}.yml'
     - '{{ ansible_distribution }}_{{ ansible_distribution_version }}.yml'
     - '{{ ansible_distribution }}_{{ ansible_distribution_major_version }}.yml'
     - '{{ ansible_os_family }}.yml'
 
-- name: Rename user sap_preconfigure variables if found
-  set_fact:
+- name: Rename user sap_preconfigure variables if found, generic
+  ansible.builtin.set_fact:
     sap_general_preconfigure_config_all: "{{ (sap_preconfigure_config_all|d(sap_general_preconfigure_config_all))|d(true) }}"
     sap_general_preconfigure_installation: "{{ (sap_preconfigure_installation|d(sap_general_preconfigure_installation))|d(false) }}"
     sap_general_preconfigure_configuration: "{{ (sap_preconfigure_configuration|d(sap_general_preconfigure_configuration))|d(false) }}"
+    sap_general_preconfigure_assert: "{{ sap_preconfigure_assert|d(sap_general_preconfigure_assert) }}"
+    sap_general_preconfigure_assert_ignore_errors: "{{ sap_preconfigure_assert_ignore_errors|d(sap_general_preconfigure_assert_ignore_errors) }}"
+    sap_general_preconfigure_packagegroups: "{{ sap_preconfigure_packagegroups|d(sap_general_preconfigure_packagegroups) }}"
+    sap_general_preconfigure_envgroups: "{{ sap_preconfigure_envgroups|d(sap_general_preconfigure_envgroups) }}"
+    sap_general_preconfigure_packages: "{{ sap_preconfigure_packages|d(sap_general_preconfigure_packages) }}"
+    sap_general_preconfigure_min_package_check: "{{ sap_preconfigure_min_package_check|d(sap_general_preconfigure_min_package_check) }}"
+    sap_general_preconfigure_update: "{{ sap_preconfigure_update|d(sap_general_preconfigure_update) }}"
+    sap_general_preconfigure_reboot_ok: "{{ sap_preconfigure_reboot_ok|d(sap_general_preconfigure_reboot_ok) }}"
+    sap_general_preconfigure_fail_if_reboot_required: "{{ sap_preconfigure_fail_if_reboot_required|d(sap_general_preconfigure_fail_if_reboot_required) }}"
+    sap_general_preconfigure_selinux_state: "{{ sap_preconfigure_selinux_state|d(sap_general_preconfigure_selinux_state) }}"
+    sap_general_preconfigure_size_of_tmpfs_gb: "{{ sap_preconfigure_size_of_tmpfs_gb|d(sap_general_preconfigure_size_of_tmpfs_gb) }}"
+    sap_general_preconfigure_locale: "{{ sap_preconfigure_locale|d(sap_general_preconfigure_locale) }}"
+    sap_general_preconfigure_modify_etc_hosts: "{{ sap_preconfigure_modify_etc_hosts|d(sap_general_preconfigure_modify_etc_hosts) }}"
+    sap_general_preconfigure_kernel_parameters: "{{ sap_preconfigure_kernel_parameters|d(sap_general_preconfigure_kernel_parameters) }}"
+    sap_general_preconfigure_max_hostname_length: "{{ sap_preconfigure_max_hostname_length|d(sap_general_preconfigure_max_hostname_length) }}"
+
+- name: Rename user sap_preconfigure variables if found, RHEL only
+  ansible.builtin.set_fact:
     sap_general_preconfigure_2002167_02: "{{ (sap_preconfigure_2002167_02|d(sap_general_preconfigure_2002167_02))|d(false) }}"
     sap_general_preconfigure_2002167_03: "{{ (sap_preconfigure_2002167_03|d(sap_general_preconfigure_2002167_03))|d(false) }}"
     sap_general_preconfigure_2002167_04: "{{ (sap_preconfigure_2002167_04|d(sap_general_preconfigure_2002167_04))|d(false) }}"
@@ -33,49 +52,37 @@
     sap_general_preconfigure_2772999_08: "{{ (sap_preconfigure_2772999_08|d(sap_general_preconfigure_2772999_08))|d(false) }}"
     sap_general_preconfigure_2772999_09: "{{ (sap_preconfigure_2772999_09|d(sap_general_preconfigure_2772999_09))|d(false) }}"
     sap_general_preconfigure_2772999_10: "{{ (sap_preconfigure_2772999_10|d(sap_general_preconfigure_2772999_10))|d(false) }}"
-    sap_general_preconfigure_assert: "{{ sap_preconfigure_assert|d(sap_general_preconfigure_assert) }}"
-    sap_general_preconfigure_assert_ignore_errors: "{{ sap_preconfigure_assert_ignore_errors|d(sap_general_preconfigure_assert_ignore_errors) }}"
-    sap_general_preconfigure_packagegroups: "{{ sap_preconfigure_packagegroups|d(sap_general_preconfigure_packagegroups) }}"
-    sap_general_preconfigure_envgroups: "{{ sap_preconfigure_envgroups|d(sap_general_preconfigure_envgroups) }}"
-    sap_general_preconfigure_packages: "{{ sap_preconfigure_packages|d(sap_general_preconfigure_packages) }}"
-    sap_general_preconfigure_min_package_check: "{{ sap_preconfigure_min_package_check|d(sap_general_preconfigure_min_package_check) }}"
-    sap_general_preconfigure_update: "{{ sap_preconfigure_update|d(sap_general_preconfigure_update) }}"
-    sap_general_preconfigure_reboot_ok: "{{ sap_preconfigure_reboot_ok|d(sap_general_preconfigure_reboot_ok) }}"
-    sap_general_preconfigure_fail_if_reboot_required: "{{ sap_preconfigure_fail_if_reboot_required|d(sap_general_preconfigure_fail_if_reboot_required) }}"
-    sap_general_preconfigure_selinux_state: "{{ sap_preconfigure_selinux_state|d(sap_general_preconfigure_selinux_state) }}"
-    sap_general_preconfigure_size_of_tmpfs_gb: "{{ sap_preconfigure_size_of_tmpfs_gb|d(sap_general_preconfigure_size_of_tmpfs_gb) }}"
-    sap_general_preconfigure_locale: "{{ sap_preconfigure_locale|d(sap_general_preconfigure_locale) }}"
-    sap_general_preconfigure_modify_etc_hosts: "{{ sap_preconfigure_modify_etc_hosts|d(sap_general_preconfigure_modify_etc_hosts) }}"
-    sap_general_preconfigure_kernel_parameters: "{{ sap_preconfigure_kernel_parameters|d(sap_general_preconfigure_kernel_parameters) }}"
-    sap_general_preconfigure_max_hostname_length: "{{ sap_preconfigure_max_hostname_length|d(sap_general_preconfigure_max_hostname_length) }}"
+  when: ansible_facts['distribution'] in ['RedHat']
 
 - name: Rename sap_preconfigure_db_group_name if defined
-  set_fact:
+  ansible.builtin.set_fact:
     sap_general_preconfigure_db_group_name: "{{ sap_preconfigure_db_group_name|d(sap_general_preconfigure_db_group_name) }}"
   when: sap_preconfigure_db_group_name is defined or sap_general_preconfigure_db_group_name is defined
 
 - name: Set filename prefix to empty string if role is run in normal mode
-  set_fact:
+  ansible.builtin.set_fact:
     __sap_general_preconfigure_fact_assert_filename_prefix: ""
   when: not sap_general_preconfigure_assert|d(false)
 
 - name: Prepend filename with assert string if role is run in assert mode
-  set_fact:
+  ansible.builtin.set_fact:
     __sap_general_preconfigure_fact_assert_filename_prefix: "assert-"
   when: sap_general_preconfigure_assert|d(false)
 
 # required for installation and configuration tasks:
 - name: Gather package facts
-  package_facts:
+  ansible.builtin.package_facts:
 
-- include_tasks: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}installation.yml'
+- ansible.builtin.include_tasks: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}installation.yml'
   when: sap_general_preconfigure_config_all|d(true) or sap_general_preconfigure_installation|d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'
     - '{{ ansible_distribution }}'
+    - '{{ ansible_os_family }}.yml'
 
-- include_tasks: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}configuration.yml'
+- ansible.builtin.include_tasks: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}configuration.yml'
   when: sap_general_preconfigure_config_all|d(true) or sap_general_preconfigure_configuration|d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'
     - '{{ ansible_distribution }}'
+    - '{{ ansible_os_family }}.yml'

@@ -4,41 +4,53 @@
   block:
 
     - name: Assert - Unset list of RHEL repos, SAP NetWeaver
-      set_fact:
+      ansible.builtin.set_fact:
         __sap_general_preconfigure_req_netweaver_repos: ''
       when: not sap_general_preconfigure_use_netweaver_repos
 
     - name: Assert - Unset list of RHEL repos, SAP HANA
-      set_fact:
+      ansible.builtin.set_fact:
         __sap_general_preconfigure_req_hana_repos: ''
       when: not sap_general_preconfigure_use_hana_repos
 
     - name: Assert - Unset list of RHEL repos, high availability
-      set_fact:
+      ansible.builtin.set_fact:
         __sap_general_preconfigure_req_ha_repos: ''
       when: not sap_general_preconfigure_use_ha_repos
 
-    - name: Assert - Set final list of repos, auto
-      set_fact:
+    - name: Assert - Set final list of repos, non-s390x, auto
+      ansible.builtin.set_fact:
         __sap_general_preconfigure_req_repos:
           "{{ __sap_general_preconfigure_req_os_repos | list }} +
            {{ __sap_general_preconfigure_req_netweaver_repos | list }} +
            {{ __sap_general_preconfigure_req_hana_repos | list }} +
            {{ __sap_general_preconfigure_req_ha_repos | list }}"
-      when: sap_general_preconfigure_req_repos is undefined
+      when:
+        - sap_general_preconfigure_req_repos is undefined
+        - ansible_architecture != 's390x'
+
+    - name: Assert - Set final list of repos, s390x, auto
+      ansible.builtin.set_fact:
+        __sap_general_preconfigure_req_repos:
+          "{{ __sap_general_preconfigure_req_os_repos | list }} +
+           {{ __sap_general_preconfigure_req_netweaver_repos | list }} +
+           {{ __sap_general_preconfigure_req_ha_repos | list }}"
+      when:
+        - sap_general_preconfigure_req_repos is undefined
+        - ansible_architecture == 's390x'
 
     - name: Assert - Set final list of repos, manual
-      set_fact:
+      ansible.builtin.set_fact:
         __sap_general_preconfigure_req_repos: "{{ sap_general_preconfigure_req_repos }}"
       when: sap_general_preconfigure_req_repos is defined
 
     - name: Assert - Get info about enabled repos
-      shell: set -o pipefail && subscription-manager repos --list-enabled | awk '/Repo ID:/{print $NF}'
+      ansible.builtin.shell: set -o pipefail && subscription-manager repos --list-enabled | awk '/Repo ID:/{print $NF}'
       register: __sap_general_preconfigure_register_enabled_repos_assert
       changed_when: no
 
     - name: Assert that all required repos are enabled
-      assert:
+      ansible.builtin.assert:
         that: "'{{ line_item }}' in __sap_general_preconfigure_register_enabled_repos_assert.stdout_lines"
         fail_msg: "FAIL: Repository '{{ line_item }}' is not enabled!"
         success_msg: "PASS: Repository '{{ line_item }}' is enabled."
@@ -54,13 +66,13 @@
   block:
 
     - name: Detect if and how the minor RHEL release is set
-      shell: set -o pipefail && subscription-manager release | awk 'NF==2{printf $NF}NF!=2{print}'
+      ansible.builtin.shell: set -o pipefail && subscription-manager release | awk 'NF==2{printf $NF}NF!=2{print}'
       register: __sap_general_preconfigure_register_subscription_manager_release_assert
       changed_when: no
       ignore_errors: yes
 
     - name: Assert that the RHEL release is locked correctly
-      assert:
+      ansible.builtin.assert:
         that: "__sap_general_preconfigure_register_subscription_manager_release_assert.stdout == '{{ ansible_distribution_version }}'"
         fail_msg: "FAIL: The RHEL release lock status is '{{ __sap_general_preconfigure_register_subscription_manager_release_assert.stdout }}'
                    but the expected value is '{{ ansible_distribution_version }}'!"
@@ -69,7 +81,7 @@
       when: "ansible_distribution_version != '7.9'"
 
     - name: Report that checking the release lock is not necessary if the system is on RHEL 7.9
-      debug:
+      ansible.builtin.debug:
         msg: "INFO: No need to check the release lock setting as the RHEL release {{ ansible_distribution_version }}
               is the last RHEL {{ ansible_distribution_major_version }} minor release"
       when: "ansible_distribution_version == '7.9'"
@@ -80,29 +92,29 @@
 # Reason for noqa: A double brace might also occur in an awk command sequence.
 - name: Check RHEL 7 package groups
   block:
-  - name: Set yum group list installed command # noqa var-spacing
-    set_fact:
-      __sap_general_preconfigure_fact_yum_group_list_installed_command_assert: "yum group list installed hidden ids |
-        awk '/Installed Groups:/{a=1}/Done/{a=0}{if (a==1&&!/:/){print $NF}}' |
-        sed 's,(,,;s,),,'"
+    - name: Set yum group list installed command # noqa var-spacing
+      ansible.builtin.set_fact:
+        __sap_general_preconfigure_fact_yum_group_list_installed_command_assert: "yum group list installed hidden ids |
+          awk '/Installed Groups:/{a=1}/Done/{a=0}{if (a==1&&!/:/){print $NF}}' |
+          sed 's,(,,;s,),,'"
 
-# Reason for noqa: The command to be executed might contain pipes
-  - name: Check if required RHEL 7 package groups are installed # noqa command-instead-of-shell
-    shell: "{{ __sap_general_preconfigure_fact_yum_group_list_installed_command_assert }}"
-    register: __sap_general_preconfigure_register_yum_group_assert
-    changed_when: no
-    args:
-      warn: false
+    # Reason for noqa: The command to be executed might contain pipes
+    - name: Check if required RHEL 7 package groups are installed # noqa command-instead-of-shell
+      ansible.builtin.shell: "{{ __sap_general_preconfigure_fact_yum_group_list_installed_command_assert }}"
+      register: __sap_general_preconfigure_register_yum_group_assert
+      changed_when: no
+      args:
+        warn: false
 
-  - name: Assert that all required RHEL 7 package groups are installed
-    assert:
-      that: "'{{ line_item }}' in __sap_general_preconfigure_register_yum_group_assert.stdout_lines"
-      fail_msg: "FAIL: Package group '{{ line_item }}' is not installed!"
-      success_msg: "PASS: Package group '{{ line_item }}' is installed."
-    loop: "{{ sap_general_preconfigure_packagegroups | map('replace', '@', '') | list }}"
-    loop_control:
-      loop_var: line_item
-    ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
+    - name: Assert that all required RHEL 7 package groups are installed
+      ansible.builtin.assert:
+        that: "'{{ line_item }}' in __sap_general_preconfigure_register_yum_group_assert.stdout_lines"
+        fail_msg: "FAIL: Package group '{{ line_item }}' is not installed!"
+        success_msg: "PASS: Package group '{{ line_item }}' is installed."
+      loop: "{{ sap_general_preconfigure_packagegroups | map('replace', '@', '') | list }}"
+      loop_control:
+        loop_var: line_item
+      ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
   when:
     - sap_general_preconfigure_packagegroups|d([])
@@ -112,21 +124,21 @@
 - name: Check RHEL 8 environment groups
   block:
     - name: Set yum envgroup list installed command # noqa var-spacing
-      set_fact:
+      ansible.builtin.set_fact:
         __sap_general_preconfigure_fact_yum_envgroup_list_installed_command_assert: "yum group list installed -v |
         awk '/Installed Environment Groups:/{a=1}/Installed Groups:/{a=0}{if (a==1&&!/:/){print $NF}}' |
         sed 's,(,,;s,),,'"
 
 # Reason for noqa: The command to be executed might contain pipes
     - name: Check if required RHEL 8 environment groups are installed # noqa command-instead-of-shell
-      shell: "{{ __sap_general_preconfigure_fact_yum_envgroup_list_installed_command_assert }}"
+      ansible.builtin.shell: "{{ __sap_general_preconfigure_fact_yum_envgroup_list_installed_command_assert }}"
       register: __sap_general_preconfigure_register_yum_envgroup_assert
       changed_when: no
       args:
         warn: false
 
     - name: Assert that all required RHEL 8 environment groups are installed
-      assert:
+      ansible.builtin.assert:
         that: "'{{ line_item }}' in __sap_general_preconfigure_register_yum_envgroup_assert.stdout_lines"
         fail_msg: "FAIL: Environment group '{{ line_item }}' is not installed!"
         success_msg: "PASS: Environment group '{{ line_item }}' is installed."
@@ -141,7 +153,7 @@
     - ansible_distribution_major_version == '8'
 
 - name: Assert that all required packages are installed
-  assert:
+  ansible.builtin.assert:
     that: "'{{ line_item }}' in ansible_facts.packages"
     fail_msg: "FAIL: Package '{{ line_item }}' is not installed!"
     success_msg: "PASS: Package '{{ line_item }}' is installed."
@@ -170,7 +182,7 @@
 #              to be updated.
 # 8 - case 2b: If the first column of the last line of the output is "2", it means that at least of the installed
 #              versions the package is equal to or greater than the required package version.
-      shell: |
+      ansible.builtin.shell: |
         (echo "1 {{ pkg[0] }}-{{ pkg[1] }}";rpm -q --qf "%{NAME}-%{VERSION}-%{RELEASE}\n" {{ pkg[0] }} |
          awk '{printf ("2 %s\n", $0)}') |
          awk '{gsub ("\\.el", ".0.0"); print}' |
@@ -198,7 +210,7 @@
 
     - name: Assert that minimum required package versions are installed
 # If the output includes the string "is already installed" (case 2b), we have a PASS. Otherwise, it's a FAIL.
-      assert:
+      ansible.builtin.assert:
         that: "'is already installed' in line_item.stdout"
         fail_msg: "FAIL: {{ line_item.stdout }}"
         success_msg: "PASS: {{ line_item.stdout }}"
@@ -213,13 +225,13 @@
     - __sap_general_preconfigure_min_pkgs|d([])
 
 - name: Report if no minimum required package version is defined for this RHEL release
-  debug:
+  ansible.builtin.debug:
     msg: "INFO: No minimum required package version defined (variable __sap_general_preconfigure_min_pkgs)."
   ignore_errors: yes
   when: not __sap_general_preconfigure_min_pkgs|d([])
 
 - name: Get info about possible package updates
-  command: yum check-update
+  ansible.builtin.command: yum check-update
   register: __sap_general_preconfigure_register_yum_check_update_assert
   args:
     warn: false
@@ -228,7 +240,7 @@
   when: sap_general_preconfigure_update
 
 - name: Assert that there are no more possible package updates
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_yum_check_update_assert is success
     fail_msg: "FAIL: System needs to be updated!"
     success_msg: "PASS: There are no more outstanding package updates."
@@ -236,18 +248,18 @@
   when: sap_general_preconfigure_update
 
 - name: Report if checking for possible package updates is not requested
-  debug:
+  ansible.builtin.debug:
     msg: "INFO: Not checking for possible package updates (variable sap_general_preconfigure_update)."
   ignore_errors: yes
   when: not sap_general_preconfigure_update
 
 - name: "Assert - Set needs-restarting command in case of RHEL 7"
-  set_fact:
+  ansible.builtin.set_fact:
     __sap_general_preconfigure_fact_needs_restarting_command_assert: "needs-restarting -r"
   when: ansible_distribution_major_version == '7'
 
 - name: "Assert - Set needs-restarting command in case of RHEL 8 or RHEL 9, except RHEL 8.0"
-  set_fact:
+  ansible.builtin.set_fact:
     __sap_general_preconfigure_fact_needs_restarting_command_assert: "yum needs-restarting -r"
   when:
     - (ansible_distribution_major_version == '8' or
@@ -256,18 +268,18 @@
     - ansible_distribution_version != '8.0'
 
 - name: "Assert - Set customized needs-restarting command in case of RHEL 8.0"
-  set_fact:
+  ansible.builtin.set_fact:
     __sap_general_preconfigure_fact_needs_restarting_command_assert: "_IKRNL=$(rpm -q --last kernel | awk 'NR==1{sub(/kernel-/,\"\"); print $1}');
                                                               _CKRNL=$(uname -r); if [ ${_IKRNL} != ${_CKRNL} ]; then exit 1; else exit 0; fi"
   when: ansible_distribution_version == '8.0'
 
 - name: Assert - Display the command for checking a reboot requirement
-  debug:
+  ansible.builtin.debug:
     var: __sap_general_preconfigure_fact_needs_restarting_command_assert
 
 # Reason for noqa: The command to be executed might contain pipes
 - name: Assert - Determine if the system needs to be restarted # noqa command-instead-of-shell
-  shell: "{{ __sap_general_preconfigure_fact_needs_restarting_command_assert }}"
+  ansible.builtin.shell: "{{ __sap_general_preconfigure_fact_needs_restarting_command_assert }}"
   register: __sap_general_preconfigure_register_needs_restarting_assert
   changed_when: false
   args:
@@ -276,7 +288,7 @@
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Assert that system needs no restart
-  assert:
+  ansible.builtin.assert:
     that: __sap_general_preconfigure_register_needs_restarting_assert is success
     fail_msg: "FAIL: System needs to be restarted!"
     success_msg: "PASS: System needs no restart."

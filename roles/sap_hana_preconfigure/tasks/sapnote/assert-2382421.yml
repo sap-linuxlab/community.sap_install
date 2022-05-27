@@ -4,26 +4,26 @@
 #
 
 - name: Assert - Display SAP note number 2382421 and its version
-  debug:
+  ansible.builtin.debug:
     msg: "SAP note {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2382421$') | first).number }}
           (version {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2382421$') | first).version }}): Recommended network settings for SAP HANA"
 
 - name: Check SAP HANA sysctl conf file
   block:
     - name: Get info about file {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}
-      stat:
+      ansible.builtin.stat:
         path: "{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}"
       register: __sap_hana_preconfigure_register_stat_sysctl_saphana_conf_assert
 
     - name: Assert that file {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }} exists
-      assert:
+      ansible.builtin.assert:
         that: __sap_hana_preconfigure_register_stat_sysctl_saphana_conf_assert.stat.exists
         fail_msg: "FAIL: File {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }} does not exist!"
         success_msg: "PASS: File {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }} exists."
       ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
 
     - name: Assert that file {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }} is a regular file
-      assert:
+      ansible.builtin.assert:
         that: __sap_hana_preconfigure_register_stat_sysctl_saphana_conf_assert.stat.isreg
         fail_msg: "FAIL: File {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }} is not a regular file!"
         success_msg: "PASS: File {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }} is a regular file."
@@ -33,7 +33,7 @@
   when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2382421|d(false)
 
 - name: Get and assert kernel tunables
-  include_tasks: ../RedHat/generic/assert-2382421-loop-block.yml
+  ansible.builtin.include_tasks: ../RedHat/generic/assert-2382421-loop-block.yml
   loop: "{{ __sap_hana_preconfigure_kernel_parameters_default }}"
   loop_control:
     loop_var: line_item
@@ -42,24 +42,24 @@
 - name: Check net.core.wmem_max and net.core.rmem_max if necessary
   block:
     - name: 2382421 - Get the maximum value of net.ipv4.tcp_wmem
-      command: sysctl net.ipv4.tcp_wmem
+      ansible.builtin.command: sysctl net.ipv4.tcp_wmem
       register: __sap_hana_preconfigure_register_sysctl_ipv4_tcp_wmem_assert
       changed_when: no
       ignore_errors: yes
 
     - name: Display the maximum value of net.ipv4.tcp_wmem
-      debug:
+      ansible.builtin.debug:
         msg: "INFO: The maximum value of net.ipv4.tcp_wmem is '{{ __sap_hana_preconfigure_register_sysctl_ipv4_tcp_wmem_assert.stdout.split()[-1] }}'"
 
     - name: 2382421 - Get net.core.wmem_max from {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}
-      command: awk 'BEGIN{FS="="}/net.core.wmem_max/{print $NF}' {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}
+      ansible.builtin.command: awk 'BEGIN{FS="="}/net.core.wmem_max/{print $NF}' {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}
       register: __sap_hana_preconfigure_register_sysctl_saphana_conf_wmem_max_assert
       changed_when: no
       ignore_errors: yes
       when: __sap_hana_preconfigure_register_stat_sysctl_saphana_conf_assert.stat.exists
 
     - name: 2382421 - Assert that net.core.wmem_max is set correctly in {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}
-      assert:
+      ansible.builtin.assert:
         that: "__sap_hana_preconfigure_register_sysctl_saphana_conf_wmem_max_assert.stdout ==
                '{{ __sap_hana_preconfigure_register_sysctl_ipv4_tcp_wmem_assert.stdout.split()[-1] }}'"
         fail_msg: "FAIL: The value of 'net.core.wmem_max' in {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }} is
@@ -71,13 +71,13 @@
       when: __sap_hana_preconfigure_register_stat_sysctl_saphana_conf_assert.stat.exists
 
     - name: 2382421 - Get the current value of net.core.wmem_max from sysctl
-      command: sysctl net.core.wmem_max
+      ansible.builtin.command: sysctl net.core.wmem_max
       register: __sap_hana_preconfigure_register_sysctl_ipv4_tcp_wmem_max_assert
       changed_when: no
       ignore_errors: yes
 
     - name: 2382421 - Assert that net.core.wmem_max is set correctly as per sysctl
-      assert:
+      ansible.builtin.assert:
         that: "'{{ __sap_hana_preconfigure_register_sysctl_ipv4_tcp_wmem_max_assert.stdout.split()[-1] }}' ==
                '{{ __sap_hana_preconfigure_register_sysctl_ipv4_tcp_wmem_assert.stdout.split()[-1] }}'"
         fail_msg: "FAIL: The current value of 'net.core.wmem_max as per sysctl is
@@ -88,24 +88,24 @@
       ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
 
     - name: 2382421 - Get the maximum value of net.ipv4.tcp_rmem
-      command: sysctl net.ipv4.tcp_rmem
+      ansible.builtin.command: sysctl net.ipv4.tcp_rmem
       register: __sap_hana_preconfigure_register_sysctl_ipv4_tcp_rmem_assert
       changed_when: no
       ignore_errors: yes
 
     - name: 2382421 - Display the maximum value of net.ipv4.tcp_rmem
-      debug:
+      ansible.builtin.debug:
         msg: "INFO: The maximum value of net.ipv4.tcp_rmem is '{{ __sap_hana_preconfigure_register_sysctl_ipv4_tcp_rmem_assert.stdout.split()[-1] }}'"
 
     - name: 2382421 - Get net.core.rmem_max from {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}
-      command: awk 'BEGIN{FS="="}/net.core.rmem_max/{print $NF}' {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}
+      ansible.builtin.command: awk 'BEGIN{FS="="}/net.core.rmem_max/{print $NF}' {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}
       register: __sap_hana_preconfigure_register_sysctl_saphana_conf_rmem_max_assert
       changed_when: no
       ignore_errors: yes
       when: __sap_hana_preconfigure_register_stat_sysctl_saphana_conf_assert.stat.exists
 
     - name: 2382421 - Assert that net.core.rmem_max is set correctly in {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}
-      assert:
+      ansible.builtin.assert:
         that: "__sap_hana_preconfigure_register_sysctl_saphana_conf_rmem_max_assert.stdout ==
                '{{ __sap_hana_preconfigure_register_sysctl_ipv4_tcp_rmem_assert.stdout.split()[-1] }}'"
         fail_msg: "FAIL: The value of 'net.core.rmem_max' in {{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }} is
@@ -117,13 +117,13 @@
       when: __sap_hana_preconfigure_register_stat_sysctl_saphana_conf_assert.stat.exists
 
     - name: 2382421 - Get the current value of net.core.rmem_max from sysctl
-      command: sysctl net.core.rmem_max
+      ansible.builtin.command: sysctl net.core.rmem_max
       register: __sap_hana_preconfigure_register_sysctl_ipv4_tcp_rmem_max_assert
       changed_when: no
       ignore_errors: yes
 
     - name: 2382421 - Assert that net.core.rmem_max is set correctly as per sysctl
-      assert:
+      ansible.builtin.assert:
         that: "'{{ __sap_hana_preconfigure_register_sysctl_ipv4_tcp_rmem_max_assert.stdout.split()[-1] }}' ==
                '{{ __sap_hana_preconfigure_register_sysctl_ipv4_tcp_rmem_assert.stdout.split()[-1] }}'"
         fail_msg: "FAIL: The current value of 'net.core.rmem_max as per sysctl is

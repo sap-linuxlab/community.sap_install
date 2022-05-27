@@ -1,10 +1,8 @@
-sap_general_preconfigure
-================
+# sap_general_preconfigure Ansible Role
 
 This role installs required packages and performs configuration steps which are required for installing and running SAP NetWeaver or SAP HANA. Specific installation and configuration steps on top of these basic steps are performed with roles sap-netweaver-preconfigure and sap-hana-preconfigure. Future implementations may reduce the scope of this role, for example if certain installation or configuration steps are done in the more specific roles.
 
-Requirements
-------------
+## Requirements
 
 To use this role, your system needs to be installed according to:
 - RHEL 7: SAP note 2002167, Red Hat Enterprise Linux 7.x: Installation and Upgrade, section "Installing Red Hat Enterprise Linux 7"
@@ -14,8 +12,7 @@ Note
 ----
 Do not run this role against an SAP or other production system. The role will enforce a certain configuration on the managed node(s), which might not be intended.
 
-Role Variables
---------------
+## Role Variables
 
 - set in `defaults/main.yml`:
 
@@ -89,9 +86,9 @@ sap_general_preconfigure_disable_all_other_repos
 ```
 
 ### (RHEL only): Provide your own list of repos to enable
-# If you want to provide your own list of repos (e.g. on cloud systems), set the following variable accordingly.
-# Otherwise, the RHEL default repo names with the maximum support duration for the RHEL minor release are chosen automatically
-# (e.g. normal repos for RHEL 8.3, e4s repos for RHEL 8.4).
+If you want to provide your own list of repos (e.g. on cloud systems), set the following variable accordingly.
+Otherwise, the RHEL default repo names with the maximum support duration for the RHEL minor release are chosen automatically
+(e.g. normal repos for RHEL 8.3, e4s repos for RHEL 8.4).
 ```yaml
 sap_general_preconfigure_req_repos
 ```
@@ -187,13 +184,11 @@ The following variable contains the name of the group which is used for the data
 sap_general_preconfigure_db_group_name
 ```
 
-Dependencies
-------------
+## Dependencies
 
 This role does not depend on any other role.
 
-Example Playbook
-----------------
+## Example Playbook
 
 Simple playbook, named sap.yml:
 ```yaml
@@ -203,8 +198,8 @@ Simple playbook, named sap.yml:
     - role: sap_general_preconfigure
 ```
 
-Example Usage
--------------
+## Example Usage
+
 Normal run:
 ```yaml
 ansible-playbook sap.yml -l remote_host
@@ -249,12 +244,10 @@ In case you need to make an invisible font readable on a terminal with bright ba
 printf "\033[30mreadable font\n"
 ```
 
-License
--------
+## License
 
-GNU General Public License v3.0
+Apache license 2.0
 
-Author Information
-------------------
+## Author Information
 
-Bernd Finger
+Red Hat for SAP Community of Practice, Bernd Finger, Markus Koch, Rainer Leber

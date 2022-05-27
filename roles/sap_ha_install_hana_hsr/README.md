@@ -74,3 +74,10 @@ Ansible role for SAP HANA System Replication Setup
 | sap_ha_install_hana_hsr_oper_mode                        | HSR operation mode                        | 'logreplay' | no           |
 | sap_ha_install_hana_hsr_type                             | Cloud type - not used right now           | <none>      | not used     |
 
+## License
+
+Apache license 2.0
+
+## Author Information
+
+IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice, Jason Masipiquena, Sherard Guico, Markus Moster

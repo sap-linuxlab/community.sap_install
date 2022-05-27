@@ -1,24 +1,24 @@
 ---
 
 - name: Assert - Display SAP note number 2526952 and its version
-  debug:
+  ansible.builtin.debug:
     msg: "SAP note {{ (__sap_netweaver_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2526952$') | first).number }}
           (version {{ (__sap_netweaver_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2526952$') | first).version }}): RHEL for SAP packages"
 
 - name: Display the version of tuned
-  debug:
+  ansible.builtin.debug:
     msg: "INFO: The installed version of package tuned is: {{ ansible_facts.packages['tuned'][0].version }}"
   when: "'tuned' in ansible_facts.packages"
 
 - name: Assert that tuned.service exists
-  assert:
+  ansible.builtin.assert:
     that: "'tuned.service' in ansible_facts.services"
     fail_msg: "FAIL: Service tuned could not be found!"
     success_msg: "PASS: Service tuned is available."
   ignore_errors: "{{ sap_netweaver_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Assert that tuned is enabled
-  assert:
+  ansible.builtin.assert:
     that: "ansible_facts.services['tuned.service']['status'] == 'enabled'"
     fail_msg: "FAIL: Service tuned is not enabled!"
     success_msg: "PASS: Service tuned is enabled."
@@ -26,7 +26,7 @@
   ignore_errors: "{{ sap_netweaver_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Assert that tuned is active
-  assert:
+  ansible.builtin.assert:
     that: "ansible_facts.services['tuned.service']['state'] == 'running'"
     fail_msg: "FAIL: Service tuned is not active!"
     success_msg: "PASS: Service tuned is active."
@@ -34,23 +34,23 @@
   ignore_errors: "{{ sap_netweaver_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Display the version of tuned-profiles-sap
-  debug:
+  ansible.builtin.debug:
     msg: "INFO: The installed version of package tuned-profiles-sap is: {{ ansible_facts.packages['tuned-profiles-sap'][0].version }}"
   when: "'tuned-profiles-sap' in ansible_facts.packages"
 
 - name: Get active tuned profile
-  shell: set -o pipefail && /usr/sbin/tuned-adm active | grep ":" | cut -d ":" -f 2 | awk '{$1=$1;print}'
+  ansible.builtin.shell: set -o pipefail && /usr/sbin/tuned-adm active | grep ":" | cut -d ":" -f 2 | awk '{$1=$1;print}'
   check_mode: no
   register: __sap_netweaver_preconfigure_register_current_tuned_profile
   changed_when: false
 
 - name: Assert - Display the output of the tuned-adm active command
-  debug:
+  ansible.builtin.debug:
     var: __sap_netweaver_preconfigure_register_current_tuned_profile.stdout_lines,
          __sap_netweaver_preconfigure_register_current_tuned_profile.stderr_lines
 
 - name: Assert that tuned profile sap-netweaver is currently active
-  assert:
+  ansible.builtin.assert:
     that: "__sap_netweaver_preconfigure_register_current_tuned_profile.stdout == 'sap-netweaver'"
     fail_msg: "FAIL: The tuned profile 'sap-netweaver' is currently not active!
       Currently active profile: '{{ __sap_netweaver_preconfigure_register_current_tuned_profile.stdout }}'."

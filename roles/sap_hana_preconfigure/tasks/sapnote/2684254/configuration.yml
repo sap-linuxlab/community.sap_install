@@ -1,7 +1,7 @@
 ---
 
 - name: disable numa_balancing at boot
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/default/grub
     backup: yes
     backrefs: yes
@@ -9,7 +9,7 @@
     regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=(?!.* {{ line_item }}).*). *$'
     line: "\\1 {{ line_item }}\""
   with_items:
-     - "numa_balancing=disable"
+    - "numa_balancing=disable"
   notify: __sap_hana_preconfigure_regenerate_grub2_conf_handler
   when: ansible_architecture == "x86_64" and
         ansible_os_family == 'Suse' and
@@ -19,7 +19,7 @@
     loop_var: line_item
 
 - name: disable transparent hugepages at boot
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/default/grub
     backup: yes
     backrefs: yes
@@ -27,7 +27,7 @@
     regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=(?!.* {{ line_item }}).*). *$'
     line: "\\1 {{ line_item }}\""
   with_items:
-     - "transparent_hugepage=never"
+    - "transparent_hugepage=never"
   notify: __sap_hana_preconfigure_regenerate_grub2_conf_handler
   when: ansible_architecture == "x86_64" and
         ansible_os_family == 'Suse' and
@@ -37,7 +37,7 @@
     loop_var: line_item
 
 - name: disable intel c states in grub config
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/default/grub
     backup: yes
     backrefs: yes
@@ -45,8 +45,8 @@
     regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=(?!.* {{ line_item }}).*). *$'
     line: "\\1 {{ line_item }}\""
   with_items:
-     - "processor.max_cstate=1"
-     - "intel_idle.max_cstate=1"
+    - "processor.max_cstate=1"
+    - "intel_idle.max_cstate=1"
   notify: __sap_hana_preconfigure_regenerate_grub2_conf_handler
   when: ansible_architecture == "x86_64" and
         ansible_os_family == 'Suse' and
@@ -63,7 +63,7 @@
 #    ignore_errors: True
 
 - name: "Energy Performance Bias (EPB, applies to Intel-based systems only)"
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/init.d/boot.local
     mode: 0744
     line: 'cpupower set -b 0'
@@ -71,10 +71,9 @@
     create: yes
 
 - name: Kernel samepage merging (KSM)
-  lineinfile:
+  ansible.builtin.lineinfile:
     dest: /etc/init.d/boot.local
     mode: 0744
     line: echo 0 > /sys/kernel/mm/ksm/run
     state: present
     create: yes
-

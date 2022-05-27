@@ -1,7 +1,7 @@
 ---
 
 - name: Set SELinux state to '{{ sap_general_preconfigure_selinux_state }}' in /etc/selinux/config
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/selinux/config
     regexp: ^SELINUX\s*=.*
     line: "SELINUX={{ sap_general_preconfigure_selinux_state }}"
@@ -10,7 +10,7 @@
   notify: __sap_general_preconfigure_reboot_handler
 
 - name: Set SELinux type to 'targeted' in /etc/selinux/config
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/selinux/config
     regexp: ^SELINUXTYPE\s*=.*
     line: 'SELINUXTYPE=targeted'
@@ -19,14 +19,14 @@
   notify: __sap_general_preconfigure_reboot_handler
 
 - name: Determine the current SELinux state
-  command: getenforce
+  ansible.builtin.command: getenforce
   register: __sap_general_preconfigure_register_getenforce
   check_mode: no
   changed_when: false
 
 # Reason for noqa: We need to notify a handler in another role, which is not possible from a handler in the current role
 - name: SELinux - Set the flag that reboot is needed to apply changes # noqa no-handler
-  set_fact:
+  ansible.builtin.set_fact:
     sap_general_preconfigure_fact_reboot_required: true
   when: __sap_general_preconfigure_register_selinux_config_state_changed.changed or
         __sap_general_preconfigure_register_selinux_config_type_changed.changed or
@@ -34,7 +34,7 @@
           sap_general_preconfigure_selinux_state
 
 - name: Call Reboot handler if necessary
-  command: /bin/true
+  ansible.builtin.command: /bin/true
   notify: __sap_general_preconfigure_reboot_handler
   when: __sap_general_preconfigure_register_getenforce.stdout | lower !=
           sap_general_preconfigure_selinux_state
@@ -43,7 +43,7 @@
   block:
 
     - name: SELinux - Examine grub entries
-      shell: grubby --info=ALL | awk 'BEGIN{a=0;b=0}/^args/{a++}/selinux=0/{b++}END{print a, b}'
+      ansible.builtin.shell: grubby --info=ALL | awk 'BEGIN{a=0;b=0}/^args/{a++}/selinux=0/{b++}END{print a, b}'
       register: __sap_general_preconfigure_register_grubby_info_all_selinux
       check_mode: no
       changed_when: false
@@ -54,18 +54,18 @@
 # we know that at least one grub entry is missing "selinux=0", so we make sure that all grub entries
 # contain "selinux=0"
         - name: Disable SELinux also on the kernel command line, RHEL 8 and RHEL 9
-          command: grubby --args="selinux=0" --update-kernel=ALL
+          ansible.builtin.command: grubby --args="selinux=0" --update-kernel=ALL
           notify: __sap_general_preconfigure_reboot_handler
           changed_when: yes
 
 # Reason for noqa: We need to notify a handler in another role, which is not possible from a handler in the current role
         - name: SELinux, disable on the kernel command line - Set the flag that reboot is needed to apply changes # noqa no-handler
-          set_fact:
+          ansible.builtin.set_fact:
             sap_general_preconfigure_fact_reboot_required: true
 
       when:
         - sap_general_preconfigure_selinux_state == 'disabled'
-        - __sap_general_preconfigure_register_grubby_info_all_selinux.stdout.split(' ').1 != 
+        - __sap_general_preconfigure_register_grubby_info_all_selinux.stdout.split(' ').1 !=
           __sap_general_preconfigure_register_grubby_info_all_selinux.stdout.split(' ').0
 
     - name: Enable SELinux on the kernel command line, RHEL 8 and RHEL 9
@@ -73,13 +73,13 @@
 # If the number of grub entries for args with "selinux=0" is not 0, we know that there is at least
 # one grub entry with "selinux=0", so we make sure that no grub entry contains "selinux=0"
         - name: Make sure SELinux is not disabled on the kernel command line, RHEL 8 and RHEL 9
-          command: grubby --remove-args="selinux" --update-kernel=ALL
+          ansible.builtin.command: grubby --remove-args="selinux" --update-kernel=ALL
           notify: __sap_general_preconfigure_reboot_handler
           changed_when: yes
 
 # Reason for noqa: We need to notify a handler in another role, which is not possible from a handler in the current role
         - name: SELinux, enable on the kernel command line - Set the flag that reboot is needed to apply changes # noqa no-handler
-          set_fact:
+          ansible.builtin.set_fact:
             sap_general_preconfigure_fact_reboot_required: true
 
       when:
@@ -94,6 +94,5 @@
       )
 
 - name: SELinux - Display the content of sap_general_preconfigure_fact_reboot_required
-  debug:
+  ansible.builtin.debug:
     var: sap_general_preconfigure_fact_reboot_required|d(false)
-

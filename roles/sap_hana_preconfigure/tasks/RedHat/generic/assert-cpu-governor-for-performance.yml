@@ -5,33 +5,33 @@
 - name: Assert - Perform steps for checking the CPU Governor for performance
   block:
     - name: Check if system is able to set CPU Governor for performance (x86_64 platform only)
-      shell: LC_ALL=C cpupower frequency-info -g | awk '/available cpufreq governors/{print $(NF-1), $NF}'
+      ansible.builtin.shell: LC_ALL=C cpupower frequency-info -g | awk '/available cpufreq governors/{print $(NF-1), $NF}'
       check_mode: no
       register: __sap_hana_preconfigure_register_cpupower_frequency_info_supported_assert
       ignore_errors: true
       changed_when: no
 
     - name: Assert - Display the output of the cpupower frequency-info -g command
-      debug:
+      ansible.builtin.debug:
         var: __sap_hana_preconfigure_register_cpupower_frequency_info_supported_assert.stdout_lines,
              __sap_hana_preconfigure_register_cpupower_frequency_info_supported_assert.stderr_lines
 
     - name: Check that the CPU Governor for performance is configured (x86_64 platform only)
       block:
         - name: Get info about file /etc/rc.d/rc.local
-          stat:
+          ansible.builtin.stat:
             path: /etc/rc.d/rc.local
           register: __sap_hana_preconfigure_register_stat_rc_local_assert
 
         - name: Assert that file /etc/rc.d/rc.local exists (x86_64 platform only)
-          assert:
+          ansible.builtin.assert:
             that: __stat_boot_local.stat.exists
             fail_msg: "FAIL: File /etc/rc.d/rc.local does not exist!"
             success_msg: "PASS: File /etc/rc.d/rc.local exist."
           ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
 
         - name: Assert that file /etc/rc.d/rc.local is a regular file (x86_64 platform only)
-          assert:
+          ansible.builtin.assert:
             that: __sap_hana_preconfigure_register_stat_rc_local_assert.stat.isreg
             fail_msg: "FAIL: File /etc/rc.d/rc.local is not a regular file!"
             success_msg: "PASS: File /etc/rc.d/rc.local is a regular file."
@@ -39,7 +39,7 @@
           when: __sap_hana_preconfigure_register_stat_rc_local_assert.stat.exists
 
         - name: Assert that the mode of file /etc/rc.d/rc.local is 0644 (x86_64 platform only)
-          assert:
+          ansible.builtin.assert:
             that: "__sap_hana_preconfigure_register_stat_rc_local_assert.stat.mode == '0644'"
             fail_msg: "FAIL: File /etc/rc.d/rc.local has mode '{{ __sap_hana_preconfigure_register_stat_rc_local_assert.stat.mode }}'
                        but the expected mode is '0644'!"
@@ -48,31 +48,31 @@
           when: __sap_hana_preconfigure_register_stat_rc_local_assert.stat.exists
 
         - name: Get the contents of file /etc/rc.d/rc.local (x86_64 platform only)
-          command: grep cpupower /etc/rc.d/rc.local
+          ansible.builtin.command: grep cpupower /etc/rc.d/rc.local
           register: __sap_hana_preconfigure_register_rc_local_cpupower_assert
           changed_when: no
           ignore_errors: yes
           when: __sap_hana_preconfigure_register_stat_rc_local_assert.stat.exists
 
         - name: Assert that CPU Governor for performance is configured at boot time (x86_64 platform only)
-          assert:
+          ansible.builtin.assert:
             that: "__sap_hana_preconfigure_register_rc_local_cpupower_assert.stdout == 'cpupower frequency-set -g performance'"
             fail_msg: "FAIL: The CPU Governor for performance is not configured at boot time!"
             success_msg: "PASS: CPU Governor for performance is configured at boot time."
           ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
 
         - name: Get the current status of the CPU Governor for performance (x86_64 platform only)
-          command: cpupower frequency-info -g
+          ansible.builtin.command: cpupower frequency-info -g
           register: __sap_hana_preconfigure_register_cpupower_frequency_info_assert
           changed_when: no
           ignore_errors: yes
 
         - name: Display the output of the command 'cpupower frequency-info -g'
-          debug:
+          ansible.builtin.debug:
             var: __sap_hana_preconfigure_register_cpupower_frequency_info_assert.stdout_lines
 
         - name: Assert that the current status of the CPU Governor for performance is performance (x86_64 platform only)
-          assert:
+          ansible.builtin.assert:
             that: "'performance' in __sap_hana_preconfigure_register_cpupower_frequency_info_assert.stdout"
             fail_msg: "FAIL: The current status of the CPU Governor for performance is not 'performance'!"
             success_msg: "PASS: The current status of the CPU Governor for performance is 'performance'."
@@ -81,7 +81,7 @@
       when: "__sap_hana_preconfigure_register_cpupower_frequency_info_supported_assert.stdout != 'Not Available'"
 
     - name: Report if the system does not support setting the CPU Governor for performance
-      debug:
+      ansible.builtin.debug:
         msg: "INFO: The system is not capable of setting the CPU Governor for 'performance'."
       when: "__sap_hana_preconfigure_register_cpupower_frequency_info_supported_assert.stdout == 'Not Available'"
 

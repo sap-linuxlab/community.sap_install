@@ -1,7 +1,7 @@
 ---
 
 - name: Check if the hard limit of nproc for group sapsys is unlimited
-  command: awk '/sapsys/&&/nproc/&&/hard/{print $NF}' /etc/security/limits.d/99-sap.conf
+  ansible.builtin.command: awk '/sapsys/&&/nproc/&&/hard/{print $NF}' /etc/security/limits.d/99-sap.conf
   register: __sap_general_preconfigure_register_limits_sap_conf_nproc_hard_assert
   changed_when: no
   ignore_errors: yes
@@ -10,7 +10,7 @@
     - __sap_general_preconfigure_register_stat_limits_sap_conf_assert.stat.isreg
 
 - name: Assert that the hard limit of nproc for group sapsys is unlimited
-  assert:
+  ansible.builtin.assert:
     that: "__sap_general_preconfigure_register_limits_sap_conf_nproc_hard_assert.stdout == 'unlimited'"
     fail_msg: "FAIL: The hard limit of nproc for group 'sapsys' in /etc/security/limits.d/99-sap.conf is
                '{{ __sap_general_preconfigure_register_limits_sap_conf_nproc_hard_assert.stdout }}' but the expected value is 'unlimited'!"
@@ -22,7 +22,7 @@
     - __sap_general_preconfigure_register_stat_limits_sap_conf_assert.stat.isreg
 
 - name: Check if the soft limit of nproc for group sapsys is unlimited
-  command: awk '/sapsys/&&/nproc/&&/soft/{print $NF}' /etc/security/limits.d/99-sap.conf
+  ansible.builtin.command: awk '/sapsys/&&/nproc/&&/soft/{print $NF}' /etc/security/limits.d/99-sap.conf
   register: __sap_general_preconfigure_register_limits_sap_conf_nproc_soft_assert
   changed_when: no
   ignore_errors: yes
@@ -31,7 +31,7 @@
     - __sap_general_preconfigure_register_stat_limits_sap_conf_assert.stat.isreg
 
 - name: Assert that the soft limit of nproc for group sapsys is unlimited
-  assert:
+  ansible.builtin.assert:
     that: "__sap_general_preconfigure_register_limits_sap_conf_nproc_soft_assert.stdout == 'unlimited'"
     fail_msg: "FAIL: The soft limit of nproc for group 'sapsys' in /etc/security/limits.d/99-sap.conf is
                '{{ __sap_general_preconfigure_register_limits_sap_conf_nproc_hard_assert.stdout }}' but the expected value is 'unlimited'!"
@@ -43,7 +43,7 @@
     - __sap_general_preconfigure_register_stat_limits_sap_conf_assert.stat.isreg
 
 - name: Get the hard limit of nproc for the database group
-  command: awk '/@{{ sap_general_preconfigure_db_group_name }}/&&/nproc/&&/hard/{print $NF}' /etc/security/limits.d/99-sap.conf
+  ansible.builtin.command: awk '/@{{ sap_general_preconfigure_db_group_name }}/&&/nproc/&&/hard/{print $NF}' /etc/security/limits.d/99-sap.conf
   register: __sap_general_preconfigure_register_limits_sap_conf_db_group_nproc_hard_assert
   changed_when: no
   ignore_errors: yes
@@ -53,7 +53,7 @@
     - sap_general_preconfigure_db_group_name is defined
 
 - name: Assert that the hard limit of nproc for the database group is unlimited
-  assert:
+  ansible.builtin.assert:
     that: "__sap_general_preconfigure_register_limits_sap_conf_db_group_nproc_hard_assert.stdout == 'unlimited'"
     fail_msg: "FAIL: The hard limit of nproc for group '{{ sap_general_preconfigure_db_group_name }}' in /etc/security/limits.d/99-sap.conf is
                '{{ __sap_general_preconfigure_register_limits_sap_conf_db_group_nproc_hard_assert.stdout }}' but the expected value is 'unlimited'!"
@@ -66,7 +66,7 @@
     - sap_general_preconfigure_db_group_name is defined
 
 - name: Get the soft limit of nproc for the database group
-  command: awk '/@{{ sap_general_preconfigure_db_group_name }}/&&/nproc/&&/soft/{print $NF}' /etc/security/limits.d/99-sap.conf
+  ansible.builtin.command: awk '/@{{ sap_general_preconfigure_db_group_name }}/&&/nproc/&&/soft/{print $NF}' /etc/security/limits.d/99-sap.conf
   register: __sap_general_preconfigure_register_limits_sap_conf_db_group_nproc_soft_assert
   changed_when: no
   ignore_errors: yes
@@ -76,7 +76,7 @@
     - sap_general_preconfigure_db_group_name is defined
 
 - name: Assert that the soft limit of nproc for the database group is unlimited
-  assert:
+  ansible.builtin.assert:
     that: "__sap_general_preconfigure_register_limits_sap_conf_db_group_nproc_soft_assert.stdout == 'unlimited'"
     fail_msg: "FAIL: The soft limit of nproc for group '{{ sap_general_preconfigure_db_group_name }}' in /etc/security/limits.d/99-sap.conf is
                '{{ __sap_general_preconfigure_register_limits_sap_conf_db_group_nproc_soft_assert.stdout }}' but the expected value is 'unlimited'!"

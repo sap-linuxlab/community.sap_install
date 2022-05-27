@@ -1,32 +1,39 @@
 ---
 
 - name: Display the role path
-  debug:
+  ansible.builtin.debug:
     var: role_path
 
 - name: Include OS specific vars
-  include_vars: '{{ item }}'
+  ansible.builtin.include_vars: '{{ item }}'
   with_first_found:
+    - '{{ ansible_distribution.split("_")[0] }}_{{ ansible_distribution_major_version }}.yml'
     - '{{ ansible_distribution }}_{{ ansible_distribution_version }}.yml'
     - '{{ ansible_distribution }}_{{ ansible_distribution_major_version }}.yml'
     - '{{ ansible_os_family }}.yml'
 
 - name: Set filename prefix to empty string if role is run in normal mode
-  set_fact:
+  ansible.builtin.set_fact:
     assert_prefix: ""
   when: not sap_netweaver_preconfigure_assert|d(false)
 
 - name: Prepend filename with assert string if role is run in assert mode
-  set_fact:
+  ansible.builtin.set_fact:
     assert_prefix: "assert-"
   when: sap_netweaver_preconfigure_assert|d(false)
 
 # required for installation and configuration tasks:
 - name: Gather package facts
-  package_facts:
+  ansible.builtin.package_facts:
 
-- include_tasks: '{{ assert_prefix }}installation.yml'
+- ansible.builtin.include_tasks: '{{ item }}/{{ assert_prefix }}installation.yml'
   when: sap_netweaver_preconfigure_config_all|d(true) or sap_netweaver_preconfigure_installation|d(false)
+  with_first_found:
+    - '{{ ansible_distribution.split("_")[0] }}'
+    - '{{ ansible_distribution }}'
 
-- include_tasks: '{{ assert_prefix }}configuration.yml'
+- ansible.builtin.include_tasks: '{{ item }}/{{ assert_prefix }}configuration.yml'
   when: sap_netweaver_preconfigure_config_all|d(true) or sap_netweaver_preconfigure_configuration|d(false)
+  with_first_found:
+    - '{{ ansible_distribution.split("_")[0] }}'
+    - '{{ ansible_distribution }}'
