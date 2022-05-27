@@ -18,6 +18,7 @@ Ansible role for SAP Pacemaker Setup
 ## Overview
 
 ### Execution Design
+- Update to be able to run the sap_ha_install_pacemaker role once you need to run sap_ha_prepare_pacemaker first.
 
 - This Ansible role is designed to be executed using an external handler such `Terraform` or a separate `bash` script
 - Limitations of doing an SAP installation where scripts and Ansible playbooks have to be executed locally and not thru the usual `ansible command` -> `inventory of hosts` scenario

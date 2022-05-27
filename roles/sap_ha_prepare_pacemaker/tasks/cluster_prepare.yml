@@ -1,0 +1,26 @@
+---
+
+# [1] Authenticate Pacemaker cluster
+- name: SAP Pacemaker Setup - [1] Authenticate Pacemaker cluster
+  shell: |
+    pcs host auth \
+    {{ sap_ha_install_pacemaker_node1_hostname }} \
+    -u hacluster -p '{{ sap_ha_install_pacemaker_hacluster_password }}'
+  register: pcs_host_auth_reg
+  when:
+    - sap_ha_install_pacemaker_role == 'primary'
+
+# [1] Authenticate Pacemaker cluster
+- name: SAP Pacemaker Setup - [1] Authenticate Pacemaker cluster
+  shell: |
+    pcs host auth \
+    {{ sap_ha_install_pacemaker_node2_hostname }} \
+    -u hacluster -p '{{ sap_ha_install_pacemaker_hacluster_password }}'
+  register: pcs_host_auth_reg
+  when:
+    - sap_ha_install_pacemaker_role == 'secondary'
+
+- name: "SAP Pacemaker Setup - print pcs reg"
+  debug:
+    var: pcs_host_auth_reg
+

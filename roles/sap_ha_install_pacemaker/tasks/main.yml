@@ -45,6 +45,7 @@
   include_tasks: preconfig.yml
 #  when:
 #    - ansible_nodename == sap_ha_install_hana_hsr_primary_hostname
+#    - sap_ha_install_pacemaker_role == 'primary'
 #    - sap_ha_install_pacemaker_part == '1'
 
 # Part 2
@@ -70,13 +71,13 @@
 - name: SAP Pacemaker Part 2 - Cluster Setup
   include_tasks: cluster_setup.yml
   when:
-    - ansible_nodename == sap_ha_install_hana_hsr_primary_hostname
+    - sap_ha_install_pacemaker_role == 'primary'
     - sap_ha_install_pacemaker_check_cluster.rc == 1
 
 - name: SAP Pacemaker Part 2 - Stonith Configuration
   include_tasks: stonith_config.yml
   when:
-    - ansible_nodename == sap_ha_install_hana_hsr_primary_hostname
+    - sap_ha_install_pacemaker_role == 'primary'
 
 - name: SAP Pacemaker Part 3 - Sudoer Configuration
   include_tasks: cluster_sudoer.yml
@@ -88,7 +89,7 @@
   tags:
     - pacemaker
   when:
-    - ansible_nodename == sap_ha_install_hana_hsr_primary_hostname
+    - sap_ha_install_pacemaker_role == 'primary'
 
 - name: "SAP Pacemaker Part 4 - srhooks Configurationi"
   include_tasks: cluster_srhook.yml

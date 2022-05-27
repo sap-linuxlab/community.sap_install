@@ -1,15 +1,5 @@
 ---
 
-# [1] Authenticate Pacemaker cluster
-- name: SAP Pacemaker Setup - [1] Authenticate Pacemaker cluster
-  shell: |
-    pcs host auth \
-    {{ sap_ha_install_pacemaker_node1_hostname }} {{ sap_ha_install_pacemaker_node2_hostname }} \
-    -u hacluster -p '{{ sap_ha_install_pacemaker_hacluster_password }}'
-  register: pcs_host_auth_reg
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
-
 - name: "SAP Pacemaker Setup - print pcs reg"
   debug:
     var: pcs_host_auth_reg
@@ -21,24 +11,18 @@
     {{ sap_ha_install_pacemaker_cluster_name }} {{ sap_ha_install_pacemaker_node1_hostname }} {{ sap_ha_install_pacemaker_node2_hostname }} \
     totem token=30000 --force
   register: pcs_cluster_setup_reg
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
 
 # [1] Start Pacemaker cluster
 - name: SAP Pacemaker Setup - [1] Start Pacemaker cluster
   shell: |
     pcs cluster start --all
   register: pcs_cluster_start_reg
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
 
 # [1] Check Pacemaker cluster
 - name: SAP Pacemaker Setup - [1] Check Pacemaker cluster
   shell: |
     pcs status
   register: pcs_status_reg
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
 
 # [A] Set Expected Votes
 - name: SAP Pacemaker Setup - [1] Set Expected Votes
@@ -50,5 +34,3 @@
 - name: SAP Pacemaker Setup - [1] Allow concurrent fence actions
   shell: |
     pcs property set concurrent-fencing=true
-  when:
-    - sap_ha_install_pacemaker_role== 'primary'
