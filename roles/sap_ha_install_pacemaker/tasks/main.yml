@@ -59,7 +59,8 @@
   become: true
   become_user: root
   register: sap_ha_install_pacemaker_check_cluster
-  changed_when: '"Cluster Name" in sap_ha_install_pacemaker_check_cluster.stdout'
+  changed_when: false # '"Cluster Name" in sap_ha_install_pacemaker_check_cluster.stdout'
+  failed_when: false
   
 - name: "SAP Pacemaker Part 2- Debug Check cluster"
   debug:
@@ -70,7 +71,7 @@
   include_tasks: cluster_setup.yml
   when:
     - ansible_nodename == sap_ha_install_hana_hsr_primary_hostname
-    - sap_ha_install_pacemaker_check_cluster.changed == false
+    - sap_ha_install_pacemaker_check_cluster.rc == 1
 
 - name: SAP Pacemaker Part 2 - Stonith Configuration
   include_tasks: stonith_config.yml
