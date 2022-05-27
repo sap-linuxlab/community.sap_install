@@ -8,10 +8,6 @@
         EOF
   args:
      executable: /bin/bash
-  become: true
-  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
-  when:
-      - sap_ha_install_hana_hsr_role == 'primary'
 
 # [A] Run backup in TENANTDB {{ sap_ha_install_hana_hsr_sid }}
 - name: SAP HSR - [A] Run backup in TENANTDB {{ sap_ha_install_hana_hsr_sid }}
@@ -23,11 +19,7 @@
         EOF
   args:
      executable: /bin/bash
-  become: true
-  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
-  ignore_errors: yes
-  when:
-      - sap_ha_install_hana_hsr_role == 'primary'
+  failed_when: false
 
 # - name: Ensure a backup exists for SYSTEM
 #   shell: |
