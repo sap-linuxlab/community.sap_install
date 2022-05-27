@@ -17,10 +17,6 @@
   tags:
     - pacemaker
     - ha
-# [A] Disable firewall
-
-- name: SAP Pacemaker Setup - [A] Disable firewall
-  include_tasks: disable_firewall.yml
   
 # Part 2
 # Cluster Setup, Service Principal, Stonith Configuration
@@ -37,11 +33,6 @@
   changed_when: false
   failed_when: false
   
-- name: "SAP Pacemaker Part 2- Debug Check cluster"
-  debug:
-    var: sap_ha_install_pacemaker_check_cluster
-  tags: pacemaker
-
 - name: SAP Pacemaker Part 2 - Cluster Setup
   include_tasks: cluster_setup.yml
   when:
@@ -52,25 +43,3 @@
   include_tasks: stonith_config.yml
   when:
     - sap_ha_install_pacemaker_role == 'primary'
-
-- name: SAP Pacemaker Part 3 - Sudoer Configuration
-  include_tasks: cluster_sudoer.yml
-  tags:
-    - pacemaker
-
-- name: SAP Pacemaker Part 3 - Resource Configuration
-  include_tasks: cluster_resources.yml
-  tags:
-    - pacemaker
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
-
-- name: "SAP Pacemaker Part 4 - srhooks Configuration"
-  include_tasks: cluster_srhook.yml
-  tags:
-    - srhook
-
-- name: SAP Pacemaker Part 5 - Constraints Configuration
-  include_tasks: cluster_constraint.yml
-  tags:
-    - constraint
