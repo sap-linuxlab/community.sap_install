@@ -1,12 +1,10 @@
-sap_hana_preconfigure
-=====================
+# sap_hana_preconfigure Ansible Role
 
 This role installs additional required packages and performs additional configuration steps for installing and running SAP HANA.
 If you want to configure a RHEL system for the installation and later usage of SAP HANA, you have to first run role sap_general_preconfigure
 and then role sap_hana_preconfigure.
 
-Requirements
-------------
+## Requirements
 
 To use this role, your system needs to be configured with the basic requirements for SAP NetWeaver or SAP HANA. This is typically done by running
 role sap_general_preconfigure (for RHEL managed nodes before RHEL 7.6, community maintained role sap-base-settings can be used).
@@ -76,8 +74,7 @@ sap_general_preconfigure is run before sap_hana_preconfigure, there is no need a
 Same applies to the assertion of the SELinux state. Because of this, variable sap_hana_preconfigure_selinux_state has been removed from this role and
 tasks 2292690/08-disable-selinux.yml and 2777782/01-assert-selinux.yml have been commented out.
 
-Role Variables
---------------
+## Role Variables
 
 - set in `defaults/main.yml`:
 
@@ -207,6 +204,7 @@ In case you want the role to set or check these parameters, set the following va
 
 ```yaml
 sap_hana_preconfigure_use_netapp_settings_nfs
+```
 
 ###  HANA kernel parameters for NetApp NFSv3
 [SAP Note 3024346](https://launchpad.support.sap.com/#/notes/3024346) also contains an additional parameter setting for NetApp when using NFSv3.
@@ -281,8 +279,7 @@ sap_hana_version: "2"
 sap_hana_sps: "0"
 ```
 
-Example Playbook
-----------------
+## Example Playbook
 
 Simple playbook, named sap+hana.yml:
 ```yaml
@@ -307,8 +304,8 @@ Simple playbook for an extended check (assert) run, named sap+hana-assert.yml:
     - role: sap_hana_preconfigure
 ```
 
-Example Usage
--------------
+## Example Usage
+
 Normal run, for configuring server host_1 for SAP HANA:
 ```yaml
 ansible-playbook sap+hana.yml -l host_1
@@ -348,19 +345,14 @@ In case you need to make an invisible font readable on a terminal with bright ba
 printf "\033[30mreadable font\n"
 ```
 
-Contribution
-------------
+## Contribution
 
 Please read the [developer guidelines](./README.DEV.md) if you want to contribute
 
-License
--------
+## License
 
-GNU General Public License v3.0
+Apache license 2.0
 
-Author Information
-------------------
+## Author Information
 
-Markus Koch, Thomas Bludau, Bernd Finger, Than Ngo
-
-Please leave comments in the github repo issue list
+Red Hat for SAP Community of Practice, Markus Koch, Thomas Bludau, Bernd Finger, Than Ngo, Rainer Leber

@@ -1,19 +1,19 @@
 ---
 
 - name: Assert - Get info about file /etc/init.d/boot.local
-  stat:
+  ansible.builtin.stat:
     path: /etc/init.d/boot.local
   register: __sap_hana_preconfigure_register_stat_boot_local_ksm_assert
 
 - name: Assert that file /etc/init.d/boot.local exists
-  assert:
+  ansible.builtin.assert:
     that: __sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.exists
     fail_msg: "FAIL: File /etc/init.d/boot.local does not exist!"
     success_msg: "PASS: File /etc/init.d/boot.local exist."
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
 
 - name: Assert that file /etc/init.d/boot.local is a regular file
-  assert:
+  ansible.builtin.assert:
     that: __sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.isreg
     fail_msg: "FAIL: File /etc/init.d/boot.local is not a regular file!"
     success_msg: "PASS: File /etc/init.d/boot.local is a regular file."
@@ -21,7 +21,7 @@
   when: __sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.exists
 
 - name: Assert that the mode of file /etc/init.d/boot.local is 0755
-  assert:
+  ansible.builtin.assert:
     that: "__sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.mode == '0755'"
     fail_msg: "FAIL: File /etc/init.d/boot.local has mode '{{ __sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.mode }}'
                but the expected mode is '0755'!"
@@ -30,14 +30,14 @@
   when: __sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.exists
 
 - name: Get KSM setting in /etc/init.d/boot.local
-  command: awk '/ksm/{print}' /etc/init.d/boot.local
+  ansible.builtin.command: awk '/ksm/{print}' /etc/init.d/boot.local
   register: __sap_hana_preconfigure_register_boot_local_ksm_assert
   ignore_errors: true
   changed_when: no
   when: __sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.exists
 
 - name: Assert that ksm is disabled in /etc/init.d/boot.local
-  assert:
+  ansible.builtin.assert:
     that: "'echo 0 > /sys/kernel/mm/ksm/run' in __sap_hana_preconfigure_register_boot_local_ksm_assert.stdout"
     fail_msg: "FAIL: The line 'echo 0 > /sys/kernel/mm/ksm/run' is not in file /etc/init.d/boot.local!"
     success_msg: "PASS: The line 'echo 0 > /sys/kernel/mm/ksm/run' is in file /etc/init.d/boot.local."
@@ -45,13 +45,13 @@
   when: __sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.exists
 
 - name: Assert - Get status of KSM
-  command: cat /sys/kernel/mm/ksm/run
+  ansible.builtin.command: cat /sys/kernel/mm/ksm/run
   register: __sap_hana_preconfigure_register_ksm_active_assert
   ignore_errors: true
   changed_when: no
 
 - name: Assert that ksm is currently disabled
-  assert:
+  ansible.builtin.assert:
     that: "__sap_hana_preconfigure_register_ksm_active_assert.stdout == '0'"
     fail_msg: "FAIL: KSM is currently enabled but it needs to be disabled!"
     success_msg: "PASS: KSM is disabled currently."

@@ -1,15 +1,13 @@
 ---
 
 # Configure tmpfs
-- block:
-  - name: Assert - Display SAP note number 0941735 and its version
-    debug:
-      msg: "SAP note {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^0941735$') | first).number }}
-            (version {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^0941735$') | first).version }}): Configure tmpfs;
-            memtotal_mb = {{ ansible_memtotal_mb }};
-            swaptotal_mb = {{ ansible_swaptotal_mb }};
-            sap_general_preconfigure_size_of_tmpfs_gb = {{ sap_general_preconfigure_size_of_tmpfs_gb }}"
+- name: Assert - Display SAP note number 0941735 and its version
+  ansible.builtin.debug:
+    msg: "SAP note {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^0941735$') | first).number }}
+          (version {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^0941735$') | first).version }}): Configure tmpfs;
+          memtotal_mb = {{ ansible_memtotal_mb }};
+          swaptotal_mb = {{ ansible_swaptotal_mb }};
+          sap_general_preconfigure_size_of_tmpfs_gb = {{ sap_general_preconfigure_size_of_tmpfs_gb }}"
 
-  - import_tasks: ../RedHat/generic/assert-tmpfs.yml
-
+- ansible.builtin.import_tasks: ../RedHat/generic/assert-tmpfs.yml
   when: sap_general_preconfigure_config_all|d(true) or sap_general_preconfigure_0941735|d(false)

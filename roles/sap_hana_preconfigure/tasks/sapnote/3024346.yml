@@ -2,7 +2,7 @@
 # SAP Note: 3024346 - Linux Kernel Settings for NetApp NFS
 #
 - name: Configure - Display SAP note number 3024346 and its version
-  debug:
+  ansible.builtin.debug:
     msg: "SAP note {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^3024346$') | first).number }}
           (version {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^3024346$') | first).version }}): Linux kernel settings for NetApp NFS"
 
@@ -10,7 +10,7 @@
   block:
 
     - name: Modify entries in file '{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}'
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: "{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}"
         create: yes
         mode: 0644
@@ -23,15 +23,15 @@
 
 # Reason for noqa: We unconditionally reload the kernel parameters without first checking the current values
     - name: Reload kernel parameters from file '{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}' # noqa no-changed-when
-      command: sysctl -p "{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}"
+      ansible.builtin.command: sysctl -p "{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}"
       register: __sap_hana_preconfigure_register_netapp_sysctl_p_output
 
     - name: Display kernel parameters for NetApp NFS
-      debug:
+      ansible.builtin.debug:
         var: __sap_hana_preconfigure_register_netapp_sysctl_p_output.stdout_lines
 
     - name: Set kernel tunable for NFSv3 as per SAP note 3024346
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/modprobe.d/sunrpc.conf
         create: yes
         mode: 0644

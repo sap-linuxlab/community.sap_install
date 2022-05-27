@@ -1,7 +1,7 @@
 ---
 
 - name: Ensure that the system is running a RHEL release which is supported for SAP HANA
-  assert:
+  ansible.builtin.assert:
     that: ansible_distribution_version in "{{ sap_hana_preconfigure_supported_rhel_minor_releases }}"
     fail_msg: "The RHEL release {{ ansible_distribution_version }} is not supported for SAP HANA!"
     success_msg: "The RHEL release {{ ansible_distribution_version }} is supported for SAP HANA."
@@ -11,41 +11,41 @@
   block:
 # repos required for SAP HANA on RHEL 7 and RHEL 8:
     - name: Fill the variable for the generic list of required repos
-      set_fact:
+      ansible.builtin.set_fact:
         __sap_hana_preconfigure_fact_required_repos: "{{ lookup('vars','__sap_hana_preconfigure_req_repos_redhat_' +
         ansible_distribution_version|string|replace (\".\", \"_\") + '_' + ansible_architecture) }}"
 
     - name: Construct valid argument list to the subscription-manager repos command
-      set_fact:
+      ansible.builtin.set_fact:
         __sap_hana_preconfigure_fact_required_repos_args: "{{ ['--enable='] | product(__sap_hana_preconfigure_fact_required_repos) | map('join') | list }}"
 
 # Reason for noqa: Avoid calling one more command for getting the currently enabled repos
 # and then having to compare the output against the list of required repos
     - name: Enable required repositories # noqa no-changed-when
-      command: "subscription-manager repos {{ __sap_hana_preconfigure_fact_required_repos_args | map('quote') | join(' ') }}"
+      ansible.builtin.command: "subscription-manager repos {{ __sap_hana_preconfigure_fact_required_repos_args | map('quote') | join(' ') }}"
       register: __sap_hana_preconfigure_register_subscription_enable_repos
 
     - name: Display the output of the subscription-manager repos --enable command
-      debug:
+      ansible.builtin.debug:
         var: __sap_hana_preconfigure_register_subscription_enable_repos
 
   when: sap_hana_preconfigure_enable_sap_hana_repos
 
 - name: Detect if the minor RHEL release is set
-  shell: set -o pipefail && subscription-manager release --show | awk '{print $NF}'
+  ansible.builtin.shell: set -o pipefail && subscription-manager release --show | awk '{print $NF}'
   register: __sap_hana_preconfigure_register_subscription_manager_release
   changed_when: false
   when:
     - sap_hana_preconfigure_set_minor_release
 
 - name: Set the minor RHEL release
-  command: subscription-manager release --set="{{ ansible_distribution_version }}"
+  ansible.builtin.command: subscription-manager release --set="{{ ansible_distribution_version }}"
   when:
     - sap_hana_preconfigure_set_minor_release
     - __sap_hana_preconfigure_register_subscription_manager_release.stdout != ansible_distribution_version
 
 - name: Ensure required packages are installed
-  package:
+  ansible.builtin.package:
     state: present
     name: "{{ sap_hana_preconfigure_packages }}"
 
@@ -68,7 +68,7 @@
 ### see https://www14.software.ibm.com/support/customercare/sas/f/lopdiags/home.html for details
 
 - name: Install the ibm-power-repo package
-  yum:
+  ansible.builtin.yum:
     name: "{{ sap_hana_preconfigure_ibm_power_repo_url }}"
     state: present
     disable_gpg_check: True
@@ -77,14 +77,14 @@
     - sap_hana_preconfigure_add_ibm_power_repo|d(true)
 
 - name: Accept the license for the IBM Service and Productivity Tools
-  shell: LESS=+q /opt/ibm/lop/configure <<<'y'
+  ansible.builtin.shell: LESS=+q /opt/ibm/lop/configure <<<'y'
   when:
     - ansible_architecture == "ppc64le"
     - sap_hana_preconfigure_add_ibm_power_repo|d(true)
 
 # Reason for noqa: Both yum and dnf support "state: latest"
 - name: Install the IBM Service and Productivity Tools # noqa package-latest
-  package:
+  ansible.builtin.package:
     state: latest
     name: "{{ __sap_hana_preconfigure_required_ppc64le }}"
   when: ansible_architecture == "ppc64le"
@@ -125,7 +125,7 @@
 #              to be updated.
 # 8 - case 2b: If the first column of the last line of the output is "2", it means that at least of the installed
 #              versions the package is equal to or greater than the required package version.
-      shell: |
+      ansible.builtin.shell: |
            (echo "1 {{ pkg[0] }}-{{ pkg[1] }}";rpm -q --qf "%{NAME}-%{VERSION}-%{RELEASE}\n" {{ pkg[0] }} |
              awk '{printf ("2 %s\n", $0)}') |
              awk '{gsub ("\\.el", ".0.0"); print}' |
@@ -149,11 +149,11 @@
       changed_when: no
 
     - name: Display the content of the minimum package list variable
-      debug:
+      ansible.builtin.debug:
         var: __sap_hana_preconfigure_register_minpkglist
 
     - name: Install minimum packages if required
-      yum:
+      ansible.builtin.yum:
         name: "{{ line_item.stdout }}"
         state: present
       with_items: "{{ __sap_hana_preconfigure_register_minpkglist.results }}"
@@ -166,20 +166,20 @@
 
 # Reason for noqa: Both yum and dnf support "state: latest"
 - name: Ensure that the system is updated to the latest patchlevel # noqa package-latest
-  package:
+  ansible.builtin.package:
     state: latest
     name: "*"
   when: sap_hana_preconfigure_update|bool
 
 - name: "Set needs-restarting command in case of RHEL 7"
-  set_fact:
+  ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_needs_restarting_command: "needs-restarting -r"
   when:
     - ansible_os_family == 'RedHat'
     - ansible_distribution_major_version == '7'
 
 - name: "Set needs-restarting command in case of RHEL 8 or RHEL 9, except RHEL 8.0"
-  set_fact:
+  ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_needs_restarting_command: "yum needs-restarting -r"
   when:
     - ansible_os_family == 'RedHat'
@@ -189,19 +189,19 @@
     - ansible_distribution_version != '8.0'
 
 - name: "Set customized needs-restarting command in case of RHEL 8.0"
-  set_fact:
+  ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_needs_restarting_command: "_IKRNL=$(rpm -q --last kernel | awk 'NR==1{sub(/kernel-/,\"\"); print $1}'); _CKRNL=$(uname -r); if [ ${_IKRNL} != ${_CKRNL} ]; then exit 1; else exit 0; fi"
   when:
     - ansible_os_family == 'RedHat'
     - ansible_distribution_version == '8.0'
 
 - name: Display the command for checking a reboot requirement
-  debug:
+  ansible.builtin.debug:
     var: __sap_hana_preconfigure_fact_needs_restarting_command
 
 # Reason for noqa: The command to be executed might contain pipes
 - name: Determine if system needs to be restarted # noqa command-instead-of-shell
-  shell: "{{ __sap_hana_preconfigure_fact_needs_restarting_command }}"
+  ansible.builtin.shell: "{{ __sap_hana_preconfigure_fact_needs_restarting_command }}"
   register: __sap_hana_preconfigure_register_needs_restarting
   ignore_errors: true
   changed_when: false
@@ -210,7 +210,7 @@
   check_mode: false
 
 - name: Display the output of the reboot requirement check
-  debug:
+  ansible.builtin.debug:
     var: __sap_hana_preconfigure_register_needs_restarting
 
 # Role sap_general_preconfigure is typically run right before this role, in the same playbook.
@@ -218,11 +218,11 @@
 # to 'no' and notifying the reboot handler of the current role about the reboot requirement
 # of role sap_general_preconfigure.
 - name: Call reboot handler if necessary as per role sap_general_preconfigure
-  command: /bin/true
+  ansible.builtin.command: /bin/true
   notify: __sap_hana_preconfigure_reboot_handler
   when: sap_general_preconfigure_fact_reboot_required|d(false)
 
 - name: Call reboot handler if necessary as per this role
-  command: /bin/true
+  ansible.builtin.command: /bin/true
   notify: __sap_hana_preconfigure_reboot_handler
   when: __sap_hana_preconfigure_register_needs_restarting is failed

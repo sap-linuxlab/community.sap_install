@@ -6,49 +6,49 @@
 - name: Perform steps for configuring EPB
   block:
     - name: Check if system supports Intel's performance bias setting
-      shell: set -o pipefail && LC_ALL=C cpupower info | head -1 | awk '{print $2, $3, $4}'
+      ansible.builtin.shell: set -o pipefail && LC_ALL=C cpupower info | head -1 | awk '{print $2, $3, $4}'
       check_mode: no
       register: __sap_hana_preconfigure_register_cpupower_info_epb_supported
       ignore_errors: true
       changed_when: false
 
     - name: Display the output of the cpupower info command
-      debug:
+      ansible.builtin.debug:
         var: __sap_hana_preconfigure_register_cpupower_info_epb_supported.stdout_lines,
              __sap_hana_preconfigure_register_cpupower_info_epb_supported.stderr_lines
 
     - name: Change EPB if possible
       block:
         - name: Create file /etc/init.d/boot.local if it does not exist
-          file:
+          ansible.builtin.file:
             path: /etc/init.d/boot.local
             state: touch
             mode: 0755
 
         - name: Configure EPB at boot time
-          lineinfile:
+          ansible.builtin.lineinfile:
             dest: /etc/init.d/boot.local
             line: "cpupower set -b 0"
 
 # Reason for changed_when being set to yes: We unconditionally configure EPB without first determining
 # the current state
         - name: Configure EPB on the running system
-          command: cpupower set -b 0
+          ansible.builtin.command: cpupower set -b 0
           register: __sap_hana_preconfigure_register_cpupower_set
           changed_when: yes
 
         - name: Display the output of the cpupower set command
-          debug:
+          ansible.builtin.debug:
             var: __sap_hana_preconfigure_register_cpupower_set.stdout_lines, __sap_hana_preconfigure_register_cpupower_set.stderr_lines
 
         - name: Get status of EPB
-          command: cpupower info -b
+          ansible.builtin.command: cpupower info -b
           register: __sap_hana_preconfigure_register_cpupower_info
           ignore_errors: true
           changed_when: false
 
         - name: Display the output of the cpupower info -b command
-          debug:
+          ansible.builtin.debug:
             var: __sap_hana_preconfigure_register_cpupower_info.stdout_lines, __sap_hana_preconfigure_register_cpupower_info.stderr_lines
 
       when:

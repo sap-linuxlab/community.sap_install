@@ -2,13 +2,13 @@
 
 #### Special recommendations for Power 8
 - name: Assert 2292690-10
-  debug:
+  ansible.builtin.debug:
     msg: "SAP note 2292690 Step 10: IBM EnergyScale for POWER8 Processor-Based Systems"
 
 - name: Check of package pseries-energy
   block:
     - name: Check if package pseries-energy is not installed
-      command: yum info installed pseries-energy
+      ansible.builtin.command: yum info installed pseries-energy
       register: __sap_hana_preconfigure_register_yum_pseries_energy_assert
       changed_when: no
       ignore_errors: yes
@@ -16,7 +16,7 @@
         warn: false
 
     - name: Assert that package pseries-energy is not installed
-      assert:
+      ansible.builtin.assert:
         that: __sap_hana_preconfigure_register_yum_pseries_energy_assert is failed
         fail_msg: "FAIL: Package 'pseries-energy' is installed!"
         success_msg: "PASS: Package 'pseries-energy' is not installed."

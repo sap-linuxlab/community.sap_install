@@ -1,6 +1,8 @@
+---
 # Secondary nodes fetch PKI files from the primary node.
 # Use the ansible control node as temporary file storage.
 # Avoid dependency on connectivity requirements between the nodes.
+# [1] Copy the system PKI files to /tmp
 
 - name: Copy the system PKI files from the primary to control node /tmp
   ansible.builtin.fetch:
@@ -11,7 +13,6 @@
     - "{{ __sap_ha_install_hana_hsr_secpath }}/data/SSFS_{{ sap_ha_install_hana_hsr_sid }}.DAT"
     - "{{ __sap_ha_install_hana_hsr_secpath }}/key/SSFS_{{ sap_ha_install_hana_hsr_sid }}.KEY"
   delegate_to: "{{ sap_ha_install_hana_hsr_primary_hostname }}"
-  register: get_pki
 
 - name: Copy the system PKI files from /tmp to /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs/
   ansible.builtin.copy:

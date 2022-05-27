@@ -3,14 +3,14 @@
 # loop block for sapnote/assert-3024346.yml
 
 - name: 3024346 - Get {{ line_item.name }} from {{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}
-  command: awk 'BEGIN{FS="="}/{{ line_item.name }}/{print $NF}' {{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}
+  ansible.builtin.command: awk 'BEGIN{FS="="}/{{ line_item.name }}/{print $NF}' {{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}
   register: __sap_hana_preconfigure_register_sysctl_netapp_hana_conf_network_parameter_assert
   changed_when: no
   ignore_errors: yes
   when: __sap_hana_preconfigure_register_etc_sysctl_netapp_hana_conf_assert.stat.exists
 
 - name: 3024346 - Assert that {{ line_item.name }} is set correctly in {{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}
-  assert:
+  ansible.builtin.assert:
     that: "__sap_hana_preconfigure_register_sysctl_netapp_hana_conf_network_parameter_assert.stdout == '{{ line_item.value }}'"
     fail_msg: "FAIL: The value of '{{ line_item.name }}' in '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}' is
                '{{ __sap_hana_preconfigure_register_sysctl_netapp_hana_conf_network_parameter_assert.stdout }}' but the expected value is 'line_item.value'!"
@@ -20,13 +20,13 @@
   when: __sap_hana_preconfigure_register_etc_sysctl_netapp_hana_conf_assert.stat.exists
 
 - name: 3024346 - Get {{ line_item.name }} from sysctl
-  shell: sysctl -n {{ line_item.name }} | awk '{gsub ("\t", " "); print}'
+  ansible.builtin.shell: sysctl -n {{ line_item.name }} | awk '{gsub ("\t", " "); print}'
   register: __sap_hana_preconfigure_register_sysctl_netapp_hana_network_parameter_assert
   changed_when: no
   ignore_errors: yes
 
 - name: 3024346 - Assert that {{ line_item.name }} is set correctly as per sysctl
-  assert:
+  ansible.builtin.assert:
     that: "__sap_hana_preconfigure_register_sysctl_netapp_hana_network_parameter_assert.stdout == '{{ line_item.value }}'"
     fail_msg: "FAIL: The current value of '{{ line_item.name }}' as per sysctl is
                '{{ __sap_hana_preconfigure_register_sysctl_netapp_hana_network_parameter_assert.stdout }}' but the expected value is '{{ line_item.value }}'!"

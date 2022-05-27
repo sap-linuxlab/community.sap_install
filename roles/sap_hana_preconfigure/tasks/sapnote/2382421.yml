@@ -2,7 +2,7 @@
 # SAP Note: 2382421 - Optimizing the Network Configuration on HANA- and OS-Level
 #
 - name: Configure - Display SAP note number 2382421 and its version
-  debug:
+  ansible.builtin.debug:
     msg: "SAP note {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2382421$') | first).number }}
           (version {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2382421$') | first).version }}): Recommended network settings for SAP HANA"
 
@@ -10,7 +10,7 @@
   block:
 
     - name: Modify entries in file '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}'
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: "{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}"
         create: yes
         mode: 0644
@@ -25,27 +25,27 @@
       block:
 
         - name: Get the value of net.ipv4.tcp_wmem
-          command: sysctl net.ipv4.tcp_wmem
+          ansible.builtin.command: sysctl net.ipv4.tcp_wmem
           check_mode: no
           register: __sap_hana_preconfigure_register_sysctl_ipv4_tcp_wmem
           changed_when: no
 
         - name: Display the maximum value of net.ipv4.tcp_wmem
-          debug:
+          ansible.builtin.debug:
             var: __sap_hana_preconfigure_register_sysctl_ipv4_tcp_wmem.stdout.split()[-1]
 
         - name: Get the value of net.ipv4.tcp_rmem
-          command: sysctl net.ipv4.tcp_rmem
+          ansible.builtin.command: sysctl net.ipv4.tcp_rmem
           check_mode: no
           register: __sap_hana_preconfigure_register_sysctl_ipv4_tcp_rmem
           changed_when: no
 
         - name: Display the maximum value of net.ipv4.tcp_rmem
-          debug:
+          ansible.builtin.debug:
             var: __sap_hana_preconfigure_register_sysctl_ipv4_tcp_rmem.stdout.split()[-1]
 
         - name: Set net.core.wmem_max to the maximum value of net.ipv4.tcp_wmem if necessary
-          lineinfile:
+          ansible.builtin.lineinfile:
             path: "{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}"
             create: yes
             mode: 0644
@@ -54,7 +54,7 @@
             state: present
 
         - name: Set net.core.rmem_max to the maximum value of net.ipv4.tcp_rmem if necessary
-          lineinfile:
+          ansible.builtin.lineinfile:
             path: "{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}"
             create: yes
             mode: 0644
@@ -68,11 +68,11 @@
 
 # Reason for noqa: We unconditionally reload the kernel parameters without first checking the current values
     - name: Reload kernel parameters from file '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}' # noqa no-changed-when
-      command: sysctl -p "{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}"
+      ansible.builtin.command: sysctl -p "{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}"
       register: __sap_hana_preconfigure_register_saphana_conf_sysctl_p_output
 
     - name: Display kernel parameters for network tuning
-      debug:
+      ansible.builtin.debug:
         var: __sap_hana_preconfigure_register_saphana_conf_sysctl_p_output.stdout_lines
 
   when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2382421|d(false)

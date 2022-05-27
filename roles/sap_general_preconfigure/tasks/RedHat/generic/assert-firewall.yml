@@ -14,21 +14,21 @@
 
 # Reason for noqa: We need to get the current status only
     - name: Get status of firewalld # noqa command-instead-of-module
-      command: systemctl status firewalld
+      ansible.builtin.command: systemctl status firewalld
       register: __sap_general_preconfigure_register_firewalld_status_assert
       ignore_errors: yes
       changed_when: no
       no_log: yes
 
     - name: Assert that firewalld is disabled
-      assert:
+      ansible.builtin.assert:
         that: "'/usr/lib/systemd/system/firewalld.service; disabled' in __sap_general_preconfigure_register_firewalld_status_assert.stdout"
         fail_msg: "FAIL: Service 'firewalld' is not disabled!"
         success_msg: "PASS: Service 'firewalld' is disabled."
       ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
 
     - name: Assert that firewalld is inactive
-      assert:
+      ansible.builtin.assert:
         that: "'inactive (dead)' in __sap_general_preconfigure_register_firewalld_status_assert.stdout"
         fail_msg: "FAIL: Service 'firewalld' is active!"
         success_msg: "PASS: Service 'firewalld' is inactive."
@@ -37,7 +37,7 @@
   when: "'firewalld' in ansible_facts.packages"
 
 - name: Report firewall install status
-  debug:
+  ansible.builtin.debug:
     msg: "PASS: Service 'firewalld' is not installed."
 
   when: "'firewalld' not in ansible_facts.packages"

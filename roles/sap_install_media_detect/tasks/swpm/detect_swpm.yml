@@ -1,3 +1,5 @@
+---
+
 ################
 # Prepare software path
 ################
@@ -107,113 +109,112 @@
   register: sap_swpm_swpm_sar_file_name_stat
   failed_when: not sap_swpm_swpm_sar_file_name_stat.stat.exists
 
-
 - name: SAP Media Check - SAP SWPM - Full SAP System
   block:
 
-  # 3. IGS
-  - name: SAP Media Check - SAP SWPM - Get IGS from software path
-    shell: |
-      ls igsexe*.sar
-    args:
-      chdir: "{{ sap_swpm_software_path }}"
-    register: sap_swpm_igs_file_name_get
+# 3. IGS
+    - name: SAP Media Check - SAP SWPM - Get IGS from software path
+      shell: |
+        ls igsexe*.sar
+      args:
+        chdir: "{{ sap_swpm_software_path }}"
+      register: sap_swpm_igs_file_name_get
 
-  - name: SAP Media Check - SAP SWPM - Set fact for IGS
-    set_fact:
-      sap_swpm_igs_path: "{{ sap_swpm_software_path }}"
-      sap_swpm_igs_file_name: "{{ sap_swpm_igs_file_name_get.stdout }}"
+    - name: SAP Media Check - SAP SWPM - Set fact for IGS
+      set_fact:
+        sap_swpm_igs_path: "{{ sap_swpm_software_path }}"
+        sap_swpm_igs_file_name: "{{ sap_swpm_igs_file_name_get.stdout }}"
 
-  # failed_when will trigger if more than 1 igsexe is identified and added to the register 
-  - name: SAP Media Check - SAP SWPM - Check availability of IGS - {{ sap_swpm_igs_path }}/{{ sap_swpm_igs_file_name }}
-    stat:
-      path: "{{ sap_swpm_igs_path }}/{{ sap_swpm_igs_file_name }}"
-    register: sap_swpm_igs_file_name_stat
-    failed_when: not sap_swpm_igs_file_name_stat.stat.exists
+# failed_when will trigger if more than 1 igsexe is identified and added to the register
+    - name: SAP Media Check - SAP SWPM - Check availability of IGS - {{ sap_swpm_igs_path }}/{{ sap_swpm_igs_file_name }}
+      stat:
+        path: "{{ sap_swpm_igs_path }}/{{ sap_swpm_igs_file_name }}"
+      register: sap_swpm_igs_file_name_stat
+      failed_when: not sap_swpm_igs_file_name_stat.stat.exists
 
-  # 4. IGS Helper
-  - name: SAP Media Check - SAP SWPM - Get IGS Helper from software path
-    shell: |
-      ls igshelper*.sar
-    args:
-      chdir: "{{ sap_swpm_software_path }}"
-    register: sap_swpm_igs_helper_file_name_get
+# 4. IGS Helper
+    - name: SAP Media Check - SAP SWPM - Get IGS Helper from software path
+      shell: |
+        ls igshelper*.sar
+      args:
+        chdir: "{{ sap_swpm_software_path }}"
+      register: sap_swpm_igs_helper_file_name_get
 
-  - name: SAP Media Check - SAP SWPM - Set fact for IGS
-    set_fact:
-      sap_swpm_igs_helper_path: "{{ sap_swpm_software_path }}"
-      sap_swpm_igs_helper_file_name: "{{ sap_swpm_igs_helper_file_name_get.stdout }}"
+    - name: SAP Media Check - SAP SWPM - Set fact for IGS
+      set_fact:
+        sap_swpm_igs_helper_path: "{{ sap_swpm_software_path }}"
+        sap_swpm_igs_helper_file_name: "{{ sap_swpm_igs_helper_file_name_get.stdout }}"
 
-  - name: SAP Media Check - SAP SWPM - Check availability of IGS Helper - {{ sap_swpm_igs_helper_path }}/{{ sap_swpm_igs_helper_file_name }}
-    stat:
-      path: "{{ sap_swpm_igs_helper_path }}/{{ sap_swpm_igs_helper_file_name }}"
-    register: sap_swpm_igs_helper_file_name_stat
-    failed_when: not sap_swpm_igs_helper_file_name_stat.stat.exists
+    - name: SAP Media Check - SAP SWPM - Check availability of IGS Helper - {{ sap_swpm_igs_helper_path }}/{{ sap_swpm_igs_helper_file_name }}
+      stat:
+        path: "{{ sap_swpm_igs_helper_path }}/{{ sap_swpm_igs_helper_file_name }}"
+      register: sap_swpm_igs_helper_file_name_stat
+      failed_when: not sap_swpm_igs_helper_file_name_stat.stat.exists
 
-  # 5. SAPEXEDB
-  - name: SAP Media Check - SAP SWPM - Get SAPEXEDB from software path
-    shell: |
-      ls SAPEXEDB_*.SAR
-    args:
-      chdir: "{{ sap_swpm_software_path }}"
-    register: sap_swpm_kernel_dependent_file_name_get
+# 5. SAPEXEDB
+    - name: SAP Media Check - SAP SWPM - Get SAPEXEDB from software path
+      shell: |
+        ls SAPEXEDB_*.SAR
+      args:
+        chdir: "{{ sap_swpm_software_path }}"
+      register: sap_swpm_kernel_dependent_file_name_get
 
-  - name: SAP Media Check - SAP SWPM - Set fact for SAPEXEDB
-    set_fact:
-      sap_swpm_kernel_dependent_path: "{{ sap_swpm_software_path }}"
-      sap_swpm_kernel_dependent_file_name: "{{ sap_swpm_kernel_dependent_file_name_get.stdout }}"
+    - name: SAP Media Check - SAP SWPM - Set fact for SAPEXEDB
+      set_fact:
+        sap_swpm_kernel_dependent_path: "{{ sap_swpm_software_path }}"
+        sap_swpm_kernel_dependent_file_name: "{{ sap_swpm_kernel_dependent_file_name_get.stdout }}"
 
-  - name: SAP Media Check - SAP SWPM - Check availability of SAPEXEDB - {{ sap_swpm_kernel_dependent_path }}/{{ sap_swpm_kernel_dependent_file_name }}
-    stat:
-      path: "{{ sap_swpm_kernel_dependent_path }}/{{ sap_swpm_kernel_dependent_file_name }}"
-    register: sap_swpm_kernel_dependent_file_name_stat
-    failed_when: not sap_swpm_kernel_dependent_file_name_stat.stat.exists
+    - name: SAP Media Check - SAP SWPM - Check availability of SAPEXEDB - {{ sap_swpm_kernel_dependent_path }}/{{ sap_swpm_kernel_dependent_file_name }}
+      stat:
+        path: "{{ sap_swpm_kernel_dependent_path }}/{{ sap_swpm_kernel_dependent_file_name }}"
+      register: sap_swpm_kernel_dependent_file_name_stat
+      failed_when: not sap_swpm_kernel_dependent_file_name_stat.stat.exists
 
-  # 6. SAPEXE
-  - name: SAP Media Check - SAP SWPM - Get SAPEXE from software path
-    shell: |
-      ls SAPEXE_*.SAR
-    args:
-      chdir: "{{ sap_swpm_software_path }}"
-    register: sap_swpm_kernel_independent_file_name_get
+# 6. SAPEXE
+    - name: SAP Media Check - SAP SWPM - Get SAPEXE from software path
+      shell: |
+        ls SAPEXE_*.SAR
+      args:
+        chdir: "{{ sap_swpm_software_path }}"
+      register: sap_swpm_kernel_independent_file_name_get
 
-  - name: SAP Media Check - SAP SWPM - Set fact for SAPEXE
-    set_fact:
-      sap_swpm_kernel_independent_path: "{{ sap_swpm_software_path }}"
-      sap_swpm_kernel_independent_file_name: "{{ sap_swpm_kernel_independent_file_name_get.stdout }}"
+    - name: SAP Media Check - SAP SWPM - Set fact for SAPEXE
+      set_fact:
+        sap_swpm_kernel_independent_path: "{{ sap_swpm_software_path }}"
+        sap_swpm_kernel_independent_file_name: "{{ sap_swpm_kernel_independent_file_name_get.stdout }}"
 
-  - name: SAP Media Check - SAP SWPM - Check availability of SAPEXE - {{ sap_swpm_kernel_independent_path }}/{{ sap_swpm_kernel_independent_file_name }}
-    stat:
-      path: "{{ sap_swpm_kernel_independent_path }}/{{ sap_swpm_kernel_independent_file_name }}"
-    register: sap_swpm_kernel_independent_file_name_stat
-    failed_when: not sap_swpm_kernel_independent_file_name_stat.stat.exists
+    - name: SAP Media Check - SAP SWPM - Check availability of SAPEXE - {{ sap_swpm_kernel_independent_path }}/{{ sap_swpm_kernel_independent_file_name }}
+      stat:
+        path: "{{ sap_swpm_kernel_independent_path }}/{{ sap_swpm_kernel_independent_file_name }}"
+      register: sap_swpm_kernel_independent_file_name_stat
+      failed_when: not sap_swpm_kernel_independent_file_name_stat.stat.exists
 
 
 - name: SAP Media Check - SAP SWPM - Webdispatcher
   block:
 
-  # 7. Web Dispatcher
+# 7. Web Dispatcher
 
-  - name: SAP Media Check - SAP SWPM - Get WEBDISP from software path
-    shell: |
-      ls SAPWEBDISP_*.SAR
-    args:
-      chdir: "{{ sap_swpm_software_path }}"
-    register: sap_swpm_web_dispatcher_file_name_get
-    ignore_errors: yes
+    - name: SAP Media Check - SAP SWPM - Get WEBDISP from software path
+      shell: |
+        ls SAPWEBDISP_*.SAR
+      args:
+        chdir: "{{ sap_swpm_software_path }}"
+      register: sap_swpm_web_dispatcher_file_name_get
+      ignore_errors: yes
 
-  - name: SAP Media Check - SAP SWPM - Set fact for WEBDISP
-    set_fact:
-      sap_swpm_web_dispatcher_path: "{{ sap_swpm_software_path }}"
-      sap_swpm_web_dispatcher_file_name: "{{ sap_swpm_web_dispatcher_file_name_get.stdout }}"
-    ignore_errors: yes
+    - name: SAP Media Check - SAP SWPM - Set fact for WEBDISP
+      set_fact:
+        sap_swpm_web_dispatcher_path: "{{ sap_swpm_software_path }}"
+        sap_swpm_web_dispatcher_file_name: "{{ sap_swpm_web_dispatcher_file_name_get.stdout }}"
+      ignore_errors: yes
 
-  - name: SAP Media Check - SAP SWPM - Check availability of WEBDISP - {{ sap_swpm_web_dispatcher_path }}/{{ sap_swpm_web_dispatcher_file_name }}
-    stat:
-      path: "{{ sap_swpm_web_dispatcher_path }}/{{ sap_swpm_web_dispatcher_file_name }}"
-    register: sap_swpm_web_dispatcher_file_name_stat
-    failed_when: not sap_swpm_web_dispatcher_file_name_stat.stat.exists
-    ignore_errors: yes
+    - name: SAP Media Check - SAP SWPM - Check availability of WEBDISP - {{ sap_swpm_web_dispatcher_path }}/{{ sap_swpm_web_dispatcher_file_name }}
+      stat:
+        path: "{{ sap_swpm_web_dispatcher_path }}/{{ sap_swpm_web_dispatcher_file_name }}"
+      register: sap_swpm_web_dispatcher_file_name_stat
+      failed_when: not sap_swpm_web_dispatcher_file_name_stat.stat.exists
+      ignore_errors: yes
 
   when:
     - "'Webdispatcher' in sap_swpm_product_catalog_id"

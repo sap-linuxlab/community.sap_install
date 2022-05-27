@@ -6,24 +6,24 @@
 # Configure tuned to use profile "sap-netweaver"
 
 - name: Configure - Display SAP note number 2526952 and its version
-  debug:
+  ansible.builtin.debug:
     msg: "SAP note {{ (__sap_netweaver_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2526952$') | first).number }}
           (version {{ (__sap_netweaver_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2526952$') | first).version }}): RHEL for SAP packages"
 
 - name: Enable and start tuned
-  service:
+  ansible.builtin.service:
     name=tuned
     state=started
     enabled=yes
 
 - name: Show currently active tuned profile
-  shell: set -o pipefail && /usr/sbin/tuned-adm active | awk '/:/{print $NF}'
+  ansible.builtin.shell: set -o pipefail && /usr/sbin/tuned-adm active | awk '/:/{print $NF}'
   check_mode: no
   register: __sap_netweaver_preconfigure_register_current_tuned_profile
   changed_when: false
 
 - name: Display the output of the tuned-adm active command
-  debug:
+  ansible.builtin.debug:
     var: __sap_netweaver_preconfigure_register_current_tuned_profile.stdout_lines, __sap_netweaver_preconfigure_register_current_tuned_profile.stderr_lines
 
 #- name: Set a variable which contains the name of the currently active tuned profile
@@ -33,17 +33,17 @@
 - name: Switch to tuned profile sap-netweaver if not currently active
   block:
     - name: Switch to tuned profile sap-netweaver
-      command: /usr/sbin/tuned-adm profile sap-netweaver
+      ansible.builtin.command: /usr/sbin/tuned-adm profile sap-netweaver
       changed_when: true
 
     - name: Show new active tuned profile
-      shell: /usr/sbin/tuned-adm active | awk '{print $NF}'
+      ansible.builtin.shell: /usr/sbin/tuned-adm active | awk '{print $NF}'
       check_mode: no
       register: __sap_netweaver_preconfigure_register_new_tuned_profile
       changed_when: false
 
     - name: Display the output of the tuned-adm active command after switching to profile sap-netweaver
-      debug:
+      ansible.builtin.debug:
         var: __sap_netweaver_preconfigure_register_new_tuned_profile.stdout_lines, __sap_netweaver_preconfigure_register_new_tuned_profile.stderr_lines
 
 #    - name: Set a variable which contains the name of the now active tuned profile

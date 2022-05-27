@@ -1,12 +1,10 @@
 ---
 
 # Linux-UUID-solutions
-- block:
-  - name: Configure - Display SAP note number 1391070 and its version
-    debug:
-      msg: "SAP note {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^1391070$') | first).number }}
-            (version {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^1391070$') | first).version }}): Configure uuidd"
+- name: Configure - Display SAP note number 1391070 and its version
+  ansible.builtin.debug:
+    msg: "SAP note {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^1391070$') | first).number }}
+          (version {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^1391070$') | first).version }}): Configure uuidd"
 
-  - import_tasks: ../RedHat/generic/configure-uuidd.yml
-
+- ansible.builtin.import_tasks: ../RedHat/generic/configure-uuidd.yml
   when: sap_general_preconfigure_config_all|d(true) or sap_general_preconfigure_1391070|d(false)
