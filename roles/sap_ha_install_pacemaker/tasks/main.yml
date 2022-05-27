@@ -4,7 +4,7 @@
 # [1] - runs on node 1 / primary
 # [2] - runs on node 2 / secondary
 
-- name: Rename some variables used by hdblcm configfile
+- name: Set role variables if not defined
   ansible.builtin.set_fact:
     sap_ha_install_pacemaker_hana_sid: "{{ sap_hana_sid|d(sap_ha_install_pacemaker_hana_sid)|d('RH1') }}"
     sap_ha_install_pacemaker_site1_name: "{{ sap_hana_sid|d(sap_ha_install_pacemaker_site1_name)|d('DC1') }}"
@@ -22,45 +22,19 @@
 - name: SAP Pacemaker Setup - [A] Disable firewall
   include_tasks: disable_firewall.yml
   
-# Part 1
-# Installs the necessary software and preconfiguration
-
-- name: "SAP Pacaemaker - Check pcs"
-  shell: |
-      rpm -qa pcs
-  args:
-    executable: /bin/bash
-  become: true
-  become_user: root
-  register: sap_ha_install_pacemaker_check_pcs
-  changed_when: '"pcs" in sap_ha_install_pacemaker_check_pcs.stdout'
-
-- name: "SAP Pacemaker Part 1 - Software Setup"
-  include_tasks: software_setup.yml
-  when:
-    - sap_ha_install_pacemaker_check_pcs.rc != '0'
-#    - sap_ha_install_pacemaker_part == '1'
-
-- name: SAP Pacemaker Part 1 - Preconfig
-  include_tasks: preconfig.yml
-#  when:
-#    - ansible_nodename == sap_ha_install_hana_hsr_primary_hostname
-#    - sap_ha_install_pacemaker_role == 'primary'
-#    - sap_ha_install_pacemaker_part == '1'
-
 # Part 2
 # Cluster Setup, Service Principal, Stonith Configuration
 
 - name: "SAP Pacemaker Part 2 - Check Cluster"
   tags: pacemaker
-  shell: |
+  ansible.builtin.shell: |
       pcs cluster config
   args:
     executable: /bin/bash
   become: true
   become_user: root
   register: sap_ha_install_pacemaker_check_cluster
-  changed_when: false # '"Cluster Name" in sap_ha_install_pacemaker_check_cluster.stdout'
+  changed_when: false
   failed_when: false
   
 - name: "SAP Pacemaker Part 2- Debug Check cluster"
@@ -91,7 +65,7 @@
   when:
     - sap_ha_install_pacemaker_role == 'primary'
 
-- name: "SAP Pacemaker Part 4 - srhooks Configurationi"
+- name: "SAP Pacemaker Part 4 - srhooks Configuration"
   include_tasks: cluster_srhook.yml
   tags:
     - srhook
