@@ -83,7 +83,7 @@ Sample Ansible Playbook Execution
 - Target Host Installation
     - `ansible-playbook -i "<target-host>" sap-swpm.yml -e "@inputs/S4H.install"`
 
-Sample Playbook
+### Sample Playbook
 
 ```yaml
 ---
@@ -125,3 +125,11 @@ Sample Playbook
 - Set expiry of Unix created users to 'never'
 
 - Apply firewall rules for SAP NW (optional - no by default)
+
+## License
+
+Apache license 2.0
+
+## Author Information
+
+IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice, Jason Masipiquena, Sean Freeman

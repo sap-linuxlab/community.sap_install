@@ -15,17 +15,17 @@
 #     state: present
 
 - name: Check dns forwarding settings
-  shell: test "$(dig {{ sap_hostname }}.{{ sap_domain }} +short)" = "{{ sap_ip }}"
+  ansible.builtin.shell: test "$(dig {{ sap_hostname }}.{{ sap_domain }} +short)" = "{{ sap_ip }}"
   changed_when: false
   ignore_errors: true
 
 ### BUG: dig does not use search path in resolv.con on PPCle
 - name: Check resolv.conf settings
-  shell: test "$(dig {{ sap_hostname }} +search +short)" = "{{ sap_ip }}"
+  ansible.builtin.shell: test "$(dig {{ sap_hostname }} +search +short)" = "{{ sap_ip }}"
   changed_when: false
   ignore_errors: true
 
 - name: Check dns reverse settings
-  shell: test "$(dig -x {{ sap_ip }} +short)" = "{{ sap_hostname }}.{{ sap_domain }}."
+  ansible.builtin.shell: test "$(dig -x {{ sap_ip }} +short)" = "{{ sap_hostname }}.{{ sap_domain }}."
   changed_when: false
   ignore_errors: true

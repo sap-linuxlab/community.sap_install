@@ -4,12 +4,12 @@
           if package {{ __sap_hana_preconfigure_packages_and_services[line_item].pkg }} is installed
   block:
     - name: "Report that package {{ __sap_hana_preconfigure_packages_and_services[line_item].pkg }} is installed"
-      debug:
+      ansible.builtin.debug:
         msg: "INFO: Package '{{ __sap_hana_preconfigure_packages_and_services[line_item].pkg }}' is installed."
 
     - name: Assert that service {{ __sap_hana_preconfigure_packages_and_services[line_item].svc }} is
               {{ __sap_hana_preconfigure_packages_and_services[line_item].svc_status }}
-      assert:
+      ansible.builtin.assert:
         that: "ansible_facts.services['{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}.service'].status ==
                  '{{ __sap_hana_preconfigure_packages_and_services[line_item].svc_status }}'"
         fail_msg: "FAIL: Service '{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}' is not
@@ -21,7 +21,7 @@
     - name: Assert that service {{ __sap_hana_preconfigure_packages_and_services[line_item].svc }} is
               {{ __sap_hana_preconfigure_packages_and_services[line_item].svc_state }} or
               {{ __sap_hana_preconfigure_packages_and_services[line_item].systemd_state }}
-      assert:
+      ansible.builtin.assert:
         that: "(ansible_facts.services['{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}.service'].state ==
                  '{{ __sap_hana_preconfigure_packages_and_services[line_item].svc_state }}' or
                  ansible_facts.services['{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}.service'].state ==
@@ -36,6 +36,6 @@
   when: "__sap_hana_preconfigure_packages_and_services[line_item].pkg in ansible_facts.packages"
 
 - name: "Report that package {{ __sap_hana_preconfigure_packages_and_services[line_item].pkg }} is not installed"
-  debug:
+  ansible.builtin.debug:
     msg: "PASS: Package '{{ __sap_hana_preconfigure_packages_and_services[line_item].pkg }}' is not installed."
   when: "__sap_hana_preconfigure_packages_and_services[line_item].pkg not in ansible_facts.packages"

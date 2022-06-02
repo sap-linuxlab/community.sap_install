@@ -1,11 +1,11 @@
 ---
 
 - name: Display the role path
-  debug:
+  ansible.builtin.debug:
     var: role_path
 
 - name: Include OS specific vars
-  include_vars: '{{ item }}'
+  ansible.builtin.include_vars: '{{ item }}'
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}_{{ ansible_distribution_major_version }}.yml'
     - '{{ ansible_distribution }}_{{ ansible_distribution_version }}.yml'
@@ -13,26 +13,26 @@
     - '{{ ansible_os_family }}.yml'
 
 - name: Set filename prefix to empty string if role is run in normal mode
-  set_fact:
+  ansible.builtin.set_fact:
     assert_prefix: ""
   when: not sap_hana_preconfigure_assert|d(false)
 
 - name: Prepend filename with assert string if role is run in assert mode
-  set_fact:
+  ansible.builtin.set_fact:
     assert_prefix: "assert-"
   when: sap_hana_preconfigure_assert|d(false)
 
 - name: Examine the OS minor version
-  set_fact:
+  ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_ansible_distribution_minor_version: '{{ ansible_distribution_version.split(".")[1] }}'
   when: ansible_distribution == 'RedHat'
 
 # required for installation and configuration tasks:
 - name: Gather package facts
-  package_facts:
+  ansible.builtin.package_facts:
 
 - name: Display the content of sap_general_preconfigure_fact_reboot_required
-  debug:
+  ansible.builtin.debug:
     var: sap_general_preconfigure_fact_reboot_required
 
 - include_tasks: '{{ item }}/{{ assert_prefix }}installation.yml'

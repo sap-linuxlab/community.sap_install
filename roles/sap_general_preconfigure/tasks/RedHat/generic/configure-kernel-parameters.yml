@@ -1,7 +1,7 @@
 ---
 
 - name: Set kernel parameters
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ __sap_general_preconfigure_etc_sysctl_sap_conf }}"
     create: yes
     mode: '0644'
@@ -13,10 +13,10 @@
     loop_var: line_item
 
 - name: Reload kernel parameters from file '{{ __sap_general_preconfigure_etc_sysctl_sap_conf }}'
-  command: sysctl -p "{{ __sap_general_preconfigure_etc_sysctl_sap_conf }}"
+  ansible.builtin.command: sysctl -p "{{ __sap_general_preconfigure_etc_sysctl_sap_conf }}"
   register: __sap_general_preconfigure_register_sap_conf_sysctl_p_output
   changed_when: true
 
 - name: Display kernel parameters after setting kernel.pid_max
-  debug:
+  ansible.builtin.debug:
     var: __sap_general_preconfigure_register_sap_conf_sysctl_p_output.stdout_lines
