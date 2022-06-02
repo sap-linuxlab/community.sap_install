@@ -1,19 +1,16 @@
 ---
 # [A] Change hacluster password
-- name: SAP Pacemaker Setup - [A] Ensure password for hacluster is configured
-  ansible.builtin.shell: |
-        echo '{{ sap_ha_install_pacemaker_hacluster_password }}' | passwd --stdin hacluster
-
-# # [A] Change hacluster password
-# - name: Ensure password for hacluster is configured
-#   ansible.builtin.user:
-#     name: hacluster
-#     password: "{{ sap_ha_install_pacemaker_hacluster_password | password_hash('sha512') }}"
+- name: Ensure password for hacluster is configured
+  ansible.builtin.user:
+    name: hacluster
+    password: "{{ sap_ha_install_pacemaker_hacluster_password }}"
 
 # [A] Enable basic cluster services
 - name: SAP Pacemaker Setup - [A] Enable and start basic cluster services
   ansible.builtin.systemd: 
-    name: pcsd.service
+    name: "{{ item }}"
     state: started
     enabled: yes
-  become: true
+  loop:
+    - pcsd.service
+    - pacemaker.service
