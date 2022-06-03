@@ -7,34 +7,34 @@
     warn: no
   become: true
   become_user: root
-  register: sap_ha_install_pacemaker_check_ha_repos
+  register: sap_ha_prepare_pacemaker_check_ha_repos
   changed_when: false
 
 - name: "SAP Pacemaker Setup - [A] Print RHEL HA Repos"
   ansible.builtin.debug:
-    var: sap_ha_install_pacemaker_check_ha_repos.stdout_lines
+    var: sap_ha_prepare_pacemaker_check_ha_repos.stdout_lines
 
 # Enable Repos
 - name: SAP Pacemaker Setup - [A] Subscription Manager - Enable RHEL HA Repos
   ansible.builtin.command: 'subscription-manager repos --enable="{{ item }}"'
-  with_items: "{{ sap_ha_install_pacemaker_rhsm_repos }}"
+  with_items: "{{ sap_ha_prepare_pacemaker_rhsm_repos }}"
   when: 
-  - "'highavailability' not in sap_ha_install_pacemaker_check_ha_repos.stdout"
+  - "'highavailability' not in sap_ha_prepare_pacemaker_check_ha_repos.stdout"
 
 # Install Packages
 - name: SAP Pacemaker Setup - [A] Install Packages
   ansible.builtin.yum: 
-    name: '{{ sap_ha_install_pacemaker_packages }}'
+    name: '{{ sap_ha_prepare_pacemaker_packages }}'
     state: present
 
 # Install Packages - Vendor Specific
 - name: SAP Pacemaker Setup - [A] Install Packages - Vendor Specific
   ansible.builtin.yum: 
-    name: "{{ vars['sap_ha_install_pacemaker_packages_' + sap_ha_install_pacemaker_type] }}"
+    name: "{{ vars['sap_ha_prepare_pacemaker_packages_' + sap_ha_prepare_pacemaker_type] }}"
     state: present
   when: 
-    - sap_ha_install_pacemaker_type is defined
-    - vars['sap_ha_install_pacemaker_packages_' + sap_ha_install_pacemaker_type] is defined
+    - sap_ha_prepare_pacemaker_type is defined
+    - vars['sap_ha_prepare_pacemaker_packages_' + sap_ha_prepare_pacemaker_type] is defined
 
 - name: SAP Pacemaker Setup - [A] Yum clean all
   command: 'yum clean all'

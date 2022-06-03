@@ -47,11 +47,16 @@ Within this Ansible Collection, there are various Ansible Roles and no custom An
 | [sap_hana_install](/roles/sap_hana_install) | install SAP HANA via HDBLCM |
 | [sap_swpm](/roles/sap_swpm) | install SAP Software via SWPM |
 | [sap_ha_install_hana_hsr](/roles/sap_ha_install_hana_hsr) | install SAP HANA System Replication |
+| [sap_ha_prepare_pacemaker](/roles/sap_ha_prepare_pacemaker) | preapre Linux Pacemaker installation|
 | [sap_ha_install_pacemaker](/roles/sap_ha_install_pacemaker) | install and configure Linux Pacemaker |
 | [sap_ha_set_hana](/roles/sap_ha_set_hana) | configure HA/DR for SAP HANA |
 | [sap_ha_set_netweaver](/roles/sap_ha_set_netweaver) | configure HA/DR for SAP NetWeaver |
 | [sap_hostagent](/roles/sap_hostagent) | install SAP Host Agent |
 | [sap_storage](/roles/sap_storage) | configure storage for SAP HANA, with LVM partitions and XFS filesystem |
+
+***Notes***:
+
+prepare_pacemaker is a pre-requirement for sap_ha_install_pacemaker. It was introduced to run a complete cluster setup with one ansible-play call and one playbook
 
 #### Ansible Roles Lint Status
 | Role Name  | Ansible Lint Status|
