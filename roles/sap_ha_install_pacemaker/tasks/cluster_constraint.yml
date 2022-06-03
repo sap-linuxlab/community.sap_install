@@ -10,7 +10,7 @@
     pcs constraint order --full | grep "id:"| awk -F "id:" '{ print $2 }' | \
     grep order-SAPHanaTopology_{{ sap_ha_install_pacemaker_sid }}_{{ sap_ha_install_pacemaker_instance_number }}-clone-SAPHana
   register: sap_ha_install_pacemaker_check_constraint_order_topology
-  ignore_errors: True
+  failed_when: false
   
 # [1] Setup Pacemaker SAP set constraint order HANA TOPOLOGY
 - name: "SAP Pacemaker Setup - [1] set ORDER Constraints"
@@ -34,7 +34,7 @@
     pcs constraint colocation --full | \
     grep colocation-vip_{{ sap_ha_install_pacemaker_sid }}_{{ sap_ha_install_pacemaker_instance_number }}_MASTER-SAPHana
   register: sap_ha_install_pacemaker_check_constraint_collocation_vip_master
-  ignore_errors: True
+  failed_when: false
   when: sap_ha_install_pacemaker_vip1 is defined
   
 # [1] Setup Pacemaker Setup - Constraint: promote HANA then start VIP

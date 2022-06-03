@@ -23,6 +23,7 @@
     owner: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
     group:  sapsys
   register: copymyhook
+
 # [A] Setup Pacemaker SAP HANA check global.ini
 - name: "SAP Pacemaker Setup - check global.ini"
   debugger: on_failed
@@ -31,15 +32,8 @@
     grep trace /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/SYS/global/hdb/custom/config/global.ini
   args:
     executable: /bin/bash
-
-#    regexp:  # not required. The regular expression to look for in every line of the file. For C(state=present), the pattern to replace if found. Only the last line found will be replaced. For C(state=absent), the pattern of the line(s) to remove. If the regular expression is not matched, the line will be added to the file in keeping with C(insertbefore) or C(insertafter) settings. When modifying a line the regexp should typically match both the initial state of the line as well as its state after replacement by C(line) to ensure idempotence. Uses Python regular expressions. See U(http://docs.python.org/2/library/re.html).
   register: trace_global
-  ignore_errors: true
-
-- name: Debug trace_global
-  tags: srhook
-  debug:
-    var: trace_global
+  failed_when: false
 
 # [A] Setup Pacemaker SAP HANA update global.ini
 - name: "SAP Pacemaker Setup - check global.ini"
