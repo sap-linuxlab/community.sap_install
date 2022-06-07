@@ -1,26 +1,37 @@
 ---
 
 - name: SAP Pacemaker Part 3 - Sudoer Configuration
-  include_tasks: cluster_sudoer.yml
+  include_tasks: 
+    file: cluster_sudoer.yml
+    apply:
+      tags: 
+        - pacemaker
+        - srhook_sudo
   tags:
     - pacemaker
+    - srhook_sudo
 
 - name: SAP Pacemaker Part 3 - Resource Configuration
   include_tasks: cluster_resources.yml
   tags:
     - pacemaker
   when:
-    - ansible_nodename == sap_ha_install_hana_hsr_primary_hostname
+    - sap_ha_set_hana_role == 'primary'
 
 - name: "SAP Pacemaker Part 4 - srhooks Configuration"
   include_tasks:
     file: cluster_srhook.yml
     apply:
-      tags: srhook
+      tags: 
+        - srhook
   tags:
     - srhook
 
 - name: SAP Pacemaker Part 5 - Constraints Configuration
-  include_tasks: cluster_constraint.yml
+  include_tasks: 
+    file: cluster_constraint.yml
+    apply:
+      tags:
+        - constraint
   tags:
     - constraint
