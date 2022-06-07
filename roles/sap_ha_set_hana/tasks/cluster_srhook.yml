@@ -1,33 +1,26 @@
 ---
-
 # [A] Setup Pacemaker SAP HANA config sr_hook DIR
 - name: "SAP Pacemaker Setup - config sr_hook DIR"
-  debugger: on_failed
-  tags: srhook
   ansible.builtin.file:
     path: /hana/shared/myHooks
     state: directory
-    mode: 0755 
+    mode: "0755"
     owner: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
     group: sapsys
 
 # [A] Setup Pacemaker SAP HANA config sr_hook
 - name: "SAP Pacemaker Setup - config sr_hook"
-  debugger: on_failed
-  tags: srhook
   ansible.builtin.copy:
     remote_src: yes
     src: /usr/share/SAPHanaSR/srHook/SAPHanaSR.py
     dest: /hana/shared/myHooks/SAPHanaSR.py
-    mode: 0755 
+    mode: "0755"
     owner: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
     group: sapsys
-  register: copymyhook
+#  register: copymyhook
 
-# [A] Setup Pacemaker SAP HANA check global.ini
+ [A] Setup Pacemaker SAP HANA check global.ini
 - name: "SAP Pacemaker Setup - check global.ini"
-  debugger: on_failed
-  tags: srhook
   shell: |
     grep trace /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/SYS/global/hdb/custom/config/global.ini
   args:
@@ -37,15 +30,14 @@
   changed_when: false
 
 # [A] Setup Pacemaker SAP HANA update global.ini
-- name: "SAP Pacemaker Setup - check global.ini"
-  tags: srhook
-  blockinfile: 
+- name: "SAP Pacemaker Setup - update hook in global.ini"
+  ansible.builtin.blockinfile: 
     path: /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/SYS/global/hdb/custom/config/global.ini
-    marker: ""
+    marker: "# {mark} ansible role: sap_ha_set_hana"
     block: |
       [ha_dr_provider_SAPHanaSR]
       provider = SAPHanaSR
-      path = /usr/share/myHooks
+      path = /hana/shared/myHooks
       execution_order = 1
       
       [trace]
