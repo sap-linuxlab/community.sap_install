@@ -37,7 +37,6 @@
     InstanceNumber={{ sap_ha_set_hana_instance_number }} \ 
     op start timeout=600 op stop timeout=600 op monitor interval=10 timeout=600 \
     clone clone-max=2 clone-node-max=1 interleave=true
-  register: pcs_cluster_create_SAPHanaTopology_resource
   when:
     - sap_ha_set_hana_check_resource_topology.rc == 1
 
@@ -66,7 +65,6 @@
     op demote timeout=3600 \
     promotable notify=true \
     clone-max=2 clone-node-max=1 interleave=true 
-  register: pcs_cluster_create_SAPHana_resource
   when:
     - sap_ha_set_hana_check_resource_hana.rc == 1
 
@@ -81,13 +79,12 @@
   changed_when: false
 
 # [1] Setup HANA HA SAP HANA Resource HANA
-- name: "SAP Pacemaker Setup - [1] Create SAP HANA Resource HANA"
+- name: "SAP Pacemaker Setup - [1] Create SAP HANA Resource VIP"
   tags: pacemaker
   shell: |
     pcs resource create \
     vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER \
     IPaddr2 ip="{{ sap_ha_set_hana_vip1 }}" 
-  register: pcs_cluster_create_SAPHana_resource
   when:
     - sap_ha_set_hana_check_resource_vip.rc == 1
 
@@ -96,7 +93,6 @@
   tags: pacemaker
   shell: |
     pcs cluster start --all
-  register: pcs_cluster_start_reg
 
 # [1] Check Pacemaker cluster
 - name: SAP Pacemaker Setup - [1] Check Pacemaker cluster
