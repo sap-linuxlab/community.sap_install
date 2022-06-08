@@ -17,9 +17,9 @@
 # Enable Repos
 - name: SAP Pacemaker Setup - [A] Subscription Manager - Enable RHEL HA Repos
   ansible.builtin.command: 'subscription-manager repos --enable="{{ item }}"'
-  with_items: "{{ sap_ha_prepare_pacemaker_rhsm_repos }}"
+  loop: "{{ sap_ha_prepare_pacemaker_rhsm_repos }}"
   when: 
-    - "'highavailability' not in sap_ha_prepare_pacemaker_check_ha_repos.stdout"
+    - item not in sap_ha_prepare_pacemaker_check_ha_repos.stdout
 
 # Install Packages
 - name: SAP Pacemaker Setup - [A] Install Packages

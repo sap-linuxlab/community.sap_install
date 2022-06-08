@@ -20,7 +20,7 @@
 # Part 1
 # Installs the necessary software and preconfiguration
 
-- name: "SAP Pacaemaker - Check pcs"
+- name: "SAP Pacemaker - Check if pcs package is installed"
   shell: |
       rpm -qa pcs
   args:
@@ -28,13 +28,12 @@
   become: true
   become_user: root
   register: sap_ha_prepare_pacemaker_check_pcs
-  changed_when: '"pcs" in sap_ha_prepare_pacemaker_check_pcs.stdout'
+  changed_when: false
 
 - name: "SAP Pacemaker Part 1 - Software Setup"
   include_tasks: software_setup.yml
   when:
     - sap_ha_prepare_pacemaker_check_pcs.rc != '0'
-#    - sap_ha_prepare_pacemaker_part == '1'
 
 - name: SAP Pacemaker Part 1 - Preconfig
   include_tasks: preconfig.yml
