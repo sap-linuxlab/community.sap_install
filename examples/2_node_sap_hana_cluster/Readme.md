@@ -45,4 +45,9 @@ For example, sap_hana_sid or sap_hana_instance_number is used in 5 different rol
 *   create ssh access to managed nodes
 *   download github ***git clone https://github.com/sap-linuxlab/community.sap_install.git***
 *   set access to roles using a link or config **ansible.cfg** on ansible management nodes
-*
+*   create your play directory form
+**  Playbooks
+**  group_vars directory
+**  host_vars directory
+
+##
