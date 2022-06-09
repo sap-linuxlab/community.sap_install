@@ -81,3 +81,10 @@ Apache license 2.0
 ## Author Information
 
 IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice, Jason Masipiquena, Sherard Guico, Markus Moster
+  include_tasks: update_etchosts.yml
+  include_tasks: configure_firewall.yml
+  include_tasks: hdbuserstore.yml
+  include_tasks: log_mode.yml
+  include_tasks: pki_files.yml
+  include_tasks: run_backup.yml
+  include_tasks: configure_hsr.yml

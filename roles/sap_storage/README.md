@@ -87,3 +87,5 @@ Apache license 2.0
 ## Author Information
 
 IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice
+  include_tasks: "{{ sap_storage_cloud_type }}_main.yml"
+  include_tasks: "{{ sap_storage_cloud_type }}_tasks/{{ sap_storage_action }}_storage.yml"

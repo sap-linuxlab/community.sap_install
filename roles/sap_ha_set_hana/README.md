@@ -119,3 +119,7 @@ Apache license 2.0
 ## Author Information
 
 IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice, Jason Masipiquena, Sherard Guico, Markus Moster
+  include_tasks: 
+  include_tasks: cluster_resources.yml
+  include_tasks: cluster_srhook.yml
+  include_tasks: cluster_constraint.yml
