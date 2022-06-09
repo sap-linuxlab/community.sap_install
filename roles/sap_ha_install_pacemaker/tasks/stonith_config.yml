@@ -4,35 +4,31 @@
   shell: |
     pcs property set stonith-timeout=900
   register: pcs_property_set_stonith_timeout
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
 
 # Generic fence device configuration
 - name: "Check the fence device"
   shell: |
     pcs stonith config 
   register: sap_ha_install_pacemaker_stonith_check
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
 
 # Generic fence device configuration
 - name: "Configure the fence device"
   shell: |
     pcs stonith create \
-    {{ sap_ha_install_pacemaker_stonith_name }} {{ sap_ha_install_pacemaker_stonith_fence_agent }} \
-    {{ sap_ha_install_pacemaker_stonith_credential }} \
-    {{ sap_ha_install_pacemaker_stonith_parameters }}
+    {{ item.name }} {{ item.agent }} \
+    {{ item.credential }} \
+    {{ item.parameters }}
+  loop: "{{ sap_ha_install_pacemaker_stonith_device }}"
+  loop_control:
+    label: "{{ item.agent }} as {{ item.name }}"
   when:
-    - sap_ha_install_pacemaker_role == 'primary'
-    - sap_ha_install_pacemaker_stonith_name not in sap_ha_install_pacemaker_stonith_check.stdout
+    - item.name not in sap_ha_install_pacemaker_stonith_check.stdout
 
 # Enable the use of a STONITH device
 - name: "Enable the STONITH devices"
   shell: |
     pcs property set stonith-enabled=true
   register: pcs_property_set_stonith_enabled
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
 
 ## Example for azure-arm fence device configuration
 #- name: Configure the fence device
