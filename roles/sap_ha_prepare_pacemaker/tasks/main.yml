@@ -20,7 +20,7 @@
 # Part 1
 # Installs the necessary software and preconfiguration
 
-- name: "SAP Pacaemaker - Check pcs"
+- name: "SAP Prepare Pacaemaker - Check pcs"
   shell: |
       rpm -qa pcs
   args:
@@ -30,16 +30,16 @@
   register: sap_ha_prepare_pacemaker_check_pcs
   changed_when: '"pcs" in sap_ha_prepare_pacemaker_check_pcs.stdout'
 
-- name: "SAP Pacemaker Part 1 - Software Setup"
+- name: "SAP Prepare Pacemaker Part 1 - Software Setup"
   include_tasks: software_setup.yml
   when:
     - sap_ha_prepare_pacemaker_check_pcs.rc != '0'
 #    - sap_ha_prepare_pacemaker_part == '1'
 
-- name: SAP Pacemaker Part 1 - Preconfig
+- name: "SAP Prepare Pacemaker Part 1 - Preconfig"
   include_tasks: preconfig.yml
 
-- name: "SAP Pacemaker - Enable HA port in firewalld"
+- name: "SAP Prepare Pacemaker - Enable HA port in firewalld"
   firewalld:
     service: high-availability
     state: enabled
@@ -49,10 +49,10 @@
 # Part 2
 # Cluster Setup, Service Principal, Stonith Configuration
 
-- name: "SAP Pacemaker Part 2 - Check Cluster"
+- name: "SAP Prepare Pacemaker Part 2 - Check Cluster"
   tags: pacemaker
   shell: |
-      pcs cluster config
+      pcs cluster status
   args:
     executable: /bin/bash
   become: true
@@ -61,7 +61,7 @@
   changed_when: false # '"Cluster Name" in sap_ha_prepare_pacemaker_check_cluster.stdout'
   failed_when: false
   
-- name: SAP Pacemaker Part 2 - Cluster Prepare
+- name: "SAP Prepare Pacemaker Part 2 - Cluster Prepare"
   include_tasks: cluster_prepare.yml
   when:
     - sap_ha_prepare_pacemaker_check_cluster.rc == 1
