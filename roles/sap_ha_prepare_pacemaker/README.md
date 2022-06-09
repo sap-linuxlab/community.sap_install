@@ -8,3 +8,6 @@ Host authentication
 is part of this role and excluded from the role
 
 sap_ha_install_pacemaker
+  include_tasks: software_setup.yml
+  include_tasks: preconfig.yml
+  include_tasks: cluster_prepare.yml
