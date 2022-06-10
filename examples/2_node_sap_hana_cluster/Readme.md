@@ -50,4 +50,20 @@ For example, sap_hana_sid or sap_hana_instance_number is used in 5 different rol
 **  group_vars directory
 **  host_vars directory
 
-##
+## Example Files
+*   hosts
+**  inventory file
+*   example_play.yml
+**  example playbook to run the complete Installation
+*   group_vars
+**  group_vars directory including files
+**  common settings to a group of managed nodes
+*   host_vars
+**  host_vars directory including files
+**  contains files per host with host specific settings
+
+## Execution
+You can execute this example with:
+```
+ansible-play example_play.yml
+```
