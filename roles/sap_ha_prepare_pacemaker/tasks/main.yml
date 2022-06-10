@@ -36,12 +36,17 @@
 - name: "SAP Prepare Pacemaker Part 1 - Preconfig"
   include_tasks: preconfig.yml
 
-- name: "SAP Prepare Pacemaker - Enable HA port in firewalld"
-  firewalld:
-    service: high-availability
-    state: enabled
-    permanent: yes
-    immediate: yes
+- name: "SAP Prepare Pacemaker - Include firewall tasks"
+  include_tasks:
+    file: configure_firewall.yml
+    apply:
+      tags: pacemaker_fw
+  when:
+    - (sap_hana_configure_firewall is defined and sap_hana_configure_firewall) or
+      sap_ha_prepare_pacemaker_configure_firewall
+  tags:
+    - pacemaker_fw
+
 
 # Part 2
 # Cluster Setup, Service Principal, Stonith Configuration
