@@ -31,11 +31,16 @@ node2
 
 `host_vars/node1` example
 ```
-
+# SAP Hana cluster definitions
+sap_hana_system_role: primary
+sap_hana_site_name: DC1
 ```
 
 `host_vars/node2` example
 ```
+# SAP Hana cluster definitions
+sap_hana_system_role: secondary
+sap_hana_site_name: DC2
 
 ```
 
@@ -64,12 +69,7 @@ sap_ha_install_pacemaker_cluster_name: cluster1
 sap_ha_install_pacemaker_hacluster_password: redhat
 
 ### Stonith Vars
-sap_ha_install_pacemaker_stonith_name: 'auto_rhevm_fence'
-sap_ha_install_pacemaker_stonith_fence_agent: 'fence_rhevm'
-sap_ha_install_pacemaker_stonith_credential: "ip=lu0529 username=amemon@internal passwd=redhat04"
-sap_ha_install_pacemaker_stonith_parameters: 'pcmk_host_map="hana05:Auto_hana_01;hana06:Auto_hana_02" power_wait=3 ssl=1 ssl_insecure=1 disable_http_filter=1'
-
-sap_ha_stonith_device:
+sap_pacemaker_stonith_device:
   - name: "auto_rhevm_fence1"
     agent: "fence_rhevm"
     credential: "ip=lu0123 username=rhevchef@internal passwd=S3cr3t"
