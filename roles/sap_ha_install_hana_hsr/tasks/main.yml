@@ -1,12 +1,23 @@
 ---
 - name: SAP HSR - Update /etc/hosts
-  include_tasks: update_etchosts.yml
+  include_tasks: 
+    file: update_etchosts.yml
+    apply:
+      tags: hsr_etchosts
+  when:
+    - (sap_hana_update_etchosts is defined and sap_hana_update_etchosts) or      
+      sap_ha_install_hana_hsr_update_etchosts
+  tags:
+    - hsr_etchosts
 
-- name: SAP HSR - Configure Firewall
+- name: "SAP HSR - Configure Firewall"
   include_tasks: 
     file: configure_firewall.yml
     apply: 
       tags: hsr_fw
+  when: 
+    - (sap_hana_configure_firewall is defined and sap_hana_configure_firewall) or
+      sap_ha_install_hana_hsr_configure_firewall
   tags:
     - hsr_fw
 

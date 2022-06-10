@@ -9,6 +9,11 @@
   ansible.builtin.firewalld:
     port: "{{ item }}"
     state: enabled
-    immediate: true
-    permanent: true  
+    immediate: yes
+    permanent: yes  
   loop: "{{ sap_ha_install_hana_hsr_fw_ports }}"
+  
+- name: "SAP HSR - Immediately reload firewalld service"
+  ansible.builtin.systemd:
+    service: firewalld.service
+    state: reloaded
