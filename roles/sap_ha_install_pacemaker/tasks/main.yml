@@ -1,5 +1,5 @@
 ---
-- name: Set role variables if not defined
+- name: "SAP Install Pacemaker - Set role variables if not defined"
   ansible.builtin.set_fact:
     sap_ha_install_pacemaker_hana_sid: "{{ sap_hana_sid|d(sap_ha_install_pacemaker_hana_sid)|d('RH1') }}"
     sap_ha_install_pacemaker_site1_name: "{{ sap_hana_sid|d(sap_ha_install_pacemaker_site1_name)|d('DC1') }}"
@@ -14,7 +14,7 @@
     - ha
     - stonith
   
-- name: "SAP Pacemaker Part 2 - Check Cluster"
+- name: "SAP Install Pacemaker - Check Cluster"
   tags: pacemaker
   ansible.builtin.shell: |
       pcs cluster status
@@ -29,7 +29,7 @@
     - pacemaker
     - ha
   
-- name: SAP Pacemaker Part 2 - Cluster Setup
+- name: "SAP Install Pacemaker - Cluster Setup"
   include_tasks: 
     file: cluster_setup.yml
     apply:
@@ -43,7 +43,7 @@
     - pacemaker
     - ha
 
-- name: SAP Pacemaker Part 2 - Stonith Configuration
+- name: "SAP Install Pacemaker - Stonith Configuration"
   include_tasks: 
     file: stonith_config.yml
     apply:
