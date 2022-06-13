@@ -1,10 +1,5 @@
 ---
-
-# [A] - runs on both node 1 and 2 / primary secondary
-# [1] - runs on node 1 / primary
-# [2] - runs on node 2 / secondary
-
-- name: Set role variables if not defined
+- name: "SAP Prepare Pacemaker - Set role variables if not defined"
   ansible.builtin.set_fact:
     sap_ha_prepare_pacemaker_site1_name: "{{ sap_hana_sid|d(sap_ha_prepare_pacemaker_site1_name)|d('DC1') }}"
     sap_ha_prepare_pacemaker_site2_name: "{{ sap_hana_sid|d(sap_ha_prepare_pacemaker_site2_name)|d('DC2') }}"
@@ -13,12 +8,12 @@
     sap_ha_prepare_pacemaker_node1_hostname: "{{ sap_hana_node1_hostname|d(sap_ha_prepare_pacemaker_node1_hostname)|d('hana01') }}"
     sap_ha_prepare_pacemaker_node2_hostname: "{{sap_hana_node2_hostname|d(sap_ha_prepare_pacemaker_node2_hostname)|d('hana02') }}"
   tags:
+    - ha_software
+    - ha_firewall
     - pacemaker
     - ha
-# Part 1
-# Installs the necessary software and preconfiguration
 
-- name: "SAP Pacemaker - Check if pcs package is installed"
+- name: "SAP Prepare Pacemaker - Check if pcs package is installed"
   shell: |
       rpm -qa pcs
   args:
@@ -27,32 +22,54 @@
   become_user: root
   register: sap_ha_prepare_pacemaker_check_pcs
   changed_when: false
+  tags:
+    - ha_software
+    - pacemaker
+    - ha
 
-- name: "SAP Prepare Pacemaker Part 1 - Software Setup"
-  include_tasks: software_setup.yml
+- name: "SAP Prepare Pacemaker - Software Setup"
+  include_tasks: 
+    files: software_setup.yml
+    apply:
+      tags:
+        - ha_software
+        - pacemaker
+        - ha
   when:
     - sap_ha_prepare_pacemaker_check_pcs.rc != '0'
+  tags:
+    - ha_software
+    - pacemaker
+    - ha
 
-- name: "SAP Prepare Pacemaker Part 1 - Preconfig"
-  include_tasks: preconfig.yml
+- name: "SAP Prepare Pacemaker - Preconfig"
+  include_tasks: 
+    files: preconfig.yml
+    apply:
+      tags:
+        - pacemaker
+        - ha
+  tags:
+    - pacemaker
+    - ha
 
-- name: "SAP Prepare Pacemaker - Include firewall tasks"
+- name: "SAP Prepare Pacemaker - Include Firewall Tasks"
   include_tasks:
     file: configure_firewall.yml
     apply:
-      tags: pacemaker_fw
+      tags: 
+        - ha_firewall
+        - pacemaker
+        - ha
   when:
     - (sap_hana_configure_firewall is defined and sap_hana_configure_firewall) or
       sap_ha_prepare_pacemaker_configure_firewall
   tags:
-    - pacemaker_fw
+    - ha_firewall
+    - pacemaker
+    - ha
 
-
-# Part 2
-# Cluster Setup, Service Principal, Stonith Configuration
-
-- name: "SAP Prepare Pacemaker Part 2 - Check Cluster"
-  tags: pacemaker
+- name: "SAP Prepare Pacemaker - Check Cluster Status"
   shell: |
       pcs cluster status
   args:
@@ -62,8 +79,19 @@
   register: sap_ha_prepare_pacemaker_check_cluster
   changed_when: false # '"Cluster Name" in sap_ha_prepare_pacemaker_check_cluster.stdout'
   failed_when: false
+  tags:
+    - pacemaker
+    - ha
   
-- name: "SAP Prepare Pacemaker Part 2 - Cluster Prepare"
-  include_tasks: cluster_prepare.yml
+- name: "SAP Prepare Pacemaker - Cluster Prepare"
+  include_tasks: 
+    files: cluster_prepare.yml
+    apply:
+      tags:
+        - pacemaker
+        - ha
   when:
     - sap_ha_prepare_pacemaker_check_cluster.rc == 1
+  tags:
+    - pacemaker
+    - ha
