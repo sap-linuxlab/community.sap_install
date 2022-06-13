@@ -1,4 +1,14 @@
 ---
+- name: "SAP HSR - Check /etc/hosts for conflicting entries"
+  shell: |
+    awk '(/{{ item.name }}/ && !/^{{ item.ip }}/) || (/^{{ item.ip }}/ && !/{{ item.name }}/)' /etc/hosts
+  register: etchosts_conflict
+  changed_when: false
+  failed_when: etchosts_conflict.stdout != ''
+  loop: "{{ cluster_nodes }}"
+  loop_control:
+    label: "Check if {{ item.ip }} exists for hosts other than {{ item.name }}"
+
 - name: "SAP HSR - Add Cluster Nodes to /etc/hosts"
   lineinfile:
     path: /etc/hosts
