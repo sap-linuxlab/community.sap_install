@@ -1,25 +1,10 @@
 ---
-# [A] Setup Pacemaker SAP HANA check sudo config
-- name: "SAP Pacemaker Setup - check sudoer"
-  debugger: on_failed
-  tags: pacemaker
-  stat:
-    path: /etc/sudoers.d/20-saphana
-  register: sudoersfile
-
-# [A] Setup Pacemaker SAP HANA sudo config
-- name: "SAP Pacemaker Setup - edit sudoer"
-  tags: pacemaker
-  copy:
+- name: "SAP Pacemaker Setup - Add sudo"
+  template:
+    backup: yes
     dest: /etc/sudoers.d/20-saphana
-    content: |
-      Cmnd_Alias {{ sap_ha_set_hana_site1_name }}_SOK   = /usr/sbin/crm_attribute -n hana_{{ sap_ha_set_hana_sid | lower }}_site_srHook_{{ sap_ha_set_hana_site1_name }} -v SOK -t crm_config -s SAPHanaSR
-      Cmnd_Alias {{ sap_ha_set_hana_site1_name }}_SFAIL = /usr/sbin/crm_attribute -n hana_{{ sap_ha_set_hana_sid | lower }}_site_srHook_{{ sap_ha_set_hana_site1_name }} -v SFAIL -t crm_config -s SAPHanaSR
-      Cmnd_Alias {{ sap_ha_set_hana_site2_name }}_SOK   = /usr/sbin/crm_attribute -n hana_{{ sap_ha_set_hana_sid | lower }}_site_srHook_{{ sap_ha_set_hana_site2_name }} -v SOK -t crm_config -s SAPHanaSR
-      Cmnd_Alias {{ sap_ha_set_hana_site2_name }}_SFAIL = /usr/sbin/crm_attribute -n hana_{{ sap_ha_set_hana_sid | lower }}_site_srHook_{{ sap_ha_set_hana_site2_name }} -v SFAIL -t crm_config -s SAPHanaSR
-      adm ALL=(ALL) NOPASSWD: {{ sap_ha_set_hana_site1_name }}_SOK, {{ sap_ha_set_hana_site1_name }}_SFAIL, {{ sap_ha_set_hana_site2_name }}_SOK, {{ sap_ha_set_hana_site2_name }}_SFAIL
-      Defaults!{{ sap_ha_set_hana_site1_name }}_SOK, {{ sap_ha_set_hana_site1_name }}_SFAIL, {{ sap_ha_set_hana_site2_name }}_SOK, {{ sap_ha_set_hana_site2_name }}_SFAIL !requiretty
-    mode: '0440'
+    mode: "0440"
+    owner: root
+    group: root
+    src: templates/20-saphana.j2
     validate: visudo -cf %s
-  when: 
-    - ! sudoersfile.stat['exists']
