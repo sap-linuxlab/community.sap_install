@@ -1,6 +1,5 @@
 ---
-
-- name: SAP Pacemaker Part 3 - Sudoer Configuration
+- name: "SAP Pacemaker Hana - Sudoer Configuration"
   include_tasks: 
     file: cluster_sudoer.yml
     apply:
@@ -11,33 +10,39 @@
     - pacemaker
     - srhook_sudo
 
-- name: SAP Pacemaker Part 3 - Resource Configuration
+- name: "SAP Pacemaker Hana - Resource Configuration"
   include_tasks: 
     file: cluster_resources.yml
     apply:
       tags: 
         - pacemaker
-  tags:
-    - pacemaker
+        - ha_resources
   when:
     - sap_ha_set_hana_role == 'primary'
+  tags:
+    - pacemaker
+    - ha_resources
 
-- name: "SAP Pacemaker Part 4 - srhooks Configuration"
+- name: "SAP Pacemaker Hana - srhooks Configuration"
   include_tasks: 
     file: cluster_srhook.yml
     apply:
       tags: 
         - srhook
+        - pacemaker
   tags:
     - srhook
+    - pacemaker
 
-- name: SAP Pacemaker Part 5 - Constraints Configuration
+- name: "SAP Pacemaker Hana - Constraints Configuration"
   include_tasks: 
     file: cluster_constraint.yml
     apply:
       tags:
-        - constraint
-  tags:
-    - constraint
+        - ha_constraints
+        - pacemaker
   when:
     - sap_ha_set_hana_role == 'primary'
+  tags:
+    - ha_constraints
+    - pacemaker
