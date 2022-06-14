@@ -7,7 +7,7 @@ Ansible role for SAP HANA High Availability Setup
 - **RedHat Enterprise Linux**
     - Tested on RHEL 8.2
 
-- **Azure** 
+- **Azure**
     - Tested
     - Followed the steps based on the guide published in
         - [Azure HA Guide](https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability-rhel)
@@ -16,6 +16,21 @@ Ansible role for SAP HANA High Availability Setup
     - Future plans
 
 ## Overview
+
+  The **sap_ha_set_hana** role is part of this sequence:
+*   sap_general_preconfigure
+*   sap_hana_preconfigure
+*   sap_hana_install
+*   sap_ha_install_hana_hsr
+*   sap_ha_prepare_pacemaker
+*   sap_ha_install_pacemaker
+*   sap_ha_set_hana
+
+The **sap_ha_set_hana** is the last role to complete the configuration of te cluster ressources for
+SAP HANA.
+
+## Variables
+
 
 ### Execution Design
 
@@ -119,7 +134,7 @@ Apache license 2.0
 ## Author Information
 
 IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice, Jason Masipiquena, Sherard Guico, Markus Moster
-  include_tasks: 
+  include_tasks:
   include_tasks: cluster_resources.yml
   include_tasks: cluster_srhook.yml
   include_tasks: cluster_constraint.yml

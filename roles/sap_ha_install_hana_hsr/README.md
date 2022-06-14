@@ -5,9 +5,9 @@ Ansible role for SAP HANA System Replication Setup
 ## Scope
 
 - **RedHat Enterprise Linux**
-    - Tested on RHEL 8.2
+    - Tested on RHEL 8.2 and later
 
-- **Azure** 
+- **Azure**
     - Tested
     - Followed the steps based on the guide published in
         - [Azure HA Guide](https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability-rhel)
@@ -16,6 +16,17 @@ Ansible role for SAP HANA System Replication Setup
     - Future plans
 
 ## Overview
+
+The **sap_ha_install_hana_hsr** role is part of this sequence:
+*   sap_general_preconfigure
+*   sap_hana_preconfigure
+*   sap_hana_install
+*   sap_ha_install_hana_hsr
+*   sap_ha_prepare_pacemaker
+*   sap_ha_install_pacemaker
+*   sap_ha_set_hana
+
+The **sap_ha_install_hana_hsr** roles configures a HANA system replication relationship which is used by the pacemaker cluster to automate SAP HANA system replication.
 
 ### Execution Design
 
