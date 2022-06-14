@@ -7,7 +7,7 @@ Ansible role for SAP Pacemaker Setup
 - **RedHat Enterprise Linux**
     - Tested on RHEL 8.2
 
-- **Azure** 
+- **Azure**
     - Tested
     - Followed the steps based on the guide published in
         - [Azure Pacemaker Setup Guide](https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-rhel-pacemaker)
@@ -16,6 +16,19 @@ Ansible role for SAP Pacemaker Setup
     - Future plans
 
 ## Overview
+
+  The **sap_ha_install_pacemaker** role is part of this sequence:
+*   sap_general_preconfigure
+*   sap_hana_preconfigure
+*   sap_hana_install
+*   sap_ha_install_hana_hsr
+*   sap_ha_prepare_pacemaker
+*   sap_ha_install_pacemaker
+*   sap_ha_set_hana
+
+The **sap_ha_install_pacemaker** creates a pacemaker cluster.
+
+
 
 ### Execution Design
 - Update to be able to run the sap_ha_install_pacemaker role once you need to run sap_ha_prepare_pacemaker first.

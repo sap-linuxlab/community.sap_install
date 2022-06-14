@@ -8,6 +8,19 @@ These tasks
 
 are part of this role and excluded from the role **sap_ha_install_pacemaker**
 
+## Overview
+
+The **sap_ha_prepare_pacemaker** role is part of this sequence:
+*   sap_general_preconfigure
+*   sap_hana_preconfigure
+*   sap_hana_install
+*   sap_ha_install_hana_hsr
+*   sap_ha_prepare_pacemaker
+*   sap_ha_install_pacemaker
+*   sap_ha_set_hana
+
+The **sap_ha_install_pacemaker** prepares all nodes of a cluster to be able to install pacemaker.q
+
 ## Usage Example
 The examples contains
 playbook
