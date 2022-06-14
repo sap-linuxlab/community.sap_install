@@ -1,22 +1,22 @@
 ---
+- name: "SAP HSR - Check /etc/hosts for conflicting entries"
+  shell: |
+    awk '(/{{ item.name }}/ && !/^{{ item.ip }}/) || (/^{{ item.ip }}/ && !/{{ item.name }}/)' /etc/hosts
+  register: etchosts_conflict
+  changed_when: false
+  failed_when: etchosts_conflict.stdout != ''
+  loop: "{{ cluster_nodes }}"
+  loop_control:
+    label: "Check if {{ item.ip }} exists for hosts other than {{ item.name }}"
 
-# [A] Deduplicate values from /etc/hosts
-- name: SAP HSR - Deduplicate values from /etc/hosts
+- name: "SAP HSR - Add Cluster Nodes to /etc/hosts"
   lineinfile:
     path: /etc/hosts
     create: false
-    regexp: (?i)^\s*{{ item }}\s+
-    state: absent
+    state: present
     backup: yes
-  loop:
-    - "{{ sap_ha_install_hana_hsr_node1_ip }}"
-    - "{{ sap_ha_install_hana_hsr_node2_ip }}"
-
-# [A] Edit /etc/hosts to add Node 1 and 2
-- name: SAP HSR - [A] Edit /etc/hosts to add Node 1 and 2
-  lineinfile:
-    path: /etc/hosts
-    line: "{{ item }}"
-  loop:
-    - "{{ sap_ha_install_hana_hsr_node1_ip }}\t{{ sap_ha_install_hana_hsr_node1_hostname }}.{{ sap_ha_install_hana_hsr_fqdn }}\t{{ sap_ha_install_hana_hsr_node1_hostname }}"
-    - "{{ sap_ha_install_hana_hsr_node2_ip }}\t{{ sap_ha_install_hana_hsr_node2_hostname }}.{{ sap_ha_install_hana_hsr_fqdn }}\t{{ sap_ha_install_hana_hsr_node2_hostname }}"
+    line: "{{ item.ip }}\t{{ item.name }}.{{ sap_ha_install_hana_hsr_fqdn }}\t{{ item.name }}"
+    regexp: (?i)^\s*{{ item.ip }}\s+{{ item.name }}
+  loop: "{{ cluster_nodes }}"
+  loop_control:
+    label: "{{ item.ip }} {{ item.name }}.{{ sap_ha_install_hana_hsr_fqdn }} {{ item.name }}"
