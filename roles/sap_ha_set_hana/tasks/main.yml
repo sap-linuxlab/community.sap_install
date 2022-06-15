@@ -1,4 +1,20 @@
 ---
+- name: "SAP HSR - Pick up primary node name from definition"
+  set_fact:
+    __sap_ha_set_hana_primary_node: "{{ item.node_name }}"
+  when:
+    - item.node_role is defined
+    - item.node_role == 'primary'
+  loop: "{{ sap_ha_set_hana_cluster_nodes }}"
+  loop_control:
+    label: "{{ item.node_name }}"
+  tags:
+    - pacemaker
+    - srhook_sudo
+    - ha_resources
+    - srhook
+    - ha_constraints
+
 - name: "SAP Pacemaker Hana - Sudoer Configuration"
   include_tasks: 
     file: cluster_sudoer.yml
@@ -18,7 +34,7 @@
         - pacemaker
         - ha_resources
   when:
-    - sap_ha_set_hana_role == 'primary'
+    - ansible_hostname == __sap_ha_set_hana_primary_node
   tags:
     - pacemaker
     - ha_resources
@@ -42,7 +58,7 @@
         - ha_constraints
         - pacemaker
   when:
-    - sap_ha_set_hana_role == 'primary'
+    - ansible_hostname == __sap_ha_set_hana_primary_node
   tags:
     - ha_constraints
     - pacemaker

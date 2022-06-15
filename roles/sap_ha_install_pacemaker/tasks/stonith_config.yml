@@ -1,18 +1,17 @@
 ---
-# Create the STONITH devices
-- name: "Update STONITH timeout"
+# The following tasks are only included on the primary node!
+
+- name: "SAP Pacemaker Setup - Update STONITH timeout"
   shell: |
     pcs property set stonith-timeout=900
   register: pcs_property_set_stonith_timeout
 
-# Generic fence device configuration
-- name: "Check the fence device"
+- name: "SAP Pacemaker Setup - Check the fence device"
   shell: |
     pcs stonith config 
   register: sap_ha_install_pacemaker_stonith_check
 
-# Generic fence device configuration
-- name: "Configure the fence device"
+- name: "SAP Pacemaker Setup - Configure the fence device"
   shell: |
     pcs stonith create \
     {{ item.name }} {{ item.agent }} \
@@ -24,11 +23,9 @@
   when:
     - item.name not in sap_ha_install_pacemaker_stonith_check.stdout
 
-# Enable the use of a STONITH device
-- name: "Enable the STONITH devices"
+- name: "SAP Pacemaker Setup - Enable the STONITH devices"
   shell: |
     pcs property set stonith-enabled=true
-  register: pcs_property_set_stonith_enabled
 
 ## Example for azure-arm fence device configuration
 #- name: Configure the fence device

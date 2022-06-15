@@ -1,35 +1,24 @@
 ---
+# The following tasks are only included on the primary node!
 
-- name: "SAP Pacemaker Setup - Resource default update"
+- name: "SAP Pacemaker Hana - Resource default update"
   ansible.builtin.set_fact:
     sap_ha_set_hana_resource_defaults: ""
   when: ansible_distribution_version == "8.2"
 
-# [1] Setup HANA HA resource-stickiness
-- name: "SAP Pacemaker Setup - [1] Update default values"
-  tags: pacemaker
+- name: "SAP Pacemaker Hana - Update resource default values"
   shell: |
     pcs resource defaults {{ sap_ha_set_hana_resource_defaults }} resource-stickiness=1000
-
-# [1] Setup HANA HA migration-threshold
-- name: "SAP Pacemaker Setup - [1] Update default values"
-  tags: pacemaker
-  shell: |
     pcs resource defaults {{ sap_ha_set_hana_resource_defaults }} migration-threshold=5000
 
-# [1] Check Resources topology
-- name: "SAP Pacemaker Setup - [1] Check SAP HANA Resources Topology"
-  tags: pacemaker
+- name: "SAP Pacemaker Hana - Check SAP HANA Resources Topology"
   shell: |
     pcs resource config SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} 
   register: sap_ha_set_hana_check_resource_topology
   failed_when: false
   changed_when: false
 
-# [1] Setup HANA HA SAP HANA Resource Topology
-- name: "SAP Pacemaker Setup - [1] Create SAP HANA Resource Topology"
-  debugger: on_failed
-  tags: pacemaker
+- name: "SAP Pacemaker Hana - Create SAP HANA Resource Topology"
   shell: |
     pcs resource create \
     SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} \
@@ -40,18 +29,14 @@
   when:
     - sap_ha_set_hana_check_resource_topology.rc == 1
 
-# [1] Check Resources SAPHana
-- name: "SAP Pacemaker Setup - [1] Check SAP HANA Resources Hana"
-  tags: pacemaker
+- name: "SAP Pacemaker Hana - Check SAP HANA Resources Hana"
   shell: |
     pcs resource config SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}
   register: sap_ha_set_hana_check_resource_hana
   failed_when: false
   changed_when: false
 
-# [1] Setup HANA HA SAP HANA Resource HANA
-- name: "SAP Pacemaker Setup - [1] Create SAP HANA Resource HANA"
-  tags: pacemaker
+- name: "SAP Pacemaker Hana - Create SAP HANA Resource HANA"
   shell: |
     pcs resource create \
     SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} \
@@ -68,9 +53,7 @@
   when:
     - sap_ha_set_hana_check_resource_hana.rc == 1
 
-# [1] Check Resources
-- name: "SAP Pacemaker Setup - [1] Check SAP HANA Resources VIP"
-  tags: pacemaker
+- name: "SAP Pacemaker Hana - Check SAP HANA Resources VIP"
   shell: |
     pcs resource config vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER 
   register: sap_ha_set_hana_check_resource_vip
@@ -78,24 +61,10 @@
   failed_when: false
   changed_when: false
 
-# [1] Setup HANA HA SAP HANA Resource HANA
-- name: "SAP Pacemaker Setup - [1] Create SAP HANA Resource VIP"
-  tags: pacemaker
+- name: "SAP Pacemaker Hana - Create SAP HANA Resource VIP"
   shell: |
     pcs resource create \
     vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER \
     IPaddr2 ip="{{ sap_ha_set_hana_vip1 }}" 
   when:
     - sap_ha_set_hana_check_resource_vip.rc == 1
-
-# [1] Start Pacemaker cluster
-- name: SAP Pacemaker Setup - [1] Start Pacemaker cluster
-  tags: pacemaker
-  shell: |
-    pcs cluster start --all
-
-# [1] Check Pacemaker cluster
-- name: SAP Pacemaker Setup - [1] Check Pacemaker cluster
-  shell: |
-    pcs status
-  register: pcs_status_reg
