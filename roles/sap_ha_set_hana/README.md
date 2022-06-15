@@ -18,13 +18,16 @@ Ansible role for SAP HANA High Availability Setup
 ## Overview
 
   The **sap_ha_set_hana** role is part of this sequence:
-*   sap_general_preconfigure
-*   sap_hana_preconfigure
-*   sap_hana_install
-*   sap_ha_install_hana_hsr
-*   sap_ha_prepare_pacemaker
-*   sap_ha_install_pacemaker
-*   sap_ha_set_hana
+
+Sequence|System Role|Description
+:---:|:---|:---
+1.|sap_general_preconfigure|System Preparation for SAP
+2.| sap_hana_preconfigure|System Preparation for SAP HANA
+3.|sap_hana_install|Installation of SAP HANA Database
+4.|sap_ha_install_hana_hsr|Configuration of SAP HANA System Replication
+5.|sap_ha_prepare_pacemaker|Authentication and Preparation of Nodes for Cluster Creation
+6.|sap_ha_install_pacemaker|Initialization of the Pacemaker Cluster
+7.|sap_ha_set_hana|Configuration of SAP HANA Resources for SAP Solutions
 
 The **sap_ha_set_hana** is the last role to complete the configuration of te cluster ressources for
 SAP HANA.

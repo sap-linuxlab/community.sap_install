@@ -24,19 +24,21 @@ This is one improvement of the former collection. Additional, we have added comm
 
 For example, sap_hana_sid or sap_hana_instance_number is used in 5 different roles. This example reduces the variables from 10 to 2.
 
-## Example Setup
 *   roles
 *   variables
 *   call
 
 ### Roles used in the 2 node HANA Cluster example
-*   sap_general_preconfigure
-*   sap_hana_preconfigure
-*   sap_hana_install
-*   sap_ha_install_hana_hsr
-*   sap_ha_prepare_pacemaker
-*   sap_ha_install_pacemaker
-*   sap_ha_set_hana
+
+Sequence|System Role|Description
+:---:|:---|:---
+1.|sap_general_preconfigure|System Preparation for SAP
+2.| sap_hana_preconfigure|System Preparation for SAP HANA
+3.|sap_hana_install|Installation of SAP HANA Database
+4.|sap_ha_install_hana_hsr|Configuration of SAP HANA System Replication
+5.|sap_ha_prepare_pacemaker|Authentication and Preparation of Nodes for Cluster Creation
+6.|sap_ha_install_pacemaker|Initialization of the Pacemaker Cluster
+7.|sap_ha_set_hana|Configuration of SAP HANA Resources for SAP Solutions
 
 ## Setup Ansible
 *   select management node
@@ -196,5 +198,6 @@ sap_ha_stonith_device:
 ## Execution
 You can execute this example with:
 ```
-ansible-play example_play.yml --list_
+ansible-play example_play.yml --list_tasks
+ansible-play example_play.yml 
 ```

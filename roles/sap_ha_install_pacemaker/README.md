@@ -18,16 +18,65 @@ Ansible role for SAP Pacemaker Setup
 ## Overview
 
   The **sap_ha_install_pacemaker** role is part of this sequence:
-*   sap_general_preconfigure
-*   sap_hana_preconfigure
-*   sap_hana_install
-*   sap_ha_install_hana_hsr
-*   sap_ha_prepare_pacemaker
-*   sap_ha_install_pacemaker
-*   sap_ha_set_hana
 
-The **sap_ha_install_pacemaker** creates a pacemaker cluster.
+Sequence|System Role|Description
+:---:|:---|:---
+1.|sap_general_preconfigure|System Preparation for SAP
+2.| sap_hana_preconfigure|System Preparation for SAP HANA
+3.|sap_hana_install|Installation of SAP HANA Database
+4.|sap_ha_install_hana_hsr|Configuration of SAP HANA System Replication
+5.|sap_ha_prepare_pacemaker|Authentication and Preparation of Nodes for Cluster Creation
+6.|sap_ha_install_pacemaker|Initialization of the Pacemaker Cluster
+7.|sap_ha_set_hana|Configuration of SAP HANA Resources for SAP Solutions
 
+
+The **sap_ha_install_pacemaker** creates a pacemaker cluster. 
+The necessary preparation is done in the role **sap_ha_prepare_pacemaker**.
+
+## Parameters Used
+Parameters with role prefix in the name are only related to the role.
+
+Name|Description|Value
+---|---|---
+sap_domain|Domain Name| f.e. example.com
+sap_hana_sid|SAP ID| f.e. RH1
+sap_hana_instance_number|Instance Number|f.e. 00
+sap_hana_site1_name|name of the first site| f.e. DC1
+sap_hana_site2_name|name of the second site| f.e. DC2
+sap_hana_systemdb_password| DB System Password
+sap_hana_system_role| Role of the node| primary or secondary
+sap_hana_node1_hostname|hostname of the first node|f.e. hana01
+sap_hana_node1_ip|IP address of the first node| f.e. 192.168.1.11
+sap_hana_node2_hostname|hostname of the second node|f.e. hana02
+sap_hana_node2_ip|IP address of the second node| f.e. 192.168.1.12
+sap_ha_install_hana_hsr_rep_mode| replication mode| default is sync
+sap_ha_install_hana_hsr_oper_mode| operation mode| default is logreplay
+sap_ha_install_pacemaker_client_id
+sap_ha_install_pacemaker_cluster_name
+sap_ha_install_pacemaker_node1_hostname
+sap_ha_install_pacemaker_resource_group
+sap_ha_install_pacemaker_stonith_devices
+sap_ha_install_pacemaker_stonith_name
+sap_ha_install_pacemaker_subscription_id
+sap_hana_hacluster_password
+sap_hana_ha_pacemaker_node1_hostname
+sap_hana_instance_number
+sap_hana_node1_hostname
+sap_hana_node1_ip
+sap_hana_node2_hostname
+sap_hana_node2_ip
+sap_hana_pacemaker_fqdn
+sap_hana_vip1
+sap_hana_vip2
+sap_pacemaker_stonith_devices
+
+
+## Tasks includes
+
+Task|Description
+---|---
+cluster_setup.yml|create a cluster without ressources
+stonith_config.yml|configure a stonith device
 
 
 ### Execution Design
