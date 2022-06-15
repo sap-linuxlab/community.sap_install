@@ -3,10 +3,10 @@
 # Role: sap_ha_set_hana
 
 {% for node in cluster_nodes %}
-Cmnd_Alias {{ node.site }}_SOK	= /usr/sbin/crm_attribute -n hana_{{ sap_ha_set_hana_sid | lower }}_site_srHook_{{ node.site }} -v SOK -t crm_config -s SAPHanaSR
+Cmnd_Alias {{ node.site }}_SOK = /usr/sbin/crm_attribute -n hana_{{ sap_ha_set_hana_sid | lower }}_site_srHook_{{ node.site }} -v SOK -t crm_config -s SAPHanaSR
 Cmnd_Alias {{ node.site }}_SFAIL = /usr/sbin/crm_attribute -n hana_{{ sap_ha_set_hana_sid | lower }}_site_srHook_{{ node.site }} -v SFAIL -t crm_config -s SAPHanaSR
 {% endfor %}
 
-adm ALL=(ALL) NOPASSWD: {% for node in cluster_nodes %}{{ node.site }}_SOK, {{ node.site }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %}
+{{ sap_ha_set_hana_sid|lower }}adm ALL=(ALL) NOPASSWD: {% for node in cluster_nodes %}{{ node.site }}_SOK, {{ node.site }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %}
 
 Defaults!{% for node in cluster_nodes %}{{ node.site }}_SOK, {{ node.site }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %} !requiretty
