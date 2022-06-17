@@ -1,12 +1,13 @@
 ---
-- name: "SAP Prepare Pacemaker - Set role variables if not defined"
+- name: "SAP Prepare Pacemaker - Pick up primary node name from definition"
   ansible.builtin.set_fact:
-    sap_ha_prepare_pacemaker_site1_name: "{{ sap_hana_sid|d(sap_ha_prepare_pacemaker_site1_name)|d('DC1') }}"
-    sap_ha_prepare_pacemaker_site2_name: "{{ sap_hana_sid|d(sap_ha_prepare_pacemaker_site2_name)|d('DC2') }}"
-    sap_ha_prepare_pacemaker_site3_name: "{{ sap_hana_sid|d(sap_ha_prepare_pacemaker_site3_name)|d('DC3') }}"
-    sap_ha_prepare_pacemaker_site4_name: "{{ sap_hana_sid|d(sap_ha_prepare_pacemaker_site4_name)|d('DC4') }}"
-    sap_ha_prepare_pacemaker_node1_hostname: "{{ sap_hana_node1_hostname|d(sap_ha_prepare_pacemaker_node1_hostname)|d('hana01') }}"
-    sap_ha_prepare_pacemaker_node2_hostname: "{{sap_hana_node2_hostname|d(sap_ha_prepare_pacemaker_node2_hostname)|d('hana02') }}"
+    __sap_ha_prepare_pacemaker_primary_node: "{{ item.node_name }}"
+  when:
+    - item.node_role is defined
+    - item.node_role == 'primary'
+  loop: "{{ sap_ha_prepare_pacemaker_cluster_nodes }}"
+  loop_control:
+    label: "{{ item.node_name }}"
   tags:
     - ha_software
     - ha_firewall
@@ -77,7 +78,7 @@
   become: true
   become_user: root
   register: sap_ha_prepare_pacemaker_check_cluster
-  changed_when: false # '"Cluster Name" in sap_ha_prepare_pacemaker_check_cluster.stdout'
+  changed_when: false
   failed_when: false
   tags:
     - pacemaker

@@ -37,6 +37,19 @@
   tags:
     - hsr_logmode
 
+- name: "SAP HSR - Pick up primary node name from definition"
+  set_fact:
+    __sap_ha_install_hana_hsr_primary_node: "{{ item.node_name }}"
+  when:
+    - item.node_role is defined
+    - item.node_role == 'primary'
+  loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
+  loop_control:
+    label: "{{ item.node_name }}"
+  tags: 
+    - hsr_pki
+    - hsr_register
+
 # Steps only running on secondary nodes
 - name: "SAP HSR - PKI Files"
   include_tasks: 
@@ -45,7 +58,8 @@
       tags: hsr_pki  
       vars:
         __sap_ha_install_hana_hsr_secpath: "/usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs"
-  when: sap_ha_install_hana_hsr_role == 'secondary' 
+  when: 
+    - ansible_hostname != __sap_ha_install_hana_hsr_primary_node
   tags:
     - hsr_pki
 
@@ -58,7 +72,8 @@
       become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
       tags: hsr_backup
   when:
-    - sap_ha_install_hana_hsr_role == 'primary'
+    - ansible_hostname == __sap_ha_install_hana_hsr_primary_node
+  
   tags:
     - hsr_backup
 

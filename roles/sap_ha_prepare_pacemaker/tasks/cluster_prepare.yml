@@ -5,23 +5,21 @@
     state: started
     enabled: yes
 
-# [1] Authenticate Pacemaker cluster
-- name: SAP Pacemaker Setup - [1] Authenticate primary cluster node
+- name: "SAP Pacemaker Setup - Authenticate primary cluster node"
   ansible.builtin.shell: |
     pcs host auth \
-    {{ sap_ha_prepare_pacemaker_node1_hostname }} \
+    {{ __sap_ha_prepare_pacemaker_primary_node }} \
     -u hacluster -p '{{ sap_ha_prepare_pacemaker_hacluster_password }}'
   register: pcs_host_auth_reg
   when:
-    - sap_ha_prepare_pacemaker_role == 'primary'
+    - ansible_hostname == __sap_ha_prepare_pacemaker_primary_node
 
-# [1] Authenticate Pacemaker cluster
-- name: SAP Pacemaker Setup - [1] Authenticate secondary cluster node
+- name: "SAP Pacemaker Setup - Authenticate secondary cluster node"
   ansible.builtin.shell: |
     pcs host auth \
-    {{ sap_ha_prepare_pacemaker_node2_hostname }} \
+    {{ ansible_hostname }} \
     -u hacluster -p '{{ sap_ha_prepare_pacemaker_hacluster_password }}'
   register: pcs_host_auth_reg
   when:
-    - sap_ha_prepare_pacemaker_role == 'secondary'
-  delegate_to: "{{ sap_ha_prepare_pacemaker_node1_hostname }}"
+    - ansible_hostname != __sap_ha_prepare_pacemaker_primary_node
+  delegate_to: "{{ __sap_ha_prepare_pacemaker_primary_node }}"

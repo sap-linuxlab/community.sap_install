@@ -1,22 +1,15 @@
 ---
+# The following tasks are only included on the primary node!
 
-# [A] Setup Pacemaker SAP check constraint order HANA TOPOLOGY
 - name: "SAP Pacemaker Setup - check constraint order HANA TOPOLOGY"
-  tags: 
-    - constraint
-  run_once: True
-  become: True
   shell: |
     pcs constraint order --full | grep "id:"| awk -F "id:" '{ print $2 }' | \
     grep order-SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone-SAPHana
   register: sap_ha_set_hana_check_constraint_order_topology
   failed_when: false
+  changed_when: false
   
-# [1] Setup Pacemaker SAP set constraint order HANA TOPOLOGY
-- name: "SAP Pacemaker Setup - [1] set ORDER Constraints"
-  tags: 
-    - constraint
-  run_once: True
+- name: "SAP Pacemaker Setup - set ORDER Constraints"
   shell: |
     pcs constraint order \
     SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone then \
@@ -24,24 +17,16 @@
   when: 
     - sap_ha_set_hana_check_constraint_order_topology.rc == 1
 
-# [A] Setup Pacemaker SAP check constraint colocation VIP with MASTER HANA
 - name: "SAP Pacemaker Setup - check constraint colocation VIP with MASTER HANA"
-  tags: 
-    - constraint
-  run_once: True
-  become: True
   shell: |
     pcs constraint colocation --full | \
     grep colocation-vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER-SAPHana
   register: sap_ha_set_hana_check_constraint_collocation_vip_master
   failed_when: false
+  changed_when: false
   when: sap_ha_set_hana_vip1 is defined
   
-# [1] Setup Pacemaker Setup - Constraint: promote HANA then start VIP
-- name: "SAP Pacemaker Setup - [1] Constraint: promote HANA then start VIP"
-  tags: 
-    - constraint
-  run_once: True
+- name: "SAP Pacemaker Setup - Constraint: promote HANA then start VIP"
   shell: |
     pcs constraint colocation add \
     vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER \

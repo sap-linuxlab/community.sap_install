@@ -1,14 +1,13 @@
 ---
-- name: "SAP Install Pacemaker - Set role variables if not defined"
+- name: "SAP Install Pacemaker - Pick up primary node name from definition"
   ansible.builtin.set_fact:
-    sap_ha_install_pacemaker_hana_sid: "{{ sap_hana_sid|d(sap_ha_install_pacemaker_hana_sid)|d('RH1') }}"
-    sap_ha_install_pacemaker_site1_name: "{{ sap_hana_sid|d(sap_ha_install_pacemaker_site1_name)|d('DC1') }}"
-    sap_ha_install_pacemaker_site2_name: "{{ sap_hana_sid|d(sap_ha_install_pacemaker_site2_name)|d('DC2') }}"
-    sap_ha_install_pacemaker_site3_name: "{{ sap_hana_sid|d(sap_ha_install_pacemaker_site3_name)|d('DC3') }}"
-    sap_ha_install_pacemaker_site4_name: "{{ sap_hana_sid|d(sap_ha_install_pacemaker_site4_name)|d('DC4') }}"
-    sap_ha_install_pacemaker_node1_hostname: "{{ sap_hana_node1_hostname|d(sap_ha_install_pacemaker_node1_hostname)|d('hana01') }}"
-    sap_ha_install_pacemaker_node2_hostname: "{{ sap_hana_node2_hostname|d(sap_ha_install_pacemaker_node2_hostname)|d('hana02') }}"
-    sap_ha_install_pacemaker_instance_number: "{{ sap_hana_instance_number|d(sap_ha_install_pacemaker_instance_number)|d('00') }}"
+    __sap_ha_install_pacemaker_primary_node: "{{ item.node_name }}"
+  when:
+    - item.node_role is defined
+    - item.node_role == 'primary'
+  loop: "{{ sap_ha_prepare_pacemaker_cluster_nodes }}"
+  loop_control:
+    label: "{{ item.node_name }}"
   tags:
     - pacemaker
     - ha
@@ -36,7 +35,7 @@
         - pacemaker
         - ha
   when:
-    - sap_ha_install_pacemaker_role == 'primary'
+    - ansible_hostname == __sap_ha_install_pacemaker_primary_node
     - sap_ha_install_pacemaker_check_cluster.rc == 1
   tags:
     - pacemaker
@@ -51,7 +50,7 @@
         - pacemaker
         - ha
   when:
-    - sap_ha_install_pacemaker_role == 'primary'
+    - ansible_hostname == __sap_ha_install_pacemaker_primary_node
   tags: 
     - stonith
     - ha

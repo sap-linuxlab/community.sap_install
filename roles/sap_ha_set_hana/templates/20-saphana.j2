@@ -2,11 +2,11 @@
 # Collection: community.sap_install
 # Role: sap_ha_set_hana
 
-{% for node in cluster_nodes %}
-Cmnd_Alias {{ node.site }}_SOK = /usr/sbin/crm_attribute -n hana_{{ sap_ha_set_hana_sid | lower }}_site_srHook_{{ node.site }} -v SOK -t crm_config -s SAPHanaSR
-Cmnd_Alias {{ node.site }}_SFAIL = /usr/sbin/crm_attribute -n hana_{{ sap_ha_set_hana_sid | lower }}_site_srHook_{{ node.site }} -v SFAIL -t crm_config -s SAPHanaSR
+{% for node in sap_ha_set_hana_cluster_nodes %}
+Cmnd_Alias {{ node.hana_site }}_SOK = /usr/sbin/crm_attribute -n hana_{{ sap_ha_set_hana_sid | lower }}_site_srHook_{{ node.hana_site }} -v SOK -t crm_config -s SAPHanaSR
+Cmnd_Alias {{ node.hana_site }}_SFAIL = /usr/sbin/crm_attribute -n hana_{{ sap_ha_set_hana_sid | lower }}_site_srHook_{{ node.hana_site }} -v SFAIL -t crm_config -s SAPHanaSR
 {% endfor %}
 
-{{ sap_ha_set_hana_sid|lower }}adm ALL=(ALL) NOPASSWD: {% for node in cluster_nodes %}{{ node.site }}_SOK, {{ node.site }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %}
+{{ sap_ha_set_hana_sid|lower }}adm ALL=(ALL) NOPASSWD: {% for node in sap_ha_set_hana_cluster_nodes %}{{ node.hana_site }}_SOK, {{ node.hana_site }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %}
 
-Defaults!{% for node in cluster_nodes %}{{ node.site }}_SOK, {{ node.site }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %} !requiretty
+Defaults!{% for node in sap_ha_set_hana_cluster_nodes %}{{ node.hana_site }}_SOK, {{ node.hana_site }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %} !requiretty
