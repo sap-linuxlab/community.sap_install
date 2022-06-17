@@ -1,0 +1,39 @@
+sap_domain: example.com
+
+## general + hana preconfigure: 
+# suppress reboot handler execution
+sap_general_preconfigure_reboot_ok: no
+sap_general_preconfigure_fail_if_reboot_required: no
+sap_hana_preconfigure_reboot_ok: no
+sap_hana_preconfigure_fail_if_reboot_required: no
+
+sap_hana_update_etchosts: yes         # usable in HSR role
+
+sap_hana_sid: 'DB1'
+sap_hana_instance_number: '00'
+sap_hana_install_master_password: "{{ <vault-password-var> }}"
+
+sap_hana_hacluster_password: "{{ <vault-password-var> }}"
+
+sap_hana_cluster_nodes:
+  - node_name: node1
+    node_ip: 192.168.1.11
+    node_role: primary
+    hana_site: DC01
+
+  - node_name: node2
+    node_ip: 192.168.1.12
+    node_role: secondary
+    hana_site: DC02
+
+sap_ha_set_hana_vip1: 192.168.1.100
+
+### pacemaker vars    
+
+sap_ha_install_pacemaker_cluster_name: cluster1
+
+sap_pacemaker_stonith_devices:
+  - name: "auto_rhevm_fence1"
+    agent: "fence_rhevm"
+    credential: "ip=<rhevm-server> username=<rhevm-user>@internal password=<rhevm-secret>"
+    parameters: 'pcmk_host_list="node1,node2" power_wait=3 ssl=1 ssl_insecure=1 disable_http_filter=1'
