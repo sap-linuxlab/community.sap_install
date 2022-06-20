@@ -49,10 +49,12 @@
 
 # Monitor sapinst process (i.e. ps aux | grep sapinst) and wait for exit
 - name: SAP SWPM - Wait for sapinst process to exit, poll every 60 seconds
-  pids:
+  community.general.pids:
     name: sapinst
+#  shell: ps -ef | awk '/sapinst/&&!/awk/&&!/ansible/{print}'
   register: pids_sapinst
   until: "pids_sapinst.pids | length == 0"
+#  until: "pids_sapinst.stdout | length == 0"
   retries: 1000
   delay: 60
 
