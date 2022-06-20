@@ -51,7 +51,7 @@ sap_domain|Domain Name| e.g. example.com
 sap_hana_sid|SAP ID| e.g. RH1
 sap_hana_instance_number|Instance Number|e.g. 00
 sap_hana_systemdb_password| DB System Password
-sap_hana_cluster_nodes| Description of
+sap_hana_cluster_nodes| Parameter list of cluster nodes
 sap_hana_hacluster_password| Pacemaker hacluster Password
 
 ## Role specific Variables
