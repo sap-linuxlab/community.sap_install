@@ -1,11 +1,11 @@
 ---
-- name: SAP Pacemaker Setup - Start pcsd.service
+- name: "SAP Prepare Pacemaker - Start pcsd.service"
   ansible.builtin.systemd:
     name: pcsd.service
     state: started
     enabled: yes
 
-- name: "SAP Pacemaker Setup - Authenticate primary cluster node"
+- name: "SAP Prepare Pacemaker - Authenticate primary cluster node"
   ansible.builtin.shell: |
     pcs host auth \
     {{ __sap_ha_prepare_pacemaker_primary_node }} \
@@ -14,7 +14,7 @@
   when:
     - ansible_hostname == __sap_ha_prepare_pacemaker_primary_node
 
-- name: "SAP Pacemaker Setup - Authenticate secondary cluster node"
+- name: "SAP Prepare Pacemaker - Authenticate secondary cluster node"
   ansible.builtin.shell: |
     pcs host auth \
     {{ ansible_hostname }} \

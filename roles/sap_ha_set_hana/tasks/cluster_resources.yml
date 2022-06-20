@@ -13,7 +13,7 @@
 
 - name: "SAP Pacemaker Hana - Check SAP HANA Resources Topology"
   shell: |
-    pcs resource config SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} 
+    pcs resource config SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}
   register: sap_ha_set_hana_check_resource_topology
   failed_when: false
   changed_when: false
@@ -23,7 +23,7 @@
     pcs resource create \
     SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} \
     SAPHanaTopology SID={{ sap_ha_set_hana_sid }} \
-    InstanceNumber={{ sap_ha_set_hana_instance_number }} \ 
+    InstanceNumber={{ sap_ha_set_hana_instance_number }} \
     op start timeout=600 op stop timeout=600 op monitor interval=10 timeout=600 \
     clone clone-max=2 clone-node-max=1 interleave=true
   when:
@@ -41,7 +41,7 @@
     pcs resource create \
     SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} \
     SAPHana SID={{ sap_ha_set_hana_sid }} \
-    InstanceNumber={{ sap_ha_set_hana_instance_number }} \ 
+    InstanceNumber={{ sap_ha_set_hana_instance_number }} \
     PREFER_SITE_TAKEOVER=true DUPLICATE_PRIMARY_TIMEOUT=900 AUTOMATED_REGISTER=true \
     op start timeout=3600 op stop timeout=3600 \
     op monitor interval=121 role="Slave" timeout=700 \
@@ -49,13 +49,13 @@
     op promote timeout=3600 \
     op demote timeout=3600 \
     promotable notify=true \
-    clone-max=2 clone-node-max=1 interleave=true 
+    clone-max=2 clone-node-max=1 interleave=true
   when:
     - sap_ha_set_hana_check_resource_hana.rc == 1
 
 - name: "SAP Pacemaker Hana - Check SAP HANA Resources VIP"
   shell: |
-    pcs resource config vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER 
+    pcs resource config vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER
   register: sap_ha_set_hana_check_resource_vip
   when: sap_ha_set_hana_vip1 is defined
   failed_when: false
@@ -65,6 +65,6 @@
   shell: |
     pcs resource create \
     vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER \
-    IPaddr2 ip="{{ sap_ha_set_hana_vip1 }}" 
+    IPaddr2 ip="{{ sap_ha_set_hana_vip1 }}"
   when:
     - sap_ha_set_hana_check_resource_vip.rc == 1

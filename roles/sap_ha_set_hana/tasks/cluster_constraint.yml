@@ -1,23 +1,23 @@
 ---
 # The following tasks are only included on the primary node!
 
-- name: "SAP Pacemaker Setup - check constraint order HANA TOPOLOGY"
+- name: "SAP Pacemaker Hana - check constraint order HANA TOPOLOGY"
   shell: |
     pcs constraint order --full | grep "id:"| awk -F "id:" '{ print $2 }' | \
     grep order-SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone-SAPHana
   register: sap_ha_set_hana_check_constraint_order_topology
   failed_when: false
   changed_when: false
-  
-- name: "SAP Pacemaker Setup - set ORDER Constraints"
+
+- name: "SAP Pacemaker Hana - set ORDER Constraints"
   shell: |
     pcs constraint order \
     SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone then \
-    SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone symmetrical=false 
-  when: 
+    SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone symmetrical=false
+  when:
     - sap_ha_set_hana_check_constraint_order_topology.rc == 1
 
-- name: "SAP Pacemaker Setup - check constraint colocation VIP with MASTER HANA"
+- name: "SAP Pacemaker Hana - check constraint colocation VIP with MASTER HANA"
   shell: |
     pcs constraint colocation --full | \
     grep colocation-vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER-SAPHana
@@ -25,8 +25,8 @@
   failed_when: false
   changed_when: false
   when: sap_ha_set_hana_vip1 is defined
-  
-- name: "SAP Pacemaker Setup - Constraint: promote HANA then start VIP"
+
+- name: "SAP Pacemaker Hana - Constraint: promote HANA then start VIP"
   shell: |
     pcs constraint colocation add \
     vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER \
@@ -36,6 +36,6 @@
     SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone \
     then start \
     vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER
-  when: 
+  when:
     - sap_ha_set_hana_check_constraint_collocation_vip_master.rc == 1
     - sap_ha_set_hana_vip1 is defined

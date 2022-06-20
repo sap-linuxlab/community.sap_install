@@ -1,5 +1,5 @@
 ---
-- name: "SAP Pacemaker Setup - [A] Check RHEL HA Repos"
+- name: "SAP Prepare Pacemaker - Check RHEL HA Repos"
   ansible.builtin.shell: |
     yum repolist
   args:
@@ -10,55 +10,26 @@
   register: sap_ha_prepare_pacemaker_check_ha_repos
   changed_when: false
 
-- name: "SAP Pacemaker Setup - [A] Print RHEL HA Repos"
-  ansible.builtin.debug:
-    var: sap_ha_prepare_pacemaker_check_ha_repos.stdout_lines
-
-# Enable Repos
-- name: SAP Pacemaker Setup - [A] Subscription Manager - Enable RHEL HA Repos
+- name: "SAP Prepare Pacemaker - Subscription Manager - Enable RHEL HA Repos"
   ansible.builtin.command: 'subscription-manager repos --enable="{{ item }}"'
   loop: "{{ sap_ha_prepare_pacemaker_rhsm_repos }}"
-  when: 
+  when:
     - item not in sap_ha_prepare_pacemaker_check_ha_repos.stdout
 
-# Install Packages
-- name: SAP Pacemaker Setup - [A] Install Packages
-  ansible.builtin.yum: 
+- name: "SAP Prepare Pacemaker - Install Packages"
+  ansible.builtin.yum:
     name: '{{ sap_ha_prepare_pacemaker_packages }}'
     state: present
 
-# Install Packages - Vendor Specific
-- name: SAP Pacemaker Setup - [A] Install Packages - Vendor Specific
-  ansible.builtin.yum: 
+- name: "SAP Prepare Pacemaker - Install Packages - Vendor Specific"
+  ansible.builtin.yum:
     name: "{{ vars['sap_ha_prepare_pacemaker_packages_' + sap_ha_prepare_pacemaker_type] }}"
     state: present
-  when: 
+  when:
     - sap_ha_prepare_pacemaker_type is defined
     - vars['sap_ha_prepare_pacemaker_packages_' + sap_ha_prepare_pacemaker_type] is defined
 
-- name: SAP Pacemaker Setup - [A] Yum clean all
-  command: 'yum clean all'
-  args:
-    warn: false
-    
-#- name: SAP Pacemaker Setup - [A] Yum search sap-
-#  command: 'yum -y search sap-'
-
-- name: SAP Pacemaker Setup - [A] Clear dnf cache
-  file:
-    path: /var/cache/dnf
-    state: absent
-
-#- name: SAP Pacemaker Setup - [A] Clear rhsm packages
-#  file:
-#    path: /var/lib/rhsm/packages/packages.json
-#    state: absent
-
-#- name: SAP Pacemaker Setup - [A] Restart service rhsmcertd
-#  service:
-#    name: rhsmcertd
-#    state: restarted
-
+## AZ specific repo setup
 # - name: SAP Pacemaker Setup - [A] Install Azure CLI
 #   shell: |
 #     rpm --import https://packages.microsoft.com/keys/microsoft.asc
