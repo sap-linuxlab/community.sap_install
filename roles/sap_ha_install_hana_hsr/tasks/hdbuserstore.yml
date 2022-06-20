@@ -1,27 +1,20 @@
 ---
-
-# [A] Create and Store Connection Info in hdbuserstore for SYSTEMDB
-- name: SAP HSR - [A] Check if hdbuserstore exists
+- name: "SAP HSR - Check if hdbuserstore exists"
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   shell: |
         /usr/sap/{{ sap_ha_install_hana_hsr_sid}}/SYS/exe/hdb/hdbuserstore \
-        List {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} 
+        List {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }}
   args:
     executable: /bin/bash
   register: sap_ha_install_hana_hsr_hdbuserstore
   failed_when: false
   changed_when: false
 
-- name: SAP HSR - [A] Skipping hsr_hdbuserstore
-  debug:
-    msg: "Skipping creating {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} hdbuserstore "
-  when: sap_ha_install_hana_hsr_hdbuserstore.rc==0
-
-- name: SAP HSR - [A] Create and Store Connection Info in hdbuserstore
+- name: "SAP HSR - Create and Store Connection Info in hdbuserstore"
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   shell: |
         /usr/sap/{{ sap_ha_install_hana_hsr_sid}}/SYS/exe/hdb/hdbuserstore \
         SET {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} {{ ansible_hostname }}:3{{ sap_ha_install_hana_hsr_instance_number }}13 SYSTEM '{{ sap_ha_install_hana_hsr_db_system_password }}'
   args:
     executable: /bin/bash
-  when: sap_ha_install_hana_hsr_hdbuserstore.rc!=0
+  when: sap_ha_install_hana_hsr_hdbuserstore.rc != '0'
