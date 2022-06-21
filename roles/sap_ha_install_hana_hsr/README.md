@@ -22,7 +22,7 @@ The **sap_ha_install_hana_hsr** role is part of this system role sequence:
 Sequence|System Role|Description
 :---:|:---|:---
 1.|sap_general_preconfigure|System Preparation for SAP
-2.| sap_hana_preconfigure|System Preparation for SAP HANA
+2.|sap_hana_preconfigure|System Preparation for SAP HANA
 3.|sap_hana_install|Installation of SAP HANA Database
 4.|sap_ha_install_hana_hsr|Configuration of SAP HANA System Replication
 5.|sap_ha_prepare_pacemaker|Authentication and Preparation of Nodes for Cluster Creation
@@ -50,7 +50,7 @@ Name|Description|Value
 sap_domain|Domain Name| e.g. example.com
 sap_hana_sid|SAP ID| e.g. RH1
 sap_hana_instance_number|Instance Number|e.g. 00
-sap_hana_systemdb_password| DB System Password
+sap_hana_install_master_password| DB System Password
 sap_hana_cluster_nodes| Parameter list of cluster nodes
 sap_hana_hacluster_password| Pacemaker hacluster Password
 
