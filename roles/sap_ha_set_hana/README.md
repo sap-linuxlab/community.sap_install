@@ -9,7 +9,7 @@ Ansible role for SAP HANA High Availability Setup
 
 - **Azure**
     - Tested
-    - Followed the steps based on the guide published in
+    - Followed the steps based on the guide published isap_ha_set_hana_vip1:n
         - [Azure HA Guide](https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability-rhel)
 
 - **AWS**
