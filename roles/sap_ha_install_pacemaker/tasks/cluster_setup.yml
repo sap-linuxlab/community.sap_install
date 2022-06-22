@@ -16,6 +16,13 @@
   shell: |
     pcs quorum expected-votes {{ sap_ha_install_pacemaker_cluster_nodes | length }}
 
+- name: "SAP Pacemaker Setup - Get current properties"
+  shell: |
+    pcs property list
+  register: __sap_ha_install_pacemaker_pcs_properties
+
 - name: "SAP Pacemaker Setup - Allow concurrent fence actions"
   shell: |
     pcs property set concurrent-fencing=true
+  when:
+    - "'concurrent-fencing: true' not in __sap_ha_install_pacemaker_pcs_properties"
