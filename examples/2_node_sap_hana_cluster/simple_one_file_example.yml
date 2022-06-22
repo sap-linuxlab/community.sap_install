@@ -1,0 +1,44 @@
+---
+# call playbook with # ansible-playbook example_in_one_file.yml
+- name: "Example SAP Hana and HA Cluster deployment on a 2-node cluster"
+  hosts: hana1, hana2
+  become: true
+
+  vars:
+    sap_domain: example.com
+
+    sap_hana_sid: 'DB1'
+    sap_hana_instance_number: '00'
+    sap_hana_install_master_password: 'DB1pass2'
+
+    ### Cluster Definition
+    sap_ha_install_pacemaker_cluster_name: cluster1
+    sap_hana_hacluster_password: 'my_hacluster'
+
+    sap_hana_cluster_nodes:
+      - node_name: hana1
+        node_ip: 10.240.128.6
+        node_role: primary
+        hana_site: DC01
+
+      - node_name: hana2
+        node_ip: 10.240.128.7
+        node_role: secondary
+        hana_site: DC02
+
+    sap_ha_set_hana_vip1: 10.240.128.9
+
+    sap_pacemaker_stonith_devices:
+      - name: "fence_name_for_rhevm"
+        agent: "fence_rhevm"
+        credential: "disable_http_filter=1 ipaddr=lu0529.wdf.sap.corp login='rhevuser@internal' password=G3h31m pcmk_host_map='hana01:hana01;hana02:hana02' power_wait=3 ssl=1 ssl_insecure=1"
+
+  roles:
+
+    - sap_general_preconfigure
+    - sap_hana_preconfigure
+    - sap_hana_install
+    - sap_ha_install_hana_hsr
+    - sap_ha_prepare_pacemaker
+    - sap_ha_install_pacemaker
+    - sap_ha_set_hana
