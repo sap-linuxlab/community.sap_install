@@ -5,7 +5,10 @@ Ansible role for SAP Pacemaker Setup. This role needs **sap_ha_prepare_pacemaker
 ## Scope
 
 - **RedHat Enterprise Linux**
-    - Tested on RHEL 8.2
+    - Tested on RHEL 8.2, 8.4 and later
+    - Please also check 
+    - [Overview of the Red Hat Enterprise Linux for SAP Solutions subscription](https://access.redhat.com/solutions/3082481)
+    - [Automating SAP HANA Scale-Up System Replication using the RHEL HA Add-On](https://access.redhat.com/articles/3004101)
 
 - **Azure**
     - Tested
@@ -14,6 +17,14 @@ Ansible role for SAP Pacemaker Setup. This role needs **sap_ha_prepare_pacemaker
 
 - **AWS**
     - Future plans
+    - Please also check [Configuring SAP HANA Scale-Up System Replication with the RHEL HA Add-On on Amazon Web Services (AWS)](https://access.redhat.com/articles/3569621)
+
+- **IBM Cloud**
+    - Tested
+    - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.ibm.com/docs/sap?topic=sap-refarch-hana-scaleup)
+
+- **GoogleCloud** 
+    - Please also check [HA cluster configuration guide for SAP HANA on RHEL](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
 
 ## Overview
 
@@ -62,20 +73,24 @@ sap_ha_install_hana_hsr_rep_mode|replication mode| default is sync
 sap_ha_install_hana_hsr_oper_mode|operation mode| default is logreplay
 sap_pacemaker_stonith_devices|description of the stonith device|
 
-The stonith device needs to be specified. You can configure for example dummy fence devices:
+The stonith device needs to be    - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
+
 ```
-sap_pacemaker_stonith_devices:
+sap_pacemaker_stonith_devices:    - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
+
   - name: "fence_kdump1"
     agent: "fence_kdump"
     credential: "nodename='hana1'"
     parameters: "pcmk_host_list='hana1,hana2' pcmk_reboot_action='off'"
   - name: "fence_kdump2"
-    agent: "fence_kdump"
+    agent: "fence_kdump"    - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
+
     credential: "nodename='hana2'"
     parameters: "pcmk_host_list='hana1,hana2' pcmk_reboot_action='off'"
 
 ```
-## Example Parameter File
+## Example Parameter File    - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
+
 ```
 sap_hana_sid: 'DB1'
 sap_hana_instance_number: '00'
@@ -95,7 +110,8 @@ sap_hana_cluster_nodes:
     hana_site: DC01
 
   - node_name: node2
-    node_ip: 192.168.1.12
+    node_ip: 192.168.1.12    - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
+
     node_role: secondary
     hana_site: DC02
 
