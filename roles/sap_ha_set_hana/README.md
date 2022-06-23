@@ -5,15 +5,26 @@ Ansible role for SAP HANA High Availability Setup
 ## Scope
 
 - **RedHat Enterprise Linux**
-    - Tested on RHEL 8.2
+    - Tested on RHEL 8.2, 8.4 and later
+    - Please also check 
+    - [Overview of the Red Hat Enterprise Linux for SAP Solutions subscription](https://access.redhat.com/solutions/3082481)
+    - [Automating SAP HANA Scale-Up System Replication using the RHEL HA Add-On](https://access.redhat.com/articles/3004101)
 
 - **Azure**
     - Tested
     - Followed the steps based on the guide published in
-        - [Azure HA Guide](https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability-rhel)
+        - [Azure Pacemaker Setup Guide](https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-rhel-pacemaker)
 
 - **AWS**
     - Future plans
+    - Please also check [Configuring SAP HANA Scale-Up System Replication with the RHEL HA Add-On on Amazon Web Services (AWS)](https://access.redhat.com/articles/3569621)
+
+- **IBM Cloud**
+    - Tested
+    - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.ibm.com/docs/sap?topic=sap-refarch-hana-scaleup)
+
+- **GoogleCloud** 
+    - Please also check [HA cluster configuration guide for SAP HANA on RHEL](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
 
 ## Overview
 
