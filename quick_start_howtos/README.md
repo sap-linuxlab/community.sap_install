@@ -2,13 +2,10 @@
 
 In this folder you find sample files, a few additional tips for using the provided ansible roles, as well as references to further information.
 
-* auto-gen TOC:
-{:toc}
-
-1. [How to run playbooks](#how-to-run-playbooks)
-1.1. [Basic inventory parameters](#basic-inventory-parameters)
-1.2. [Security parameters](#security-parameters)
-1.3. [Other useful options](#other-useful-options)
+* [How to run playbooks](#how-to-run-playbooks)
+    * [Basic inventory parameters](#basic-inventory-parameters)
+    * [Security parameters](#security-parameters)
+    * [Other useful options](#other-useful-options)
 
 ## How to run playbooks
 
