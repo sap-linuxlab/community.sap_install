@@ -11,7 +11,7 @@ In this folder you find sample files, a few additional tips for using the provid
 
 Playbook execution requires a minimum set of parameters, depending on the ansible configuration settings and the environment to be used in.
 
-The parameters shown in the below examples can all be combined according to the respective needs. The examples are kept short for readability.
+The parameters shown in the below examples can all be combined according to the respective needs. The example commands are kept short for readability.
 
 ### Basic inventory parameters
 
@@ -32,9 +32,9 @@ ansible-playbook [...] -k -K
 ansible-playbook [...] -u target-user -k -K
 ```
 
-`-u` is used to target a different remote user than the current user on the ansible control node.
-`-k` will prompt for the remote user's login password.
-`-K` will prompt for the remote user's sudo password. This is needed when `become` is used to run tasks as another user or root. Instead of sudo the privilege escalation method can also be changed (please see official ansible documentation).
+* `-u` is used to target a different remote user than the current user on the ansible control node.
+* `-k` will prompt for the remote user's login password.
+* `-K` will prompt for the remote user's sudo password. This is needed when `become` is used to run tasks as another user or root. Instead of sudo the privilege escalation method can also be changed (please see official ansible documentation).
 
 Example if encrypted files or variables are used in a play:
 ```text
@@ -43,7 +43,7 @@ ansible-playbook [...] --ask-vault
 
 This will prompt for the vault password, which was provided during creation of the ansible-vault encrypted contents.
 
-Please see [secure-your-passwords.md](secure-your-passwords.md) for more information.
+Please see [secure-your-passwords](secure-your-passwords.md) for more information.
 
 ### Other useful options
 
