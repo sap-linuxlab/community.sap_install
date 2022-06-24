@@ -1,6 +1,6 @@
 # Simple password security using ansible vault
 
-1. [Encrypt a secret string to be used as variable](#encrypt-a-secret-string-to-be-used-as-variable)
+1. [Encrypt a secret string to be used in a variable](#encrypt-a-secret-string-to-be-used-in-a-variable) 
 1. [Run playbook which uses vault-encrypted content](#run-playbook-which-uses-vault-encrypted-content)
 1. [Encrypt an entire file](#encrypt-an-entire-file)
 1. [More features and information](#more-features-and-information)
@@ -12,7 +12,7 @@ Since some Ansible automation will require using credentials for various tasks, 
 Ansible vault provides an easy way to comply with security requirements to encrypt secret information.
 The following describes a basic scenario.
 
-## Encrypt a secret string to be used as variable
+## Encrypt a secret string to be used in a variable
 *Supported since ansible 2.3.*
 
 By temporarily writing the password into a text file you avoid the secret to show up in your command history. 
@@ -55,7 +55,7 @@ playbook5_secret_var: "{{ my_secret_var }}"
 
 This way the value is only present and managed in one place and can be used by different playbooks.
 
-==Remove the file which contains the password!==
+==Remove the temporary file which contains the plain-text password!==
 
 ```bash
 rm passfile
