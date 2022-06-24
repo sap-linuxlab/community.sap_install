@@ -43,7 +43,7 @@ ansible-playbook [...] --ask-vault
 
 This will prompt for the vault password, which was provided during creation of the ansible-vault encrypted contents.
 
-Please see **secure-your-passwords.md** for more information.
+Please see [secure-your-passwords.md] for more information.
 
 ### Other useful options
 
