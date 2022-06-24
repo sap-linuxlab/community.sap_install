@@ -1,9 +1,9 @@
 # Simple password security using ansible vault
 
-1. [Encrypt a secret string to be used in a variable](#encrypt-a-secret-string-to-be-used-in-a-variable) 
-1. [Run playbook which uses vault-encrypted content](#run-playbook-which-uses-vault-encrypted-content)
-1. [Encrypt an entire file](#encrypt-an-entire-file)
-1. [More features and information](#more-features-and-information)
+* [Encrypt a secret string to be used in a variable](#encrypt-a-secret-string-to-be-used-in-a-variable) 
+* [Run playbook which uses vault-encrypted content](#run-playbook-which-uses-vault-encrypted-content)
+* [Encrypt an entire file](#encrypt-an-entire-file)
+* [More features and information](#more-features-and-information)
 
 **Always avoid plain text passwords in files or on commandline.**
 
