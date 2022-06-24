@@ -55,7 +55,7 @@ playbook5_secret_var: "{{ my_secret_var }}"
 
 This way the value is only present and managed in one place and can be used by different playbooks.
 
-==Remove the temporary file which contains the plain-text password!==
+**Remove the temporary file which contains the plain-text password!**
 
 ```bash
 rm passfile
