@@ -3,7 +3,7 @@
 In this folder you find sample files, a few additional tips for using the provided ansible roles, as well as references to further information.
 
 * [How to run playbooks](#how-to-run-playbooks)
-    * [Basic inventory parameters](#basic-inventory-parameters)
+    * [Inventory and variable parameters](#inventory-and-variable-parameters)
     * [Security parameters](#security-parameters)
     * [Other useful options](#other-useful-options)
 
@@ -13,7 +13,7 @@ Playbook execution requires a minimum set of parameters, depending on the ansibl
 
 The parameters shown in the below examples can all be combined according to the respective needs. The example commands are kept short for readability.
 
-### Basic inventory parameters
+### Inventory and variable parameters
 
 Examples with different ways to use inventory and target system parameters:
 ```text
