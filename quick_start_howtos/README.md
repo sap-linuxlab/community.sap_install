@@ -21,7 +21,16 @@ ansible-playbook sap_hana_cluster_deploy.yml
 
 ansible-playbook -i /path/to/inventory-file -l node1,node2 sap_hana_cluster_deploy.yml 
 ansible-playbook -l ~node[12] sap_hana_cluster_deploy.yml 
+
+ansible-playbook [...] -e 'my_variable=value'
+ansible-playbook [...] -e @path/to/vars-file.yml
+ansible-playbook [...] -e @path/to/vars-file.yml -e 'additional_variable=value'
 ```
+
+* `-e` (`--extra-vars`) allows to define variables on command execution. 
+Variables can also be included from a file using the `@filename` notation.
+`-e` can be used multiple times. 
+These extra-vars will overwrite the same variable names defined in the playbook or included files. See [variable precedence documentation](https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable).
 
 ### Security parameters
 
