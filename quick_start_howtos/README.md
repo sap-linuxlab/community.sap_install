@@ -67,8 +67,9 @@ These are not all available options, but ones that may help getting familiar wit
 
 * `--list-hosts` helps verifying the hosts that are going to be targeted. The playbook is not run.
 * `--list-tasks` displays the tasks the playbook is going to run. Tasks from dynamically included files will not be visible and only accessed during runtime.
-* `-t` or `--tags` limits the tasks to be executed to those with the tag name(s) provided. Tags are displayed in square brackets in the `--list-tasks` overview.
-* `--start-at-task` will re-run the playbook starting with this named task. If there are duplicate task names it will start at the first in the list (see `--list-tasks`). 
-Be careful to choose a task which covers pre-requisites, i.e. tasks that discover information which is used in subsequent tasks have to be run again to fulfill conditionals.
+* `-t` or `--tags` limits the tasks to be executed to those with the tag name(s) provided. 
+Tags are displayed in square brackets in the `--list-tasks` overview.
+* `--start-at-task` will run the playbook starting with this named task. If there are duplicate task names it will start at the first in the list (see `--list-tasks`). 
+Be careful to choose a task which covers pre-requisites, i.e. tasks that discover information which is used in subsequent tasks have to be run to fulfill conditionals.
 * `-C` attempts a dry-run of the playbook without applying actual changes. This is limited to simple tasks that do not require other changes already been done in previous tasks. 
 * `--step` this executes the playbook but will prompt for every task to be run or skipped. At the prompt it can also be told to continue and not ask again, however. Useful to slow down execution and review each tasks result before proceeding with the next task.
