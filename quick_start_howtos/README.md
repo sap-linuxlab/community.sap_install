@@ -2,10 +2,13 @@
 
 In this folder you find sample files, a few additional tips for using the provided ansible roles, as well as references to further information.
 
+* auto-gen TOC:
+{:toc}
+
 1. [How to run playbooks](#how-to-run-playbooks)
-    1.1. [Basic inventory parameters](#basic-inventory-parameters)
-    1.2. [Security parameters](#security-parameters)
-    1.3. [Other useful options](#other-useful-options)
+1.1. [Basic inventory parameters](#basic-inventory-parameters)
+1.2. [Security parameters](#security-parameters)
+1.3. [Other useful options](#other-useful-options)
 
 ## How to run playbooks
 
@@ -38,7 +41,7 @@ ansible-playbook [...] -u target-user -k -K
 
 Example if encrypted files or variables are used in a play:
 ```text
-ansible-playbook sap_hana_cluster_deploy.yml --ask-vault
+ansible-playbook [...] --ask-vault
 ```
 
 This will prompt for the vault password, which was provided during creation of the ansible-vault encrypted contents.
