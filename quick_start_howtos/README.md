@@ -26,7 +26,9 @@ ansible-playbook [...] -e 'my_variable=value'
 ansible-playbook [...] -e @path/to/vars-file.yml
 ansible-playbook [...] -e @path/to/vars-file.yml -e 'additional_variable=value'
 ```
-
+* `-i` provide path to inventory host file
+* `-l` limit the target hosts to the name(s).
+Prefix with `~` to use regex for host name patterns.  
 * `-e` (`--extra-vars`) allows to define variables on command execution. 
 Variables can also be included from a file using the `@filename` notation.
 `-e` can be used multiple times. 
