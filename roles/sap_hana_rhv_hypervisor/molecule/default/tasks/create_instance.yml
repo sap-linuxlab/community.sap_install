@@ -1,0 +1,187 @@
+---
+  # - name: Check resource group exists
+  #   ibm.cloudcollection.ibm_resource_group_info:
+  #     name: "{{ item.resource_group_name }}"
+  #   failed_when:
+  #       - ibm_molecule_resource_group.rc != 0
+  #       - '"ResourceGroupDoesnotExist" not in ibm_molecule_resource_group.stderr'
+  #   register: ibm_molecule_resource_group
+
+  # - name: Print ibm_molecule_resource_group
+  #   ansible.builtin.debug:
+  #     msg: "{{ ibm_molecule_resource_group }}"
+
+  - name: Create resource group
+    ibm.cloudcollection.ibm_resource_group:
+      name: "{{ item.resource_group_name |
+        default (resource_group_name_default) }}"
+    register: ibm_molecule_resource_group
+
+  # - name: Print ibm_molecule_resource_group
+  #   ansible.builtin.debug:
+  #     msg: "{{ ibm_molecule_resource_group }}"
+
+  # - name: Checking for existing VPC
+  #   ibm.cloudcollection.ibm_is_vpc_info:
+  #     name: "{{ item.ibm_is_vpc_name }}"
+  #   failed_when:
+  #     - ibm_molecule_vpc.rc != 0
+  #     - '"No VPC found" not in ibm_molecule_vpc.stderr'
+  #   register: ibm_molecule_vpc
+
+  - name: Configure VPC
+    ibm.cloudcollection.ibm_is_vpc:
+      name: "{{ item.ibm_is_vpc_name |
+        default(ibm_is_vpc_name_default) }}"
+      resource_group: "{{ ibm_molecule_resource_group.resource.id }}"
+      state: available
+      id: "{{ ibm_molecule_vpc.resource.id | default(omit) }}"
+    register: ibm_molecule_vpc
+
+  # - name: Checking for existing VPC Subnet
+  #   ibm.cloudcollection.ibm_is_subnet_info:
+  #     name: "{{ item.ibm_is_subnet_name }}"
+  #   failed_when:
+  #     - ibm_molecule_subnet.rc != 0
+  #     - '"No subnet found" not in subnet.stderr'
+  #   register: ibm_molecule_subnet
+
+  - name: Configure VPC Subnet
+    ibm.cloudcollection.ibm_is_subnet:
+      name: "{{ item.ibm_is_subnet_name |
+        default(ibm_is_subnet_name_default) }}"
+      resource_group: "{{ ibm_molecule_resource_group.resource.id }}"
+      state: available
+      id: "{{ ibm_molecule_subnet.id | default(omit) }}"
+      vpc: "{{ ibm_molecule_vpc.resource.id }}"
+      total_ipv4_address_count: "{{ total_ipv4_address_count_const | int }}"
+      zone: "{{ item.instance_zone }}"
+    register: ibm_molecule_subnet
+
+  - name: Checking for existing SSH key
+    ibm.cloudcollection.ibm_is_ssh_key_info:
+      name: "key-{{ lookup('file', ibm_is_ssh_public_key_path |
+        default(ibm_is_ssh_public_key_path_default) ) | b64encode | hash('md5') }}"
+    failed_when:
+      - ibm_molecule_ssh_key.rc != 0
+      - '"No SSH Key found" not in ibm_molecule_ssh_key.stderr'
+    register: ibm_molecule_ssh_key
+# TODO: do not create key if it already exists
+# if key is used by at least one machine it cannot be recreated, and this tasks actually recreates the key
+  - name: Configure SSH Key
+    ibm.cloudcollection.ibm_is_ssh_key:
+      name: "key-{{ lookup('file', ibm_is_ssh_public_key_path |
+        default(ibm_is_ssh_public_key_path_default) ) | b64encode | hash('md5') }}"
+      resource_group: "{{ ibm_molecule_resource_group.resource.id }}"
+      public_key: "{{ lookup('file', ibm_is_ssh_public_key_path |
+        default(ibm_is_ssh_public_key_path_default) ) }}"
+      id: "{{ ibm_molecule_ssh_key.resource.id | default(omit) }}"
+    register: ibm_molecule_ssh_key_create
+    when: ibm_molecule_ssh_key.resource.id is not defined
+# See how to create ssh key fingerprint - it should be used as key name when key is created
+# https://superuser.com/questions/421997/what-is-a-ssh-key-fingerprint-and-how-is-it-generated
+# https://docs.ansible.com/ansible/latest/user_guide/playbooks_filters.html
+# To work with Base64 encoded strings:
+# {{ encoded | b64decode }}
+# {{ decoded | string | b64encode }}
+# To get the md5 hash of a string:
+# {{ 'test1' | hash('md5') }}
+# # => "5a105e8b9d40e1329780d62ea2265d8a"
+# "key-5a105e8b9d40e1329780d62ea2265d8a" - key name cannot start with number
+
+  - name: Retrieve image list for mapping
+    ibm.cloudcollection.ibm_is_images_info:
+    register: ibm_molecule_images_list
+    changed_when: false
+
+  - name: Set VM image name/id dictionary fact
+    set_fact:
+      ibm_molecule_image_dict:
+        "{{ ibm_molecule_images_list.resource.images |
+        items2dict(key_name='name', value_name='id') }}"
+    changed_when: false
+
+  - name: Check for existing VSI
+    ibm.cloudcollection.ibm_is_instance_info:
+      name: "{{ item.name }}"
+    failed_when:
+      - ibm_molecule_vsi.rc != 0
+      - '"No Instance found" not in ibm_molecule_vsi.stderr'
+    register: ibm_molecule_vsi
+
+  - name: Configure VSI
+    ibm.cloudcollection.ibm_is_instance:
+      name: "{{ item.name }}"
+      resource_group: "{{ ibm_molecule_resource_group.resource.id }}"
+      state: available
+      id: "{{ ibm_molecule_vsi.resource.id | default(omit) }}"
+      vpc: "{{ ibm_molecule_vpc.resource.id }}"
+      profile: "{{ item.instance_profile }}"
+      image: "{{ ibm_molecule_image_dict[item.instance_image_name] }}"
+      keys:
+        - "{{ ibm_molecule_ssh_key_create.resource.id |
+          default(ibm_molecule_ssh_key.resource.id) }}"
+      primary_network_interface:
+        - subnet: "{{ ibm_molecule_subnet.resource.id }}"
+      zone: "{{ item.instance_zone }}"
+    register: ibm_molecule_vsi
+
+  # - name: Print ibm_molecule_vsi
+  #   ansible.builtin.debug:
+  #     msg: "{{ ibm_molecule_vsi }}"
+
+  - name: Check for existing Floating IP
+    ibm.cloudcollection.ibm_is_floating_ip_info:
+      name: "{{ item.name }}-fip"
+    failed_when:
+      - ibm_molecule_fip.rc != 0
+      - '"No floatingIP found" not in ibm_molecule_fip.stderr'
+    register: ibm_molecule_fip
+
+  - name: Configure Floating IP Address
+    ibm.cloudcollection.ibm_is_floating_ip:
+      name: "{{ item.name }}-fip"
+      resource_group: "{{ ibm_molecule_resource_group.resource.id }}"
+      state: available
+      id: "{{ ibm_molecule_fip.id | default(omit) }}"
+      target: "{{ ibm_molecule_vsi.resource.primary_network_interface[0]['id'] }}"
+    register: ibm_molecule_fip
+    when:
+      - item.ibm_is_floating_ip_create |
+        default (ibm_is_floating_ip_create_default)
+
+  # - name: Print Floating IP Address
+  #   debug:
+  #     msg:
+  #     - "IP Address: {{ ibm_molecule_fip.resource.address }}"
+
+  - name: Configure Security Group Rule to open SSH on the VSI
+    ibm.cloudcollection.ibm_is_security_group_rule:
+      state: available
+      group: "{{ ibm_molecule_vpc.resource.default_security_group }}"
+      direction: inbound
+      remote: 0.0.0.0/0
+      tcp: "{{ item.instance_tcp_allowed_ports |
+        default(instance_tcp_allowed_ports_default) }}"
+
+  - name: Return array with inventory parameters
+    ansible.builtin.set_fact:
+      ibm_molecule_servers:
+        results: "{{ ibm_molecule_servers.results }} +
+          [{
+          'instance': '{{ item.name }}',
+          'address': '{{ ibm_molecule_fip.resource.address }}',
+          'user': '{{ ibm_molecule_user_const }}',
+          'port': '{{ ibm_molecule_port_const }}',
+          'identity_file': '{{ item.ibm_is_ssh_private_key_path |
+            default (ibm_is_ssh_private_key_path_default) }}'
+          }]"
+        changed: true
+
+  # - name: Set ibm_molecule_servers.changed to true
+  #   ansible.builtin.set_fact:
+  #     ibm_molecule_servers.changed: true
+
+  - name: Print ibm_molecule_servers
+    ansible.builtin.debug:
+      msg: "{{ ibm_molecule_servers }}"

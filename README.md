@@ -52,6 +52,8 @@ Within this Ansible Collection, there are various Ansible Roles and no custom An
 | [sap_ha_set_netweaver](/roles/sap_ha_set_netweaver) | configure HA/DR for SAP NetWeaver |
 | [sap_hostagent](/roles/sap_hostagent) | install SAP Host Agent |
 | [sap_storage](/roles/sap_storage) | configure storage for SAP HANA, with LVM partitions and XFS filesystem |
+| [sap_hana_rhv_guest](/roles/sap_hana_rhv_guest) | configure guest specific settings for a RHV based SAP HANA guest VM |
+| [sap_hana_rhv_hypervisor](/roles/sap_hana_rhv_hypervisor) | configure hypervisor specific settings for a SAP HANA guest VM |
 
 #### Ansible Roles Lint Status
 | Role Name  | Ansible Lint Status|
@@ -60,6 +62,8 @@ Within this Ansible Collection, there are various Ansible Roles and no custom An
 | [sap_netweaver_preconfigure](/roles/sap_netweaver_preconfigure) | [![Ansible Lint for sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_netweaver_preconfigure.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_netweaver_preconfigure.yml) |
 | [sap_hana_preconfigure](/roles/sap_hana_preconfigure) | [![Ansible Lint for sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_preconfigure.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_preconfigure.yml) |
 | [sap_hana_install](/roles/sap_hana_install) | [![Ansible Lint for sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_install.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_install.yml) |
+| [sap_hana_rhv_guest](/roles/sap_hana_rhv_guest) | [![Ansible Lint for sap_hana_rhv_guest](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_rhv_guest.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_rhv_guest.yml) |
+| [sap_hana_rhv_hypervisor](/roles/sap_hana_rhv_hypervisor) | [![Ansible Lint for sap_hana_rhv_hypervisor](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_rhv_hypervisor.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_rhv_hypervisor.yml) |
 
 ***Notes:***
 - Ansible Playbook localhost executions may have limitations on SAP Software installations

@@ -1,0 +1,65 @@
+#!/usr/bin/python3
+ 
+import os
+import sys
+import traceback
+ 
+import hooking
+ 
+'''
+Syntax:
+iothread=<core1>,<core2>
+
+This hook will bind the iothread in RHV to the named core(s).
+A maximum of 2 Cores is allowed, ideally pinned to the core (plus its hyperthread) that is bound to the Interrupt
+Allowed syntax is also a range <core1>-<core2> as well as a mix.
+engine-config -s UserDefinedVMProperties='iothread=^[0-9,-]+$' --cver=4.2
+'''
+ 
+ 
+if 'iothread' in os.environ:
+    try:
+        iopin = os.environ['iothread'];
+        domxml = hooking.read_domxml()
+        domain = domxml.getElementsByTagName('domain')[0]
+        if len(domain.getElementsByTagName('iothreads')):
+            if len(domain.getElementsByTagName('iothreadids')):
+                iothreadids = domain.getElementsByTagName('iothreadids')[0]
+            else:
+                iothreadids = domxml.createElement('iothreadids')
+                domain.appendChild(iothreadids)
+
+            if len(iothreadids.getElementsByTagName('iothread')):
+                ids = iothreadids.getElementsByTagName('iothread')[0]
+            else:
+                ids = domxml.createElement('iothread')
+                iothreadids.appendChild(ids)
+            ids.setAttribute('id', '1')
+
+            if len(domain.getElementsByTagName('cputune')):
+                cputune = domain.getElementsByTagName('cputune')[0]
+            else:
+                cputune = domxml.createElement('cputune')
+                domain.appendChile(cputune)
+
+            if len(cputune.getElementsByTagName('iothreadpin')):
+                iothreadpin = cputune.getElementsByTagName('iothreadpin')[0]
+            else:
+                iothreadpin = domxml.createElement('iothreadpin')
+                cputune.appendChild(iothreadpin)
+            iothreadpin.setAttribute('iothread', '1')
+            iothreadpin.setAttribute('cpuset', iopin)
+            
+            if len(cputune.getElementsByTagName('emulatorpin')):
+                emulatorpin = cputune.getElementsByTagName('emulatorpin')[0]
+            else:
+                emulatorpin = domxml.createElement('emulatorpin')
+                cputune.appendChild(emulatorpin)
+            emulatorpin.setAttribute('cpuset', iopin)
+
+        hooking.write_domxml(domxml)
+    except Exception:
+        sys.stderr.write('iothreads hook: [unexpected error]: %s\n' %
+                         traceback.format_exc())
+        sys.exit(2)
+

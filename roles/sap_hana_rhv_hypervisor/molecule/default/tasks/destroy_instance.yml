@@ -1,0 +1,80 @@
+---
+
+  # Developer must implement.
+  # https://github.com/IBM-Cloud/ansible-collection-ibm/blob/master/examples/simple-vm-ssh/destroy.yml
+  - name: Check for existing Floating IP
+    ibm.cloudcollection.ibm_is_floating_ip_info:
+      name: "{{ item.name }}-fip"
+    failed_when:
+      - ibm_molecule_fip.rc != 0
+      - '"No floating IP found" not in ibm_molecule_fip.stderr'
+    register: ibm_molecule_fip
+
+  - name: Release Floating IP
+    ibm.cloudcollection.ibm_is_floating_ip:
+      state: absent
+      id: "{{ ibm_molecule_fip.resource.id }}"
+    when: ibm_molecule_fip.resource.id is defined
+
+  - name: Check for existing VSI
+    ibm.cloudcollection.ibm_is_instance_info:
+      name: "{{ item.name }}"
+    failed_when:
+      - ibm_molecule_vsi.rc != 0
+      - '"No Instance found" not in ibm_molecule_vsi.stderr'
+    register: ibm_molecule_vsi
+
+  - name: Remove VSI
+    ibm.cloudcollection.ibm_is_instance:
+      state: absent
+      id: "{{ ibm_molecule_vsi.resource.id }}"
+      vpc: "{{ ibm_molecule_vsi.resource.vpc }}"
+      keys: []
+      image: "{{ ibm_molecule_vsi.resource.image }}"
+      profile: "{{ ibm_molecule_vsi.resource.profile }}"
+      zone: "{{ ibm_molecule_vsi.resource.zone }}"
+      primary_network_interface:
+        - subnet: "{{ ibm_molecule_vsi.resource.primary_network_interface[0].subnet }}"
+    when: ibm_molecule_vsi.resource.id is defined
+
+  # - name: Checking for existing SSH key
+  #   ibm.cloudcollection.ibm_is_ssh_key_info:
+  #     name: "{{ ssh_key_name }}"
+  #   failed_when:
+  #     - ssh_key.rc != 0
+  #     - '"No SSH Key found" not in ssh_key.stderr'
+  #   register: ssh_key
+
+  # - name: Remove SSH Key
+  #   ibm.cloudcollection.ibm_is_ssh_key:
+  #     state: absent
+  #     id: "{{ ssh_key.resource.id }}"
+  #   when: ssh_key.resource.id is defined
+
+  # - name: Checking for existing VPC Subnet
+  #   ibm.cloudcollection.ibm_is_subnet_info:
+  #     name: "{{ subnet_name }}"
+  #   failed_when:
+  #     - subnet.rc != 0
+  #     - '"No subnet found" not in subnet.stderr'
+  #   register: subnet
+
+  # - name: Remove VPC Subnet
+  #   ibm.cloudcollection.ibm_is_subnet:
+  #     state: absent
+  #     id: "{{ subnet.resource.id }}"
+  #   when: subnet.resource.id is defined
+
+  # - name: Checking for existing VPC
+  #   ibm.cloudcollection.ibm_is_vpc_info:
+  #     name: "{{ vpc_name }}"
+  #   failed_when:
+  #     - vpc.rc != 0
+  #     - '"No VPC found" not in vpc.stderr'
+  #   register: vpc
+
+  # - name: Remove VPC
+  #   ibm.cloudcollection.ibm_is_vpc:
+  #     state: absent
+  #     id: "{{ vpc.resource.id }}"
+  #   when: vpc.resource.id is defined

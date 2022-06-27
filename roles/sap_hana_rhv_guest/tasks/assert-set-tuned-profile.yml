@@ -1,0 +1,14 @@
+---
+- name: Assert - Check tuned profile
+  block:
+    - name: Get tuned profile
+      command: tuned-adm active
+      register: __sap_hana_rhv_guest_register_tuned_profile_assert
+
+    - name: Verify tuned profile
+      assert:
+        that: "'Current active profile: sap-hana-kvm-host' in __sap_hana_rhv_guest_register_tuned_profile_assert.stdout"
+        fail_msg: "FAIL: tuned profile is not sap-hana-kvm-guest"
+        success_msg: "PASS: tuned profile is sap-hana-kvm-guest"
+      ignore_errors: "{{ sap_hana_rhv_guest_ignore_failed_assertion }}"
+...
