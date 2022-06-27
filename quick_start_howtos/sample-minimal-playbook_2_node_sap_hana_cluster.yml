@@ -4,7 +4,6 @@
   become: true
 
   vars:
-
     sap_domain: example.com
 
     ## general + hana preconfigure
@@ -16,21 +15,21 @@
 
     sap_hana_update_etchosts: yes
 
-    sap_hana_sid: 'DB1'
-    sap_hana_instance_number: '00'
-    sap_hana_install_master_password: 'my-hana-password'
+    sap_hana_sid: "DB1"
+    sap_hana_instance_number: "00"
+    sap_hana_install_master_password: "my-hana-password"
 
     ### Cluster Definition
     sap_hana_cluster_name: cluster1
-    sap_hana_hacluster_password: 'my_hacluster-password'
+    sap_hana_hacluster_password: "my_hacluster-password"
 
     sap_hana_cluster_nodes:
-      - node_name: hana1
+      - node_name: node1
         node_ip: 192.168.1.11
         node_role: primary
         hana_site: DC01
 
-      - node_name: hana2
+      - node_name: node2
         node_ip: 192.168.1.12
         node_role: secondary
         hana_site: DC02
@@ -40,21 +39,26 @@
     sap_pacemaker_stonith_devices:
       - name: "rhevm_fence1"
         agent: "fence_rhevm"
-        parameters: "ip=rhevm-manager.example.com username=rhevm-user@internal password=rhevm-secret pcmk_host_list='node1,node2' power_wait=3 ssl=1 ssl_insecure=1 disable_http_filter=1"
+        parameters: >
+          ip=rhevm-manager.example.com
+          username=rhevm-user@internal
+          password=rhevm-secret
+          pcmk_host_list='node1,node2'
+          power_wait=3
+          ssl=1 ssl_insecure=1 disable_http_filter=1
 
   roles:
-
-  # SAP Hana preparation and installation
+    # SAP Hana preparation and installation
     - name: sap_general_preconfigure
     - name: sap_hana_preconfigure
     - name: sap_hana_install
 
-  # SAP Hana System Replication setup between 2 nodes
+    # SAP Hana System Replication setup between 2 nodes
     - name: sap_ha_install_hana_hsr
 
-  # 2-node Pacemaker Cluster Configuration
+    # 2-node Pacemaker Cluster Configuration
     - name: sap_ha_prepare_pacemaker
     - name: sap_ha_install_pacemaker
 
-  # SAP Hana Cluster Resources Configuration
+    # SAP Hana Cluster Resources Configuration
     - name: sap_ha_set_hana

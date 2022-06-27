@@ -1,9 +1,9 @@
 # Simple password security using ansible vault
 
-* [Encrypt a secret string to be used in a variable](#encrypt-a-secret-string-to-be-used-in-a-variable) 
-* [Run playbook which uses vault-encrypted content](#run-playbook-which-uses-vault-encrypted-content)
-* [Encrypt an entire file](#encrypt-an-entire-file)
-* [More features and information](#more-features-and-information)
+- [Encrypt a secret string to be used in a variable](#encrypt-a-secret-string-to-be-used-in-a-variable)
+- [Run playbook which uses vault-encrypted content](#run-playbook-which-uses-vault-encrypted-content)
+- [Encrypt an entire file](#encrypt-an-entire-file)
+- [More features and information](#more-features-and-information)
 
 **Always avoid plain text passwords in files or on commandline.**
 
@@ -13,9 +13,10 @@ Ansible vault provides an easy way to comply with security requirements to encry
 The following describes a basic scenario.
 
 ## Encrypt a secret string to be used in a variable
-*Supported since ansible 2.3.*
 
-By temporarily writing the password into a text file you avoid the secret to show up in your command history. 
+_Supported since ansible 2.3._
+
+By temporarily writing the password into a text file you avoid the secret to show up in your command history.
 Enter your secret password as single string in a file and save it. Make sure there is no unwanted whitespace.
 
 ```bash
@@ -49,6 +50,7 @@ The variable can as well be referenced and used by other variables for more flex
 ```yaml
 playbook1_secret_var: "{{ my_secret_var }}"
 ```
+
 ```yaml
 playbook5_secret_var: "{{ my_secret_var }}"
 ```
@@ -69,7 +71,7 @@ For the encryption to work during ansible / ansible-playbook execution you have 
 ansible-playbook tasks_with_secrets.yml [...] --ask-vault
 ```
 
-*When encrypting multiple values that will be used together, you have to make sure the vault password is the same for each encrypted string. Ansible can only ask for one vault password.*
+_When encrypting multiple values that will be used together, you have to make sure the vault password is the same for each encrypted string. Ansible can only ask for one vault password._
 
 ## Encrypt an entire file
 
@@ -90,6 +92,7 @@ ansible-vault edit file_containing_secrets.yml
 Including this file and using it works the same way as any other included file, as long as the vault password is provided to ansible during execution.
 
 ## More features and information
+
 Vault encryption can also be done through password-files, scripts or automation software which provides secure ways to manage vault credentials.
 For more complex ways to use ansible vault encryption/decryption please refer to the documentation.
 https://docs.ansible.com/ansible/latest/user_guide/vault.html
