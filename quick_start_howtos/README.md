@@ -18,6 +18,9 @@ Simplest example:
 ```text
 ansible-playbook sap_hana_cluster_deploy.yml
 ```
+
+*The parameter examples in the following sections can be combined according to the individual environment and needs.*
+
 ### Inventory and variable parameters
 
 Examples with different ways to use inventory and target system parameters:
