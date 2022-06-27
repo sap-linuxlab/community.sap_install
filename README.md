@@ -41,25 +41,26 @@ Within this Ansible Collection, there are various Ansible Roles and no custom An
 
 | Name &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; | Summary |
 | :-- | :-- |
-| [sap_general_preconfigure](/roles/sap_general_preconfigure) | configure general settings for SAP software |
-| [sap_netweaver_preconfigure](/roles/sap_netweaver_preconfigure) | configure settings for SAP NetWeaver application server |
-| [sap_hana_preconfigure](/roles/sap_hana_preconfigure) | configure settings for SAP HANA database server  |
-| [sap_hana_install](/roles/sap_hana_install) | install SAP HANA via HDBLCM |
-| [sap_swpm](/roles/sap_swpm) | install SAP Software via SWPM |
-| [sap_ha_install_hana_hsr](/roles/sap_ha_install_hana_hsr) | install SAP HANA System Replication |
-| [sap_ha_install_pacemaker](/roles/sap_ha_install_pacemaker) | install and configure Linux Pacemaker |
-| [sap_ha_set_hana](/roles/sap_ha_set_hana) | configure HA/DR for SAP HANA |
-| [sap_ha_set_netweaver](/roles/sap_ha_set_netweaver) | configure HA/DR for SAP NetWeaver |
-| [sap_hostagent](/roles/sap_hostagent) | install SAP Host Agent |
-| [sap_storage](/roles/sap_storage) | configure storage for SAP HANA, with LVM partitions and XFS filesystem |
+| [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure) | configure general settings for SAP software |
+| [sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_netweaver_preconfigure) | configure settings for SAP NetWeaver application server |
+| [sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_preconfigure) | configure settings for SAP HANA database server  |
+| [sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_install) | install SAP HANA via HDBLCM |
+| [sap_swpm](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_swpm) | install SAP Software via SWPM |
+| [sap_ha_install_hana_hsr](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_install_hana_hsr) | install SAP HANA System Replication |
+| [sap_ha_install_pacemaker](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_install_pacemaker) | install and configure Linux Pacemaker |
+| [sap_ha_set_hana](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_set_hana) | configure HA/DR for SAP HANA |
+| [sap_ha_set_netweaver](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_set_netweaver) | configure HA/DR for SAP NetWeaver |
+| [sap_hostagent](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hostagent) | install SAP Host Agent |
+| [sap_storage](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_storage) | configure storage for SAP HANA, with LVM partitions and XFS filesystem |
+| [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect) | detect and extract SAP Software installation media |
 
 #### Ansible Roles Lint Status
 | Role Name  | Ansible Lint Status|
 | :-- | :-- |
-| [sap_general_preconfigure](/roles/sap_general_preconfigure) | [![Ansible Lint for sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_general_preconfigure.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_general_preconfigure.yml) |
-| [sap_netweaver_preconfigure](/roles/sap_netweaver_preconfigure) | [![Ansible Lint for sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_netweaver_preconfigure.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_netweaver_preconfigure.yml) |
-| [sap_hana_preconfigure](/roles/sap_hana_preconfigure) | [![Ansible Lint for sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_preconfigure.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_preconfigure.yml) |
-| [sap_hana_install](/roles/sap_hana_install) | [![Ansible Lint for sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_install.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_install.yml) |
+| [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure) | [![Ansible Lint for sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_general_preconfigure.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_general_preconfigure.yml) |
+| [sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_netweaver_preconfigure) | [![Ansible Lint for sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_netweaver_preconfigure.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_netweaver_preconfigure.yml) |
+| [sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_preconfigure) | [![Ansible Lint for sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_preconfigure.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_preconfigure.yml) |
+| [sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_install) | [![Ansible Lint for sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_install.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_install.yml) |
 
 ***Notes:***
 - Ansible Playbook localhost executions may have limitations on SAP Software installations
