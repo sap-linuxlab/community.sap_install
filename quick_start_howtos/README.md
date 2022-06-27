@@ -2,10 +2,11 @@
 
 In this folder you find sample files, a few additional tips for using the provided ansible roles, as well as references to further information.
 
-* [How to run playbooks](#how-to-run-playbooks)
-    * [Inventory and variable parameters](#inventory-and-variable-parameters)
-    * [Security parameters](#security-parameters)
-    * [Other useful options](#other-useful-options)
+- [Examples and Tips](#examples-and-tips)
+  - [How to run playbooks](#how-to-run-playbooks)
+    - [Inventory and variable parameters](#inventory-and-variable-parameters)
+    - [Security parameters](#security-parameters)
+    - [Other useful options](#other-useful-options)
 
 ## How to run playbooks
 
@@ -13,11 +14,14 @@ Playbook execution requires a minimum set of parameters, depending on the ansibl
 
 The parameters shown in the below examples can all be combined according to the respective needs. The example commands are kept short for readability.
 
+Simplest example:
+```text
+ansible-playbook sap_hana_cluster_deploy.yml
+```
 ### Inventory and variable parameters
 
 Examples with different ways to use inventory and target system parameters:
 ```text
-ansible-playbook sap_hana_cluster_deploy.yml 
 
 ansible-playbook -i /path/to/inventory-file -l node1,node2 sap_hana_cluster_deploy.yml 
 ansible-playbook -l ~node[12] sap_hana_cluster_deploy.yml 
