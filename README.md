@@ -72,7 +72,7 @@ prepare_pacemaker is a pre-requirement for sap_ha_install_pacemaker. It was intr
 
 ## Execution examples
 
-There are various methods to execute the Ansible Collection, dependant on the use case. For more information, see [Execution examples with code samples](./docs/EXEC_EXAMPLES.md) and the summary below:
+There are various methods to execute the Ansible Collection, dependant on the use case. For more information, see [Execution examples with code samples](./docs/getting_started) and the summary below:
 
 | Execution Scenario | Use Case | Target |
 | --- | --- | --- |
