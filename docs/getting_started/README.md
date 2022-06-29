@@ -16,7 +16,7 @@ The parameters shown in the below examples can all be combined according to the 
 
 Simplest example:
 
-```text
+```bash
 ansible-playbook sap_hana_cluster_deploy.yml
 ```
 
@@ -26,7 +26,7 @@ _The parameter examples in the following sections can be combined according to t
 
 Examples with different ways to use inventory and target system parameters:
 
-```text
+```bash
 
 ansible-playbook -i /path/to/inventory-file -l node1,node2 sap_hana_cluster_deploy.yml
 ansible-playbook -l ~node[12] sap_hana_cluster_deploy.yml
@@ -48,7 +48,7 @@ ansible-playbook [...] -e @path/to/vars-file.yml -e 'additional_variable=value'
 
 Examples showing some typical privilege escalation options:
 
-```text
+```bash
 ansible-playbook [...] -k
 ansible-playbook [...] -k -K
 ansible-playbook [...] -u target-user -k -K
@@ -60,7 +60,7 @@ ansible-playbook [...] -u target-user -k -K
 
 Example if encrypted files or variables are used in a play:
 
-```text
+```bash
 ansible-playbook [...] --ask-vault
 ```
 
@@ -72,7 +72,7 @@ Please see [secure-your-passwords](secure-your-passwords.md) for more informatio
 
 There are also other very useful parameters for individual use cases.
 
-```text
+```bash
 ansible-playbook [...] --list-hosts
 
 ansible-playbook [...] --list-tasks

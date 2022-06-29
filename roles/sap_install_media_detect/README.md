@@ -22,7 +22,3 @@ Apache license 2.0
 ## Author Information
 
 IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice
-  include_tasks: "organize_hana.yml"
-  include_tasks: "organize_swpm.yml"
-  include_tasks: "check_hana.yml"
-  include_tasks: "check_swpm.yml"

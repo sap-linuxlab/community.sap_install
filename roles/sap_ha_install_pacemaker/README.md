@@ -2,78 +2,53 @@
 
 Ansible role for SAP Pacemaker Setup. This role needs **sap_ha_prepare_pacemaker** to be able to run. It creates a 2 node pacemaker cluster.
 
-## Scope
-
-- **RedHat Enterprise Linux**
-    - Tested on RHEL 8.2, 8.4 and later
-    - Please also check 
-    - [Overview of the Red Hat Enterprise Linux for SAP Solutions subscription](https://access.redhat.com/solutions/3082481)
-    - [Automating SAP HANA Scale-Up System Replication using the RHEL HA Add-On](https://access.redhat.com/articles/3004101)
-
-- **Azure**
-    - Tested
-    - Followed the steps based on the guide published in
-        - [Azure Pacemaker Setup Guide](https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-rhel-pacemaker)
-
-- **AWS**
-    - Future plans
-    - Please also check [Configuring SAP HANA Scale-Up System Replication with the RHEL HA Add-On on Amazon Web Services (AWS)](https://access.redhat.com/articles/3569621)
-
-- **IBM Cloud**
-    - Tested
-    - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.ibm.com/docs/sap?topic=sap-refarch-hana-scaleup)
-
-- **GoogleCloud** 
-    - Please also check [HA cluster configuration guide for SAP HANA on RHEL](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
-
 ## Overview
 
-  The **sap_ha_install_pacemaker** role is part of this sequence:
+The **sap_ha_install_pacemaker** role is part of this sequence:
 
-Sequence|System Role|Description
-:---:|:---|:---
-1.|sap_general_preconfigure|System Preparation for SAP
-2.|sap_hana_preconfigure|System Preparation for SAP HANA
-3.|sap_hana_install|Installation of SAP HANA Database
-4.|sap_ha_install_hana_hsr|Configuration of SAP HANA System Replication
-5.|sap_ha_prepare_pacemaker|Authentication and Preparation of Nodes for Cluster Creation
-6.|sap_ha_install_pacemaker|Initialization of the Pacemaker Cluster
-7.|sap_ha_set_hana|Configuration of SAP HANA Resources for SAP Solutions
+| Sequence | System Role              | Description                                                  |
+| :------: | :----------------------- | :----------------------------------------------------------- |
+|    1.    | sap_general_preconfigure | System Preparation for SAP                                   |
+|    2.    | sap_hana_preconfigure    | System Preparation for SAP HANA                              |
+|    3.    | sap_hana_install         | Installation of SAP HANA Database                            |
+|    4.    | sap_ha_install_hana_hsr  | Configuration of SAP HANA System Replication                 |
+|    5.    | sap_ha_prepare_pacemaker | Authentication and Preparation of Nodes for Cluster Creation |
+|    6.    | sap_ha_install_pacemaker | Initialization of the Pacemaker Cluster                      |
+|    7.    | sap_ha_set_hana          | Configuration of SAP HANA Resources for SAP Solutions        |
 
-
-The **sap_ha_install_pacemaker** creates a pacemaker cluster. 
+The **sap_ha_install_pacemaker** creates a pacemaker cluster.
 The necessary preparation is done in the role **sap_ha_prepare_pacemaker**.
 
 ## Tasks includes
 
-Task|Description
----|---
-cluster_setup.yml|create a cluster without ressources
-stonith_config.yml|configure a stonith device
+| Task               | Description                         |
+| ------------------ | ----------------------------------- |
+| cluster_setup.yml  | create a cluster without ressources |
+| stonith_config.yml | configure a stonith device          |
 
 ## Common Variables/Parameters Used
 
-Name|Description|Value
----|---|---
-sap_domain|Domain Name| e.g. example.com
-sap_hana_sid|SAP ID| e.g. RH1
-sap_hana_instance_number|Instance Number|e.g. 00
-sap_hana_install_master_password| DB System Password
-sap_hana_cluster_nodes| Parameter list of cluster nodes
-sap_hana_hacluster_password| Pacemaker hacluster Password
+| Name                             | Description                     | Value            |
+| -------------------------------- | ------------------------------- | ---------------- |
+| sap_domain                       | Domain Name                     | e.g. example.com |
+| sap_hana_sid                     | SAP ID                          | e.g. RH1         |
+| sap_hana_instance_number         | Instance Number                 | e.g. 00          |
+| sap_hana_install_master_password | DB System Password              |
+| sap_hana_cluster_nodes           | Parameter list of cluster nodes |
+| sap_hana_hacluster_password      | Pacemaker hacluster Password    |
 
 ## Role specific Variables
 
-Name|Description|Value
----|---|---
-sap_ha_install_pacemaker_vip1|VirtualIP address to the master database node|sap_hana_vip1
-sap_ha_install_pacemaker_vip2|VirtualIP address to the slave database node (planned)|sap_hana_vip2
-sap_ha_install_pacemaker_stonith_devices|parameter to configure stonith device|sap_pacemaker_stonith_devices
-sap_ha_install_hana_hsr_rep_mode|replication mode| default is sync
-sap_ha_install_hana_hsr_oper_mode|operation mode| default is logreplay
-sap_pacemaker_stonith_devices|description of the stonith device|
+| Name                                     | Description                                            | Value                         |
+| ---------------------------------------- | ------------------------------------------------------ | ----------------------------- |
+| sap_ha_install_pacemaker_vip1            | VirtualIP address to the master database node          | sap_hana_vip1                 |
+| sap_ha_install_pacemaker_vip2            | VirtualIP address to the slave database node (planned) | sap_hana_vip2                 |
+| sap_ha_install_pacemaker_stonith_devices | parameter to configure stonith device                  | sap_pacemaker_stonith_devices |
+| sap_ha_install_hana_hsr_rep_mode         | replication mode                                       | default is sync               |
+| sap_ha_install_hana_hsr_oper_mode        | operation mode                                         | default is logreplay          |
+| sap_pacemaker_stonith_devices            | description of the stonith device                      |
 
-The stonith device needs to be    - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
+The stonith device needs to be - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
 
 ```
 sap_pacemaker_stonith_devices:    - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
@@ -89,7 +64,8 @@ sap_pacemaker_stonith_devices:    - Please also check [SAP HANA scale-up Referen
     parameters: "pcmk_host_list='hana1,hana2' pcmk_reboot_action='off'"
 
 ```
-## Example Parameter File    - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
+
+## Example Parameter File - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
 
 ```
 sap_hana_sid: 'DB1'
@@ -99,7 +75,7 @@ sap_hana_install_master_password: 'my_hana-password'
 ### Cluster Definition
 sap_ha_install_pacemaker_cluster_name: cluster1
 sap_hana_hacluster_password: 'my_hacluster-password'
-sap_pacemaker_stonith_devices: 
+sap_pacemaker_stonith_devices:
 
 sap_domain: example.com
 
@@ -124,25 +100,25 @@ sap_pacemaker_stonith_devices:
 
 ### Execution Design
 
-- This Ansible role can be used very flexible. It runs the right tasks in the right direction on 
-the right hosts, skipping tasks, which are already done.
-
 Having the parameters specified as above, it can be executed with one command:
+
 ```
 ansible-playbook example_playbook_with_parameters.ymnl
 ```
 
-If you need to execute the role using an external handled, you can also limit the playbook for 
+If you need to execute the role using an external handled, you can also limit the playbook for
 specific a **host** adding parameter defined in e **parameter_file**.
 
 ```
 ansible-playbook -l node1 example_playbook.yml -e @parameter_file.yml
 ```
-A good way to start is executing the playbook with the option *--list_tasks*. You can than start a 
-playbook with the option *--start-at-task*  at a specific point. *--list_task* will not start any 
+
+A good way to start is executing the playbook with the option _--list_tasks_. You can than start a
+playbook with the option _--start-at-task_ at a specific point. _--list_task_ will not start any
 task.
 
-For mor information please check
+For more information please check
+
 ```
 ansible-playbook --help
 ```

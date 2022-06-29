@@ -2,34 +2,6 @@
 
 Ansible role for SAP HANA System Replication Setup on 2 nodes with the same OS and SAP HANA release.
 
-## Scope
-
-- **RedHat Enterprise Linux**
-
-  - Tested on RHEL 8.2, 8.4 and later
-  - Please also check
-  - [Overview of the Red Hat Enterprise Linux for SAP Solutions subscription](https://access.redhat.com/solutions/3082481)
-  - [Automating SAP HANA Scale-Up System Replication using the RHEL HA Add-On](https://access.redhat.com/articles/3004101)
-
-- **Azure**
-
-  - Tested
-  - Followed the steps based on the guide published in
-    - [Azure Pacemaker Setup Guide](https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-rhel-pacemaker)
-
-- **AWS**
-
-  - Future plans
-  - Please also check [Configuring SAP HANA Scale-Up System Replication with the RHEL HA Add-On on Amazon Web Services (AWS)](https://access.redhat.com/articles/3569621)
-
-- **IBM Cloud**
-
-  - Tested
-  - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.ibm.com/docs/sap?topic=sap-refarch-hana-scaleup)
-
-- **GoogleCloud**
-  - Please also check [HA cluster configuration guide for SAP HANA on RHEL](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
-
 ## Overview
 
 The **sap_ha_install_hana_hsr** role is part of this system role sequence:
@@ -44,7 +16,7 @@ The **sap_ha_install_hana_hsr** role is part of this system role sequence:
 |    6.    | sap_ha_install_pacemaker | Initialization of the Pacemaker Cluster                      |
 |    7.    | sap_ha_set_hana          | Configuration of SAP HANA Resources for SAP Solutions        |
 
-The **sap_ha_install_hana_hsr** roles configures a HANA system replication relationship which is used by the pacemaker cluster to automate SAP HANA system replication. The SAP HANA installation needs to be installed on the nodes before.
+The **sap_ha_install_hana_hsr** roles configures a HANA system replication relationship which is used by the pacemaker cluster to automate SAP HANA System Replication (HSR). Prerequisite is the SAP HANA installation on the nodes.
 
 ## Tasks included
 
@@ -105,8 +77,6 @@ sap_hana_cluster_nodes:
 
 ### Execution Design
 
-- This Ansible role can be used very flexible. It runs the right tasks in the right direction on the right hosts, skipping tasks, which are already done.
-
 Having the parameters specified as above, it can be executed with one command:
 
 ```text
@@ -121,7 +91,7 @@ ansible-playbook -l node1 example_playbook.yml -e @parameter_file.yml
 
 A good way to start is executing the playbook with the option _--list_tasks_. You can than start a playbook with the option _--start-at-task_ at a specific point. _--list_task_ will not start any task.
 
-For mor information please check
+For more information please check
 
 ```text
 ansible-playbook --help
