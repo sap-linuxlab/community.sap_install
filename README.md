@@ -13,13 +13,13 @@ This can be combined with other Ansible Collections to provide end-to-end automa
 
 | Scenario                              | Description                                                                                                                     | Infrastructure Platform&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;                                                                                                                                                                                                                        |
 | :------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SAP HANA single node installation** | Installation of a SAP HANA Database Server to a single machine                                                                  | <ul><li>:heavy_check_mark: AWS EC2</li><li>:warn: GCP VM</li><li>:heavy_check_mark: IBM Cloud, Intel VS</li><li>:warn: IBM Cloud, Power VS</li><li>:heavy_check_mark: Microsoft Azure</li><li>:warn: IBM PowerVM LPAR</li><li>:heavy_check_mark: OVirt VM</li><li>:warn: VMware vSphere VM</li></ul> |
-| **SAP HANA 2-node pacemaker cluster** | Installation of a SAP HANA Database Server with HANA System Replication (HSR) in a basic 2-node Pacemaker Cluster configuration | <ul><li>:heavy_check_mark: AWS EC2</li><li>:warn: GCP VM</li><li>:heavy_check_mark: IBM Cloud, Intel VS</li><li>:warn: IBM Cloud, Power VS</li><li>:heavy_check_mark: Microsoft Azure</li><li>:warn: IBM PowerVM LPAR</li><li>:heavy_check_mark: OVirt VM</li><li>:warn: VMware vSphere VM</li></ul> |
+| **SAP HANA single node installation** | Installation of a SAP HANA Database Server to a single machine                                                                  | <ul><li>:heavy_check_mark: AWS EC2</li><li>:warning: GCP VM</li><li>:heavy_check_mark: IBM Cloud, Intel VS</li><li>:warning: IBM Cloud, Power VS</li><li>:heavy_check_mark: Microsoft Azure</li><li>:warning: IBM PowerVM LPAR</li><li>:heavy_check_mark: OVirt VM</li><li>:warning: VMware vSphere VM</li></ul> |
+| **SAP HANA 2-node pacemaker cluster** | Installation of a SAP HANA Database Server with HANA System Replication (HSR) in a basic 2-node Pacemaker Cluster configuration | <ul><li>:heavy_check_mark: AWS EC2</li><li>:warning: GCP VM</li><li>:heavy_check_mark: IBM Cloud, Intel VS</li><li>:warning: IBM Cloud, Power VS</li><li>:heavy_check_mark: Microsoft Azure</li><li>:warning: IBM PowerVM LPAR</li><li>:heavy_check_mark: OVirt VM</li><li>:warning: VMware vSphere VM</li></ul> |
 
 Key:
 
 - :heavy_check_mark: Verified compatibility
-- :warn: Unverified and untested, expected to be compatible
+- :warning: Unverified and untested, expected to be compatible
 - :x: Not compatible
 
 **Out of Scope**
@@ -180,10 +180,9 @@ SAP SWPM Catalog Products which have been tested:
   - [IBM Cloud for SAP portfolio - IBM Cloud Docs](https://cloud.ibm.com/docs/sap)
 
 [^rhel]:
-
-- RHEL:
-  - [Overview of the Red Hat Enterprise Linux for SAP Solutions subscription](https://access.redhat.com/solutions/3082481)
-  - [Automating SAP HANA Scale-Up System Replication using the RHEL HA Add-On](https://access.redhat.com/articles/3004101)
+  - RHEL:
+    - [Overview of the Red Hat Enterprise Linux for SAP Solutions subscription](https://access.redhat.com/solutions/3082481)
+    - [Automating SAP HANA Scale-Up System Replication using the RHEL HA Add-On](https://access.redhat.com/articles/3004101)
 
 ## License
 
