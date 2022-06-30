@@ -1,41 +1,57 @@
-# [A] - runs on both node 1 and 2 / primary secondary
-# [1] - runs on node 1 / primary
-# [2] - runs on node 2 / secondary
-
-# [A] Disable firewall
-
-- name: SAP Pacemaker Setup - [A] Disable firewall
-  include_tasks: disable_firewall.yml
-  
-# Part 1
-# Installs the necessary software and preconfiguration
-
-- name: SAP Pacemaker Part 1 - Software Setup
-  include_tasks: software_setup.yml
+---
+- name: "SAP Install Pacemaker - Pick up primary node name from definition"
+  ansible.builtin.set_fact:
+    __sap_ha_install_pacemaker_primary_node: "{{ item.node_name }}"
   when:
-    - sap_ha_install_pacemaker_part == '1'
+    - item.node_role is defined
+    - item.node_role == 'primary'
+  loop: "{{ sap_ha_prepare_pacemaker_cluster_nodes }}"
+  loop_control:
+    label: "{{ item.node_name }}"
+  tags:
+    - pacemaker
+    - ha
+    - stonith
 
-- name: SAP Pacemaker Part 1 - Preconfig
-  include_tasks: preconfig.yml
+- name: "SAP Install Pacemaker - Check Cluster"
+  ansible.builtin.shell: |
+    pcs cluster status
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: root
+  register: sap_ha_install_pacemaker_check_cluster
+  changed_when: false
+  failed_when: false
+  tags:
+    - pacemaker
+    - ha
+
+- name: "SAP Install Pacemaker - Cluster Setup"
+  include_tasks:
+    file: cluster_setup.yml
+    apply:
+      tags:
+        - pacemaker
+        - ha
   when:
-    - sap_ha_install_pacemaker_part == '1'
+    - ansible_hostname == __sap_ha_install_pacemaker_primary_node
+    - sap_ha_install_pacemaker_check_cluster.rc == 1
+  tags:
+    - pacemaker
+    - ha
 
-# Part 2
-# Cluster Setup, Service Principal, Stonith Configuration
-
-- name: SAP Pacemaker Part 2 - Cluster Setup
-  include_tasks: cluster_setup.yml
+- name: "SAP Install Pacemaker - Stonith Configuration"
+  include_tasks:
+    file: stonith_config.yml
+    apply:
+      tags:
+        - stonith
+        - pacemaker
+        - ha
   when:
-    - sap_ha_install_pacemaker_part == '2'
-
-# Service principal setup is in TF
-#- name: SAP Pacemaker Part 2 - Service Principal
-#  include_tasks: service_principal.yml
-#  when:
-#    - sap_ha_install_pacemaker_part == '2'
-
-- name: SAP Pacemaker Part 2 - Stonith Configuration
-  include_tasks: stonith_config.yml
-  when:
-    - sap_ha_install_pacemaker_part == '2'
-
+    - ansible_hostname == __sap_ha_install_pacemaker_primary_node
+  tags:
+    - stonith
+    - ha
+    - pacemaker
