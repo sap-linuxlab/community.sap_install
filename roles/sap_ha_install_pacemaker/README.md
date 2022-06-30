@@ -103,7 +103,7 @@ sap_pacemaker_stonith_devices:
 Having the parameters specified as above, it can be executed with one command:
 
 ```
-ansible-playbook example_playbook_with_parameters.ymnl
+ansible-playbook example_playbook_with_parameters.yml
 ```
 
 If you need to execute the role using an external handled, you can also limit the playbook for
