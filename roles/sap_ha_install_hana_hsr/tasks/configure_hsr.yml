@@ -24,13 +24,8 @@
   register: enablesr
   changed_when: "'successfully enabled system as system replication source site' in enablesr.stdout"
   when:
-    - ansible_hostname == item.node_name
-    - item.node_role is defined
-    - item.node_role == 'primary'
+    - ansible_hostname == __sap_ha_install_hana_hsr_primary_node
     - ansible_hostname not in __sap_ha_install_hana_hsr_srstate.stdout
-  loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
-  loop_control:
-    label: "{{ item.node_name }}"
 
 - name: "SAP HSR - Register secondary node to HANA System Replication"
   shell: |
@@ -46,12 +41,8 @@
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   register: registersr
   when:
-    - ansible_hostname == item.node_name
-    - item.node_role is not defined or item.node_role == 'secondary'
+    - ansible_hostname != __sap_ha_install_hana_hsr_primary_node
     - ansible_hostname not in __sap_ha_install_hana_hsr_srstate.stdout
-  loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
-  loop_control:
-    label: "{{ item.node_name }}"
 
 - name: "SAP HSR - Start HANA instance on secondary"
   shell: |
