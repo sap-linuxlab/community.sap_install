@@ -1,10 +1,14 @@
-# sap_ha_set_hana Ansible Role
+# sap_ha_prepare_pacemaker Ansible Role
 
-Ansible role for SAP HANA High Availability Setup
+The role **sap_ha_prepare_pacemaker** is necessary because tasks needs to be finished on all nodes before the the cluster can be configured.
+
+The following tasks are part of this role and excluded from the role **sap_ha_install_pacemaker**:
+  - Software Installation
+  - Host authentication
 
 ## Overview
 
-The **sap_ha_set_hana** role is part of this sequence:
+The **sap_ha_prepare_pacemaker** role is part of this sequence:
 
 | Sequence | System Role              | Description                                                  |
 | :------: | :----------------------- | :----------------------------------------------------------- |
@@ -16,17 +20,16 @@ The **sap_ha_set_hana** role is part of this sequence:
 |    6.    | sap_ha_install_pacemaker | Initialization of the Pacemaker Cluster                      |
 |    7.    | sap_ha_set_hana          | Configuration of SAP HANA Resources for SAP Solutions        |
 
-The **sap_ha_set_hana** is the last role to complete the configuration of te cluster ressources for
-SAP HANA.
+The **sap_ha_install_pacemaker** prepares all nodes of a cluster to be able to install pacemaker.q
 
 ## Tasks includes
 
-| Task                   | Description                 |
-| ---------------------- | --------------------------- |
-| cluster_sudoer.yml     | configure sudoer for SRHOOK |
-| cluster_resources.yml  | create SAPHANA ressources   |
-| cluster_srhook.yml     | configure myHooks SAPHanaSR |
-| cluster_constraint.yml | configure constraints       |
+| Task                   | Description                                       |
+| ---------------------- | ------------------------------------------------- |
+| software_setup.yml     | enable repos and install cluster packages         |
+| preconfig.yml          | set hacluster password                            |
+| configure_firewall.yml | add high-availability ports to the firewalld      |
+| cluster_prepare.yml    | enable cluster services and set pcs auth password |
 
 ## Common Variables/Parameters Used
 
@@ -41,10 +44,9 @@ SAP HANA.
 
 ## Role specific Variables
 
-| Name                 | Description                                            | Value         |
-| -------------------- | ------------------------------------------------------ | ------------- |
-| sap_ha_set_hana_vip1 | Virtual IP address of primary HANA database            | sap_hana_vip1 |
-| sap_ha_set_hana_vip2 | Virtual IP address of secondary HANA database(planned) | sap_hana_vip2 |
+| Name                                        | Description        | Value                       |
+| ------------------------------------------- | ------------------ | --------------------------- |
+| sap_ha_prepare_pacemaker_hacluster_password | hacluster password | sap_hana_hacluster_password |
 
 ## Example Parameter File
 
@@ -71,7 +73,6 @@ sap_hana_cluster_nodes:
     node_role: secondary
     hana_site: DC02
 
-sap_hana_vip1: 192.168.1.13
 ```
 
 ### Execution Design

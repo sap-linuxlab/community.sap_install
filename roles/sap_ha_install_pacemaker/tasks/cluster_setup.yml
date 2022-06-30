@@ -1,55 +1,26 @@
 ---
+# The following tasks are only included on the primary node!
 
-# [1] Authenticate Pacemaker cluster
-- name: SAP Pacemaker Setup - [1] Authenticate Pacemaker cluster
-  shell: |
-    pcs host auth \
-    {{ sap_ha_install_pacemaker_node1_hostname }} {{ sap_ha_install_pacemaker_node2_hostname }} \
-    -u hacluster -p '{{ sap_ha_install_pacemaker_hacluster_password }}'
-  register: pcs_host_auth_reg
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
-
-- name: "SAP Pacemaker Setup - print pcs reg"
-  debug:
-    var: pcs_host_auth_reg
-
-# [1] Setup Pacemaker cluster
-- name: SAP Pacemaker Setup - [1] Setup Pacemaker cluster
+- name: "SAP Pacemaker Setup - Setup Pacemaker cluster"
   shell: |
     pcs cluster setup \
-    {{ sap_ha_install_pacemaker_cluster_name }} {{ sap_ha_install_pacemaker_node1_hostname }} {{ sap_ha_install_pacemaker_node2_hostname }} \
+    {{ sap_ha_install_pacemaker_cluster_name }} {% for node in sap_ha_install_pacemaker_cluster_nodes %}{{ node.node_name }}{{ " " if not loop.last else "" }}{% endfor %} \
     totem token=30000 --force
-  register: pcs_cluster_setup_reg
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
 
-# [1] Start Pacemaker cluster
-- name: SAP Pacemaker Setup - [1] Start Pacemaker cluster
+- name: "SAP Pacemaker Setup - Start Pacemaker cluster"
   shell: |
     pcs cluster start --all
-  register: pcs_cluster_start_reg
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
+    pcs cluster enable --all
 
-# [1] Check Pacemaker cluster
-- name: SAP Pacemaker Setup - [1] Check Pacemaker cluster
+- name: "SAP Pacemaker Setup - Set Expected Votes = {{ sap_ha_install_pacemaker_cluster_nodes | length }}"
   shell: |
-    pcs status
-  register: pcs_status_reg
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
+    pcs quorum expected-votes {{ sap_ha_install_pacemaker_cluster_nodes | length }}
 
-# [A] Set Expected Votes
-- name: SAP Pacemaker Setup - [1] Set Expected Votes
-  shell: |
-    pcs quorum expected-votes 2
-  register: pcs_quorum_expected_votes_reg
+- name: "SAP Pacemaker Setup - Check pcs properties"
+  include_tasks: check_properties.yml
 
-# [1] Allow concurrent fence actions
-- name: SAP Pacemaker Setup - [1] Allow concurrent fence actions
-  serial: 1
+- name: "SAP Pacemaker Setup - Allow concurrent fence actions"
   shell: |
     pcs property set concurrent-fencing=true
   when:
-    - sap_ha_install_pacemaker_role== 'primary'
+    - "'concurrent-fencing: true' not in __sap_ha_install_pacemaker_pcs_properties.stdout"

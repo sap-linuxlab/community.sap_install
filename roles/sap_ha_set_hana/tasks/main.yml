@@ -1,32 +1,64 @@
 ---
-
-- name: SAP HANA HA - Disable Firewall
-  include_tasks: disable_firewall.yml
-
-# Part 1 obsolete done by cluster_srhook.yml
-#- name: SAP HANA HA - SAPHanaSR python hook
-#  include_tasks: saphanasr_python_hook.yml
-#  when:
-#    - sap_ha_set_hana_part == '1'
-
-- name: SAP Pacemaker Part 3 - Sudoer Configuration
-  include_tasks: cluster_sudoer.yml
-  tags:
-    - pacemaker
-
-- name: SAP Pacemaker Part 3 - Resource Configuration
-  include_tasks: cluster_resources.yml
-  tags:
-    - pacemaker
+- name: "SAP HSR - Pick up primary node name from definition"
+  set_fact:
+    __sap_ha_set_hana_primary_node: "{{ item.node_name }}"
   when:
-    - ansible_nodename == sap_ha_install_hana_hsr_primary_hostname
+    - item.node_role is defined
+    - item.node_role == 'primary'
+  loop: "{{ sap_ha_set_hana_cluster_nodes }}"
+  loop_control:
+    label: "{{ item.node_name }}"
+  tags:
+    - pacemaker
+    - srhook_sudo
+    - ha_resources
+    - srhook
+    - ha_constraints
 
-- name: "SAP Pacemaker Part 4 - srhooks Configurationi"
-  include_tasks: cluster_srhook.yml
+- name: "SAP Pacemaker Hana - Sudoer Configuration"
+  include_tasks:
+    file: cluster_sudoer.yml
+    apply:
+      tags:
+        - pacemaker
+        - srhook_sudo
+  tags:
+    - pacemaker
+    - srhook_sudo
+
+- name: "SAP Pacemaker Hana - Resource Configuration"
+  include_tasks:
+    file: cluster_resources.yml
+    apply:
+      tags:
+        - pacemaker
+        - ha_resources
+  when:
+    - ansible_hostname == __sap_ha_set_hana_primary_node
+  tags:
+    - pacemaker
+    - ha_resources
+
+- name: "SAP Pacemaker Hana - srhooks Configuration"
+  include_tasks:
+    file: cluster_srhook.yml
+    apply:
+      tags:
+        - srhook
+        - pacemaker
   tags:
     - srhook
+    - pacemaker
 
-- name: SAP Pacemaker Part 5 - Constraints Configuration
-  include_tasks: cluster_constraint.yml
+- name: "SAP Pacemaker Hana - Constraints Configuration"
+  include_tasks:
+    file: cluster_constraint.yml
+    apply:
+      tags:
+        - ha_constraints
+        - pacemaker
+  when:
+    - ansible_hostname == __sap_ha_set_hana_primary_node
   tags:
-    - constraint
+    - ha_constraints
+    - pacemaker

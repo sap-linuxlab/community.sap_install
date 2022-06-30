@@ -1,0 +1,25 @@
+---
+- name: "SAP Prepare Pacemaker - Start pcsd.service"
+  ansible.builtin.systemd:
+    name: pcsd.service
+    state: started
+    enabled: yes
+
+- name: "SAP Prepare Pacemaker - Authenticate primary cluster node"
+  ansible.builtin.shell: |
+    pcs host auth \
+    {{ __sap_ha_prepare_pacemaker_primary_node }} \
+    -u hacluster -p '{{ sap_ha_prepare_pacemaker_hacluster_password }}'
+  register: pcs_host_auth_reg
+  when:
+    - ansible_hostname == __sap_ha_prepare_pacemaker_primary_node
+
+- name: "SAP Prepare Pacemaker - Authenticate secondary cluster node"
+  ansible.builtin.shell: |
+    pcs host auth \
+    {{ ansible_hostname }} \
+    -u hacluster -p '{{ sap_ha_prepare_pacemaker_hacluster_password }}'
+  register: pcs_host_auth_reg
+  when:
+    - ansible_hostname != __sap_ha_prepare_pacemaker_primary_node
+  delegate_to: "{{ __sap_ha_prepare_pacemaker_primary_node }}"
