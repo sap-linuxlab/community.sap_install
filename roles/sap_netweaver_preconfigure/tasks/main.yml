@@ -26,13 +26,15 @@
 - name: Gather package facts
   ansible.builtin.package_facts:
 
-- ansible.builtin.include_tasks: '{{ item }}/{{ assert_prefix }}installation.yml'
+- name: Include tasks from 'installation.yml'
+  ansible.builtin.include_tasks: '{{ item }}/{{ assert_prefix }}installation.yml'
   when: sap_netweaver_preconfigure_config_all|d(true) or sap_netweaver_preconfigure_installation|d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'
     - '{{ ansible_distribution }}'
 
-- ansible.builtin.include_tasks: '{{ item }}/{{ assert_prefix }}configuration.yml'
+- name: Include tasks from 'configuration.yml'
+  ansible.builtin.include_tasks: '{{ item }}/{{ assert_prefix }}configuration.yml'
   when: sap_netweaver_preconfigure_config_all|d(true) or sap_netweaver_preconfigure_configuration|d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'

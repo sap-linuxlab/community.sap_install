@@ -72,14 +72,16 @@
 - name: Gather package facts
   ansible.builtin.package_facts:
 
-- ansible.builtin.include_tasks: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}installation.yml'
+- name: Include tasks from 'installation.yml'
+  ansible.builtin.include_tasks: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}installation.yml'
   when: sap_general_preconfigure_config_all|d(true) or sap_general_preconfigure_installation|d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'
     - '{{ ansible_distribution }}'
     - '{{ ansible_os_family }}.yml'
 
-- ansible.builtin.include_tasks: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}configuration.yml'
+- name: Include tasks from 'configuration.yml'
+  ansible.builtin.include_tasks: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}configuration.yml'
   when: sap_general_preconfigure_config_all|d(true) or sap_general_preconfigure_configuration|d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'
@@ -87,4 +89,5 @@
     - '{{ ansible_os_family }}.yml'
 
 # allow a reboot at the end of the preconfigure role
-- ansible.builtin.meta: flush_handlers
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
