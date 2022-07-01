@@ -171,4 +171,3 @@ for par1 in __tests[0:5]:
     else:
         for par2 in par1['role_vars']:
             print (str(par2))
-
