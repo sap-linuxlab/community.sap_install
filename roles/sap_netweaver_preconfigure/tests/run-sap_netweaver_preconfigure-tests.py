@@ -133,17 +133,17 @@ for par1 in __tests:
     for par2 in par1['role_vars']:
         command += str(par2)
     command += '"'
-    if (par1['compact_assert_output'] == True):
+    if (par1['compact_assert_output']):
         command += ' | ../tools/beautify-assert-output.sh'
     print ("command: " + command)
     _py_rc = os.system(command)
     par1['rc'] = str(int(_py_rc/256))
     if (_py_rc != 0):
-        if (par1['ignore_error_final'] == True):
+        if (par1['ignore_error_final']):
             print('Test ' + par1['number'] + ' finished with return code ' + par1['rc'] + '. Continuing with the next test')
         else:
             print('Test ' + par1['number'] + ' finished with return code ' + par1['rc'] + '.')
-            exit(_py_rc)
+            sys.exit(_py_rc)
     else:
         print('Test ' + par1['number'] + ' finished with return code ' + par1['rc'] + '.')
 
