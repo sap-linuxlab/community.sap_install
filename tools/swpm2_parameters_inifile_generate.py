@@ -1,4 +1,6 @@
-#!/bin/python
+#!/usr/bin/env python
+from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
 
 # Prerequisites:
 # pip install beautifulsoup4 lxml
@@ -6,8 +8,19 @@
 import sys
 import os
 
-from bs4 import BeautifulSoup
-from lxml import etree
+import traceback
+
+try:
+    from bs4 import BeautifulSoup
+    from lxml import etree
+except ImportError:
+    HAS_ANOTHER_LIBRARY = False
+    ANOTHER_LIBRARY_IMPORT_ERROR = traceback.format_exc()
+else:
+    HAS_ANOTHER_LIBRARY = True
+
+# from bs4 import BeautifulSoup
+# from lxml import etree
 
 
 def debug_bs4():
@@ -127,10 +140,7 @@ def control_xml_to_inifile_params(filepath):
         component_key_display_name = component.find("display-name")
         if component_key_display_name is not None:
             component_key_display_name_text = component_key_display_name.get_text()
-        inifile_output.write(
-            "\n\n\n\n############\n# Component: %s\n" +
-            "# Component Display Name: %s\n############\n" +
-            % (component_key_name_text, component_key_display_name_text))
+        inifile_output.write("\n\n\n\n############\n# Component: %s\n# Component Display Name: %s\n############\n" % (component_key_name_text, component_key_display_name_text))  # nopep8: line-too-long
         for parameter in component.findChildren("parameter"):
             # component_key = parameter.findParent("component")
             component_parameter_key_encode = parameter.get("encode", None)
@@ -214,14 +224,15 @@ def product_catalog_xml_to_csv(filepath):
 # Get arguments passed to Python script session
 # Define path to control.xml, else assume in /tmp directory
 
-if len(sys.argv) > 1:
-    control_xml_path = sys.argv[1]
-else:
-    control_xml_path = "/tmp"
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        control_xml_path = sys.argv[1]
+    else:
+        control_xml_path = "/tmp"
 
-if control_xml_path == "":
-    control_xml_path = os.getcwd()
+    if control_xml_path == "":
+        control_xml_path = os.getcwd()
 
-control_xml_utf8(control_xml_path)
-control_xml_to_csv(control_xml_path)
-control_xml_to_inifile_params(control_xml_path)
+    control_xml_utf8(control_xml_path)
+    control_xml_to_csv(control_xml_path)
+    control_xml_to_inifile_params(control_xml_path)
