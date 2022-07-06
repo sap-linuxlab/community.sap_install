@@ -1,28 +1,53 @@
-name: Ansible Lint
+# Worflow for ansible-lint
 
-on: [push, pull_request]
+name: ansible-lint
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+  workflow_dispatch:
 
 jobs:
-  ansible-lint:
-
+  sanity:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+      - name: Check out the code
+        uses: actions/checkout@v2
 
-    - name: Install dependencies
-      run: ansible-galaxy collection install community.general
+      - name: Set up Python 3
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
 
-    - name: Lint Ansible Playbook
-      uses: ansible/ansible-lint-action@main
-      with:
-        targets: |
-          ./roles/sap_general_preconfigure
-          ./roles/sap_netweaver_preconfigure
-          ./roles/sap_hana_preconfigure
-          ./roles/sap_hana_install
-        override-deps: |
-          ansible==5.3.0
-          ansible-lint==5.3.2
+      - name: Install test dependencies
+        run: pip3 install ansible ansible-lint
 
-# Static: use Ansible Community Edition 4.8.0, with lowest compatible Ansible Core 2.11.6 and use Ansible-lint 5.2.1
+#      - name: Install collection dependencies
+#        run: ansible-galaxy collection install community.general
+
+      - name: Move the collection to the correct location - Create new directory
+        run: mkdir -p /home/runner/.ansible/collections/ansible_collections/community
+
+      - name: Move the collection to the correct location - Move the collection
+        working-directory: /home/runner/
+        run: mv /home/runner/work/community.sap_install/community.sap_install /home/runner/.ansible/collections/ansible_collections/community
+
+      - name: Move the collection to the correct location - Rename the directory
+        working-directory: /home/runner/
+        run: mv /home/runner/.ansible/collections/ansible_collections/community/community.sap_install /home/runner/.ansible/collections/ansible_collections/community/sap_install
+
+      - name: Run ansible-lint
+        working-directory: /home/runner/.ansible/collections/ansible_collections/community/sap_install
+        run: ansible-lint
+
+      - name: Move the collection to its previous location
+        working-directory: /home/runner/
+        run: mv /home/runner/.ansible/collections/ansible_collections/community/sap_install /home/runner/work/community.sap_install/community.sap_install
