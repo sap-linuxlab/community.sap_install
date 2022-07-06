@@ -10,14 +10,14 @@
     that: __sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.exists
     fail_msg: "FAIL: File /etc/init.d/boot.local does not exist!"
     success_msg: "PASS: File /etc/init.d/boot.local exist."
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Assert that file /etc/init.d/boot.local is a regular file
   ansible.builtin.assert:
     that: __sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.isreg
     fail_msg: "FAIL: File /etc/init.d/boot.local is not a regular file!"
     success_msg: "PASS: File /etc/init.d/boot.local is a regular file."
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
   when: __sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.exists
 
 - name: Assert that the mode of file /etc/init.d/boot.local is 0755
@@ -26,7 +26,7 @@
     fail_msg: "FAIL: File /etc/init.d/boot.local has mode '{{ __sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.mode }}'
                but the expected mode is '0755'!"
     success_msg: "PASS: File /etc/init.d/boot.local has mode 0755."
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
   when: __sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.exists
 
 - name: Get KSM setting in /etc/init.d/boot.local
@@ -41,7 +41,7 @@
     that: "'echo 0 > /sys/kernel/mm/ksm/run' in __sap_hana_preconfigure_register_boot_local_ksm_assert.stdout"
     fail_msg: "FAIL: The line 'echo 0 > /sys/kernel/mm/ksm/run' is not in file /etc/init.d/boot.local!"
     success_msg: "PASS: The line 'echo 0 > /sys/kernel/mm/ksm/run' is in file /etc/init.d/boot.local."
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
   when: __sap_hana_preconfigure_register_stat_boot_local_ksm_assert.stat.exists
 
 - name: Assert - Get status of KSM
@@ -55,4 +55,4 @@
     that: "__sap_hana_preconfigure_register_ksm_active_assert.stdout == '0'"
     fail_msg: "FAIL: KSM is currently enabled but it needs to be disabled!"
     success_msg: "PASS: KSM is disabled currently."
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
