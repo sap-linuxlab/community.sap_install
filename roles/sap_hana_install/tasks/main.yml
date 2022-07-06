@@ -2,11 +2,11 @@
 
 - name: Rename some variables used by hdblcm configfile
   ansible.builtin.set_fact:
-    sap_hana_install_sid: "{{ sap_hana_sid|d(sap_hana_install_sid)|d('') }}"
-    sap_hana_install_number: "{{ sap_hana_instance_number|d(sap_hana_install_instance_number|d(sap_hana_install_number)|d('')) }}"
-    sap_hana_install_master_password: "{{ sap_hana_install_common_master_password|d(sap_hana_install_master_password) }}"
-    sap_hana_install_system_usage: "{{ sap_hana_install_env_type|d(sap_hana_install_system_usage) }}"
-    sap_hana_install_restrict_max_mem: "{{ sap_hana_install_mem_restrict|d(sap_hana_install_restrict_max_mem) }}"
+    sap_hana_install_sid: "{{ sap_hana_sid | d(sap_hana_install_sid) | d('') }}"
+    sap_hana_install_number: "{{ sap_hana_instance_number | d(sap_hana_install_instance_number | d(sap_hana_install_number) | d('')) }}"
+    sap_hana_install_master_password: "{{ sap_hana_install_common_master_password | d(sap_hana_install_master_password) }}"
+    sap_hana_install_system_usage: "{{ sap_hana_install_env_type | d(sap_hana_install_system_usage) }}"
+    sap_hana_install_restrict_max_mem: "{{ sap_hana_install_mem_restrict | d(sap_hana_install_restrict_max_mem) }}"
   tags:
     - sap_hana_install_preinstall
     - sap_hana_install_set_log_mode
@@ -26,7 +26,7 @@
 
 - name: SAP HANA existence checking
   ansible.builtin.import_tasks: hana_exists.yml
-  when: sap_hana_install_new_system|d(true)
+  when: sap_hana_install_new_system | d(true)
 
 - name: SAP HANA pre-install steps
   ansible.builtin.import_tasks: pre_install.yml
@@ -34,11 +34,11 @@
 
 - name: SAP HANA installation steps
   ansible.builtin.import_tasks: hana_install.yml
-  when: sap_hana_install_new_system|d(true)
+  when: sap_hana_install_new_system | d(true)
 
 - name: SAP HANA addhosts steps
   ansible.builtin.import_tasks: hana_addhosts.yml
-  when: not sap_hana_install_new_system|d(true)
+  when: not sap_hana_install_new_system | d(true)
 
 - name: SAP HANA post-install steps
   ansible.builtin.import_tasks: post_install.yml
