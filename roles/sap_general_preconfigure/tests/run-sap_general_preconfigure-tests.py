@@ -9,6 +9,7 @@ import sys
 import subprocess
 
 # output field delimiter for displaying the results:
+# FIELD_DELIMITER = ';'
 FIELD_DELIMITER = '\t'
 
 if len(sys.argv) == 1:
