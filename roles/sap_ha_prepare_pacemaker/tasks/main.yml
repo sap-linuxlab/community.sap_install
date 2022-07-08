@@ -32,33 +32,32 @@
 
 # BEGIN of primary node connectivity test block
 - block:
+    - name: "SAP Prepare Pacemaker - Verify that Ansible can connect to the defined primary node by IP"
+      ansible.builtin.command: |
+        hostname -s
+      delegate_to: "{{ __sap_ha_prepare_pacemaker_primary_node_ip }}"
+      register: __sap_ha_prepare_pacemaker_primary_node_ip_check
+      ignore_unreachable: true
+      failed_when: false
+      changed_when: false
 
-  - name: "SAP HSR - Verify that Ansible can connect to the defined primary node by IP"
-    ansible.builtin.command: |
-      hostname -s
-    delegate_to: "{{ __sap_ha_prepare_pacemaker_primary_node_ip }}"
-    register: __sap_ha_prepare_pacemaker_primary_node_ip_check
-    ignore_unreachable: true
-    failed_when: false
-    changed_when: false
+    - name: "SAP Prepare Pacemaker - Use IP for tasks that must run on the primary node"
+      set_fact:
+        __sap_ha_prepare_pacemaker_primary_node: "{{ __sap_ha_prepare_pacemaker_primary_node_ip }}"
+      when:
+        - __sap_ha_prepare_pacemaker_primary_node_ip_check.stdout == __sap_ha_prepare_pacemaker_primary_node_name
 
-  - name: "SAP HSR - Use IP for tasks that must run on the primary node"
-    set_fact:
-      __sap_ha_prepare_pacemaker_primary_node: "{{ __sap_ha_prepare_pacemaker_primary_node_ip }}"
-    when:
-      - __sap_ha_prepare_pacemaker_primary_node_ip_check.stdout == __sap_ha_prepare_pacemaker_primary_node_name
+    - name: "SAP Prepare Pacemaker - Fail if the primary node cannot be connected to"
+      ansible.builtin.fail:
+        msg: |
+          Aborting due to issues identifying and connecting to the primary node.
+          It can either not be reached by host name or the connected IP returns
+          an unmatching hostname.
+      when:
+        - __sap_ha_prepare_pacemaker_primary_node_ip_check.unreachable is defined or
+          __sap_ha_prepare_pacemaker_primary_node_ip_check.stdout != __sap_ha_prepare_pacemaker_primary_node_name
 
-  - name: "SAP HSR - Fail if the primary node cannot be connected to"
-    ansible.builtin.fail:
-      msg: |
-        Aborting due to issues identifying and connecting to the primary node.
-        It can either not be reached by host name or the connected IP returns
-        an unmatching hostname.
-    when:
-      - __sap_ha_prepare_pacemaker_primary_node_ip_check.unreachable is defined or
-        __sap_ha_prepare_pacemaker_primary_node_ip_check.stdout != __sap_ha_prepare_pacemaker_primary_node_name
-
-  # block settings    
+  # block settings
   when:
     - ansible_hostname != __sap_ha_prepare_pacemaker_primary_node_name
     - __sap_ha_prepare_pacemaker_primary_node_name_check.unreachable is defined
@@ -67,7 +66,6 @@
   tags:
     - hsr_pki
 # END of primary node connectivity test block
-
 
 - name: "SAP Prepare Pacemaker - Check if pcs package is installed"
   shell: |
