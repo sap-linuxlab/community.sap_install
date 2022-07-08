@@ -23,8 +23,8 @@
 - name: Install Python devel and gcc to system Python
   ansible.builtin.package:
     name:
-    - python3-devel
-    - gcc
+      - python3-devel
+      - gcc
     state: present
 
 # Required for Ansible Module pids
@@ -35,8 +35,9 @@
 #    executable: pip3.6
 
 # Execute SAP SWPM
-- name: SAP SWPM - {{ sap_swpm_swpm_installation_header }}
-  command: >-
+# Reason for noqa: This command installs software, so it will change things
+- name: SAP SWPM - {{ sap_swpm_swpm_installation_header }} # noqa no-changed-when
+  ansible.builtin.command: >-
     ./sapinst \
     {{ sap_swpm_swpm_command_inifile }} \
     {{ sap_swpm_swpm_command_product_id }} \
@@ -59,7 +60,7 @@
   delay: 60
 
 - name: SAP SWPM - Verify if sapinst process finished successfully
-  async_status:
+  ansible.builtin.async_status:
     jid: "{{ sap_swpm_async_job.ansible_job_id }}"
   register: sap_swpm_stdout_register
   failed_when: sap_swpm_stdout_register.finished != 1 or sap_swpm_stdout_register.rc != 0
@@ -76,20 +77,22 @@
 #    msg: "{{ sap_swpm_stdout_register.stdout_lines }}"
 
 - name: SAP SWPM - Find last installation location
-  command: cat /tmp/sapinst_instdir/.lastInstallationLocation
+  ansible.builtin.command: cat /tmp/sapinst_instdir/.lastInstallationLocation
   register: swpm_last_install_path
+  changed_when: false
 
 - name: SAP SWPM - Verify if SWPM success file exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ swpm_last_install_path.stdout }}/installationSuccesfullyFinished.dat"
   register: swpm_success_file
   failed_when: swpm_success_file.stat.exists == false
 
 # Equivalent to running: cat $(cat /tmp/sapinst_instdir/.lastInstallationLocation)/installationSuccesfullyFinished.dat
 - name: SAP SWPM - Get success file
-  command: "cat {{ swpm_last_install_path.stdout }}/installationSuccesfullyFinished.dat"
+  ansible.builtin.command: "cat {{ swpm_last_install_path.stdout }}/installationSuccesfullyFinished.dat"
   register: swpm_success_file_contents
+  changed_when: false
 
 - name: SAP SWPM - Display installation finished from success file
-  debug:
+  ansible.builtin.debug:
     msg: "{{ swpm_success_file_contents.stdout_lines }}"
