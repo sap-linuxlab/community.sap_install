@@ -13,11 +13,12 @@
         state: directory
       register: __sap_ha_install_hana_hsr_create_ssh
 
-    - name: "SAP HSR - Read user's public ssh key, create if missing"
+    - name: "SAP HSR - Create a temporary ssh-key"
       shell: |
-        [ -f ~/.ssh/id_rsa ] && cat ~/.ssh/id_rsa.pub || \
-        ssh-keygen -t rsa -f ~/.ssh/id_rsa -N "" -q && \
-        cat ~/.ssh/id_rsa.pub
+        [ -f ~/.ssh/hsr_temp ] && [ -f ~/.ssh/hsr_temp.pub ] && \
+          cat ~/.ssh/hsr_temp.pub || \
+          (ssh-keygen -t rsa -f ~/.ssh/hsr_temp -N "" -q && \
+          cat ~/.ssh/hsr_temp.pub)
       register: __sap_ha_install_hana_hsr_pubkey
       changed_when: false
       failed_when: false
@@ -43,7 +44,7 @@
     - name: "SAP HSR - Copy PKI files from primary node"
       ansible.builtin.shell:
         rsync -av {{ __sap_ha_install_hana_hsr_primary_node }}:{{ item }} {{ item }} \
-        -e "ssh -o StrictHostKeyChecking=no"
+        -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/hsr_temp"
       loop:
         - "{{ __sap_ha_install_hana_hsr_secpath }}/data/SSFS_{{ sap_ha_install_hana_hsr_sid }}.DAT"
         - "{{ __sap_ha_install_hana_hsr_secpath }}/key/SSFS_{{ sap_ha_install_hana_hsr_sid }}.KEY"
@@ -67,6 +68,17 @@
 
 # Make sure that we always revert temporary changes, if any were made
   always:
+
+    - name: "SAP HSR - Remove ~/.ssh/hsr_temp* if it was created"
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - ~/.ssh/hsr_temp
+        - ~/.ssh/hsr_temp.pub
+      when:
+        - __sap_ha_install_hana_hsr_pubkey.changed is defined
+        - __sap_ha_install_hana_hsr_pubkey.changed
 
     - name: "SAP HSR - Remove .ssh if it was created"
       file:
