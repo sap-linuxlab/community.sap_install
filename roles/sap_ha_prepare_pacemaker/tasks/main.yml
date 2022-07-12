@@ -14,20 +14,6 @@
     - pacemaker
     - ha
 
-- name: "SAP Prepare Pacemaker - Check if pcs package is installed"
-  shell: |
-    rpm -qa pcs
-  args:
-    executable: /bin/bash
-  become: true
-  become_user: root
-  register: sap_ha_prepare_pacemaker_check_pcs
-  changed_when: false
-  tags:
-    - ha_software
-    - pacemaker
-    - ha
-
 - name: "SAP Prepare Pacemaker - Software Setup"
   include_tasks:
     file: software_setup.yml
@@ -36,8 +22,6 @@
         - ha_software
         - pacemaker
         - ha
-  when:
-    - sap_ha_prepare_pacemaker_check_pcs.rc != '0'
   tags:
     - ha_software
     - pacemaker
@@ -71,7 +55,7 @@
     - ha
 
 - name: "SAP Prepare Pacemaker - Check Cluster Status"
-  shell: |
+  ansible.builtin.shell: |
     pcs cluster status
   args:
     executable: /bin/bash
