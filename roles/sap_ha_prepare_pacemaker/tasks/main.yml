@@ -16,7 +16,7 @@
     - pacemaker
     - ha
 
-- name: "SAP HSR - Verify that Ansible can connect to the defined primary node by name"
+- name: "SAP HSR - Verify Ansible connection to primary node by name"
   ansible.builtin.command: |
     hostname -s
   delegate_to: "{{ __sap_ha_prepare_pacemaker_primary_node_name }}"
@@ -33,7 +33,7 @@
 
 # BEGIN of primary node connectivity test block
 - block:
-    - name: "SAP Prepare Pacemaker - Verify that Ansible can connect to the defined primary node by IP"
+    - name: "SAP Prepare Pacemaker - Verify Ansible conn to primary node IP"
       ansible.builtin.command: |
         hostname -s
       delegate_to: "{{ __sap_ha_prepare_pacemaker_primary_node_ip }}"
@@ -42,13 +42,13 @@
       failed_when: false
       changed_when: false
 
-    - name: "SAP Prepare Pacemaker - Use IP for tasks that must run on the primary node"
+    - name: "SAP Prepare Pacemaker - Use IP for primary node delegation"
       set_fact:
         __sap_ha_prepare_pacemaker_primary_node: "{{ __sap_ha_prepare_pacemaker_primary_node_ip }}"
       when:
         - __sap_ha_prepare_pacemaker_primary_node_ip_check.stdout == __sap_ha_prepare_pacemaker_primary_node_name
 
-    - name: "SAP Prepare Pacemaker - Fail if the primary node cannot be connected to"
+    - name: "SAP Prepare Pacemaker - Fail if primary node is unreachable"
       ansible.builtin.fail:
         msg: |
           Aborting due to issues identifying and connecting to the primary node.
@@ -118,8 +118,8 @@
         - pacemaker
         - ha
   when:
-    - (sap_hana_configure_firewall is defined and sap_hana_configure_firewall) or
-      sap_ha_prepare_pacemaker_configure_firewall
+    - (sap_hana_configure_firewall is defined and sap_hana_configure_firewall)
+      or sap_ha_prepare_pacemaker_configure_firewall
   tags:
     - ha_firewall
     - pacemaker
