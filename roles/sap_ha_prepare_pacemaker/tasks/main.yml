@@ -32,7 +32,8 @@
     - ha
 
 # BEGIN of primary node connectivity test block
-- block:
+- name: "SAP Prepare Pacemaker - Connection verification block"
+  block:
     - name: "SAP Prepare Pacemaker - Verify Ansible conn to primary node IP"
       ansible.builtin.command: |
         hostname -s
@@ -43,7 +44,7 @@
       changed_when: false
 
     - name: "SAP Prepare Pacemaker - Use IP for primary node delegation"
-      set_fact:
+      ansible.builtin.set_fact:
         __sap_ha_prepare_pacemaker_primary_node: "{{ __sap_ha_prepare_pacemaker_primary_node_ip }}"
       when:
         - __sap_ha_prepare_pacemaker_primary_node_ip_check.stdout == __sap_ha_prepare_pacemaker_primary_node_name
@@ -68,20 +69,6 @@
     - pacemaker
     - ha
 # END of primary node connectivity test block
-
-- name: "SAP Prepare Pacemaker - Check if pcs package is installed"
-  shell: |
-    rpm -qa pcs
-  args:
-    executable: /bin/bash
-  become: true
-  become_user: root
-  register: sap_ha_prepare_pacemaker_check_pcs
-  changed_when: false
-  tags:
-    - ha_software
-    - pacemaker
-    - ha
 
 - name: "SAP Prepare Pacemaker - Software Setup"
   include_tasks:
