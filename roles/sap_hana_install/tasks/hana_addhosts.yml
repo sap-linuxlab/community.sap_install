@@ -2,7 +2,7 @@
 
 - name: SAP HANA Add Hosts - Fill new variable __sap_hana_install_addhosts_hosts
   ansible.builtin.set_fact:
-    __sap_hana_install_addhosts_hosts: "{{ __sap_hana_install_addhosts_hosts|default([]) + [ item.split(':')[0] ]  }}"
+    __sap_hana_install_addhosts_hosts: "{{ __sap_hana_install_addhosts_hosts | d([]) + [ item.split(':')[0] ]  }}"
   with_items: "{{ sap_hana_install_addhosts.split(',') }}"
 
 - name: SAP HANA Add Hosts - Show the contents of __sap_hana_install_addhosts_hosts
@@ -52,9 +52,9 @@
 
 - name: SAP HANA Add Hosts - Set fact for hdblcm command line
   ansible.builtin.set_fact:
-    __sap_hana_install_hdblcm_command_line: "./hdblcm {{ sap_hana_install_hdblcm_extraargs|d('') }}
+    __sap_hana_install_hdblcm_command_line: "./hdblcm {{ sap_hana_install_hdblcm_extraargs | d('') }}
             --action=add_hosts
-            --password={{ sap_hana_install_sidadm_password|d(sap_hana_install_master_password) }}
+            --password={{ sap_hana_install_sidadm_password | d(sap_hana_install_master_password) }}
             --configfile={{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg
             -b"
   tags: sap_hana_install_hdblcm_commandline

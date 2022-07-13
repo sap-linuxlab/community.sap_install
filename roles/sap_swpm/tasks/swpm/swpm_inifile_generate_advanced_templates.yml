@@ -1,24 +1,25 @@
 ---
 
 # Set facts based on the install dictionary
-- set_fact:
+- name: SAP SWPM advanced_templates mode - Set product_catalog_id
+  ansible.builtin.et_fact:
     sap_swpm_product_catalog_id: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_product_catalog_id'] }}"
 
 - name: SAP SWPM advanced_templates mode - Create temporary directory
-  tempfile:
+  ansible.builtin.tempfile:
     state: directory
     suffix: swpmconfig
   register: sap_swpm_tmpdir
 
 # Remove Existing inifile.params
 - name: SAP SWPM advanced_templates mode - Ensure inifile.params
-  file:
+  ansible.builtin.file:
     path: "{{ sap_swpm_tmpdir.path }}/inifile.params"
     state: touch
-
+    mode: '0640'
 
 - name: SAP SWPM advanced_templates mode - Loop over the dictionary and output to file
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ sap_swpm_tmpdir.path }}/inifile.params"
     state: present
     insertafter: EOF
@@ -30,11 +31,11 @@
 
 # Detect variables from generated inifile
 - name: SAP SWPM advanced_templates mode - Detect Variables
-  include_tasks: detect_variables.yml
+  ansible.builtin.include_tasks: detect_variables.yml
 
 # Prepare Software
 - name: SAP SWPM advanced_templates mode - Prepare Software
-  include_tasks: prepare_software.yml
+  ansible.builtin.include_tasks: prepare_software.yml
 
 
 # ALT: Generate complete inifile.params with all parameters from control.xml, for every SAP software product
