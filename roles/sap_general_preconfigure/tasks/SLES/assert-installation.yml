@@ -9,7 +9,7 @@
     - "{{ sap_general_preconfigure_packages }}"
   loop_control:
     loop_var: line_item
-  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Minimum required package version check
   block:
@@ -69,14 +69,14 @@
       ignore_errors: yes
 
   when:
-    - sap_general_preconfigure_min_package_check|bool
-    - __sap_general_preconfigure_min_pkgs|d([])
+    - sap_general_preconfigure_min_package_check | bool
+    - __sap_general_preconfigure_min_pkgs | d([])
 
 - name: Report if no minimum required package version is defined for this RHEL release
   ansible.builtin.debug:
     msg: "INFO: No minimum required package version defined (variable __sap_general_preconfigure_min_pkgs)."
   ignore_errors: yes
-  when: not __sap_general_preconfigure_min_pkgs|d([])
+  when: not __sap_general_preconfigure_min_pkgs | d([])
 
 - name: Get info about possible package updates
   ansible.builtin.command: yum check-update
@@ -84,7 +84,7 @@
   args:
     warn: false
   changed_when: false
-  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
   when: sap_general_preconfigure_update
 
 - name: Assert that there are no more possible package updates
@@ -92,7 +92,7 @@
     that: __sap_general_preconfigure_register_yum_check_update_assert is success
     fail_msg: "FAIL: System needs to be updated!"
     success_msg: "PASS: There are no more outstanding package updates."
-  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
   when: sap_general_preconfigure_update
 
 - name: Report if checking for possible package updates is not requested
@@ -138,11 +138,11 @@
   args:
     warn: false
   check_mode: false
-  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Assert that system needs no restart
   ansible.builtin.assert:
     that: __sap_general_preconfigure_register_needs_restarting_assert is success
     fail_msg: "FAIL: System needs to be restarted!"
     success_msg: "PASS: System needs no restart."
-  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
