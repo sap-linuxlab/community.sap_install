@@ -46,7 +46,7 @@
 
     - name: SAP HANA hdblcm prepare - SAPCAR defined - Create a list of one dict for checksum verification
       ansible.builtin.set_fact:
-        __sap_hana_install_fact_sapcar_dict: "{{ __sap_hana_install_fact_sapcar_dict|d([]) + [ __sap_hana_install_fact_sapcar_dict_tmp ] }}"
+        __sap_hana_install_fact_sapcar_dict: "{{ __sap_hana_install_fact_sapcar_dict | d([]) + [ __sap_hana_install_fact_sapcar_dict_tmp ] }}"
 
     - name: SAP HANA hdblcm prepare - SAPCAR defined - Verify checksum for the SAPCAR executable
       ansible.builtin.include_tasks: verify_checksum.yml
@@ -82,7 +82,8 @@
         state: directory
         mode: '0755'
 
-    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Identify matching SAR executables in '{{ sap_hana_install_software_directory }}'
+# Reason for noqa: There are pipe symbols - as part of an or statement - in an awk command sequence.
+    - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Identify matching SAR executables in '{{ sap_hana_install_software_directory }}' # noqa var-spacing
       ansible.builtin.shell: |
           set -o pipefail &&
           for sapcar_any in SAPCAR*EXE; do
@@ -109,7 +110,7 @@
 
     - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Create a list of files from SAPCAR executables of the matching architecture
       ansible.builtin.set_fact:
-        __sap_hana_install_fact_sapcar_filenames_matching_arch: "{{ __sap_hana_install_fact_sapcar_filenames_matching_arch|d([]) + [ item ] }}"
+        __sap_hana_install_fact_sapcar_filenames_matching_arch: "{{ __sap_hana_install_fact_sapcar_filenames_matching_arch | d([]) + [ item ] }}"
       loop: "{{ __sap_hana_install_register_sapcar_matching_arch.stdout_lines }}"
 
     - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Copy matching SAPCAR executables to '{{ sap_hana_install_software_extract_directory }}/sapcar_tmp/'
@@ -124,7 +125,7 @@
 
     - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Fill list of dicts containing dir, file, and global checksum file
       ansible.builtin.set_fact:
-        __sap_hana_install_fact_sapcar_dict: "{{ __sap_hana_install_fact_sapcar_dict|d([]) + [ __sap_hana_install_tmp_sapcar_dict ] }}"
+        __sap_hana_install_fact_sapcar_dict: "{{ __sap_hana_install_fact_sapcar_dict | d([]) + [ __sap_hana_install_tmp_sapcar_dict ] }}"
       with_items: "{{ __sap_hana_install_fact_sapcar_filenames_matching_arch }}"
       vars:
         __sap_hana_install_tmp_sapcar_dict:
@@ -135,7 +136,7 @@
 
     - name: SAP HANA hdblcm prepare - SAPCAR autodetection - Fill list of dicts containing dir, file, and specific checksum file
       ansible.builtin.set_fact:
-        __sap_hana_install_fact_sapcar_dict: "{{ __sap_hana_install_fact_sapcar_dict|d([]) + [ __sap_hana_install_tmp_sapcar_dict ] }}"
+        __sap_hana_install_fact_sapcar_dict: "{{ __sap_hana_install_fact_sapcar_dict | d([]) + [ __sap_hana_install_tmp_sapcar_dict ] }}"
       with_items: "{{ __sap_hana_install_fact_sapcar_filenames_matching_arch }}"
       vars:
         __sap_hana_install_tmp_sapcar_dict:
