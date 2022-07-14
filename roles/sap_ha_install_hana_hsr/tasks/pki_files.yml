@@ -1,42 +1,120 @@
 ---
 # Secondary nodes fetch PKI files from the primary node.
-# Use the ansible control node as temporary file storage.
-# Avoid dependency on connectivity requirements between the nodes.
+# Setting up temporary direct connection if not yet present
+# in order to avoid temporary data storage on the Ansible
+# control node.
 
-- name: "SAP HSR - Copy PKI files from primary to control node /tmp"
-  ansible.builtin.fetch:
-    src: "{{ item }}"
-    dest: /tmp/
-    flat: true
-  loop:
-    - "{{ __sap_ha_install_hana_hsr_secpath }}/data/SSFS_{{ sap_ha_install_hana_hsr_sid }}.DAT"
-    - "{{ __sap_ha_install_hana_hsr_secpath }}/key/SSFS_{{ sap_ha_install_hana_hsr_sid }}.KEY"
-  delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node }}"
-  register: __sap_ha_install_hana_hsr_fetch_pki
+- name: "SAP HSR - Direct connection handling to primary"
+  block:
 
-- name: "SAP HSR - Copy PKI files to /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs/"
-  ansible.builtin.copy:
-    src: "/tmp/{{ item.file }}"
-    dest: "{{ item.path }}{{ item.file }}"
-    owner: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
-    group: sapsys
-    mode: "{{ item.mode }}"
-  loop:
-    - path: "{{ __sap_ha_install_hana_hsr_secpath }}/data/"
-      file: "SSFS_{{ sap_ha_install_hana_hsr_sid }}.DAT"
-      mode: "0600"
-    - path: "{{ __sap_ha_install_hana_hsr_secpath }}/key/"
-      file: "SSFS_{{ sap_ha_install_hana_hsr_sid }}.KEY"
-      mode: "0640"
-  loop_control:
-    label: "{{ item.path }}{{ item.file }}"
+    - name: "SAP HSR - Create .ssh if missing"
+      ansible.builtin.file:
+        path: ~/.ssh
+        mode: "0700"
+        state: directory
+      register: __sap_ha_install_hana_hsr_create_ssh
 
-- name: "SAP HSR - Clean up PKI files from control node /tmp"
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - "/tmp/SSFS_{{ sap_ha_install_hana_hsr_sid }}.DAT"
-    - "/tmp/SSFS_{{ sap_ha_install_hana_hsr_sid }}.KEY"
-  delegate_to: localhost
-  become: false
+    - name: "SAP HSR - Create a temporary ssh-key"
+      ansible.builtin.shell: |
+        [ -f ~/.ssh/hsr_temp ] && [ -f ~/.ssh/hsr_temp.pub ] && \
+          cat ~/.ssh/hsr_temp.pub || \
+          (ssh-keygen -t rsa -f ~/.ssh/hsr_temp -N "" -q && \
+          cat ~/.ssh/hsr_temp.pub)
+      register: __sap_ha_install_hana_hsr_pubkey
+      failed_when: false
+
+    - name: "SAP HSR - Create .ssh on primary node if missing"
+      ansible.builtin.file:
+        path: ~/.ssh
+        state: directory
+        mode: "0700"
+      register: __sap_ha_install_hana_hsr_create_ssh_prim
+      delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node }}"
+
+    - name: "SAP HSR - Authorize pub key on primary node"
+      ansible.builtin.lineinfile:
+        backup: yes
+        create: yes
+        line: "{{ __sap_ha_install_hana_hsr_pubkey.stdout }}"
+        mode: "0600"
+        path: ~/.ssh/authorized_keys
+      register: __sap_ha_install_hana_hsr_addauth
+      delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node }}"
+
+    - name: "SAP HSR - Copy PKI files from primary node"
+      ansible.builtin.shell:
+        rsync -av {{ __sap_ha_install_hana_hsr_primary_node }}:{{ item }} {{ item }} \
+        -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/hsr_temp"
+      loop:
+        - "{{ __sap_ha_install_hana_hsr_secpath }}/data/SSFS_{{ sap_ha_install_hana_hsr_sid }}.DAT"
+        - "{{ __sap_ha_install_hana_hsr_secpath }}/key/SSFS_{{ sap_ha_install_hana_hsr_sid }}.KEY"
+      register: __sap_ha_install_hana_hsr_fetch_pki
+
+    - name: "SAP HSR - Update PKI files permissions"
+      ansible.builtin.file:
+        path: "{{ item.path }}{{ item.file }}"
+        owner: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
+        group: sapsys
+        mode: "{{ item.mode }}"
+      loop:
+        - path: "{{ __sap_ha_install_hana_hsr_secpath }}/data/"
+          file: "SSFS_{{ sap_ha_install_hana_hsr_sid }}.DAT"
+          mode: "0600"
+        - path: "{{ __sap_ha_install_hana_hsr_secpath }}/key/"
+          file: "SSFS_{{ sap_ha_install_hana_hsr_sid }}.KEY"
+          mode: "0640"
+      loop_control:
+        label: "{{ item.path }}{{ item.file }}"
+
+# Make sure that we always revert temporary changes, if any were made
+  always:
+
+    - name: "SAP HSR - Remove ~/.ssh/hsr_temp* if it was created"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - ~/.ssh/hsr_temp
+        - ~/.ssh/hsr_temp.pub
+      when:
+        - __sap_ha_install_hana_hsr_pubkey.changed is defined
+        - __sap_ha_install_hana_hsr_pubkey.changed
+
+    - name: "SAP HSR - Remove .ssh if it was created"
+      ansible.builtin.file:
+        path: ~/.ssh
+        state: absent
+      when:
+        - __sap_ha_install_hana_hsr_create_ssh.changed is defined
+        - __sap_ha_install_hana_hsr_create_ssh.changed
+
+    - name: "SAP HSR - Primary: Remove authorized_keys file if created"
+      ansible.builtin.file:
+        path: ~/.ssh/authorized_keys
+        state: absent
+      delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node }}"
+      when:
+        - __sap_ha_install_hana_hsr_addauth.backup is defined
+        - __sap_ha_install_hana_hsr_addauth.backup|length == 0
+
+    - name: "SAP HSR - Primary: Restore authorized_keys from backup"
+      ansible.builtin.copy:
+        dest: ~/.ssh/authorized_keys
+        remote_src: true
+        src: "{{ __sap_ha_install_hana_hsr_addauth.backup }}"
+      delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node }}"
+      when:
+        - __sap_ha_install_hana_hsr_addauth.backup is defined
+        - __sap_ha_install_hana_hsr_addauth.backup|length > 0
+
+    - name: "SAP HSR - Primary: Remove .ssh if it was created"
+      ansible.builtin.file:
+        path: ~/.ssh
+        state: absent
+      when:
+        - __sap_ha_install_hana_hsr_create_ssh_prim.changed is defined
+        - __sap_ha_install_hana_hsr_create_ssh_prim.changed
+      delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node }}"
+
+  become: true
+  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"

@@ -1,6 +1,6 @@
 ---
 - name: "SAP HSR - Check /etc/hosts for conflicting entries"
-  shell: |
+  ansible.builtin.shell: |
     awk '(/{{ item.node_name }}/ && !/^{{ item.node_ip }}/) || (/^{{ item.node_ip }}/ && !/{{ item.node_name }}/)' /etc/hosts
   register: etchosts_conflict
   changed_when: false
@@ -10,7 +10,7 @@
     label: "Check if {{ item.node_ip }} exists for hosts other than {{ item.node_name }}"
 
 - name: "SAP HSR - Add Cluster Nodes to /etc/hosts"
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/hosts
     create: true
     state: present

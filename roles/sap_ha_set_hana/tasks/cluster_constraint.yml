@@ -2,7 +2,7 @@
 # The following tasks are only included on the primary node!
 
 - name: "SAP Pacemaker Hana - check constraint order HANA TOPOLOGY"
-  shell: |
+  ansible.builtin.shell: |
     pcs constraint order --full | grep "id:"| awk -F "id:" '{ print $2 }' | \
     grep order-SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone-SAPHana
   register: sap_ha_set_hana_check_constraint_order_topology
@@ -10,7 +10,7 @@
   changed_when: false
 
 - name: "SAP Pacemaker Hana - set ORDER Constraints"
-  shell: |
+  ansible.builtin.shell: |
     pcs constraint order \
     SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone then \
     SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone symmetrical=false
@@ -18,7 +18,7 @@
     - sap_ha_set_hana_check_constraint_order_topology.rc == 1
 
 - name: "SAP Pacemaker Hana - check constraint colocation VIP with MASTER HANA"
-  shell: |
+  ansible.builtin.shell: |
     pcs constraint colocation --full | \
     grep colocation-vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER-SAPHana
   register: sap_ha_set_hana_check_constraint_collocation_vip_master
@@ -27,7 +27,7 @@
   when: sap_ha_set_hana_vip1 is defined
 
 - name: "SAP Pacemaker Hana - Constraint: promote HANA then start VIP"
-  shell: |
+  ansible.builtin.shell: |
     pcs constraint colocation add \
     vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER \
     with master \
