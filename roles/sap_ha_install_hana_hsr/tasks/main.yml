@@ -8,6 +8,34 @@
   ansible.builtin.set_fact:
           __sap_ha_install_hana_hsr_node_name: "{{ ansible_hostname }}"
 
+## The following variables can be used to simplify the role
+
+- name: "SAP - HSR create information on HSR connection interface"
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_connection:
+            node_name: "{{ item.node_name.split('.')[0] }}"
+            node_domain: "{{ item.node_name.split('.')[1:]|join('.') or sap_ha_install_hana_hsr_fqdn }}"
+            node_ip: "{{ item.node_ip }}"
+            node_role: "{{ item.node_role }}"
+            hana_site: "{{ item.hana_site }}"
+  when:
+    - item.node_ip in ansible_all_ipv4_addresses
+  loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
+  loop_control:
+    label: "{{ item.node_name }}"
+          
+- name: SAP HSR -  Connection Info of this host
+  debug:
+          var: __sap_ha_install_hana_hsr_connection
+
+- name: SAP HSR - Check that hsr interface is configured on host
+  ansible.builtin.assert:
+     that:
+          - __sap_ha_install_hana_hsr_connection.node_ip is defined
+          - __sap_ha_install_hana_hsr_connection.node_ip != ""
+     fail_msg: "The IP adress configured for HSR does not exist on this host"
+     success_msg: "The IP adress for HSR is configured on this host"
+
 - name: "SAP HSR - Pick up primary node name from definition"
   ansible.builtin.set_fact:
     __sap_ha_install_hana_hsr_primary_node: "{{ item.node_name }}"
