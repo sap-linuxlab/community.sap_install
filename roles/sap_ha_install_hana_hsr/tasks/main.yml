@@ -1,8 +1,18 @@
 ---
+
+# CHECK: we need to define variables, when the Hana Replication interface != ansible_hostname
+# for now I set the default to ansible_hostname, so I can update the rest of the role with that variable
+#  __sap_ha_install_hana_hsr_node_name
+#  __sap_ha_install_hana_hsr_node_domain
+- name: "SAP HSR - Pick up interface node name from definition"
+  ansible.builtin.set_fact:
+          __sap_ha_install_hana_hsr_node_name: "{{ ansible_hostname }}"
+
 - name: "SAP HSR - Pick up primary node name from definition"
   ansible.builtin.set_fact:
     __sap_ha_install_hana_hsr_primary_node: "{{ item.node_name }}"
-    __sap_ha_install_hana_hsr_primary_node_name: "{{ item.node_name }}"
+    __sap_ha_install_hana_hsr_primary_node_name: "{{ item.node_name.split('.')[0] }}"
+    __sap_ha_install_hana_hsr_primary_node_domain: "{{ item.node_name.split('.')[1:]|join('.') }}"
     __sap_ha_install_hana_hsr_primary_node_ip: "{{ item.node_ip }}"
   when:
     - item.node_role is defined
@@ -21,7 +31,7 @@
   delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node_name }}"
   register: __sap_ha_install_hana_hsr_primary_node_name_check
   when:
-    - ansible_hostname != __sap_ha_install_hana_hsr_primary_node_name
+    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
   ignore_unreachable: true
   ignore_errors: true
   failed_when: false
@@ -62,7 +72,7 @@
 
   # block settings
   when:
-    - ansible_hostname != __sap_ha_install_hana_hsr_primary_node_name
+    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
     - __sap_ha_install_hana_hsr_primary_node_name_check.unreachable is defined
     - __sap_ha_install_hana_hsr_primary_node_name_check.unreachable
   become: false
@@ -106,7 +116,7 @@
       vars:
         __sap_ha_install_hana_hsr_secpath: "/usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs"
   when:
-    - ansible_hostname != __sap_ha_install_hana_hsr_primary_node_name
+    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
   tags:
     - hsr_pki
 
@@ -119,7 +129,7 @@
       become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
       tags: hsr_backup
   when:
-    - ansible_hostname == __sap_ha_install_hana_hsr_primary_node_name
+    - __sap_ha_install_hana_hsr_node_name == __sap_ha_install_hana_hsr_primary_node_name
   tags:
     - hsr_backup
 
