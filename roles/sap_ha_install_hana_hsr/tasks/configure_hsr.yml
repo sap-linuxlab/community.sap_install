@@ -26,7 +26,7 @@
   register: enablesr
   changed_when: "'successfully enabled system as system replication source site' in enablesr.stdout"
   when:
-    - ansible_hostname == item.node_name
+    - __sap_ha_install_hana_hsr_node_name == item.node_name.split('.')[0]
     - item.node_role is defined and item.node_role == 'primary'
     - "'is source system' not in __sap_ha_install_hana_hsr_srstate.stdout"
   loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
@@ -49,9 +49,9 @@
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   register: registersr
   when:
-    - ansible_hostname == item.node_name
+    - __sap_ha_install_hana_hsr_node_name == item.node_name.split('.')[0]
     - item.node_role is not defined or item.node_role == 'secondary'
-    - ansible_hostname not in __sap_ha_install_hana_hsr_srstate.stdout
+    - __sap_ha_install_hana_hsr_node_name not in __sap_ha_install_hana_hsr_srstate.stdout
   loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
   loop_control:
     label: "{{ item.node_name }}"
@@ -67,5 +67,5 @@
   register: startinstance
   changed_when: "'StartSystem' in startinstance.stdout"
   when:
-    - ansible_hostname != __sap_ha_install_hana_hsr_primary_node_name
-    - ansible_hostname not in __sap_ha_install_hana_hsr_srstate.stdout
+    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
+    - __sap_ha_install_hana_hsr_node_name not in __sap_ha_install_hana_hsr_srstate.stdout
