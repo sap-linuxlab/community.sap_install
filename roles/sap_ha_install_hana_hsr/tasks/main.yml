@@ -18,8 +18,6 @@
             node_ip: "{{ item.node_ip }}"
             node_role: "{{ item.node_role }}"
             hana_site: "{{ item.hana_site }}"
-  when:
-    - item.node_ip in ansible_all_ipv4_addresses
   loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
   loop_control:
     label: "{{ item.node_name }}"
@@ -35,6 +33,8 @@
           - __sap_ha_install_hana_hsr_connection.node_ip != ""
     fail_msg: "The IP adress configured for HSR does not exist on this host"
     success_msg: "The IP adress for HSR is configured on this host"
+  when:
+    - item.node_ip in ansible_all_ipv4_addresses
 
 - name: "SAP HSR - Pick up primary node name from definition"
   ansible.builtin.set_fact:
