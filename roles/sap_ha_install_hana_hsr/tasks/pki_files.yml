@@ -20,6 +20,8 @@
           cat ~/.ssh/hsr_temp.pub || \
           (ssh-keygen -t rsa -f ~/.ssh/hsr_temp -N "" -q && \
           cat ~/.ssh/hsr_temp.pub)
+      args:
+        creates: ~/.ssh/hsr_temp.pub
       register: __sap_ha_install_hana_hsr_pubkey
       failed_when: false
 
@@ -41,8 +43,10 @@
       register: __sap_ha_install_hana_hsr_addauth
       delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node }}"
 
-    - name: "SAP HSR - Copy PKI files from primary node"
-      ansible.builtin.shell:
+    # ansible-lint:
+    # The synchronize module is not part of ansible-core collections.
+    - name: "SAP HSR - Copy PKI files from primary node" # noqa command-instead-of-module
+      ansible.builtin.command:
         rsync --checksum -vv \
         {{ __sap_ha_install_hana_hsr_primary_node }}:{{ item }} {{ item }} \
         -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/hsr_temp"
@@ -105,6 +109,7 @@
         dest: ~/.ssh/authorized_keys
         remote_src: true
         src: "{{ __sap_ha_install_hana_hsr_addauth.backup }}"
+        mode: "0600"
       delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node }}"
       when:
         - __sap_ha_install_hana_hsr_addauth.backup is defined

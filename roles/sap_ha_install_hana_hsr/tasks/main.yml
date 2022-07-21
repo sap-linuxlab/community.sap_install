@@ -14,9 +14,9 @@
   ansible.builtin.set_fact:
     __sap_ha_install_hana_hsr_connection:
       node_name: "{{ item.node_name.split('.')[0] }}"
-      node_domain: "{{ item.node_name.split('.')[1:]|join('.') or sap_ha_install_hana_hsr_fqdn }}"
+      node_domain: "{{ item.node_name.split('.')[1:] | join('.') or sap_ha_install_hana_hsr_fqdn }}"
       node_ip: "{{ item.node_ip }}"
-      node_role: "{{ item.node_role|default('secondary') }}"
+      node_role: "{{ item.node_role | default('secondary') }}"
       hana_site: "{{ item.hana_site }}"
   loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
   loop_control:
@@ -36,7 +36,7 @@
   ansible.builtin.set_fact:
     __sap_ha_install_hana_hsr_primary_node: "{{ item.node_name }}"
     __sap_ha_install_hana_hsr_primary_node_name: "{{ item.node_name.split('.')[0] }}"
-    __sap_ha_install_hana_hsr_primary_node_domain: "{{ item.node_name.split('.')[1:]|join('.') }}"
+    __sap_ha_install_hana_hsr_primary_node_domain: "{{ item.node_name.split('.')[1:] | join('.') }}"
     __sap_ha_install_hana_hsr_primary_node_ip: "{{ item.node_ip }}"
   when:
     - item.node_role is defined
