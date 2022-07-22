@@ -3,25 +3,32 @@
 
 - name: "SAP Pacemaker Hana - check constraint order HANA TOPOLOGY"
   ansible.builtin.shell: |
+    set -e -o pipefail
     pcs constraint order --full | grep "id:"| awk -F "id:" '{ print $2 }' | \
     grep order-SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone-SAPHana
-  register: sap_ha_set_hana_check_constraint_order_topology
+  args:
+    executable: /usr/bin/bash
+  register: __sap_ha_set_hana_check_constraint_order_topology
   failed_when: false
   changed_when: false
 
 - name: "SAP Pacemaker Hana - set ORDER Constraints"
-  ansible.builtin.shell: |
+  ansible.builtin.command: |
     pcs constraint order \
     SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone then \
     SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone symmetrical=false
+  register: __sap_ha_set_hana_order_constraint
   when:
-    - sap_ha_set_hana_check_constraint_order_topology.rc == 1
+    - __sap_ha_set_hana_check_constraint_order_topology.rc == 1
 
 - name: "SAP Pacemaker Hana - check constraint colocation VIP with MASTER HANA"
   ansible.builtin.shell: |
+    set -e -o pipefail
     pcs constraint colocation --full | \
     grep colocation-vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER-SAPHana
-  register: sap_ha_set_hana_check_constraint_collocation_vip_master
+  args:
+    executable: /usr/bin/bash
+  register: __sap_ha_set_hana_check_constraint_collocation_vip_master
   failed_when: false
   changed_when: false
   when: sap_ha_set_hana_vip1 is defined
@@ -37,5 +44,5 @@
     then start \
     vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER
   when:
-    - sap_ha_set_hana_check_constraint_collocation_vip_master.rc == 1
+    - __sap_ha_set_hana_check_constraint_collocation_vip_master.rc == 1
     - sap_ha_set_hana_vip1 is defined
