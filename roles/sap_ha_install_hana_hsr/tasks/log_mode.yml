@@ -4,6 +4,7 @@
   become: true
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   ansible.builtin.shell: |
+    set -o pipefail &&
     grep "log_mode" /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/hdb/custom/config/global.ini | grep normal
   register: sap_ha_install_hana_hsr_log_mode
   failed_when: false
@@ -21,7 +22,5 @@
     ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM') SET ('persistence', 'log_mode') = 'normal' WITH RECONFIGURE;
     ALTER SYSTEM ALTER CONFIGURATION('global.ini','HOST','{{ ansible_hostname }}') SET ('persistence','log_mode') = 'normal' WITH RECONFIGURE;
     EOF
-  args:
-    executable: /bin/bash
   ignore_errors: true
   when: sap_ha_install_hana_hsr_log_mode.rc != '0'
