@@ -3,11 +3,9 @@
 
 - name: "SAP Pacemaker Hana - check constraint order HANA TOPOLOGY"
   ansible.builtin.shell: |
-    set -e -o pipefail
+    set -o pipefail &&
     pcs constraint order --full | grep "id:"| awk -F "id:" '{ print $2 }' | \
     grep order-SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}-clone-SAPHana
-  args:
-    executable: /usr/bin/bash
   register: __sap_ha_set_hana_check_constraint_order_topology
   failed_when: false
   changed_when: false
@@ -23,11 +21,9 @@
 
 - name: "SAP Pacemaker Hana - check constraint colocation VIP with MASTER HANA"
   ansible.builtin.shell: |
-    set -e -o pipefail
+    set -o pipefail &&
     pcs constraint colocation --full | \
     grep colocation-vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER-SAPHana
-  args:
-    executable: /usr/bin/bash
   register: __sap_ha_set_hana_check_constraint_collocation_vip_master
   failed_when: false
   changed_when: false
