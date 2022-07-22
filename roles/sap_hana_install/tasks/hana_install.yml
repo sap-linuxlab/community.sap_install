@@ -20,26 +20,26 @@
       - 'Alternatively, you can run the following command on the control node:'
       - "ssh {{ inventory_hostname }} {{ __sap_hana_install_register_tmpdir.path }}/tail-f-hdblcm-install-trc.sh"
 
-- name: Set fact for hdblcm verify_signature argument
+- name: Set fact for the hdblcm verify_signature argument
   ansible.builtin.set_fact:
     __sap_hana_install_fact_verify_signature: '--verify_signature'
   when: sap_hana_install_verify_signature
 
-- name: Set fact for hdblcm command line
+- name: Set fact for the hdblcm command line
   ansible.builtin.set_fact:
-    __sap_hana_install_hdblcm_command_line: "./hdblcm {{ sap_hana_install_hdblcm_extraargs | d('') }}
+    __sap_hana_install_hdblcm_command: "./hdblcm {{ sap_hana_install_hdblcm_extraargs | d('') }}
       {{ __sap_hana_install_fact_verify_signature | d('') }}
       --configfile={{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg
       -b"
   tags: sap_hana_install_hdblcm_commandline
 
-- name: Show the hdblcm command line
+- name: Display the hdblcm command line
   ansible.builtin.debug:
-    msg: "SAP HANA install command: '{{ __sap_hana_install_hdblcm_command_line }}'"
+    msg: "SAP HANA install command: '{{ __sap_hana_install_hdblcm_command }}'"
   tags: sap_hana_install_hdblcm_commandline
 
 - name: Install SAP HANA - {{ sap_hana_install_sid }} {{ sap_hana_install_number }}
-  ansible.builtin.command: "{{ __sap_hana_install_hdblcm_command_line }}"
+  ansible.builtin.command: "{{ __sap_hana_install_hdblcm_command }}"
   register: __sap_hana_install_register_hdblcm_install
   args:
     chdir: "{{ __sap_hana_install_fact_hdblcm_path }}"
