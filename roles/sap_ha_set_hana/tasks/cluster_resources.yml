@@ -1,7 +1,7 @@
 ---
 # The following tasks are only included on the primary node!
 
-- name: "SAP Pacemaker Hana - Resource default update"
+- name: "SAP Pacemaker Hana - Resource defaults update command on RHEL8.2"
   ansible.builtin.set_fact:
     sap_ha_set_hana_resource_defaults: ""
   when: ansible_distribution_version == "8.2"
@@ -10,6 +10,7 @@
   ansible.builtin.shell: |
     pcs resource defaults {{ sap_ha_set_hana_resource_defaults }} resource-stickiness=1000
     pcs resource defaults {{ sap_ha_set_hana_resource_defaults }} migration-threshold=5000
+  changed_when: true
 
 - name: "SAP Pacemaker Hana - Check SAP HANA Resources Topology"
   ansible.builtin.shell: |
