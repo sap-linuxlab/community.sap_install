@@ -5,7 +5,7 @@
 # show zypper patterns
 - name: "1944799 - PDF 8.1 Package List Pattern Also 3.5 Software selection"
   community.general.zypper:
-    name: "{{ item }}"
+    name: "{{ package }}"
     type: pattern
   with_items:
     - gnome_basic
@@ -19,11 +19,13 @@
     - x11
     - sap-hana
     - sap_server
+  loop_control:
+    loop_var: package
 
 # Requires SLE-Module-Legacy15 Module
 - name: "1944799 - PDF 8.1 Package List Packages (SLE-Module-Legacy15)"
   community.general.zypper:
-    name: "{{ items }}"
+    name: "{{ package }}"
     type: package
   with_items:
     - libssh2-1
@@ -36,11 +38,15 @@
     - numactl
     - system-user-uuidd
     - unzip
+  loop_control:
+    loop_var: package
 
 - name: 1944799 - Install recommended packages
   community.general.zypper:
     type: package
     state: latest
-    name: "{{ item }}"
+    name: "{{ package }}"
   with_items:
     - tcsh
+  loop_control:
+    loop_var: package
