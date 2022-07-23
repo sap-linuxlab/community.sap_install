@@ -7,9 +7,11 @@
     backrefs: yes
     state: present
     regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=(?!.* {{ item }}).*). *$'
-    line: "\\1 {{ item }}\""
+    line: "\\1 {{ line }}\""
   with_items:
     - "elevator=noop"
+  loop_control:
+    loop_var: line
   notify: __sap_hana_preconfigure_regenerate_grub2_conf_handler
   when: ansible_architecture == "x86_64" and
         ansible_os_family == 'Suse' and

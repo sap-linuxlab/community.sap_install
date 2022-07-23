@@ -9,7 +9,10 @@
     var: __sap_hana_preconfigure_sapnotes | difference([''])
 
 - name: include configuration actions for required sapnotes
-  ansible.builtin.include_tasks: "tasks/sapnote/{{ item }}/configuration.yml"
+  ansible.builtin.include_tasks: "tasks/sapnote/{{ task }}/configuration.yml"
   with_items: "{{ __sap_hana_preconfigure_sapnotes | difference(['']) }}"
+  loop_control:
+    loop_var: task
+
 
 # - ansible.builtin.include_tasks: "{{ './' + ansible_distribution + ansible_distribution_major_version + '/recommendations.yml' }}"
