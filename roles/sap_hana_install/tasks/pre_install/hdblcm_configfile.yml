@@ -31,7 +31,7 @@
   block:
 
     - name: SAP HANA Pre Install - Create the hdblcm configfile template '{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg'
-      ansible.builtin.command: "{{ __sap_hana_install_fact_hdblcm_path }}/hdblcm --dump_configfile_template={{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg"
+      ansible.builtin.command: "{{ __sap_hana_install_fact_hdblcm_path }}/hdblcm --dump_configfile_template={{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}-{{ ansible_hostname }}.cfg"
       register: __sap_hana_install_register_hdblcm_output
       changed_when: no
 
@@ -44,17 +44,17 @@
         set -o pipefail &&
         awk 'BEGIN{FS="="; printf ("\{\{ ansible_managed | comment \}\}\n# File created on: \{\{ template_host \}\}\n# Template file:   \{\{ template_path \}\}\n#\n")}
           !/^[a-z]/{print}
-          /^[a-z]/{printf ("%s=\{\{ sap_hana_install_%s|d(\047%s\047) \}\}\n", $1, $1, $2)}' {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg > {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.j2
+          /^[a-z]/{printf ("%s=\{\{ sap_hana_install_%s|d(\047%s\047) \}\}\n", $1, $1, $2)}' {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}-{{ ansible_hostname }}.cfg > {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}-{{ ansible_hostname }}.j2
       register: __sap_hana_install_create_jinja2_template
       changed_when: no
 
     - name: SAP HANA Pre Install - Display the location of the remote Jinja2 template
       ansible.builtin.debug:
-        msg: "The Jinja2 template for creating the hdblcm configfile has been saved to '{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.j2'."
+        msg: "The Jinja2 template for creating the hdblcm configfile has been saved to '{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}-{{ ansible_hostname }}.j2'."
 
     - name: SAP HANA Pre Install - Download the Jinja2 template
       ansible.builtin.fetch:
-        src: "{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.j2"
+        src: "{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}-{{ ansible_hostname }}.j2"
         dest: "{{ sap_hana_install_local_configfile_directory }}"
       register: __sap_hana_install_register_fetch_hdblcm_configfile_jinja2_template
 
