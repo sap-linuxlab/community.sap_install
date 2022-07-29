@@ -139,9 +139,9 @@ Every SAP Software installation via SAP Software Provisioning Manager (SWPM) is 
     - Advanced Templates (`sap_swpm_templates_product_input: advanced_templates`), optional use of templating definitions for repeated installations
 - Inifile Reuse (`sap_swpm_templates_product_input: inifile_reuse`), run previously-defined installations with an existing SWPM Unattended inifile.params
 
-### Default mode variables
+### Default Templates mode variables
 
-Example using all inifile list parameters:
+Example using all inifile list parameters with the Default Templates mode:
 
 ```
 sap_swpm_ansible_role_mode: default_templates
