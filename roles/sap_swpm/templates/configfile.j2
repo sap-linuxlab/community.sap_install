@@ -1,17 +1,26 @@
 ### inifile.params generated for SWPM Catalog Product ID is {{ sap_swpm_product_catalog_id }}
 
+{% if 'swpm_installation_media' in sap_swpm_inifile_list %}
 ######
-# installation_media
+# swpm_installation_media
 ######
-{% if 'installation_media' in sap_swpm_inifile_list %}
-HDB_Software_Dialogs.useMediaCD = {{ sap_swpm_software_use_media }}
 archives.downloadBasket = {{ sap_swpm_software_path }}
+
+# NOTE: Specific media requirements will use format
+# SAPINST.CD.PACKAGE.<media_name> = <location>
 {% endif %}
 
+{% if 'swpm_installation_media_swpm2_hana' in sap_swpm_inifile_list %}
 ######
-# installation_media_swpm1
+# swpm_installation_media_swpm2_hana
 ######
-{% if 'installation_media_swpm1' in sap_swpm_inifile_list %}
+HDB_Software_Dialogs.useMediaCD = {{ sap_swpm_software_use_media }}
+{% endif %}
+
+{% if 'swpm_installation_media_swpm1' in sap_swpm_inifile_list %}
+######
+# swpm_installation_media_swpm1
+######
 SAPINST.CD.PACKAGE.LOAD1 = {{ sap_swpm_cd_export_pt1_path }}
 SAPINST.CD.PACKAGE.LOAD2 = {{ sap_swpm_cd_export_pt2_path }}
 SAPINST.CD.PACKAGE.LANGUAGE = {{ sap_swpm_cd_language_path }}
@@ -19,10 +28,61 @@ SAPINST.CD.PACKAGE.JAVA = {{ sap_swpm_cd_java_path }}
 SAPINST.CD.PACKAGE.RDBMS = {{ sap_swpm_cd_rdms_path }}
 {% endif %}
 
+{% if 'swpm_installation_media_swpm1_exportfiles' in sap_swpm_inifile_list %}
 ######
-# sum
+# swpm_installation_media_swpm1_exportfiles
 ######
-{% if 'sum' in sap_swpm_inifile_list %}
+SAPINST.CD.PACKAGE.EXPORT = {{ sap_swpm_cd_export_path }}
+#SAPINST.CD.PACKAGE.LOAD =
+{% endif %}
+
+{% if 'swpm_installation_media_swpm1_ibmdb2' in sap_swpm_inifile_list %}
+######
+# swpm_installation_media_swpm1_ibmdb2
+######
+# Requested package : RDBMS-DB6
+SAPINST.CD.PACKAGE.DB2 = {{ sap_swpm_cd_ibmdb2_path }}
+
+# Requested package : RDBMS-DB6 CLIENT
+SAPINST.CD.PACKAGE.DB2CLIENT = {{ sap_swpm_cd_ibmdb2_client_path }}
+
+# IBM DB2 software unpack path e.g. /db2/db2x01/db2_software
+db6.DB2SoftwarePath = {{ sap_swpm_ibmdb2_unpack_path }}
+{% endif %}
+
+{% if 'swpm_installation_media_swpm1_oracle' in sap_swpm_inifile_list %}
+######
+# swpm_installation_media_swpm1_oracle
+######
+# Requested package : RDBMS-ORA
+SAPINST.CD.PACKAGE.RDBMS-ORA121 = {{ sap_swpm_cd_oracle121_path }}
+
+# Requested package : RDBMS-ORA CLIENT
+SAPINST.CD.PACKAGE.ORACLI121 = {{ sap_swpm_cd_oracle121_client_path }}
+{% endif %}
+
+{% if 'swpm_installation_media_swpm1_sapase' in sap_swpm_inifile_list %}
+######
+# swpm_installation_media_swpm1_sapase
+######
+# Requested package : RDBMS-SYB
+SAPINST.CD.PACKAGE.RDBMS-SYB = {{ sap_swpm_cd_sapase_path }}
+SAPINST.CD.PACKAGE.RDBMS-SYB-CLIENT = {{ sap_swpm_cd_sapase_client_path }}
+
+{% endif %}
+
+{% if 'swpm_installation_media_swpm1_sapmaxdb' in sap_swpm_inifile_list %}
+######
+# swpm_installation_media_swpm1_sapmaxdb
+######
+# Requested package : RDBMS-ADA
+SAPINST.CD.PACKAGE.RDBMS-ADA = {{ sap_swpm_cd_sapmaxdb_path }}
+{% endif %}
+
+{% if 'sum_config' in sap_swpm_inifile_list %}
+######
+# sum_config
+######
 NW_ABAP_Prepare_SUM.SUMBatchFile = {{ sap_swpm_sum_batch_file }}
 NW_ABAP_Prepare_SUM.prepareSUM = {{ sap_swpm_sum_prepare | lower }}
 NW_ABAP_Prepare_SUM.startSUM = {{ sap_swpm_sum_start | lower }}
@@ -33,58 +93,180 @@ NW_ABAP_TMSConfig.configureTMS = {{ sap_swpm_configure_tms | lower }}
 NW_ABAP_TMSConfig.transportPassword = {{ sap_swpm_tmsadm_password }}
 {% endif %}
 
+{% if 'credentials' in sap_swpm_inifile_list %}
 ######
 # credentials
 ######
-{% if 'credentials' in sap_swpm_inifile_list %}
 NW_GetMasterPassword.masterPwd = {{ sap_swpm_master_password }}
-HDB_Schema_Check_Dialogs.schemaPassword = {{ sap_swpm_db_schema_password }}
 nwUsers.sidadmPassword = {{ sap_swpm_sap_sidadm_password }}
 NW_DDIC_Password.ddic000Password = {{ sap_swpm_ddic_000_password }}
 DiagnosticsAgent.dasidAdmPassword = {{ sap_swpm_diagnostics_agent_password }}
 hostAgent.sapAdmPassword = {{ sap_swpm_sapadm_password }}
 # NW_ABAP_SSFS_CustomKey.ssfsKeyInputFile =
-# storageBasedCopy.abapSchemaPassword =
+{% endif %}
+
+{% if 'credentials_hana' in sap_swpm_inifile_list %}
+######
+# credentials_hana
+######
+HDB_Schema_Check_Dialogs.schemaPassword = {{ sap_swpm_db_schema_password }}
 storageBasedCopy.hdb.systemPassword = {{ sap_swpm_db_system_password }}
-# storageBasedCopy.javaSchemaPassword =
 {% endif %}
 
+{% if 'credentials_anydb_ibmdb2' in sap_swpm_inifile_list %}
 ######
-# db_hana_restore
+# credentials_anydb_ibmdb2
 ######
-{% if 'db_hana_restore' in sap_swpm_inifile_list %}
-storageBasedCopy.hdb.instanceNumber = {{ sap_swpm_db_instance_nr }}
-NW_HDB_getDBInfo.systemPasswordBackup = {{ sap_swpm_backup_system_password }}
-HDB_Recovery_Dialogs.backupLocation = {{ sap_swpm_backup_location }}
-HDB_Recovery_Dialogs.backupName = {{ sap_swpm_backup_prefix }}
-HDB_Recovery_Dialogs.sapControlWsdlUrl = http://{{ sap_swpm_db_host }}:5{{ sap_swpm_db_instance_nr }}13/SAPControl?wsdl
-HDB_Recovery_Dialogs.sidAdmName = {{ sap_swpm_db_sid|lower }}adm
-HDB_Recovery_Dialogs.sidAdmPassword = {{ sap_swpm_db_sidadm_password }}
-# HDB_Recovery_Dialogs.backupDestinationType = File
-# HDB_System_Check_Dialogs.initTopology = false
-# HDB_Recovery_Dialogs.skipExistenceCheck = false
-# HDB_Recovery_Dialogs.sourceDatabaseSid =
-# HDB_Recovery_Dialogs.useLicenseFile = false
-# NW_CreateDBandLoad.movePVCforUsagePiAndDi =
-# HDB_Recovery_Dialogs.licenseFile =
+nwUsers.db6.db2sidPassword = {{ sap_swpm_sap_sidadm_password }}
 {% endif %}
 
+{% if 'credentials_anydb_oracledb' in sap_swpm_inifile_list %}
 ######
-# db_hana_config
+# credentials_anydb_oracledb
 ######
-{% if 'db_hana_config' in sap_swpm_inifile_list %}
+ora.oraclePassword = {{ sap_swpm_sap_sidadm_password }}
+ora.orasidPassword = {{ sap_swpm_sap_sidadm_password }}
+ora.SysPassword = {{ sap_swpm_db_system_password }}
+ora.SystemPassword = {{ sap_swpm_db_system_password }}
+{% endif %}
+
+{% if 'credentials_anydb_sapase' in sap_swpm_inifile_list %}
+######
+# credentials_anydb_sapase
+######
+nwUsers.syb.sybsidPassword = {{ sap_swpm_sap_sidadm_password }}
+#SYB.NW_DB.encryptionMasterKeyPassword =
+SYB.NW_DB.sa_pass = {{ sap_swpm_master_password }}
+SYB.NW_DB.sapsa_pass = {{ sap_swpm_master_password }}
+SYB.NW_DB.sapsr3_pass = {{ sap_swpm_master_password }}
+SYB.NW_DB.sapsr3db_pass = {{ sap_swpm_db_system_password }}
+#SYB.NW_DB.sapsso_pass =
+#SYB.NW_DB.sslPassword =
+{% endif %}
+
+{% if 'credentials_anydb_sapmaxdb' in sap_swpm_inifile_list %}
+######
+# credentials_anydb_sapmaxdb
+#
+# The password of user DBUser may only consist of alphanumeric characters and the special characters #, $, @ and _
+######
+nwUsers.ada.sqdsidPassword = {{ sap_swpm_sap_sidadm_password }}
+Sdb_DBUser.dbaPassword = {{ sap_swpm_db_system_password }}
+Sdb_DBUser.dbmPassword = {{ sap_swpm_db_system_password }}
+Sdb_Schema_Dialogs.dbSchemaPassword = {{ sap_swpm_db_schema_password }}
+{% endif %}
+
+{% if 'db_config_hana' in sap_swpm_inifile_list %}
+######
+# db_config_hana
+######
 # HDB_Schema_Check_Dialogs.dropSchema = false
 HDB_Schema_Check_Dialogs.schemaName = {{ sap_swpm_db_schema }}
 HDB_Schema_Check_Dialogs.validateSchemaName = false
 # HDB_Userstore.doNotResolveHostnames =
 # HDB_Userstore.useABAPSSFS = false
 # NW_HDB_DBClient.checkCreateUserstore = true
+# hdb.create.dbacockpit.user = false
+# HDB_Userstore.systemDBPort =
 {% endif %}
 
+{% if 'db_config_anydb_all' in sap_swpm_inifile_list %}
 ######
-# db_hana_nw_connection
+# db_config_anydb_all
 ######
-{% if 'db_hana_nw_connection' in sap_swpm_inifile_list %}
+NW_ABAP_Import_Dialog.dbCodepage = 4103
+NW_DDIC_Password.needDDICPasswords = true
+{% endif %}
+
+{% if 'db_config_anydb_ibmdb2' in sap_swpm_inifile_list %}
+######
+# db_config_anydb_ibmdb2
+######
+NW_ABAP_Import_Dialog.migmonJobNum = 3
+NW_ABAP_Import_Dialog.migmonLoadArgs = -stop_on_error -loadprocedure fast LOAD:COMPRESS_ALL:DEF_CRT
+NW_getDBInfoGeneric.dbhost = {{ sap_swpm_db_host }}
+NW_getDBInfoGeneric.dbsid = {{ sap_swpm_db_sid }}
+# db6.useMcod = true
+# db6.useBluSettings = false
+db6.allowUnsignedDatabaseSoftware = true
+db6.cluster.ClusterType = HADR (High Availability Disaster Recovery)
+db6.createTablespacesUsingSapinst = true
+db6.minimizeDatabaseSizeCompression = true
+db6.TablespacePoolSizes = SAPSID#DATA{20}
+db6.useAutoStorage = true
+db6.useExtraSapdataSaptmpDirLayout = false
+db6.UseStandardTablespacePool = true
+db6.usesLDAP = false
+# nwUsers.db6.db2sidUid =
+storageBasedCopy.db6.CommunicationPortNumber = 5912
+storageBasedCopy.db6.PortRangeEnd = 5917
+storageBasedCopy.db6.PortRangeStart = 5914
+{% endif %}
+
+{% if 'db_config_anydb_oracledb' in sap_swpm_inifile_list %}
+######
+# db_config_anydb_oracledb
+######
+NW_ABAP_Import_Dialog.migmonJobNum = 3
+NW_ABAP_Import_Dialog.migmonLoadArgs = -stop_on_error -loadprocedure fast
+NW_getDBInfoGeneric.dbsid = {{ sap_swpm_db_sid }}
+ora.dbhome = /oracle/{{ sap_swpm_db_sid }}/121
+ora.multitenant.pdbsid = {{ sap_swpm_sid | upper }}
+storageBasedCopy.ora.clientVersion = 121
+storageBasedCopy.ora.serverVersion = 121
+{% endif %}
+
+{% if 'db_config_anydb_sapase' in sap_swpm_inifile_list %}
+######
+# db_config_anydb_sapase
+######
+NW_ABAP_Import_Dialog.migmonJobNum = 3
+NW_ABAP_Import_Dialog.migmonLoadArgs = -c 100000 -loadprocedure fast
+NW_SYB_DBPostload.numberParallelStatisticJobs = 0
+SYB.NW_DB.aseSortOrder = binaryalt
+SYB.NW_DB.databaseDevices = data device for SAP,/sybase/{{ sap_swpm_sid | upper }}/sapdata_1,88,,,{{ sap_swpm_sid | upper }}_data_001,log device for SAP,/sybase/{{ sap_swpm_sid | upper }}/saplog_1,10,,,{{ sap_swpm_sid | upper }}_log_001,data device for saptools,/sybase/{{ sap_swpm_sid | upper }}/sapdiag,2,,,saptools_data_001,log device for saptools,/sybase/{{ sap_swpm_sid | upper }}/sapdiag,2,,,saptools_log_001,data device for sybsecurity,/sybase/{{ sap_swpm_sid | upper }}/sybsecurity,1,,,sybsecurity_data_001,data device for sybsecurity,/sybase/{{ sap_swpm_sid | upper }}/sybsecurity,1,,,sybsecurity_data_002,log device for sybsecurity,/sybase/{{ sap_swpm_sid | upper }}/sybsecurity,0.5,,,sybsecurity_log_001,temp device for SAP,/sybase/{{ sap_swpm_sid | upper }}/saptemp,8,,,saptempdb_data_001,
+SYB.NW_DB.databaseType = ase
+SYB.NW_DB.enableGranularPermissions = true
+SYB.NW_DB.enableStrongCipherSuitesForSSL = false
+SYB.NW_DB.folderDatabaseSoftware = /sybase/{{ sap_swpm_sid | upper }}
+SYB.NW_DB.folderDiagDevice = /sybase/{{ sap_swpm_sid | upper }}/sapdiag
+SYB.NW_DB.folderSAPTempdbDevice = /sybase/{{ sap_swpm_sid | upper }}/saptemp
+SYB.NW_DB.folderSecurityDevices = /sybase/{{ sap_swpm_sid | upper }}/sybsecurity
+SYB.NW_DB.folderSystemDevices = /sybase/{{ sap_swpm_sid | upper }}/sybsystem
+SYB.NW_DB.folderTempdbDevice = /sybase/{{ sap_swpm_sid | upper }}/sybtemp
+SYB.NW_DB.indexConsumers = 3
+SYB.NW_DB.initializeDefaultSystemEncryptionPassword = false
+SYB.NW_DB.maxIndexParallelDegree = 10
+SYB.NW_DB.maxQueryParallelDegree = 10
+SYB.NW_DB.numberWorkerProcesses = 50
+SYB.NW_DB.portBackupServer = 4902
+SYB.NW_DB.portDatabaseServer = 4901
+SYB.NW_DB.portJobScheduler = 4903
+SYB.NW_DB.portXPServer = 4904
+SYB.NW_DB.sqlServerConnections = 200
+SYB.NW_DB.sqlServerHostname = {{ sap_swpm_db_host }}
+SYB.NW_DB.sybmgmtdbDataDeviceFolder = /sybase/{{ sap_swpm_sid | upper }}/sybsystem
+SYB.NW_DB.sybmgmtdbLogDeviceFolder = /sybase/{{ sap_swpm_sid | upper }}/sybsystem
+SYB.NW_DB.userstore_hostname = {{ sap_swpm_ascs_instance_hostname }}
+{% endif %}
+
+{% if 'db_config_anydb_sapmaxdb' in sap_swpm_inifile_list %}
+######
+# db_config_anydb_sapmaxdb
+######
+NW_ABAP_Import_Dialog.migmonJobNum = 90
+NW_ABAP_Import_Dialog.migmonLoadArgs = -para_cnt 90
+NW_ADA_getDBInfo.dbsid = {{ sap_swpm_db_sid }}
+SdbInstanceDialogs.DB_sessions = 100
+SdbInstanceDialogs.minlogsize = 4000
+SdbInstanceDialogs.sapdataFolder = sapdata
+SdbInstanceDialogs.saplogFolder = saplog
+{% endif %}
+
+{% if 'db_connection_nw_hana' in sap_swpm_inifile_list %}
+######
+# db_connection_nw_hana
+######
 NW_HDB_getDBInfo.dbhost = {{ sap_swpm_db_host }}
 NW_HDB_getDBInfo.dbsid = {{ sap_swpm_db_sid }}
 NW_HDB_getDBInfo.systemid = {{ sap_swpm_db_sid }}
@@ -97,40 +279,70 @@ NW_HDB_DB.javaSchemaName = {{ sap_swpm_db_schema_java }}
 NW_HDB_DB.javaSchemaPassword = {{ sap_swpm_db_schema_java_password }}
 NW_Recovery_Install_HDB.extractLocation = /usr/sap/{{ sap_swpm_db_sid }}/HDB{{ sap_swpm_db_instance_nr }}/backup/data/DB_HDB
 NW_Recovery_Install_HDB.extractParallelJobs = {{ sap_swpm_parallel_jobs_nr }}
-NW_Recovery_Install_HDB.sidAdmName = {{ sap_swpm_db_sid|lower }}adm
+NW_Recovery_Install_HDB.sidAdmName = {{ sap_swpm_db_sid | lower }}adm
 NW_Recovery_Install_HDB.sidAdmPassword = {{ sap_swpm_db_sidadm_password }}
 # NW_HDB_getDBInfo.tenantOsGroup =
 # NW_HDB_getDBInfo.tenantOsUser =
 # NW_HDB_DBClient.clientPathStrategy = LOCAL
 {% endif %}
 
+{% if 'db_connection_nw_anydb_ibmdb2' in sap_swpm_inifile_list %}
 ######
-# nw_java_ume
+# db_connection_nw_anydb_ibmdb2
 ######
-{% if 'nw_java_ume' in sap_swpm_inifile_list %}
-UmeConfiguration.adminName = J2EE_ADM_{{ sap_swpm_sid }}
-UmeConfiguration.adminPassword = {{ sap_swpm_ume_j2ee_admin_password }}
-UmeConfiguration.guestName = J2EE_GST_{{ sap_swpm_sid }}
-# UmeConfiguration.sapjsfName = SAPJSF
-UmeConfiguration.sapjsfPassword = {{ sap_swpm_ume_sapjsf_password }}
-UmeConfiguration.umeClient = {{ sap_swpm_ume_client_nr }}
-UmeConfiguration.umeHost = {{ sap_swpm_pas_instance_hostname }}
-UmeConfiguration.umeInstance = {{ sap_swpm_ume_instance_nr }}
-UmeConfiguration.umeType = {{ sap_swpm_ume_type }}
+# db6.UseDb2SSLClientServerComm = false
+# nwUsers.db6.sapsidUid =
+nwUsers.db6.sapsidPassword = {{ sap_swpm_sapadm_password }}
+NW_DB6_DB.db6.abap.connect.user = sap{{ sap_swpm_db_sid | lower }}
+NW_DB6_DB.db6.abap.schema = sap{{ sap_swpm_db_sid | lower }}
 {% endif %}
 
+{% if 'db_connection_nw_anydb_oracledb' in sap_swpm_inifile_list %}
 ######
-# nw_other_config
+# db_connection_nw_anydb_oracledb
 ######
-{% if 'nw_other_config' in sap_swpm_inifile_list %}
-# hdb.create.dbacockpit.user = false
+storageBasedCopy.abapSchemaPassword = {{ sap_swpm_db_schema_abap_password }}
+storageBasedCopy.javaSchemaPassword = {{ sap_swpm_db_schema_java_password }}
+{% endif %}
+
+{% if 'db_restore_hana' in sap_swpm_inifile_list %}
+######
+# db_restore_hana
+######
+storageBasedCopy.hdb.instanceNumber = {{ sap_swpm_db_instance_nr }}
+NW_HDB_getDBInfo.systemPasswordBackup = {{ sap_swpm_backup_system_password }}
+HDB_Recovery_Dialogs.backupLocation = {{ sap_swpm_backup_location }}
+HDB_Recovery_Dialogs.backupName = {{ sap_swpm_backup_prefix }}
+HDB_Recovery_Dialogs.sapControlWsdlUrl = http://{{ sap_swpm_db_host }}:5{{ sap_swpm_db_instance_nr }}13/SAPControl?wsdl
+HDB_Recovery_Dialogs.sidAdmName = {{ sap_swpm_db_sid | lower }}adm
+HDB_Recovery_Dialogs.sidAdmPassword = {{ sap_swpm_db_sidadm_password }}
+# HDB_Recovery_Dialogs.backupDestinationType = File
+# HDB_System_Check_Dialogs.initTopology = false
+# HDB_Recovery_Dialogs.skipExistenceCheck = false
+# HDB_Recovery_Dialogs.sourceDatabaseSid =
+# HDB_Recovery_Dialogs.useLicenseFile = false
+# NW_CreateDBandLoad.movePVCforUsagePiAndDi =
+# HDB_Recovery_Dialogs.licenseFile =
+{% endif %}
+
+{% if 'nw_config_anydb' in sap_swpm_inifile_list %}
+######
+# nw_config_anydb
+######
+NW_CI_Instance_ABAP_Reports.executeReportsForDepooling = false
+{% endif %}
+
+{% if 'nw_config_other' in sap_swpm_inifile_list %}
+######
+# nw_config_other
+######
 # NW_Delete_Sapinst_Users.removeUsers = false
 NW_getFQDN.FQDN = {{ sap_swpm_fqdn }}
 NW_getFQDN.setFQDN = {{ sap_swpm_set_fqdn | lower }}
 # NW_getFQDN.resolve = true
 NW_getLoadType.loadType = {{ sap_swpm_load_type }}
 # NW_getUnicode.isUnicode =
-NW_readProfileDir.profileDir = /sapmnt/{{ sap_swpm_sid }}/profile
+NW_readProfileDir.profileDir = /sapmnt/{{ sap_swpm_sid | upper }}/profile
 # NW_readProfileDir.profilesAvailable =
 # MessageServer.configureAclInfo = false
 # NW_Exit_Before_Systemstart.exit = false
@@ -141,36 +353,34 @@ NW_GetSidNoProfiles.sid = {{ sap_swpm_sid }}
 # OS4.DestinationASP =
 {% endif %}
 
+{% if 'nw_config_central_instance' in sap_swpm_inifile_list %}
 ######
-# nw_central_instance
+# nw_config_central_instance
 ######
-{% if 'nw_central_instance' in sap_swpm_inifile_list %}
 NW_CI_Instance.ascsVirtualHostname = {{ sap_swpm_ascs_instance_hostname }}
 NW_CI_Instance.scsVirtualHostname = {{ sap_swpm_pas_instance_hostname }}
 NW_SCS_Instance.scsVirtualHostname = {{ sap_swpm_ascs_instance_hostname }}
 NW_CI_Instance.ciVirtualHostname = {{ sap_swpm_pas_instance_hostname }}
-nw_instance_ers.ersVirtualHostname = {{ sap_swpm_ers_instance_hostname }}
 {% endif %}
 
+{% if 'nw_config_webdisp_gateway' in sap_swpm_inifile_list %}
 ######
-# nw_gateway_webdisp
+# nw_config_webdisp_gateway
 #
 # It is recommended to install gateway as part of ASCS
 # It is NOT recommended to install webdispatcher as part of ASCS. A separate Web Dispatcher instance must be installed
 ######
-{% if 'nw_gateway_webdisp' in sap_swpm_inifile_list %}
-NW_SCS_Instance.ascsInstallGateway = {{ sap_swpm_ascs_install_gateway|lower }}
+NW_SCS_Instance.ascsInstallGateway = {{ sap_swpm_ascs_install_gateway | lower }}
 # NW_CI_Instance.ascsInstallGateway = false
 # NW_CI_Instance.ascsInstallWebDispatcher = false
 # NW_SCS_Instance.ascsInstallWebDispatcher = false
 {% endif %}
 
+{% if 'nw_config_instance' in sap_swpm_inifile_list %}
 ######
-# nw_instance_config
+# nw_config_instance
 ######
-{% if 'nw_instance_config' in sap_swpm_inifile_list %}
 NW_CI_Instance.ascsInstanceNumber = {{ sap_swpm_ascs_instance_nr }}
-nw_instance_ers.ersInstanceNumber = {{ sap_swpm_ers_instance_nr }}
 # NW_SCS_Instance.ascsInstanceNumber =
 NW_SCS_Instance.instanceNumber = {{ sap_swpm_ascs_instance_nr }}
 NW_CI_Instance.ciInstanceNumber = {{ sap_swpm_pas_instance_nr }}
@@ -182,10 +392,18 @@ NW_CI_Instance.scsInstanceNumber = {{ sap_swpm_java_scs_instance_nr }}
 # NW_CI_Instance.nodesNumber = defNodes
 {% endif %}
 
+{% if 'nw_config_ers' in sap_swpm_inifile_list %}
 ######
-# nw_ports_config
+# nw_config_ers
 ######
-{% if 'nw_ports_config' in sap_swpm_inifile_list %}
+nw_instance_ers.ersVirtualHostname = {{ sap_swpm_ers_instance_hostname }}
+nw_instance_ers.ersInstanceNumber = {{ sap_swpm_ers_instance_nr }}
+{% endif %}
+
+{% if 'nw_config_ports' in sap_swpm_inifile_list %}
+######
+# nw_config_ports
+######
 NW_CI_Instance.ciMSPort = 36{{ sap_swpm_ascs_instance_nr }}
 NW_checkMsgServer.abapMSPort = 36{{ sap_swpm_ascs_instance_nr }}
 # NW_CI_Instance.ciMSPortInternal = 
@@ -199,13 +417,27 @@ NW_checkMsgServer.abapMSPort = 36{{ sap_swpm_ascs_instance_nr }}
 # NW_CI_Instance_ABAP_Reports.enableSPAMUpdateWithoutStackXml = false
 # NW_CI_Instance_ABAP_Reports.enableTMSConfigWithoutStackXml = false
 # NW_CI_Instance_ABAP_Reports.enableTransportsWithoutStackXml = false
-# HDB_Userstore.systemDBPort =
 {% endif %}
 
+{% if 'nw_config_java_ume' in sap_swpm_inifile_list %}
 ######
-# generic_webdisp
+# nw_config_java_ume
 ######
-{% if 'generic_webdisp' in sap_swpm_inifile_list %}
+UmeConfiguration.adminName = J2EE_ADM_{{ sap_swpm_sid }}
+UmeConfiguration.adminPassword = {{ sap_swpm_ume_j2ee_admin_password }}
+UmeConfiguration.guestName = J2EE_GST_{{ sap_swpm_sid }}
+# UmeConfiguration.sapjsfName = SAPJSF
+UmeConfiguration.sapjsfPassword = {{ sap_swpm_ume_sapjsf_password }}
+UmeConfiguration.umeClient = {{ sap_swpm_ume_client_nr }}
+UmeConfiguration.umeHost = {{ sap_swpm_pas_instance_hostname }}
+UmeConfiguration.umeInstance = {{ sap_swpm_ume_instance_nr }}
+UmeConfiguration.umeType = {{ sap_swpm_ume_type }}
+{% endif %}
+
+{% if 'nw_config_webdisp_generic' in sap_swpm_inifile_list %}
+######
+# nw_config_webdisp_generic
+######
 NW_Webdispatcher_Instance.wdInstanceNumber = {{ sap_swpm_wd_instance_nr }}
 NW_webdispatcher_Instance.activateICF = {{ sap_swpm_wd_activate_icf | lower }}
 NW_Webdispatcher_Instance.configureSystemConnectivity = {{ sap_swpm_wd_system_connectivity | lower }}
@@ -223,20 +455,19 @@ NW_webdispatcher_Instance.wdHTTPSPort = 443{{ sap_swpm_wd_instance_nr }}
 NW_webdispatcher_Instance.wdVirtualHostname = {{ sap_swpm_wd_virtual_host }}
 {% endif %}
 
+{% if 'nw_config_host_agent' in sap_swpm_inifile_list %}
 ######
-# unix_user
+# nw_config_host_agent
 ######
-{% if 'unix_user' in sap_swpm_inifile_list %}
+NW_System.installSAPHostAgent = {{ sap_swpm_install_saphostagent | lower }}
+{% endif %}
+
+{% if 'sap_os_nix_user' in sap_swpm_inifile_list %}
+######
+# sap_os_nix_user
+######
 nwUsers.sapadmUID = {{ sap_swpm_sapadm_uid }}
 nwUsers.sapsysGID = {{ sap_swpm_sapsys_gid }}
 nwUsers.sidAdmUID = {{ sap_swpm_sidadm_uid }}
 # NW_GetSidNoProfiles.sapmnt = /sapmnt
-{% endif %}
-
-######
-# other
-######
-{% if 'other' in sap_swpm_inifile_list %}
-NW_System.installSAPHostAgent = {{ sap_swpm_install_saphostagent | lower }}
-NW_CI_Instance_ABAP_Reports.executeReportsForDepooling = false
 {% endif %}

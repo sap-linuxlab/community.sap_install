@@ -45,6 +45,8 @@ This role has been tested and working for the following SAP products
 4. SAP HANA Database MDC DB Tenant Backup (for restore)
     - stored on the local disk of the machine where the SAP HANA database server will reside
 
+    NOTE: Specific media requirements will use format `SAPINST.CD.PACKAGE.<media_name> = <location>`, and the media names can be discovered by using this command on the SWPM directory `grep -rwh "<package mediaName" --include "packages.xml" /software/sap_swpm_extracted/ | sed 's/^ *//g' | sort | uniq`
+
 ## Variables and Parameters
 
 ### Input Parameters
@@ -93,7 +95,7 @@ Sample Ansible Playbook Execution
     - { role: sap_swpm }
 ```
 
-## Flow
+## Execution Flow
 
 ### Pre-Install
 
@@ -125,6 +127,68 @@ Sample Ansible Playbook Execution
 - Set expiry of Unix created users to 'never'
 
 - Apply firewall rules for SAP NW (optional - no by default)
+
+
+## Execution Modes
+
+Every SAP Software installation via SAP Software Provisioning Manager (SWPM) is possible, there are different Ansible Role execution modes available:
+
+- Default (`sap_swpm_templates_product_input: default`), run software install tasks using easy Ansible Variable to generate SWPM Unattended installations
+    - Default Templates (`sap_swpm_templates_product_input: default_templates`), optional use of templating definitions for repeated installations
+- Advanced (`sap_swpm_templates_product_input: advanced`), run software install tasks with Ansible Variables one-to-one matched to SWPM Unattended Inifile parameters to generate bespoke SWPM Unattended installations
+    - Advanced Templates (`sap_swpm_templates_product_input: advanced_templates`), optional use of templating definitions for repeated installations
+- Inifile Reuse (`sap_swpm_templates_product_input: inifile_reuse`), run previously-defined installations with an existing SWPM Unattended inifile.params
+
+### Default mode variables
+
+Example using all inifile list parameters:
+
+```
+sap_swpm_ansible_role_mode: default_templates
+sap_swpm_templates_product_input: default_templates
+
+sap_swpm_templates_install_dictionary:
+
+  template_name:
+
+    sap_swpm_product_catalog_id: NW_ABAP_OneHost:BS2016.ERP608.DB6.PD
+    sap_swpm_inifile_dictionary:
+      sap_swpm_sid:
+      ...
+    sap_swpm_inifile_list:
+    - swpm_installation_media
+    - swpm_installation_media_swpm2_hana
+    - swpm_installation_media_swpm1
+    - swpm_installation_media_swpm1_ibmdb2
+    - sum_config
+    - credentials
+    - credentials_hana
+    - credentials_anydb_ibmdb2
+    - credentials_anydb_oracledb
+    - credentials_anydb_sapase
+    - credentials_anydb_sapmaxdb
+    - db_config_hana
+    - db_config_anydb_all
+    - db_config_anydb_ibmdb2
+    - db_config_anydb_oracledb
+    - db_config_anydb_sapase
+    - db_config_anydb_sapmaxdb
+    - db_connection_nw_hana
+    - db_connection_nw_anydb_ibmdb2
+    - db_connection_nw_anydb_oracledb
+    - db_restore_hana
+    - nw_config_anydb
+    - nw_config_other
+    - nw_config_central_instance
+    - nw_config_ers
+    - nw_config_webdisp_gateway
+    - nw_config_instance
+    - nw_config_ports
+    - nw_config_java_ume
+    - nw_config_webdisp_generic
+    - nw_config_host_agent
+    - sap_os_nix_user
+```
 
 ## License
 
