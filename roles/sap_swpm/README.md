@@ -11,18 +11,20 @@ This role has been tested and working for the following scenarios
 
 This role has been tested and working for the following SAP products
 -   SAP S/4HANA 1809, 1909, 2020, 2021
--   SAP B/4HANA
+-   SAP BW/4HANA
 -   SAP Solution Manager 7.2
 -   SAP Netweaver Business Suite Applications (ECC, GRC, etc)
 -   SAP Web Dispatcher
 
-> The general rule is - if it runs in SWPM, this will work.
+> The general rule is - if the installation uses SAP SWPM then this Ansible Role can be used.
 
 ### SAP Preconfigure
 
-- Make sure required volumes and filesystems are configured in the host. You can use the role `sap_storage` to configure this. More info [here](/roles/sap_storage)
+- Ensure the required volumes and filesystems are configured in the host. You can use the role `sap_storage` to configure this. More info [here](/roles/sap_storage)
 
-- Please run the RHEL SAP System Role `sap_general_preconfigure` for initial host configuration
+- Please run the RHEL SAP System Role `sap_general_preconfigure` for initial host configuration; as necessary, also use `sap_netweaver_preconfigure` and `sap_hana_preconfigure`
+
+- For further guidance on using SAP SWPM for different SAP Software installations, please see System Provisioning with Software Provisioning Manager (SWPM) - [User Guides for SAP SWPM 1.0](30839dda13b2485889466316ce5b39e9/c8ed609927fa4e45988200b153ac63d1.html?locale=en-US) and [User Guides for SAP SWPM 2.0](https://help.sap.com/docs/SOFTWARE_PROVISIONING_MANAGER/30839dda13b2485889466316ce5b39e9/6865029dacbe473fadd8eff339bfa568.html?locale=en-US)
 
 ### SAP Software Installation .SAR Files
 
