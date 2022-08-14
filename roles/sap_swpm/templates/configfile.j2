@@ -50,15 +50,37 @@ SAPINST.CD.PACKAGE.DB2CLIENT = {{ sap_swpm_cd_ibmdb2_client_path }}
 db6.DB2SoftwarePath = {{ sap_swpm_ibmdb2_unpack_path }}
 {% endif %}
 
-{% if 'swpm_installation_media_swpm1_oracledb' in sap_swpm_inifile_list %}
+{% if 'swpm_installation_media_swpm1_oracledb_121' in sap_swpm_inifile_list %}
 ######
-# swpm_installation_media_swpm1_oracledb
+# swpm_installation_media_swpm1_oracledb_121
 ######
 # Requested package : RDBMS-ORA
-SAPINST.CD.PACKAGE.RDBMS-ORA121 = {{ sap_swpm_cd_oracle121_path }}
+SAPINST.CD.PACKAGE.RDBMS-ORA121 = {{ sap_swpm_cd_oracle_path }}
 
 # Requested package : RDBMS-ORA CLIENT
-SAPINST.CD.PACKAGE.ORACLI121 = {{ sap_swpm_cd_oracle121_client_path }}
+SAPINST.CD.PACKAGE.ORACLI121 = {{ sap_swpm_cd_oracle_client_path }}
+{% endif %}
+
+{% if 'swpm_installation_media_swpm1_oracledb_122' in sap_swpm_inifile_list %}
+######
+# swpm_installation_media_swpm1_oracledb_122
+######
+# Requested package : RDBMS-ORA
+SAPINST.CD.PACKAGE.RDBMS-ORA122 = {{ sap_swpm_cd_oracle_path }}
+
+# Requested package : RDBMS-ORA CLIENT
+SAPINST.CD.PACKAGE.ORACLI122 = {{ sap_swpm_cd_oracle_client_path }}
+{% endif %}
+
+{% if 'swpm_installation_media_swpm1_oracledb_19' in sap_swpm_inifile_list %}
+######
+# swpm_installation_media_swpm1_oracledb_19
+######
+# Requested package : RDBMS-ORA
+SAPINST.CD.PACKAGE.RDBMS-ORA19 = {{ sap_swpm_cd_oracle_path }}
+
+# Requested package : RDBMS-ORA CLIENT
+SAPINST.CD.PACKAGE.ORACLI19 = {{ sap_swpm_cd_oracle_client_path }}
 {% endif %}
 
 {% if 'swpm_installation_media_swpm1_sapase' in sap_swpm_inifile_list %}
@@ -97,10 +119,15 @@ NW_ABAP_TMSConfig.transportPassword = {{ sap_swpm_tmsadm_password }}
 ######
 # credentials
 ######
+# Master password
 NW_GetMasterPassword.masterPwd = {{ sap_swpm_master_password }}
+
+# '<sapsid>adm' user
 nwUsers.sidadmPassword = {{ sap_swpm_sap_sidadm_password }}
 NW_DDIC_Password.ddic000Password = {{ sap_swpm_ddic_000_password }}
 DiagnosticsAgent.dasidAdmPassword = {{ sap_swpm_diagnostics_agent_password }}
+
+# 'sapadm' user of the SAP Host Agent
 hostAgent.sapAdmPassword = {{ sap_swpm_sapadm_password }}
 # NW_ABAP_SSFS_CustomKey.ssfsKeyInputFile =
 {% endif %}
@@ -124,9 +151,16 @@ nwUsers.db6.db2sidPassword = {{ sap_swpm_sap_sidadm_password }}
 ######
 # credentials_anydb_oracledb
 ######
+# Oracle database software owner
 ora.oraclePassword = {{ sap_swpm_sap_sidadm_password }}
+
+# 'ora<dbsid>' user
 ora.orasidPassword = {{ sap_swpm_sap_sidadm_password }}
+
+# Oracle 'SYS' password
 ora.SysPassword = {{ sap_swpm_db_system_password }}
+
+# Oracle 'SYSTEM' password
 ora.SystemPassword = {{ sap_swpm_db_system_password }}
 {% endif %}
 
@@ -210,10 +244,53 @@ storageBasedCopy.db6.PortRangeStart = 5914
 NW_ABAP_Import_Dialog.migmonJobNum = 3
 NW_ABAP_Import_Dialog.migmonLoadArgs = -stop_on_error -loadprocedure fast
 NW_getDBInfoGeneric.dbsid = {{ sap_swpm_db_sid }}
-ora.dbhome = /oracle/{{ sap_swpm_db_sid }}/121
+storageBasedCopy.ora.listenerName = SAPORALISTENER
+# storageBasedCopy.ora.listenerPort =
+storageBasedCopy.ora.ABAPSchema = SAPSR3DB
+# storageBasedCopy.ora.JavaSchema = SAPSR3DB
 ora.multitenant.pdbsid = {{ sap_swpm_sid | upper }}
+ora.whatInstallation = isSingle
+# ora.IgnoreClientVersion = false
+# ora.maxDatafileSize = 2000
+# storageBasedCopy.ora.swowner = oracle
+
+#### Oracle Multitenant Pluggable DB: ####
+#### a single Oracle Container Database (CDB) can host multiple Oracle Pluggable Databases (PDB) ####
+## FALSE:    no pluggable installation (default value)
+## CDB_PDB:  install CDB and PDB
+## PDB_ONLY: install PDB only in an existing CDB.
+## CDB_ONLY: install CDB only.
+ora.multitenant.installMT = FALSE
+{% endif %}
+
+{% if 'db_config_anydb_oracledb_121' in sap_swpm_inifile_list %}
+######
+# db_config_anydb_oracledb_121
+# Use path to Oracle Home - Runtime (i.e. $OHRDBMS env var)
+######
+ora.dbhome = /oracle/{{ sap_swpm_db_sid }}/121
 storageBasedCopy.ora.clientVersion = 121
 storageBasedCopy.ora.serverVersion = 121
+{% endif %}
+
+{% if 'db_config_anydb_oracledb_122' in sap_swpm_inifile_list %}
+######
+# db_config_anydb_oracledb_122
+# Use path to Oracle Home - Runtime (i.e. $OHRDBMS env var)
+######
+ora.dbhome = /oracle/{{ sap_swpm_db_sid }}/122
+storageBasedCopy.ora.clientVersion = 122
+storageBasedCopy.ora.serverVersion = 122
+{% endif %}
+
+{% if 'db_config_anydb_oracledb_19' in sap_swpm_inifile_list %}
+######
+# db_config_anydb_oracledb_19
+# Use path to Oracle Home - Runtime (i.e. $OHRDBMS env var)
+######
+ora.dbhome = /oracle/{{ sap_swpm_db_sid }}/19
+storageBasedCopy.ora.clientVersion = 19
+storageBasedCopy.ora.serverVersion = 19
 {% endif %}
 
 {% if 'db_config_anydb_sapase' in sap_swpm_inifile_list %}
