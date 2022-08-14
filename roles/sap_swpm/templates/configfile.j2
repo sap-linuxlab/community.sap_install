@@ -430,39 +430,37 @@ NW_GetSidNoProfiles.sid = {{ sap_swpm_sid }}
 # OS4.DestinationASP =
 {% endif %}
 
-{% if 'nw_config_central_instance' in sap_swpm_inifile_list %}
+{% if 'nw_config_central_services_abap' in sap_swpm_inifile_list %}
 ######
-# nw_config_central_instance
+# nw_config_central_services_abap
+# Central Services (ASCS) contains the Message server (MS) and Enqueue work processes (EN) for the ABAP Dispatcher.
+# Formerly the processes were contained in the Central Instance (CI).
 ######
 NW_CI_Instance.ascsVirtualHostname = {{ sap_swpm_ascs_instance_hostname }}
-NW_CI_Instance.scsVirtualHostname = {{ sap_swpm_pas_instance_hostname }}
-NW_SCS_Instance.scsVirtualHostname = {{ sap_swpm_ascs_instance_hostname }}
-NW_CI_Instance.ciVirtualHostname = {{ sap_swpm_pas_instance_hostname }}
-{% endif %}
-
-{% if 'nw_config_webdisp_gateway' in sap_swpm_inifile_list %}
-######
-# nw_config_webdisp_gateway
-#
-# It is recommended to install gateway as part of ASCS
-# It is NOT recommended to install webdispatcher as part of ASCS. A separate Web Dispatcher instance must be installed
-######
-NW_SCS_Instance.ascsInstallGateway = {{ sap_swpm_ascs_install_gateway | lower }}
-# NW_CI_Instance.ascsInstallGateway = false
-# NW_CI_Instance.ascsInstallWebDispatcher = false
-# NW_SCS_Instance.ascsInstallWebDispatcher = false
-{% endif %}
-
-{% if 'nw_config_instance' in sap_swpm_inifile_list %}
-######
-# nw_config_instance
-######
 NW_CI_Instance.ascsInstanceNumber = {{ sap_swpm_ascs_instance_nr }}
-# NW_SCS_Instance.ascsInstanceNumber =
-NW_SCS_Instance.instanceNumber = {{ sap_swpm_ascs_instance_nr }}
-NW_CI_Instance.ciInstanceNumber = {{ sap_swpm_pas_instance_nr }}
+NW_SCS_Instance.ascsInstanceNumber = {{ sap_swpm_ascs_instance_nr }}
+{% endif %}
+
+{% if 'nw_config_central_services_java' in sap_swpm_inifile_list %}
+######
+# nw_config_central_services_java
+# SAP Java Central Services Instance (SCS) contains the Java Message server (MS), Java Enqueue server (EN), Java Gateway (GW) and Java Internal Web Dispatcher (WD).
+######
+NW_CI_Instance.scsVirtualHostname = {{ sap_swpm_java_scs_instance_hostname }}
 NW_CI_Instance.scsInstanceNumber = {{ sap_swpm_java_scs_instance_nr }}
+NW_SCS_Instance.scsVirtualHostname = {{ sap_swpm_java_scs_instance_hostname }}
 # NW_SCS_Instance.scsInstanceNumber =
+NW_SCS_Instance.instanceNumber = {{ sap_swpm_java_scs_instance_nr }}
+{% endif %}
+
+{% if 'nw_config_primary_application_server_instance' in sap_swpm_inifile_list %}
+######
+# nw_config_primary_application_server_instance
+# Primary Application Server (PAS) contains the Internet Communication Manager (ICM), Gateway (GW), and ABAP Dispatcher (DI/WP) work processes.
+# Formerly called the Central Instance (CI).
+######
+NW_CI_Instance.ciVirtualHostname = {{ sap_swpm_pas_instance_hostname }}
+NW_CI_Instance.ciInstanceNumber = {{ sap_swpm_pas_instance_nr }}
 # NW_WPConfiguration.ciBtcWPNumber = 6
 # NW_WPConfiguration.ciDialogWPNumber = 10
 # NW_CI_Instance.nodesNum = 
@@ -530,6 +528,19 @@ NW_webdispatcher_Instance.scenarioSize = {{ sap_swpm_wd_backend_scenario_size }}
 NW_webdispatcher_Instance.wdHTTPPort = 80{{ sap_swpm_wd_instance_nr }}
 NW_webdispatcher_Instance.wdHTTPSPort = 443{{ sap_swpm_wd_instance_nr }}
 NW_webdispatcher_Instance.wdVirtualHostname = {{ sap_swpm_wd_virtual_host }}
+{% endif %}
+
+{% if 'nw_config_webdisp_gateway' in sap_swpm_inifile_list %}
+######
+# nw_config_webdisp_gateway
+#
+# It is recommended to install gateway as part of ASCS
+# It is NOT recommended to install webdispatcher as part of ASCS. A separate Web Dispatcher instance must be installed
+######
+NW_SCS_Instance.ascsInstallGateway = {{ sap_swpm_ascs_install_gateway | lower }}
+# NW_CI_Instance.ascsInstallGateway = false
+# NW_CI_Instance.ascsInstallWebDispatcher = false
+# NW_SCS_Instance.ascsInstallWebDispatcher = false
 {% endif %}
 
 {% if 'nw_config_host_agent' in sap_swpm_inifile_list %}
