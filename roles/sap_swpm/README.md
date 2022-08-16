@@ -143,7 +143,7 @@ Every SAP Software installation via SAP Software Provisioning Manager (SWPM) is 
 
 ### Default Templates mode variables
 
-Example using all inifile list parameters with the Default Templates mode:
+Example using all inifile list parameters with the Default Templates mode to install SAP ECC EhP8 on IBM Db2:
 
 ```
 sap_swpm_ansible_role_mode: default_templates
@@ -151,7 +151,7 @@ sap_swpm_templates_product_input: default_templates
 
 sap_swpm_templates_install_dictionary:
 
-  template_name:
+  template_name_ecc_ehp8_ibmdb2:
 
     sap_swpm_product_catalog_id: NW_ABAP_OneHost:BS2016.ERP608.DB6.PD
     sap_swpm_inifile_dictionary:
@@ -159,36 +159,23 @@ sap_swpm_templates_install_dictionary:
       ...
     sap_swpm_inifile_list:
     - swpm_installation_media
-    - swpm_installation_media_swpm2_hana
     - swpm_installation_media_swpm1
+    - swpm_installation_media_swpm1_exportfiles
     - swpm_installation_media_swpm1_ibmdb2
     - sum_config
     - credentials
-    - credentials_hana
     - credentials_anydb_ibmdb2
-    - credentials_anydb_oracledb
-    - credentials_anydb_sapase
-    - credentials_anydb_sapmaxdb
-    - db_config_hana
     - db_config_anydb_all
     - db_config_anydb_ibmdb2
-    - db_config_anydb_oracledb
-    - db_config_anydb_sapase
-    - db_config_anydb_sapmaxdb
-    - db_connection_nw_hana
     - db_connection_nw_anydb_ibmdb2
-    - db_connection_nw_anydb_oracledb
-    - db_restore_hana
     - nw_config_anydb
     - nw_config_other
-    - nw_config_central_instance
-    - nw_config_ers
-    - nw_config_webdisp_gateway
-    - nw_config_instance
+    - nw_config_central_services_abap
+    #  - nw_config_central_services_java
+    - nw_config_primary_application_server_instance
     - nw_config_ports
-    - nw_config_java_ume
-    - nw_config_webdisp_generic
     - nw_config_host_agent
+    #  - nw_config_post_abap_reports
     - sap_os_nix_user
 ```
 
