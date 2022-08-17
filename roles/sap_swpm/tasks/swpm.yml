@@ -12,7 +12,7 @@
 #  register: __sap_swpm_register_sapinst
 #  args:
 #    chdir: "{{ sap_swpm_sapinst_path }}"
-#  failed_when: __sap_swpm_register_sapinst.rc != 0
+#  failed_when: __sap_swpm_register_sapinst is failed
 #  changed_when: "'SAPinst build information' in __sap_swpm_register_sapinst.stdout"
 ##  changed_when: "'instslana' in __sap_swpm_register_sapinst.stdout"
 
@@ -48,38 +48,38 @@
 
 # Call sapinst synchronously
 # Reason for noqa: This command installs software, so it will change things
-- name: SAP SWPM - {{ sap_swpm_swpm_installation_header }} # noqa no-changed-when
-  ansible.builtin.command: "{{ __sap_swpm_sapinst_command }}"
-  register: __sap_swpm_register_sapinst
-  args:
-    chdir: "{{ sap_swpm_sapinst_path }}"
+# - name: SAP SWPM - {{ sap_swpm_swpm_installation_header }} # noqa no-changed-when
+#   ansible.builtin.command: "{{ __sap_swpm_sapinst_command }}"
+#   register: __sap_swpm_register_sapinst
+#   args:
+#     chdir: "{{ sap_swpm_sapinst_path }}"
 
 # Execute SAP SWPM
 # Reason for noqa: This command installs software, so it will change things
-# - name: SAP SWPM - {{ sap_swpm_swpm_installation_header }} # noqa no-changed-when
-#   ansible.builtin.command: "{{ __sap_swpm_sapinst_command }}"
-#   register: __sap_swpm_register_sapinst_async_job
-#   args:
-#     chdir: "{{ sap_swpm_sapinst_path }}"
-#   async: 32400 # Seconds for maximum runtime, set to 9 hours
-#   poll: 0 # Seconds between polls, use 0 to run Ansible Tasks concurrently
+- name: SAP SWPM - {{ sap_swpm_swpm_installation_header }} # noqa no-changed-when
+  ansible.builtin.command: "{{ __sap_swpm_sapinst_command }}"
+  register: __sap_swpm_register_sapinst_async_job
+  args:
+    chdir: "{{ sap_swpm_sapinst_path }}"
+  async: 32400 # Seconds for maximum runtime, set to 9 hours
+  poll: 0 # Seconds between polls, use 0 to run Ansible Tasks concurrently
 
 # Monitor sapinst process (i.e. ps aux | grep sapinst) and wait for exit
-# - name: SAP SWPM - Wait for sapinst process to exit, poll every 60 seconds
-#   community.general.pids:
-#     name: sapinst
+- name: SAP SWPM - Wait for sapinst process to exit, poll every 60 seconds
+  community.general.pids:
+    name: sapinst
 #  shell: ps -ef | awk '/sapinst/&&!/awk/&&!/ansible/{print}'
-#   register: pids_sapinst
-#   until: "pids_sapinst.pids | length == 0"
+  register: pids_sapinst
+  until: "pids_sapinst.pids | length == 0"
 #  until: "pids_sapinst.stdout | length == 0"
-#   retries: 1000
-#   delay: 60
+  retries: 1000
+  delay: 60
 
-# - name: SAP SWPM - Verify if sapinst process finished successfully
-#   ansible.builtin.async_status:
-#     jid: "{{ __sap_swpm_register_sapinst_async_job.ansible_job_id }}"
-#   register: __sap_swpm_register_sapinst
-#   failed_when: __sap_swpm_register_sapinst.finished != 1 or __sap_swpm_register_sapinst.rc != 0
+- name: SAP SWPM - Verify if sapinst process finished successfully
+  ansible.builtin.async_status:
+    jid: "{{ __sap_swpm_register_sapinst_async_job.ansible_job_id }}"
+  register: __sap_swpm_register_sapinst
+  failed_when: __sap_swpm_register_sapinst.finished != 1 or __sap_swpm_register_sapinst.rc != 0
 #   #until: __sap_swpm_register_sapinst.finished
 #   #retries: 1000
 #   #delay: 60
@@ -88,9 +88,9 @@
   ansible.builtin.debug:
     msg: "{{ __sap_swpm_register_sapinst.rc }}"
 
-#- name: SAP SWPM - debug SAP SWPM stdout
-#  debug:
-#    msg: "{{ __sap_swpm_register_sapinst.stdout_lines }}"
+- name: SAP SWPM - Display the sapinst output
+  ansible.builtin.debug:
+    msg: "{{ __sap_swpm_register_sapinst.stdout_lines }}"
 
 - name: SAP SWPM - Find last installation location
   ansible.builtin.command: cat /tmp/sapinst_instdir/.lastInstallationLocation
