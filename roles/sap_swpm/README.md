@@ -176,7 +176,7 @@ sap_swpm_templates_install_dictionary:
     - nw_config_ports
     - nw_config_host_agent
     #  - nw_config_post_abap_reports
-    - sap_os_nix_user
+    - sap_os_linux_user
 ```
 
 ## License
