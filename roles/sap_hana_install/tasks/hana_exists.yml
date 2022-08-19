@@ -39,7 +39,10 @@
         fail_msg: "FAIL: Group sapsys exists but with a different group ID than '{{ sap_hana_install_groupid }}',
 	           which has been specified in variable sap_hana_install_groupid.
 	           Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
-      when: __sap_hana_install_register_getent_group_sapsys is succeeded
+      when: __sap_hana_install_register_getent_group_sapsys.rc == 0
+#      Note: the following will lead to "The task includes an option with an undefined variable."
+#            if sap_hana_install_groupid is defined and no such group is present
+#      when: __sap_hana_install_register_getent_group_sapsys is succeeded
 
   when:
     - sap_hana_install_groupid is defined
