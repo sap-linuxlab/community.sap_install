@@ -1,0 +1,49 @@
+---
+# tasks file for sap_detect_cloud_provider
+- when: sap_detect_cloud_provider_cloud_provider is not defined
+  block:
+  - name: (Azure) Get instance metadata
+    ansible.builtin.uri:
+      headers:
+        Metadata: true
+      method: GET
+      url: http://169.254.169.254/metadata/instance/compute?api-version=2021-10-01
+    register: detect_cloud_provider_azure_instance_metadata
+    changed_when: false
+    ignore_errors: true
+
+  - name: (AWS) Get instance metadata token
+    ansible.builtin.uri:
+      headers:
+        X-aws-ec2-metadata-token-ttl-seconds: 21600
+      method: PUT
+      return_content: true
+      url: http://169.254.169.254/latest/api/token
+    register: detect_cloud_provider_aws_token
+    changed_when: false
+    ignore_errors: true
+
+  - name: (AWS) Get instance metadata ami-id
+    ansible.builtin.uri:
+      headers:
+        X-aws-ec2-metadata-token: "{{ detect_cloud_provider_aws_token.content }}"
+      method: GET
+      return_content: true
+      url: http://169.254.169.254/latest/meta-data/ami-id
+    register: detect_cloud_provider_aws_ami_id
+    changed_when: false
+    ignore_errors: true
+
+  - name: (Azure) Set detect_cloud_provider_cloud_provider
+    ansible.builtin.set_fact:
+      sap_detect_cloud_provider_cloud_provider: "azure"
+    when:
+      - detect_cloud_provider_azure_instance_metadata.json.azEnvironment is defined
+      - detect_cloud_provider_azure_instance_metadata.json.azEnvironment == "AzurePublicCloud"
+
+
+  - name: (AWS) Set detect_cloud_provider_cloud_provider
+    ansible.builtin.set_fact:
+      sap_detect_cloud_provider_cloud_provider: "aws"
+    when:
+      - not detect_cloud_provider_aws_ami_id.failed
