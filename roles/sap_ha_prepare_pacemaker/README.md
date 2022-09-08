@@ -51,8 +51,8 @@ The **sap_ha_install_pacemaker** prepares all nodes of a cluster to be able to i
 ## Requirements, Dependencies and Testing
 
 Tests are performed with other Ansible Roles in the sequence. Please refer to tests performed with final Ansible Roles:
-- [sap_ha_set_hana Ansible Role - Requirements, Dependencies and Testing](roles/sap_ha_set_hana/README.md#l#requirements-dependencies-and-testing)
-- [sap_ha_set_netweaver Ansible Role - Requirements, Dependencies and Testing](roles/sap_ha_set_netweaver/README.md#l#requirements-dependencies-and-testing)
+- [sap_ha_set_hana Ansible Role - Requirements, Dependencies and Testing](../sap_ha_set_hana/README.md#requirements-dependencies-and-testing)
+- [sap_ha_set_netweaver Ansible Role - Requirements, Dependencies and Testing](../sap_ha_set_netweaver/README.md#requirements-dependencies-and-testing)
 
 ## Example Parameter File
 
