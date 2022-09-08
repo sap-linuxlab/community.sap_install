@@ -1,4 +1,4 @@
-# sap_storage Ansible Role
+# sap_storage_setup Ansible Role
 
 Ansible role for preparing the storage requirements of an SAP system prior to installation
 

@@ -78,7 +78,7 @@ Within this Ansible Collection, there are various Ansible Roles and no custom An
 | [sap_ha_set_hana](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_set_hana)                       | configure HA/DR for SAP HANA                                           |
 | [sap_ha_set_netweaver](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_set_netweaver)             | configure HA/DR for SAP NetWeaver                                      |
 | [sap_hostagent](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hostagent)                           | install SAP Host Agent                                                 |
-| [sap_storage](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_storage)                               | configure storage for SAP HANA, with LVM partitions and XFS filesystem |
+| [sap_storage_setup](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_storage_setup)                               | configure storage for SAP HANA, with LVM partitions and XFS filesystem |
 | [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect)     | detect and extract SAP Software installation media                     |
 
 **_Notes_**:
