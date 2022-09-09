@@ -2,6 +2,8 @@
 - name: "SAP Prepare Pacemaker - Pick up primary node name from definition"
   ansible.builtin.set_fact:
     __sap_ha_prepare_pacemaker_primary_node: "{{ item.node_name }}"
+    __sap_ha_prepare_pacemaker_primary_node_name: "{{ item.node_name }}"
+    __sap_ha_prepare_pacemaker_primary_node_ip: "{{ item.node_ip }}"
   when:
     - item.node_role is defined
     - item.node_role == 'primary'
@@ -14,19 +16,61 @@
     - pacemaker
     - ha
 
-- name: "SAP Prepare Pacemaker - Check if pcs package is installed"
-  shell: |
-    rpm -qa pcs
-  args:
-    executable: /bin/bash
-  become: true
-  become_user: root
-  register: sap_ha_prepare_pacemaker_check_pcs
+- name: "SAP Prepare Pacemaker - Verify Ansible connection to primary node by name"
+  ansible.builtin.command: |
+    hostname -s
+  delegate_to: "{{ __sap_ha_prepare_pacemaker_primary_node_name }}"
+  register: __sap_ha_prepare_pacemaker_primary_node_name_check
+  when:
+    - ansible_hostname != __sap_ha_prepare_pacemaker_primary_node_name
+  ignore_unreachable: true
+  ignore_errors: true
+  failed_when: false
   changed_when: false
+  become: false
   tags:
-    - ha_software
     - pacemaker
     - ha
+
+# BEGIN of primary node connectivity test block
+- name: "SAP Prepare Pacemaker - Connection verification block"
+  block:
+    - name: "SAP Prepare Pacemaker - Verify Ansible conn to primary node IP"
+      ansible.builtin.command: |
+        hostname -s
+      delegate_to: "{{ __sap_ha_prepare_pacemaker_primary_node_ip }}"
+      register: __sap_ha_prepare_pacemaker_primary_node_ip_check
+      ignore_unreachable: true
+      ignore_errors: true
+      failed_when: false
+      changed_when: false
+
+    - name: "SAP Prepare Pacemaker - Use IP for primary node delegation"
+      ansible.builtin.set_fact:
+        __sap_ha_prepare_pacemaker_primary_node: "{{ __sap_ha_prepare_pacemaker_primary_node_ip }}"
+      when:
+        - __sap_ha_prepare_pacemaker_primary_node_ip_check.stdout == __sap_ha_prepare_pacemaker_primary_node_name
+
+    - name: "SAP Prepare Pacemaker - Fail if primary node is unreachable"
+      ansible.builtin.fail:
+        msg: |
+          Aborting due to issues identifying and connecting to the primary node.
+          It can either not be reached by host name or the connected IP returns
+          an unmatching hostname.
+      when:
+        - __sap_ha_prepare_pacemaker_primary_node_ip_check.unreachable is defined or
+          __sap_ha_prepare_pacemaker_primary_node_ip_check.stdout != __sap_ha_prepare_pacemaker_primary_node_name
+
+  # block settings
+  when:
+    - ansible_hostname != __sap_ha_prepare_pacemaker_primary_node_name
+    - __sap_ha_prepare_pacemaker_primary_node_name_check.unreachable is defined
+    - __sap_ha_prepare_pacemaker_primary_node_name_check.unreachable
+  become: false
+  tags:
+    - pacemaker
+    - ha
+# END of primary node connectivity test block
 
 - name: "SAP Prepare Pacemaker - Software Setup"
   include_tasks:
@@ -36,8 +80,6 @@
         - ha_software
         - pacemaker
         - ha
-  when:
-    - sap_ha_prepare_pacemaker_check_pcs.rc != '0'
   tags:
     - ha_software
     - pacemaker
@@ -63,15 +105,15 @@
         - pacemaker
         - ha
   when:
-    - (sap_hana_configure_firewall is defined and sap_hana_configure_firewall) or
-      sap_ha_prepare_pacemaker_configure_firewall
+    - (sap_hana_configure_firewall is defined and sap_hana_configure_firewall)
+      or sap_ha_prepare_pacemaker_configure_firewall
   tags:
     - ha_firewall
     - pacemaker
     - ha
 
 - name: "SAP Prepare Pacemaker - Check Cluster Status"
-  shell: |
+  ansible.builtin.shell: |
     pcs cluster status
   args:
     executable: /bin/bash

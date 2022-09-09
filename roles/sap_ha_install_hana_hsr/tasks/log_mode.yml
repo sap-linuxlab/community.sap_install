@@ -3,17 +3,18 @@
   tags: hsr_logmode
   become: true
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
-  shell: |
+  ansible.builtin.shell: |
     grep "log_mode" /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/hdb/custom/config/global.ini | grep normal
   register: sap_ha_install_hana_hsr_log_mode
   failed_when: false
   changed_when: false
 
+# CHECK, if ansible_hostname needs to be replaced with interface name
 - name: "SAP HSR - Set log_mode to normal"
   tags: hsr_logmode
   become: true
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
-  shell: |
+  ansible.builtin.shell: |
     /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql \
     -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
     -m <<EOF

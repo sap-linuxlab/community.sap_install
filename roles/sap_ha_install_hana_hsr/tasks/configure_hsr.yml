@@ -1,6 +1,6 @@
 ---
 - name: "SAP HSR - Check System Replication Status"
-  shell: |
+  ansible.builtin.shell: |
     source /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/home/.sapenv.sh && \
     /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/HDB{{ sap_ha_install_hana_hsr_instance_number }}/exe/hdbnsutil \
     -sr_state
@@ -15,7 +15,7 @@
 # looping through cluster definition to run on defined primary
 # and apply the respective 'site' value
 - name: "SAP HSR - Enable HANA System Replication on primary node"
-  shell: |
+  ansible.builtin.shell: |
     source /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/home/.sapenv.sh && \
     /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/HDB{{ sap_ha_install_hana_hsr_instance_number }}/exe/hdbnsutil \
     -sr_enable --name="{{ item.hana_site }}"
@@ -26,9 +26,9 @@
   register: enablesr
   changed_when: "'successfully enabled system as system replication source site' in enablesr.stdout"
   when:
-    - ansible_hostname == item.node_name
+    - __sap_ha_install_hana_hsr_node_name == item.node_name.split('.')[0]
     - item.node_role is defined and item.node_role == 'primary'
-    - ansible_hostname not in __sap_ha_install_hana_hsr_srstate.stdout
+    - "'is source system' not in __sap_ha_install_hana_hsr_srstate.stdout"
   loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
   loop_control:
     label: "{{ item.node_name }}"
@@ -36,11 +36,11 @@
 # looping through cluster definition to run on secondary node
 # and apply the respective 'site' value
 - name: "SAP HSR - Register secondary node to HANA System Replication"
-  shell: |
+  ansible.builtin.shell: |
     source /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/home/.sapenv.sh && \
     /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/HDB{{ sap_ha_install_hana_hsr_instance_number }}/exe/hdbnsutil \
     -sr_register --name={{ item.hana_site }} \
-    --remoteHost={{ __sap_ha_install_hana_hsr_primary_node }} --remoteInstance={{ sap_ha_install_hana_hsr_instance_number }} \
+    --remoteHost={{ __sap_ha_install_hana_hsr_primary_node_name }} --remoteInstance={{ sap_ha_install_hana_hsr_instance_number }} \
     --replicationMode={{ sap_ha_install_hana_hsr_rep_mode }} --operationMode={{ sap_ha_install_hana_hsr_oper_mode }} \
     --online
   args:
@@ -49,15 +49,15 @@
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   register: registersr
   when:
-    - ansible_hostname == item.node_name
+    - __sap_ha_install_hana_hsr_node_name == item.node_name.split('.')[0]
     - item.node_role is not defined or item.node_role == 'secondary'
-    - ansible_hostname not in __sap_ha_install_hana_hsr_srstate.stdout
+    - __sap_ha_install_hana_hsr_node_name not in __sap_ha_install_hana_hsr_srstate.stdout
   loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
   loop_control:
     label: "{{ item.node_name }}"
 
 - name: "SAP HSR - Start HANA instance on secondary"
-  shell: |
+  ansible.builtin.shell: |
     /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/HDB{{ sap_ha_install_hana_hsr_instance_number }}/exe/sapcontrol \
     -nr {{ sap_ha_install_hana_hsr_instance_number }} -function StartSystem
   args:
@@ -67,5 +67,5 @@
   register: startinstance
   changed_when: "'StartSystem' in startinstance.stdout"
   when:
-    - ansible_hostname != __sap_ha_install_hana_hsr_primary_node
-    - ansible_hostname not in __sap_ha_install_hana_hsr_srstate.stdout
+    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
+    - __sap_ha_install_hana_hsr_node_name not in __sap_ha_install_hana_hsr_srstate.stdout

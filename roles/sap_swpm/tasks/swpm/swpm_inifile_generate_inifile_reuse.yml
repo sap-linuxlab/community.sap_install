@@ -2,25 +2,27 @@
 
 # Copy reused inifile
 - name: SAP SWPM inifile_reuse mode - Copy reused inifile
-  copy:
+  ansible.builtin.copy:
     src: "{{ sap_swpm_inifile_reuse_source }}"
     dest: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+    mode: '0640'
 
 # Check inifile for des25
 - name: SAP SWPM inifile_reuse mode - Check inifile for des25
-  shell: cat "{{ sap_swpm_tmpdir.path }}/inifile.params" | grep des25 | wc -l
+  ansible.builtin.shell: set -o pipefail && cat "{{ sap_swpm_tmpdir.path }}/inifile.params" | grep des25 | wc -l
   register: sap_swpm_inifile_read_file
+  changed_when: false
 
 # Check if inifile is reusable
 - name: SAP SWPM inifile_reuse mode - Check if inifile is reusable
-  fail: 
+  ansible.builtin.fail:
     msg: "{{ sap_swpm_inifile_reuse_source }} is not reusable"
   when: sap_swpm_inifile_read_file.stdout != '0'
 
 # Detect variables from generated inifile
 - name: SAP SWPM inifile_reuse mode - Detect Variables
-  include_tasks: detect_variables.yml
+  ansible.builtin.include_tasks: detect_variables.yml
 
 # Prepare Software
 - name: SAP SWPM inifile_reuse mode - Prepare Software
-  include_tasks: prepare_software.yml
+  ansible.builtin.include_tasks: prepare_software.yml

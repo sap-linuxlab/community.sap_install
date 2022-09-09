@@ -2,25 +2,25 @@
 # The following tasks are only included on the primary node!
 
 - name: "SAP Pacemaker Setup - Setup Pacemaker cluster"
-  shell: |
+  ansible.builtin.shell: |
     pcs cluster setup \
     {{ sap_ha_install_pacemaker_cluster_name }} {% for node in sap_ha_install_pacemaker_cluster_nodes %}{{ node.node_name }}{{ " " if not loop.last else "" }}{% endfor %} \
     totem token=30000 --force
 
 - name: "SAP Pacemaker Setup - Start Pacemaker cluster"
-  shell: |
+  ansible.builtin.shell: |
     pcs cluster start --all
     pcs cluster enable --all
 
 - name: "SAP Pacemaker Setup - Set Expected Votes = {{ sap_ha_install_pacemaker_cluster_nodes | length }}"
-  shell: |
+  ansible.builtin.shell: |
     pcs quorum expected-votes {{ sap_ha_install_pacemaker_cluster_nodes | length }}
 
 - name: "SAP Pacemaker Setup - Check pcs properties"
   include_tasks: check_properties.yml
 
 - name: "SAP Pacemaker Setup - Allow concurrent fence actions"
-  shell: |
+  ansible.builtin.shell: |
     pcs property set concurrent-fencing=true
   when:
     - "'concurrent-fencing: true' not in __sap_ha_install_pacemaker_pcs_properties.stdout"

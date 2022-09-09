@@ -9,12 +9,12 @@
 #    {{ sap_swpm_swpm_command_inifile }} \
 #    {{ sap_swpm_swpm_command_product_id }} \
 #    {{ sap_swpm_swpm_command_extra_args }}
-#  register: sap_swpm_stdout_register
+#  register: __sap_swpm_register_sapinst
 #  args:
 #    chdir: "{{ sap_swpm_sapinst_path }}"
-#  failed_when: sap_swpm_stdout_register.rc != 0
-#  changed_when: "'SAPinst build information' in sap_swpm_stdout_register.stdout"
-##  changed_when: "'instslana' in sap_swpm_stdout_register.stdout"
+#  failed_when: __sap_swpm_register_sapinst is failed
+#  changed_when: "'SAPinst build information' in __sap_swpm_register_sapinst.stdout"
+##  changed_when: "'instslana' in __sap_swpm_register_sapinst.stdout"
 
 
 ### Async method
@@ -23,8 +23,8 @@
 - name: Install Python devel and gcc to system Python
   ansible.builtin.package:
     name:
-    - python3-devel
-    - gcc
+      - python3-devel
+      - gcc
     state: present
 
 # Required for Ansible Module pids
@@ -34,14 +34,31 @@
       - psutil
 #    executable: pip3.6
 
+- name: Set fact for the sapinst command line
+  ansible.builtin.set_fact:
+    __sap_swpm_sapinst_command: "./sapinst {{ sap_swpm_swpm_command_inifile }}
+    {{ sap_swpm_swpm_command_product_id }}
+    {{ sap_swpm_swpm_command_extra_args }}"
+  tags: sap_swpm_sapinst_commandline
+
+- name: Display the sapinst command line
+  ansible.builtin.debug:
+    msg: "SAP SWPM install command: '{{ __sap_swpm_sapinst_command }}'"
+  tags: sap_swpm_sapinst_commandline
+
+# Call sapinst synchronously
+# Reason for noqa: This command installs software, so it will change things
+# - name: SAP SWPM - {{ sap_swpm_swpm_installation_header }} # noqa no-changed-when
+#   ansible.builtin.command: "{{ __sap_swpm_sapinst_command }}"
+#   register: __sap_swpm_register_sapinst
+#   args:
+#     chdir: "{{ sap_swpm_sapinst_path }}"
+
 # Execute SAP SWPM
-- name: SAP SWPM - {{ sap_swpm_swpm_installation_header }}
-  command: >-
-    ./sapinst \
-    {{ sap_swpm_swpm_command_inifile }} \
-    {{ sap_swpm_swpm_command_product_id }} \
-    {{ sap_swpm_swpm_command_extra_args }}
-  register: sap_swpm_async_job
+# Reason for noqa: This command installs software, so it will change things
+- name: SAP SWPM - {{ sap_swpm_swpm_installation_header }} # noqa no-changed-when
+  ansible.builtin.command: "{{ __sap_swpm_sapinst_command }}"
+  register: __sap_swpm_register_sapinst_async_job
   args:
     chdir: "{{ sap_swpm_sapinst_path }}"
   async: 32400 # Seconds for maximum runtime, set to 9 hours
@@ -59,37 +76,39 @@
   delay: 60
 
 - name: SAP SWPM - Verify if sapinst process finished successfully
-  async_status:
-    jid: "{{ sap_swpm_async_job.ansible_job_id }}"
-  register: sap_swpm_stdout_register
-  failed_when: sap_swpm_stdout_register.finished != 1 or sap_swpm_stdout_register.rc != 0
-  #until: sap_swpm_stdout_register.finished
-  #retries: 1000
-  #delay: 60
+  ansible.builtin.async_status:
+    jid: "{{ __sap_swpm_register_sapinst_async_job.ansible_job_id }}"
+  register: __sap_swpm_register_sapinst
+  failed_when: __sap_swpm_register_sapinst.finished != 1 or __sap_swpm_register_sapinst.rc != 0
+#   #until: __sap_swpm_register_sapinst.finished
+#   #retries: 1000
+#   #delay: 60
 
-#- name: SAP SWPM - debug SAP SWPM return/exit code
-#  debug:
-#    msg: "{{ sap_swpm_stdout_register.rc }}"
+- name: SAP SWPM - Display the sapinst return code
+  ansible.builtin.debug:
+    msg: "{{ __sap_swpm_register_sapinst.rc }}"
 
-#- name: SAP SWPM - debug SAP SWPM stdout
-#  debug:
-#    msg: "{{ sap_swpm_stdout_register.stdout_lines }}"
+- name: SAP SWPM - Display the sapinst output
+  ansible.builtin.debug:
+    msg: "{{ __sap_swpm_register_sapinst.stdout_lines }}"
 
 - name: SAP SWPM - Find last installation location
-  command: cat /tmp/sapinst_instdir/.lastInstallationLocation
+  ansible.builtin.command: cat /tmp/sapinst_instdir/.lastInstallationLocation
   register: swpm_last_install_path
+  changed_when: false
 
 - name: SAP SWPM - Verify if SWPM success file exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ swpm_last_install_path.stdout }}/installationSuccesfullyFinished.dat"
   register: swpm_success_file
   failed_when: swpm_success_file.stat.exists == false
 
 # Equivalent to running: cat $(cat /tmp/sapinst_instdir/.lastInstallationLocation)/installationSuccesfullyFinished.dat
 - name: SAP SWPM - Get success file
-  command: "cat {{ swpm_last_install_path.stdout }}/installationSuccesfullyFinished.dat"
+  ansible.builtin.command: "cat {{ swpm_last_install_path.stdout }}/installationSuccesfullyFinished.dat"
   register: swpm_success_file_contents
+  changed_when: false
 
 - name: SAP SWPM - Display installation finished from success file
-  debug:
+  ansible.builtin.debug:
     msg: "{{ swpm_success_file_contents.stdout_lines }}"
