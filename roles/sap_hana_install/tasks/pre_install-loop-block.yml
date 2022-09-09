@@ -1,0 +1,10 @@
+---
+
+# This loop block is necessary because setting the two variables in one set_fact task leads to incorrect list contents.
+- name: Set __sap_hana_install_fact_tmp_dirname
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_tmp_dirname: "{{ (__sap_hana_install_fact_tmp_dirname + '/' + __sap_hana_install_fact_software_directory.split(\"/\")[line_item | int]) | string }}"
+
+- name: Set __sap_hana_install_fact_software_directories
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_software_directories: "{{ __sap_hana_install_fact_software_directories | d([]) + [__sap_hana_install_fact_tmp_dirname] }}"

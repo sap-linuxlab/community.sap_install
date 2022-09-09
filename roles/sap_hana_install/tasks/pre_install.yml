@@ -21,9 +21,13 @@
 - name: Prepare the HANA software for installation, new system
   block:
 
-    - name: SAP HANA Pre Install - Check availability of software directory '{{ sap_hana_install_software_directory }}'
+    - name: SAP HANA Pre Install - Normalize directory path
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_software_directory: "{{ sap_hana_install_software_directory | regex_replace('\\/$', '') }}"
+
+    - name: SAP HANA Pre Install - Check availability of software directory '{{ __sap_hana_install_fact_software_directory }}'
       ansible.builtin.stat:
-        path: "{{ sap_hana_install_software_directory }}"
+        path: "{{ __sap_hana_install_fact_software_directory }}"
       check_mode: no
       register: __sap_hana_install_register_stat_software_directory
       failed_when: no
@@ -31,8 +35,38 @@
     - name: SAP HANA Pre Install - Assert that the software directory exists
       ansible.builtin.assert:
         that: __sap_hana_install_register_stat_software_directory.stat.exists
-        fail_msg: "FAIL: The software directory '{{ sap_hana_install_software_directory }}' does not exist!"
-        success_msg: "PASS: The software directory '{{ sap_hana_install_software_directory }}' exist."
+        fail_msg: "FAIL: The software directory '{{ __sap_hana_install_fact_software_directory }}' does not exist!"
+        success_msg: "PASS: The software directory '{{ __sap_hana_install_fact_software_directory }}' exist."
+
+    - name: SAP HANA Pre Install - Set fact for number of directory levels of the software directory
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_software_directory_levels: "{{ __sap_hana_install_fact_software_directory | regex_findall('/') | length }}"
+
+    - name: Display number of directory levels
+      ansible.builtin.debug:
+        var: __sap_hana_install_fact_software_directory_levels
+
+    - name: Set fact for list of software directories
+      ansible.builtin.include_tasks: ./pre_install-loop-block.yml
+      loop: "{{ range(1, __sap_hana_install_fact_software_directory_levels | int + 1, 1) | list }}"
+      loop_control:
+        loop_var: line_item
+
+    - name: Display __sap_hana_install_fact_software_directories
+      ansible.builtin.debug:
+        var: __sap_hana_install_fact_software_directories
+
+    - name: SAP HANA Pre Install - Change permissions of the top level directory tree of the software directory
+      ansible.builtin.file:
+        path: "{{ line_item }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+        recurse: no
+      loop: "{{ __sap_hana_install_fact_software_directories }}"
+      loop_control:
+        loop_var: line_item
 
     - name: SAP HANA Pre Install - Change ownership of HANA directories
       ansible.builtin.file:
@@ -136,7 +170,7 @@
 
       when: __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is not defined
 
-  when: sap_hana_install_new_system|d(true)
+  when: sap_hana_install_new_system | d(true)
 
 # For an addhosts operation, we first use the hdblcm command for creating a new configfile template, which
 # we then process with the templating engine. The actual addhosts installation is done via the resident hdblcm.
@@ -155,7 +189,7 @@
       ansible.builtin.set_fact:
         __sap_hana_install_fact_hdblcm_path: "{{ __sap_hana_install_register_find_directory_sap_hana_database_addhosts.files[0].path }}"
 
-  when: not sap_hana_install_new_system|d(true)
+  when: not sap_hana_install_new_system | d(true)
 
 ################
 # Pre Install Steps
