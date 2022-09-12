@@ -1,0 +1,53 @@
+---
+
+- name: SAP Install Media Detect - Oracle DB - Set fact for install media directory
+  set_fact:
+    oracledb_install_directory: "{{ sap_install_media_detect_directory }}/oracledb"
+    oracledb_client_install_directory: "{{ sap_install_media_detect_directory }}/oracledb_client"
+
+- name: SAP Install Media Detect - Oracle DB - Create Directory - {{ oracledb_install_directory }}
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  with_items:
+    - "{{ oracledb_install_directory }}"
+    - "{{ oracledb_client_install_directory }}"
+
+
+- name: List files in directory of Oracle DB installation media
+  ansible.builtin.shell: ls -1
+  args:
+    chdir: "{{ oracledb_install_directory }}"
+  register: oracledb_install_files
+
+- name: Extract ZIP files of Oracle DB installation media
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./{{ item }}_extracted; fi
+  args:
+    chdir: "{{ oracledb_install_directory }}"
+  with_items: 
+    - "{{ oracledb_install_files.stdout_lines }}"
+
+- name: List files in directory of Oracle DB Client
+  ansible.builtin.shell: ls -1
+  args:
+    chdir: "{{ oracledb_client_install_directory }}"
+  register: oracledb_client_files
+
+- name: Extract ZIP files of Oracle DB Client
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./{{ item }}_extracted; fi
+  args:
+    chdir: "{{ oracledb_client_install_directory }}"
+  with_items: 
+    - "{{ oracledb_client_files.stdout_lines }}"
+
+- name: Identify Oracle DB Client unpack path
+  ansible.builtin.find:
+    paths: "{{ oracledb_client_install_directory }}"
+    recurse: yes
+    file_type: directory
+    patterns: '.*OCL_LINUX_X86_64.*'
+    use_regex: yes
+  register: oracledb_client_find_dir

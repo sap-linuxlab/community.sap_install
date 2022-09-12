@@ -1,0 +1,40 @@
+---
+
+#- name: Identify SAP ECC Installation Export files
+#  ansible.builtin.find:
+#    paths: "{{ oracledb_client_install_directory }}"
+#    recurse: yes
+#    file_type: directory
+#    patterns: '.*OCL_LINUX_X86_64.*'
+#    use_regex: yes
+#  register: oracledb_client_find_dir
+
+- name: List files in directory of SAP ECC Installation Export
+  ansible.builtin.shell: ls -1
+  args:
+    chdir: "{{ sap_swpm_ecc_export_path }}"
+  register: ecc_export_files
+
+- name: If any ZIP, then extract the SAP ECC Installation Export file (legacy, before EHP8)
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }}; fi
+  args:
+    chdir: "{{ sap_swpm_ecc_export_path }}"
+  with_items: 
+    - "{{ ecc_export_files.stdout_lines }}"
+
+- name: If any RAR without file extension, then add file extension
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR archive data')" ]; then filename="{{ item }}" && if [ "${filename##*.}" != "rar" ]; then mv {{ item }} {{ item }}.rar ; fi ; fi
+  args:
+    chdir: "{{ sap_swpm_ecc_export_path }}"
+  with_items: 
+    - "{{ ecc_export_files.stdout_lines }}"
+
+- name: Get unrar binary for extraction
+  ansible.builtin.shell: curl https://www.rarlab.com/rar/rarlinux-x64-612.tar.gz | tar -xvz --strip-components=1 rar/unrar
+  args:
+    chdir: "{{ sap_swpm_ecc_export_path }}"
+
+- name: Extract SAP ECC Installation Export files (unrar x)
+  ansible.builtin.shell: ./unrar x "{{ softwarecenter_search_list_ecc_export[0] }}"
+  args:
+    chdir: "{{ sap_swpm_ecc_export_path }}"

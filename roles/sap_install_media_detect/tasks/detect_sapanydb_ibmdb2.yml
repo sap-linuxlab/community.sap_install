@@ -1,0 +1,44 @@
+---
+
+- name: SAP Install Media Detect - IBM Db2 - Set fact for install media directory
+  set_fact:
+    ibmdb2_install_directory: "{{ sap_install_media_detect_directory }}/ibmdb2"
+    ibmdb2_client_install_directory: "{{ sap_install_media_detect_directory }}/ibmdb2_client"
+
+- name: SAP Install Media Detect - IBM Db2 - Create Directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  with_items:
+    - "{{ ibmdb2_install_directory }}"
+    - "{{ ibmdb2_client_install_directory }}"
+
+
+- name: List files in directory of IBM DB2 installation media
+  ansible.builtin.shell: ls -1
+  args:
+    chdir: "{{ ibmdb2_install_directory }}"
+  register: ibm_db2_install_files
+
+- name: Extract ZIP files of IBM DB2 installation media
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./{{ item }}_extracted; fi
+  args:
+    chdir: "{{ ibmdb2_install_directory }}"
+  with_items: 
+    - "{{ ibm_db2_install_files.stdout_lines }}"
+
+- name: List files in directory of IBM DB2 Client
+  ansible.builtin.shell: ls -1
+  args:
+    chdir: "{{ ibmdb2_client_install_directory }}"
+  register: ibm_db2_client_files
+
+- name: Extract ZIP files of IBM DB2 Client
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./{{ item }}_extracted; fi
+  args:
+    chdir: "{{ ibmdb2_client_install_directory }}"
+  with_items: 
+    - "{{ ibm_db2_client_files.stdout_lines }}"

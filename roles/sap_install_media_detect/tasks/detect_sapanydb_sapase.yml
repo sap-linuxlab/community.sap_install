@@ -1,0 +1,58 @@
+---
+
+- name: SAP Install Media Detect - SAP ASE - Set fact for install media directory
+  set_fact:
+    sapase_install_directory: "{{ sap_install_media_detect_directory }}/sapase"
+    sapase_client_install_directory: "{{ sap_install_media_detect_directory }}/sapase_client"
+
+- name: SAP Install Media Detect - SAP ASE - Create Directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  with_items:
+    - "{{ sapase_install_directory }}"
+    - "{{ sapase_client_install_directory }}"
+
+
+- name: List files in directory of SAP ASE 16.0 installation media
+  ansible.builtin.shell: ls -1
+  args:
+    chdir: "{{ sapase_install_directory }}"
+  register: sapase_install_files
+
+- name: Extract ZIP files of SAP ASE 16.0 installation media
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./{{ item }}_extracted; fi
+  args:
+    chdir: "{{ sapase_install_directory }}"
+  with_items: 
+    - "{{ sapase_install_files.stdout_lines }}"
+
+- name: List files in directory of SAP ASE 16.0 Client
+  ansible.builtin.shell: ls -1
+  args:
+    chdir: "{{ sapase_client_install_directory }}"
+  register: sapase_client_files
+
+- name: Extract SAP ASE 16.0 Client with SAPCAR
+  ansible.builtin.shell: |
+    chmod +x {{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }}
+    {{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }} \
+    -xvf {{ item }} \
+    -manifest SIGNATURE.SMF
+    register: sap_swpm_extractswpm
+  args:
+    chdir: "{{ sapase_client_install_directory }}"
+  with_items: 
+    - "{{ sapase_client_files.stdout_lines }}"
+
+- name: Identify SAP ASE unpack path
+  ansible.builtin.find:
+    paths: "{{ sapase_install_directory }}"
+    recurse: yes
+    file_type: directory
+    patterns: '.*BD_SYBASE_ASE_16.*'
+    use_regex: yes
+  register: sapase_find_dir

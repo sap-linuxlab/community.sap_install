@@ -1,0 +1,38 @@
+---
+
+- name: SAP Install Media Detect - SAP MaxDB - Set fact for install media directory
+  set_fact:
+    sapmaxdb_install_directory: "{{ sap_install_media_detect_directory }}/sapmaxdb"
+
+- name: SAP Install Media Detect - SAP MaxDB - Create Directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  with_items:
+    - "{{ sapmaxdb_install_directory }}"
+
+
+- name: List files in directory of SAP MaxDB installation media
+  ansible.builtin.shell: ls -1
+  args:
+    chdir: "{{ sapmaxdb_install_directory }}"
+  register: sapmaxdb_install_files
+
+- name: Extract ZIP files of SAP MaxDB installation media
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./{{ item }}_extracted; fi
+  args:
+    chdir: "{{ sapmaxdb_install_directory }}"
+  with_items: 
+    - "{{ sapmaxdb_install_files.stdout_lines }}"
+
+- name: Identify SAP MaxDB unpack path
+  ansible.builtin.find:
+    paths: "{{ sapmaxdb_install_directory }}"
+    recurse: yes
+    file_type: directory
+    patterns: '.*MaxDB_7.9.*'
+    use_regex: yes
+  register: sapmaxdb_find_dir
