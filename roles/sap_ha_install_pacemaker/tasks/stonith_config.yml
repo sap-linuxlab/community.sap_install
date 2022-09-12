@@ -24,8 +24,11 @@
   loop: "{{ sap_ha_install_pacemaker_stonith_devices }}"
   loop_control:
     label: "{{ item.agent }} as {{ item.name }}"
+  register: __sap_ha_install_pacemaker_configure_fence_device
   when:
     - item.name not in __sap_ha_install_pacemaker_stonith_check.stdout
+  failed_when:
+    - __sap_ha_install_pacemaker_configure_fence_device.stderr != ""
 
 - name: "SAP Pacemaker Setup - Enable the STONITH devices"
   ansible.builtin.shell: |
