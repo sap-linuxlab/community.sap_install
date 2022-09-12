@@ -20,7 +20,7 @@ This role has been tested and working for the following SAP products
 
 ### SAP Preconfigure
 
-- Ensure the required volumes and filesystems are configured in the host. You can use the role `sap_storage` to configure this. More info [here](/roles/sap_storage)
+- Ensure the required volumes and filesystems are configured in the host. You can use the role `sap_storage_setup` to configure this. More info [here](/roles/sap_storage_setup)
 
 - Please run the RHEL SAP System Role `sap_general_preconfigure` for initial host configuration; as necessary, also use `sap_netweaver_preconfigure` and `sap_hana_preconfigure`
 

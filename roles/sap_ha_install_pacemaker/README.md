@@ -65,6 +65,12 @@ sap_pacemaker_stonith_devices:    - Please also check [SAP HANA scale-up Referen
 
 ```
 
+## Requirements, Dependencies and Testing
+
+Tests are performed with other Ansible Roles in the sequence. Please refer to tests performed with final Ansible Roles:
+- [sap_ha_set_hana Ansible Role - Requirements, Dependencies and Testing](../sap_ha_set_hana/README.md#requirements-dependencies-and-testing)
+- [sap_ha_set_netweaver Ansible Role - Requirements, Dependencies and Testing](../sap_ha_set_netweaver/README.md#requirements-dependencies-and-testing)
+
 ## Example Parameter File - Please also check [SAP HANA scale-up Reference Architecture](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
 
 ```
