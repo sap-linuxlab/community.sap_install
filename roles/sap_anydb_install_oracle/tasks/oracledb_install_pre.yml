@@ -1,0 +1,119 @@
+---
+
+# See further:
+## oracle-database-preinstall-12cr1.rpm
+## oracle-database-preinstall-12cr2.rpm
+## oracle-database-preinstall-19c.rpm >> https://yum.oracle.com/repo/OracleLinux/OL8/appstream/x86_64/getPackage/oracle-database-preinstall-19c-1.0-2.el8.x86_64.rpm
+- name: Install Korn Shell (KSH) and other dependencies for Oracle DB
+  ansible.builtin.package:
+    name: 
+    - ksh
+    - mksh
+    - bc
+    - bind-utils
+    - gcc
+    - gcc-c++
+    - glibc-devel
+    - libcap
+    - libaio
+    - libaio-devel
+    - libgcc
+    - libstdc++
+    - libstdc++-devel
+    - make
+    - psmisc
+    - rdma-core-devel
+    - smartmontools
+    - sysstat
+    - unzip
+    - xorg-x11-utils
+    - xorg-x11-xauth
+    - unixODBC
+    - unixODBC-devel
+    state: present
+
+# Removed Packages from RHEL 8.x
+# https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html-single/considerations_in_adopting_rhel_8/index#removed-packages_changes-to-packages
+#    - compat-libcap1
+#    - compat-libstdc++-33
+
+
+- name: Oracle DB - Create Linux User Groups
+  become_user: root
+  ansible.builtin.group:
+    name: "{{ item.group }}"
+    gid: "{{ item.gid }}"
+    state: present
+  loop:
+    - { group: oinstall, gid: '1001' }
+    - { group: dba, gid: '1002' }
+    - { group: oper, gid: '1003' }
+    - { group: oracle, gid: '1004' }
+
+- name: Oracle DB - Create Linux Users
+  become_user: root
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    uid: "{{ item.uid }}"
+    groups: "{{ item.groups }}"
+    shell: "{{ item.shell }}"
+    comment: "{{ item.comment }}"
+    append: yes
+    state: present
+  with_items:
+    - { name: 'oracle', uid: '1003', groups: 'oinstall,dba,oper', shell: '/bin/csh', comment: 'Oracle System Administrator' }
+
+- name: Oracle DB - Create directories, from root user
+  become_user: root
+  file:
+    state: directory
+    path: "{{ item.path }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: '0774'
+  loop: 
+    - { path: "{{ oracledb_base }}", owner: oracle, group: oinstall } #  Oracle Base directory
+    - { path: "{{ oracledb_base }}/dvd/19.0.0", owner: oracle, group: oinstall } #  Oracle home image file path
+    - { path: "{{ oracledb_base }}/{{ oracledb_sid }}/19.0.0", owner: oracle, group: oinstall } #  Oracle Home installation directory
+    - { path: "{{ oracledb_inventory_central }}", owner: oracle, group: oracle } #  Oracle Central Inventory
+    - { path: "{{ oracledb_base }}{{ oracledb_inventory_central }}", owner: oracle, group: oinstall } #  Oracle Inventory
+    - { path: "{{ oracledb_filesystem_storage }}", owner: oracle, group: oinstall }
+    - { path: /rman, owner: oracle, group: oinstall }
+    - { path: /archivelog, owner: oracle, group: oinstall }
+
+- name: Oracle DB - Copy installation media
+  ansible.builtin.copy:
+    remote_src: true
+    directory_mode: true
+    src: "{{ oracledb_installer_extract_path }}/LINUX_X86_64/"
+    dest: "{{ oracledb_base }}/dvd/19.0.0"
+    owner: oracle
+    group: oinstall
+    mode: '0774'
+
+# Requires change directory to Oracle RDBMS installation media directory
+- name: Oracle DB - check installation prerequisites for Oracle DB
+  become: true
+  become_user: oracle
+  args:
+    executable: /bin/csh
+    chdir: "{{ oracledb_base }}/dvd/19.0.0/"
+  register: oracledb_precheck
+  changed_when: "'SAP RUNINSTALLER: Completed' in oracledb_precheck.stdout"
+  failed_when: "oracledb_precheck.rc not in [ 0, 1 ]"
+  ansible.builtin.shell: |
+    setenv CV_ASSUME_DISTID "OL7"
+    setenv DISPLAY 
+    setenv DB_SID "{{ oracledb_sid }}"
+    setenv ORACLE_BASE "{{ oracledb_base }}"
+    setenv ORACLE_HOME "$ORACLE_BASE/$DB_SID/19.0.0"
+    setenv ORACLE_HOME_NAME "OraDb19c_1"
+    setenv IHRDBMS "$ORACLE_HOME"
+    setenv OHRDBMS "$ORACLE_BASE/$DB_SID/19"
+    setenv ORA_GOLD_IMAGE_FILE_L "{{ oracledb_base }}/dvd/19.0.0/db_home"
+    setenv INVENTORY_LOCATION "{{ oracledb_inventory_central }}"
+    $ORA_GOLD_IMAGE_FILE_L/SAP/19cinstall.sh -norsp -silent -ohcheck
+
+#- name: Oracle DB - debug output
+#  ansible.builtin.debug:
+#    msg: oracledb_precheck.stdout_lines
