@@ -38,35 +38,36 @@
         fail_msg: "FAIL: The software directory '{{ __sap_hana_install_fact_software_directory }}' does not exist!"
         success_msg: "PASS: The software directory '{{ __sap_hana_install_fact_software_directory }}' exist."
 
-    - name: SAP HANA Pre Install - Set fact for number of directory levels of the software directory
-      ansible.builtin.set_fact:
-        __sap_hana_install_fact_software_directory_levels: "{{ __sap_hana_install_fact_software_directory | regex_findall('/') | length }}"
+    - name: SAP HANA Pre Install - Assert directory permissions in case `sap_hana_install_software_extract_directory` is below `sap_hana_install_software_extract_directory`
+      block:
 
-    - name: Display number of directory levels
-      ansible.builtin.debug:
-        var: __sap_hana_install_fact_software_directory_levels
+        - name: SAP HANA Pre Install - Set fact for number of directory levels of the software directory
+          ansible.builtin.set_fact:
+            __sap_hana_install_fact_software_directory_levels: "{{ __sap_hana_install_fact_software_directory | regex_findall('/') | length }}"
 
-    - name: Set fact for list of software directories
-      ansible.builtin.include_tasks: ./pre_install-loop-block.yml
-      loop: "{{ range(1, __sap_hana_install_fact_software_directory_levels | int + 1, 1) | list }}"
-      loop_control:
-        loop_var: line_item
+        - name: SAP HANA Pre Install - Assert directory permissions
+          ansible.builtin.include_tasks: ./pre_install-loop-block.yml
+          loop: "{{ range(1, __sap_hana_install_fact_software_directory_levels | int + 1, 1) | list }}"
+          loop_control:
+            loop_var: line_item
 
-    - name: Display __sap_hana_install_fact_software_directories
-      ansible.builtin.debug:
-        var: __sap_hana_install_fact_software_directories
+#        - name: SAP HANA Pre Install - Display __sap_hana_install_fact_software_directories
+#          ansible.builtin.debug:
+#            var: __sap_hana_install_fact_software_directories
 
-    - name: SAP HANA Pre Install - Change permissions of the top level directory tree of the software directory
-      ansible.builtin.file:
-        path: "{{ line_item }}"
-        state: directory
-        mode: '0755'
-        owner: root
-        group: root
-        recurse: no
-      loop: "{{ __sap_hana_install_fact_software_directories }}"
-      loop_control:
-        loop_var: line_item
+#        - name: SAP HANA Pre Install - Change permissions of all directories above the software directory
+#          ansible.builtin.file:
+#            path: "{{ line_item }}"
+#            state: directory
+#            mode: '0755'
+#            owner: root
+#            group: root
+#            recurse: no
+#          loop: "{{ __sap_hana_install_fact_software_directories }}"
+#          loop_control:
+#            loop_var: line_item
+
+      when: sap_hana_install_software_extract_directory is search(sap_hana_install_software_directory)
 
     - name: SAP HANA Pre Install - Change ownership of HANA directories
       ansible.builtin.file:
