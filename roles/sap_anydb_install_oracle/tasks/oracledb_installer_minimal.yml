@@ -89,3 +89,13 @@
     set CURRENT_DATE_ISO=`date +%Y-%m-%d`
     set ORACLEDB_RESP_GENERATED_FILE=`find $ORACLE_BASE -iname "db_$CURRENT_DATE_ISO*"`
     $ORACLE_HOME/runInstaller -silent -executeConfigTools -responseFile $ORACLEDB_RESP_GENERATED_FILE
+
+- name: Oracle DB - Find log files
+  become_user: root
+  ansible.builtin.shell: |
+    ls -1 /oraInventory/logs/InstallActions*/installActions*
+  register: oracledb_logs
+
+- name: Oracle DB - View the following Oracle DB installation log files
+  ansible.builtin.debug:
+    msg: oracledb_logs.stdout_lines

@@ -68,7 +68,7 @@
 
 - name: Oracle DB - Create directories, from root user
   become_user: root
-  file:
+  ansible.builtin.file:
     state: directory
     path: "{{ item.path }}"
     owner: "{{ item.owner }}"
@@ -121,8 +121,8 @@
     - oracledb_prep_precheck
 
 # Avoid built-in file Ansible Module with absent, this would remove directory too
-- name: Ansible delete file wildcard example
-  shell: rm -rf "{{ oracledb_base }}/dvd/19.0.0/*"
+- name: Oracle DB - remove extracted directory after precheck
+  ansible.builtin.shell: rm -rf "{{ oracledb_base }}/dvd/19.0.0/*"
   when:
     - oracledb_prep_precheck
 
