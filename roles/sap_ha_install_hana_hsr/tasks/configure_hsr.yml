@@ -4,8 +4,6 @@
     source /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/home/.sapenv.sh && \
     /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/HDB{{ sap_ha_install_hana_hsr_instance_number }}/exe/hdbnsutil \
     -sr_state
-  args:
-    executable: /bin/bash
   become: true
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   register: __sap_ha_install_hana_hsr_srstate
@@ -19,8 +17,6 @@
     source /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/home/.sapenv.sh && \
     /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/HDB{{ sap_ha_install_hana_hsr_instance_number }}/exe/hdbnsutil \
     -sr_enable --name="{{ item.hana_site }}"
-  args:
-    executable: /bin/bash
   become: true
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   register: enablesr
@@ -43,8 +39,6 @@
     --remoteHost={{ __sap_ha_install_hana_hsr_primary_node_name }} --remoteInstance={{ sap_ha_install_hana_hsr_instance_number }} \
     --replicationMode={{ sap_ha_install_hana_hsr_rep_mode }} --operationMode={{ sap_ha_install_hana_hsr_oper_mode }} \
     --online
-  args:
-    executable: /bin/bash
   become: true
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   register: registersr
@@ -60,8 +54,6 @@
   ansible.builtin.shell: |
     /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/HDB{{ sap_ha_install_hana_hsr_instance_number }}/exe/sapcontrol \
     -nr {{ sap_ha_install_hana_hsr_instance_number }} -function StartSystem
-  args:
-    executable: /bin/bash
   become: true
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   register: startinstance
