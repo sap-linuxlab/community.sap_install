@@ -36,8 +36,8 @@
     - >-
       {{ ansible_facts['distribution'] ~ '_' ~
       ansible_facts['distribution_version'] }}.yml
-    - "SAPHana-{{ sap_ha_cluster_sap_type }}.yml"
-    - "SAPHana-{{ sap_ha_cluster_replication_type }}.yml"
+    - "SAPHana_{{ sap_ha_cluster_sap_type }}.yml"
+    - "SAPHana_{{ sap_ha_cluster_replication_type }}.yml"
   vars:
     __sap_ha_cluster_vars_file: "{{ role_path }}/vars/{{ item }}"
   when: __sap_ha_cluster_vars_file is file
@@ -47,6 +47,10 @@
 
 - name: "{{ __tname }} Include variable construction for STONITH resources"
   ansible.builtin.import_tasks: construct_vars_stonith.yml
+
+- name: "{{ __tname }} Include variable construction for SAP HANA common"
+  ansible.builtin.include_tasks:
+    file: construct_vars_hana_common.yml
 
 - name: "{{ __tname }} Include variable construction for SAP HANA Scale-up"
   ansible.builtin.include_tasks:
