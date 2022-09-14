@@ -11,27 +11,6 @@
   when:
     - sap_install_media_detect_db == "saphana"
 
-- name: SAP Install Media Detect - Organize SAP ASE installation media files
-  include_tasks: "detect_sapanydb_sapase.yml"
-  when:
-    - sap_install_media_detect_db == "sapase"
-
-- name: SAP Install Media Detect - Organize SAP MaxDB installation media files
-  include_tasks: "detect_sapanydb_sapmaxdb.yml"
-  when:
-    - sap_install_media_detect_db == "sapmaxdb"
-
-- name: SAP Install Media Detect - Organize Oracle DB installation media files
-  include_tasks: "detect_sapanydb_oracledb.yml"
-  when:
-    - sap_install_media_detect_db == "oracledb"
-
-- name: SAP Install Media Detect - Organize IBM Db2 installation media files
-  include_tasks: "detect_sapanydb_ibmdb2.yml"
-  when:
-    - sap_install_media_detect_db == "ibmdb2"
-
-
 - name: SAP Install Media Detect - Organize SAP SWPM installation media files
   include_tasks: "detect_sapswpm.yml"
   when:
@@ -58,18 +37,41 @@
     - sap_install_media_detect_webdisp == true
 
 
-- name: SAP Backups Detect - SAP HANA
+- name: SAP Install Media Detect - Complete Data Backup files for SAP HANA
   include_tasks: "detect_backup_saphana.yml"
   when:
     - sap_install_media_detect_backup == "saphana"
 
 
-- name: SAP Export Detect - SAP ECC
+# Detect files which (historically) have filenames which are Numbered IDs only (e.g. 51054410_2 for SAP MaxDB 7.9)
+# Leave to last so directory has less files to scan
+
+- name: SAP Install Media Detect - Organize SAP ASE installation media files
+  include_tasks: "detect_sapanydb_sapase.yml"
+  when:
+    - sap_install_media_detect_db == "sapase"
+
+- name: SAP Install Media Detect - Organize SAP MaxDB installation media files
+  include_tasks: "detect_sapanydb_sapmaxdb.yml"
+  when:
+    - sap_install_media_detect_db == "sapmaxdb"
+
+- name: SAP Install Media Detect - Organize Oracle DB installation media files
+  include_tasks: "detect_sapanydb_oracledb.yml"
+  when:
+    - sap_install_media_detect_db == "oracledb"
+
+- name: SAP Install Media Detect - Organize IBM Db2 installation media files
+  include_tasks: "detect_sapanydb_ibmdb2.yml"
+  when:
+    - sap_install_media_detect_db == "ibmdb2"
+
+- name: SAP Install Media Detect - EXPORT files for SAP ECC
   include_tasks: "detect_export_sapecc.yml"
   when:
     - sap_install_media_detect_export == "sapecc"
 
-- name: SAP Export Detect - SAP S/4HANA
+- name: SAP Install Media Detect - EXPORT files for SAP S/4HANA
   include_tasks: "detect_export_saps4hana.yml"
   when:
     - sap_install_media_detect_export == "saps4hana"

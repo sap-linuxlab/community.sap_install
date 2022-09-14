@@ -1,1 +1,16 @@
 ---
+
+- name: Identify SAP S/4HANA EXPORT files
+  ansible.builtin.find:
+    paths: "{{ sap_install_media_detect_directory }}"
+    recurse: yes
+    file_type: file
+    patterns: '.*S4.*EXPORT.*'
+    use_regex: yes
+  register: s4hana_export_files
+
+- name: Local Directory source - move SAP S/4HANA EXPORT files
+  command: mv "{{ sap_install_media_detect_directory }}/{{ item }}" "{{ sap_install_media_detect_directory }}/saps4hana_export/{{ item }}"
+  with_items: "{{ s4hana_export_files.files }}"
+  when:
+    - sap_install_media_detect_source == "local_dir"
