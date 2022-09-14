@@ -1,0 +1,48 @@
+---
+- name: "{{ __tname }} Create srHook shared directory"
+  ansible.builtin.file:
+    path: "{{ sap_ha_cluster_hadr_provider_path }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ sap_ha_cluster_hana_sid | lower }}adm"
+    group: sapsys
+
+- name: "{{ __tname }} Copy srHook to shared directory"
+  ansible.builtin.copy:
+    remote_src: true
+    src: /usr/share/SAPHanaSR/srHook/SAPHanaSR.py
+    dest: "{{ sap_ha_cluster_hadr_provider_path }}/{{ sap_ha_cluster_hadr_provider_name }}.py"
+    mode: "0755"
+    owner: "{{ sap_ha_cluster_hana_sid | lower }}adm"
+    group: sapsys
+
+- name: "{{ __tname }} Check global.ini for 'ha_dr_saphanasr'"
+  ansible.builtin.shell: |
+    grep ha_dr_saphanasr /usr/sap/{{ sap_ha_cluster_hana_sid | upper }}/SYS/global/hdb/custom/config/global.ini
+  register: trace_global
+  failed_when: false
+  changed_when: false
+
+- name: "{{ __tname }} Update srHook in global.ini"
+  ansible.builtin.blockinfile:
+    path: /usr/sap/{{ sap_ha_cluster_hana_sid | upper }}/SYS/global/hdb/custom/config/global.ini
+    marker: ""
+    block: |
+      [ha_dr_provider_{{ sap_ha_cluster_hadr_provider_name }}]
+      provider = {{ sap_ha_cluster_hadr_provider_name }}
+      path = {{ sap_ha_cluster_hadr_provider_path }}
+      execution_order = 1
+
+      [trace]
+      ha_dr_saphanasr = info
+  when: trace_global.rc == 1
+
+- name: "{{ __tname }} Add srHook sudo entries"
+  ansible.builtin.template:
+    backup: yes
+    dest: /etc/sudoers.d/20-saphana
+    mode: "0440"
+    owner: root
+    group: root
+    src: templates/20-saphana.j2
+    validate: visudo -cf %s

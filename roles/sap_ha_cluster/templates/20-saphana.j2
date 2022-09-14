@@ -1,0 +1,15 @@
+# Managed by Ansible
+# Role: {{ ansible_role_name }}
+#
+# Description:
+#  The following are sudo entries which are required for the pacemaker cluster
+#  to update the SAP HANA cluster resource status.
+
+{% for node in sap_ha_cluster_cluster_nodes %}
+Cmnd_Alias {{ node.hana_site }}_SOK = /usr/sbin/crm_attribute -n hana_{{ sap_ha_cluster_hana_sid | lower }}_site_srHook_{{ node.hana_site }} -v SOK -t crm_config -s {{ sap_ha_cluster_hadr_provider_name }}
+Cmnd_Alias {{ node.hana_site }}_SFAIL = /usr/sbin/crm_attribute -n hana_{{ sap_ha_cluster_hana_sid | lower }}_site_srHook_{{ node.hana_site }} -v SFAIL -t crm_config -s {{ sap_ha_cluster_hadr_provider_name }}
+{% endfor %}
+
+{{ sap_hana_cluster_hana_sid|lower }}adm ALL=(ALL) NOPASSWD: {% for node in sap_ha_cluster_cluster_nodes %}{{ node.hana_site }}_SOK, {{ node.hana_site }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %}
+
+Defaults!{% for node in sap_ha_cluster_cluster_nodes %}{{ node.hana_site }}_SOK, {{ node.hana_site }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %} !requiretty

@@ -1,0 +1,152 @@
+---
+# Variables containing variables must be constructed with values
+# to be fed into an included role
+- name: "{{ __tname }} Construct cluster vars for SAP HANA Scale-up"
+  ansible.builtin.set_fact:
+
+    # Extra packages for scale-up resource agents
+    sap_ha_cluster_extra_packages:
+      - resource-agents-sap-hana
+
+    # SAP HANA Scale-up cluster resource definitions
+    sap_ha_cluster_resource_primitives:
+       # Resource: SAPHanaTopology
+      - id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_hana_instance_number }}"
+        agent: "ocf:heartbeat:SAPHanaTopology"
+        instance_attrs:
+          - attrs:
+              - name: SID
+                value: "{{ sap_ha_cluster_hana_sid }}"
+              - name: InstanceNumber
+                value: "{{ sap_hana_instance_number }}"
+        operations:
+          - action: start
+            attrs:
+              - name: timeout
+                value: 600
+          - action: stop
+            attrs:
+              - name: timeout
+                value: 600
+          - action: monitor
+            attrs:
+              - name: interval
+                value: 10
+              - name: timeout
+                value: 600
+
+      # Resource: SAPHana
+      - id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_hana_instance_number }}"
+        agent: "ocf:heartbeat:SAPHana"
+        instance_attrs:
+          - attrs:
+              - name: SID
+                value: "{{ sap_ha_cluster_hana_sid }}"
+              - name: InstanceNumber
+                value: "{{ sap_hana_instance_number }}"
+              - name: PREFER_SITE_TAKEOVER
+                value: true
+              - name: DUPLICATE_PRIMARY_TIMEOUT
+                value: 900
+              - name: AUTOMATED_REGISTER
+                value: true
+        operations:
+          - action: start
+            attrs:
+              - name: timeout
+                value: 3600
+          - action: stop
+            attrs:
+              - name: timeout
+                value: 3600
+          - action: monitor
+            attrs:
+              - name: interval
+                value: 121
+              - name: role
+                value: Slave
+              - name: timeout
+                value: 700
+          - action: monitor
+            attrs:
+              - name: interval
+                value: 119
+              - name: role
+                value: Master
+              - name: timeout
+                value: 700
+          - action: promote
+            attrs:
+              - name: timeout
+                value: 3600
+          - action: demote
+            attrs:
+              - name: timeout
+                value: 3600
+
+      # Resource: HANA VIP
+      - id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_hana_instance_number }}_MASTER"
+        agent: "ocf:heartbeat:IPaddr2"
+        instance_attrs:
+          - attrs:
+              - name: ip
+                value: "{{ sap_ha_cluster_instance_vip }}"
+
+    # Resource CLONE configuration
+    sap_ha_cluster_resource_clones:
+
+      # Clone of SAPHanaTopology
+      - resource_id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_hana_instance_number }}"
+        promotable: no
+        meta_attrs:
+          - attrs:
+              - name: clone-max
+                value: 2
+              - name: clone-node-max
+                value: 1
+              - name: interleave
+                value: "true"
+      # Clone of SAPHana
+      - resource_id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_hana_instance_number }}"
+        promotable: yes
+        meta_attrs:
+          - attrs:
+              - name: clone-max
+                value: 2
+              - name: clone-node-max
+                value: 1
+              - name: interleave
+                value: "true"
+
+    # ORDER constraints
+    sap_ha_cluster_constraints_order:
+      # First start Topology, then HANA (automatically stops in reverse order)
+      - resource_first:
+          id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_hana_instance_number }}-clone"
+          action: start
+        resource_then:
+          id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_hana_instance_number }}-clone"
+          action: start
+        options:
+          - name: symmetrical
+            value: "false"
+
+      # Start the VIP only after the HANA resource has been promoted
+      - resource_first:
+          id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_hana_instance_number }}-clone"
+          action: promote
+        resource_then:
+          id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_hana_instance_number }}_MASTER"
+          action: start
+
+    # COLOCATION constaints
+    sap_ha_cluster_constraints_colocation:
+      # The VIP runs where HANA is promoted
+      - resource_leader:
+          id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_hana_instance_number }}-clone"
+          role: promoted
+        resource_follower:
+          id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_hana_instance_number }}_MASTER"
+        options:
+          - name: score
+            value: 2000

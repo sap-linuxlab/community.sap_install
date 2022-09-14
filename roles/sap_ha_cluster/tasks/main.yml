@@ -1,0 +1,152 @@
+---
+# TODO: Build all resource/constraint configuration variables based on
+# simpler user input.
+# - Make resources configuration modular, allowing additional VIPs for instance
+
+# 1. This role's arguments are validated through meta/arguments_spec.yml
+# 2. Detect SAP solution to be configured (scale-up, scale-out, etc.)
+#    * Play hosts must have SAP installed and landscape information discoverable ?!
+#    * Certain parameters must match the solution (networking, IDs )
+# 3. Include tasks for parameter validation for the selected solution
+# 4. Include tasks for building the ha_cluster arguments for the selected solution
+# 5. Include ha_cluster role with the constructed parameters as vars arguments
+# 6. Add solution specific config, like srhook
+
+
+# Determine which SAP landscape we are going to configure in the cluster
+# This is needed to include the landscape specific parameter values.
+# The result will be parameters:
+# - sap_ha_cluster_sap_type (values: scaleup, scaleout
+- name: "{{ __tname }} Include tasks for SAP landscape calculation"
+  ansible.builtin.include_tasks:
+    file: ascertain_sap_landscape.yml
+    apply:
+      tags: check_sap
+  tags: check_sap
+
+# copied from rhel-system-roles/roles/ha_cluster/tasks/main.yml
+- name: "{{ __tname }} Set platform/version specific variables"
+  ansible.builtin.include_vars: "{{ __sap_ha_cluster_vars_file }}"
+  loop:
+    - "{{ ansible_facts['os_family'] }}.yml"
+    - "{{ ansible_facts['distribution'] }}.yml"
+    - >-
+      {{ ansible_facts['distribution'] ~ '_' ~
+      ansible_facts['distribution_major_version'] }}.yml
+    - >-
+      {{ ansible_facts['distribution'] ~ '_' ~
+      ansible_facts['distribution_version'] }}.yml
+    - "SAPHana-{{ sap_ha_cluster_sap_type }}.yml"
+    - "SAPHana-{{ sap_ha_cluster_replication_type }}.yml"
+  vars:
+    __sap_ha_cluster_vars_file: "{{ role_path }}/vars/{{ item }}"
+  when: __sap_ha_cluster_vars_file is file
+
+- name: "{{ __tname }} Include common variable construction tasks"
+  ansible.builtin.import_tasks: construct_vars_common.yml
+
+- name: "{{ __tname }} Include variable construction for STONITH resources"
+  ansible.builtin.import_tasks: construct_vars_stonith.yml
+
+- name: "{{ __tname }} Include variable construction for SAP HANA Scale-up"
+  ansible.builtin.include_tasks:
+    file: construct_vars_hana_scaleup.yml
+  when: sap_ha_cluster_sap_type == 'scaleup'
+
+- name: "{{ __tname }} Include variable construction for SAP HANA Scale-out"
+  ansible.builtin.include_tasks:
+    file: construct_vars_hana_scaleout.yml
+  when: sap_ha_cluster_sap_type == 'scaleout'
+
+- name: "Fail here for now..."
+  ansible.builtin.fail:
+
+#- name: "fail 1"
+#  fail:
+#  ignore_errors: "{{ ansible_check_mode }}"
+
+#- debug:
+#    msg: "{{ hostvars[node].
+#  vars:
+#    blahvar: "{{ sap_ha_cluster_ha_cluster }}"
+
+# verify input variables - if argument specifications are not strict enough
+# make this smarter, maybe in better include files
+#
+# safeguard: check if a cluster exists and save config first
+#
+- name: "{{ __tname }} Verify that cluster variables are defined"
+  ansible.builtin.assert:
+    that:
+      # The SAP ID must follow a strict format and not use reserved special values
+      - sap_ha_cluster_hana_sid is defined
+      - sap_ha_cluster_hana_sid|length == 3
+      - sap_ha_cluster_hana_sid not in __sap_sid_prohibited
+      # `ha_cluster` must be a dictionary
+#      - hostvars[node].ha_cluster is defined
+#      - lookup('vars', role_name + '_ha_cluster') is not string
+#      - lookup('vars', role_name + '_ha_cluster') is mapping
+      # `ha_cluster_cluster_properties` must be a list
+      - sap_ha_cluster_cluster_properties is defined
+      - sap_ha_cluster_extra_packages is defined
+      - sap_ha_cluster_resource_primitives is defined
+      - sap_ha_cluster_resource_clones is defined
+      - sap_ha_cluster_constraints_order is defined
+      - sap_ha_cluster_constraints_colocation is defined
+      - sap_ha_cluster_repos is defined
+  tags: always
+
+#- fail:
+
+# include ha_cluster role from "linux-system-roles" (symlink to rhel-system-roles on rhel)
+- name: "{{ __tname }} Include System Role 'ha_cluster'"
+  ansible.builtin.import_role:
+    name: linux-system-roles.ha_cluster
+  vars:
+    ha_cluster_cluster_name: "{{ sap_ha_cluster_cluster_name }}"
+    ha_cluster_hacluster_password: "{{ sap_ha_cluster_hacluster_password }}"
+    ha_cluster_cluster_properties: "{{ sap_ha_cluster_cluster_properties }}"
+    __ha_cluster_repos: "{{ sap_ha_cluster_repos }}"
+    ha_cluster_properties: "{{ sap_ha_cluster_cluster_properties }}"
+    ha_cluster_extra_packages: "{{ sap_ha_cluster_extra_packages }}"
+    ha_cluster_resource_primitives: "{{ sap_ha_cluster_resource_primitives + sap_ha_cluster_stonith_resource_primitives }}"
+    ha_cluster_resource_clones: "{{ sap_ha_cluster_resource_clones }}"
+    ha_cluster_constraints_order: "{{ sap_ha_cluster_constraints_order }}"
+    ha_cluster_constraints_colocation: "{{ sap_ha_cluster_constraints_colocation }}"
+#    ha_cluster:  "{{ sap_ha_cluster }}"
+  tags:
+    - ha_cluster
+
+#### from old ha role
+
+- name: "{{ __tname }} Get current properties"
+  ansible.builtin.shell: |
+    pcs property list
+  register: __sap_ha_cluster_pcs_properties
+  changed_when: false
+  failed_when: false
+
+- name: "{{ __tname }} Allow concurrent fence actions"
+  ansible.builtin.shell: |
+    pcs property set concurrent-fencing=true
+  when:
+    - "'concurrent-fencing: true' not in __sap_ha_cluster_pcs_properties.stdout"
+
+- name: "{{ __tname }} Update STONITH timeout"
+  ansible.builtin.shell: |
+    pcs property set stonith-timeout=900
+  when:
+    - '"stonith-timeout: 900" not in __sap_ha_cluster_pcs_properties.stdout'
+
+- name: "{{ __tname }} Update resource default values"
+  ansible.builtin.shell: |
+    pcs resource defaults update resource-stickiness=1000
+    pcs resource defaults update migration-threshold=5000
+  changed_when: true
+
+- name: "{{ __tname }} Include srHook configuration"
+  ansible.builtin.include_tasks:
+    file: configure_srhook.yml
+    apply:
+      tags: srhook
+  tags: srhook

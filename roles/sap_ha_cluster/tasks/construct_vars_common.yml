@@ -1,0 +1,17 @@
+---
+# Variables containing variables must be constructed with values
+# to be fed into an included role
+- name: "{{ __tname }} Construct definitions for cluster setup"
+  ansible.builtin.set_fact:
+    # Include generic cluster name
+    sap_ha_cluster_cluster_name: "{{ sap_hana_cluster_name }}"
+    # Enable STONITH
+    sap_ha_cluster_cluster_properties:
+      - attrs:
+          - name: stonith-enabled
+            value: true
+
+- name: "{{ __tname }} Register the 'hacluster' user password"
+  ansible.builtin.set_fact:
+    sap_ha_cluster_hacluster_password: "{{ sap_hana_hacluster_password }}"
+  no_log: true
