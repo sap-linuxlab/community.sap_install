@@ -7,147 +7,172 @@
 # - certain differences like ra agent names are provided through
 # type specific variables
 
-- name: "{{ __tname }} Construct cluster vars for SAP HANA common"
+- name: "{{ __tname }} Add resource: SAP HANA Topology"
   ansible.builtin.set_fact:
-    # SAP HANA common cluster resource definitions
-    sap_ha_cluster_resource_primitives:
-       # Resource: SAPHanaTopology
-      - id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
-        agent: "ocf:heartbeat:SAPHanaTopology"
-        instance_attrs:
-          - attrs:
-              - name: SID
-                value: "{{ sap_ha_cluster_hana_sid }}"
-              - name: InstanceNumber
-                value: "{{ sap_ha_cluster_hana_instance_number }}"
-        operations:
-          - action: start
-            attrs:
-              - name: timeout
-                value: 600
-          - action: stop
-            attrs:
-              - name: timeout
-                value: 600
-          - action: monitor
-            attrs:
-              - name: interval
-                value: 10
-              - name: timeout
-                value: 600
+    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [ __resource_topology ] }}"
+  vars:
+    __resource_topology:
+      id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
+      agent: "ocf:heartbeat:SAPHanaTopology"
+      instance_attrs:
+        - attrs:
+            - name: SID
+              value: "{{ sap_ha_cluster_hana_sid }}"
+            - name: InstanceNumber
+              value: "{{ sap_ha_cluster_hana_instance_number }}"
+      operations:
+        - action: start
+          attrs:
+            - name: timeout
+              value: 600
+        - action: stop
+          attrs:
+            - name: timeout
+              value: 600
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 10
+            - name: timeout
+              value: 600
 
-      # Resource: SAPHana
-      - id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
-        agent: "ocf:heartbeat:{{ sap_ha_cluster_ra_hana }}"
-        instance_attrs:
-          - attrs:
-              - name: SID
-                value: "{{ sap_ha_cluster_hana_sid }}"
-              - name: InstanceNumber
-                value: "{{ sap_ha_cluster_hana_instance_number }}"
-              - name: PREFER_SITE_TAKEOVER
-                value: true
-              - name: DUPLICATE_PRIMARY_TIMEOUT
-                value: 900
-              - name: AUTOMATED_REGISTER
-                value: true
-        operations:
-          - action: start
-            attrs:
-              - name: timeout
-                value: 3600
-          - action: stop
-            attrs:
-              - name: timeout
-                value: 3600
-          - action: monitor
-            attrs:
-              - name: interval
-                value: 121
-              - name: role
-                value: Slave
-              - name: timeout
-                value: 700
-          - action: monitor
-            attrs:
-              - name: interval
-                value: 119
-              - name: role
-                value: Master
-              - name: timeout
-                value: 700
-          - action: promote
-            attrs:
-              - name: timeout
-                value: 3600
-          - action: demote
-            attrs:
-              - name: timeout
-                value: 3600
+- name: "{{ __tname }} Add resource: SAP HANA DB"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [ __resource_hana ] }}"
+  vars:
+    __resource_hana:
+      id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
+      agent: "ocf:heartbeat:{{ sap_ha_cluster_ra_hana }}"
+      instance_attrs:
+        - attrs:
+            - name: SID
+              value: "{{ sap_ha_cluster_hana_sid }}"
+            - name: InstanceNumber
+              value: "{{ sap_ha_cluster_hana_instance_number }}"
+            - name: PREFER_SITE_TAKEOVER
+              value: true
+            - name: DUPLICATE_PRIMARY_TIMEOUT
+              value: 900
+            - name: AUTOMATED_REGISTER
+              value: true
+      operations:
+        - action: start
+          attrs:
+            - name: timeout
+              value: 3600
+        - action: stop
+          attrs:
+            - name: timeout
+              value: 3600
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 121
+            - name: role
+              value: Slave
+            - name: timeout
+              value: 700
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 119
+            - name: role
+              value: Master
+            - name: timeout
+              value: 700
+        - action: promote
+          attrs:
+            - name: timeout
+              value: 3600
+        - action: demote
+          attrs:
+            - name: timeout
+              value: 3600
 
-      # Resource: HANA VIP
-      - id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}_MASTER"
-        agent: "ocf:heartbeat:IPaddr2"
-        instance_attrs:
-          - attrs:
-              - name: ip
-                value: "{{ sap_ha_cluster_hana_instance_vip }}"
+- name: "{{ __tname }} Add resource: SAP HANA VIP"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [ __resource_vip ] }}"
+  vars:
+    __resource_vip:
+      id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}_MASTER"
+      agent: "ocf:heartbeat:IPaddr2"
+      instance_attrs:
+        - attrs:
+            - name: ip
+              value: "{{ sap_ha_cluster_hana_instance_vip }}"
 
-    # Resource CLONE configuration
-    sap_ha_cluster_resource_clones:
+- name: "{{ __tname }} Add resource clone: SAP HANA Topology"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones + [ __clone_topology ] }}"
+  vars:
+    __clone_topology:
+      resource_id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
+      promotable: no
+      meta_attrs:
+        - attrs:
+            - name: clone-max
+              value: 2
+            - name: clone-node-max
+              value: 1
+        - name: interleave
+          value: "true"
 
-      # Clone of SAPHanaTopology
-      - resource_id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
-        promotable: no
-        meta_attrs:
-          - attrs:
-              - name: clone-max
-                value: 2
-              - name: clone-node-max
-                value: 1
-              - name: interleave
-                value: "true"
-      # Clone of SAPHana
-      - resource_id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
-        promotable: yes
-        meta_attrs:
-          - attrs:
-              - name: clone-max
-                value: 2
-              - name: clone-node-max
-                value: 1
-              - name: interleave
-                value: "true"
+- name: "{{ __tname }} Add resource clone: SAP HANA DB"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones + [ __clone_hana ] }}"
+  vars:
+    __clone_hana:
+      resource_id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
+      promotable: yes
+      meta_attrs:
+        - attrs:
+            - name: clone-max
+              value: 2
+            - name: clone-node-max
+              value: 1
+            - name: interleave
+              value: "true"
 
-    # ORDER constraints
-    sap_ha_cluster_constraints_order:
-      # First start Topology, then HANA (automatically stops in reverse order)
-      - resource_first:
-          id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}-clone"
-          action: start
-        resource_then:
-          id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}-clone"
-          action: start
-        options:
-          - name: symmetrical
-            value: "false"
+# First start Topology, then HANA (automatically stops in reverse order)
+- name: "{{ __tname }} Add order constraint: Topology before HANA"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order + [ __constraint_order_topology ] }}"
+  vars:
+    __constraint_order_topology:
+      resource_first:
+        id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}-clone"
+        action: start
+      resource_then:
+        id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}-clone"
+        action: start
+      options:
+        - name: symmetrical
+          value: "false"
 
-      # Start the VIP only after the HANA resource has been promoted
-      - resource_first:
-          id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}-clone"
-          action: promote
-        resource_then:
-          id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}_MASTER"
-          action: start
+# Start the VIP only after the HANA resource has been promoted
+- name: "{{ __tname }} Add order constraint: VIP after HANA promoted"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order + [ __constraint_order_vip ] }}"
+  vars:
+    __constraint_order_vip:
+      resource_first:
+        id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}-clone"
+        action: promote
+      resource_then:
+        id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}_MASTER"
+        action: start
 
-    # COLOCATION constaints
-    sap_ha_cluster_constraints_colocation:
-      # The VIP runs where HANA is promoted
-      - resource_leader:
-          id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}-clone"
-          role: promoted
-        resource_follower:
-          id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}_MASTER"
-        options:
-          - name: score
-            value: 2000
+# The VIP only runs where HANA is promoted
+- name: "{{ __tname }} Add colocation constraint: VIP runs where HANA promoted"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_constraints_colocation: "{{ __sap_ha_cluster_constraints_colocation + [ __constraint_colo_vip ] }}"
+  vars:
+    __constraint_colo_vip:
+      resource_leader:
+        id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}-clone"
+        role: promoted
+      resource_follower:
+        id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}_MASTER"
+      options:
+        - name: score
+          value: 2000

@@ -4,12 +4,27 @@
 #
 # TODO: make sure to first respect 'ha_cluster' native variables
 
-- name: "{{ __tname }} Construct stonith resources definition "
+- name: "{{ __tname }} Set add to cluster properties: stonith-enabled"
   ansible.builtin.set_fact:
-    # STONITH resource definition
-    # This will be added to the cluster resources list
+    __sap_ha_cluster_cluster_properties: "{{ __sap_ha_cluster_cluster_properties + [{ 'attr': __stonith_enabled }] }}"
+  vars:
+    __stonith_enabled:
+      - name: stonith-enabled
+        value: true
 
-# workaround / placeholder until modular fencing resource logic
-# has been invented
-    sap_ha_cluster_stonith_resource_primitives: "{{ sap_ha_cluster_stonith_resources }}"  # from groupvars
-  no_log: true
+- name: "{{ __tname }} Set add to cluster properties: concurrent-fencing"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_cluster_properties: "{{ __sap_ha_cluster_cluster_properties + [{ 'attr': __concurrent_fencing }] }}"
+  vars:
+    __concurrent_fencing:
+      - name: concurrent-fencing
+        value: true
+
+
+# The STONITH resource is an element in the cluster_resource_primitives list
+- name: "{{ __tname }} Construct stonith resources definition"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + __stonith_resources }}"
+  vars:
+    __stonith_resources: "{{ sap_ha_cluster_stonith_resources }}"  # defined in group_vars
+  no_log: true  # stonith resources usually contain secrets

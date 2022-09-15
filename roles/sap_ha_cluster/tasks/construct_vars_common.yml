@@ -4,20 +4,14 @@
 #
 # TODO: make sure to first respect 'ha_cluster' native variables
 #
-- name: "{{ __tname }} Construct definitions for cluster setup"
+- name: "{{ __tname }} Set cluster name"
   ansible.builtin.set_fact:
     # Set cluster name: first read 'ha_cluster' native role variable
     # This ensures that users could also use 'ha_cluster' system role
     # directly for the same target cluster
-    sap_ha_cluster_cluster_name: "{{ ha_cluster_cluster_name | default(sap_ha_cluster_cluster_name) }}"
-
-    # Enable STONITH
-    sap_ha_cluster_cluster_properties:
-      - attrs:
-          - name: stonith-enabled
-            value: true
+    __sap_ha_cluster_cluster_name: "{{ ha_cluster_cluster_name | default(sap_ha_cluster_cluster_name) }}"
 
 - name: "{{ __tname }} Register the 'hacluster' user password"
   ansible.builtin.set_fact:
-    sap_ha_cluster_hacluster_password: "{{ ha_cluster_hacluster_password | default(sap_ha_cluster_hacluster_password) }}"
+    __sap_ha_cluster_hacluster_password: "{{ ha_cluster_hacluster_password | default(sap_ha_cluster_hacluster_password) }}"
   no_log: true
