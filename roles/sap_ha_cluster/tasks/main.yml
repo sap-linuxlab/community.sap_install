@@ -12,6 +12,7 @@
 # 5. Include ha_cluster role with the constructed parameters as vars arguments
 # 6. Add solution specific config, like srhook
 
+# TODO: make sure to first respect 'ha_cluster' native variables
 
 # Determine which SAP landscape we are going to configure in the cluster
 # This is needed to include the landscape specific parameter values.
@@ -23,6 +24,15 @@
     apply:
       tags: check_sap
   tags: check_sap
+
+# Determine if we are on a cloud platform
+- name: "{{ __tname }} Include tasks for platform detection"
+  ansible.builtin.include_tasks:
+    file: ascertain_platform_type.yml
+    apply:
+      tags: check_cloud
+  tags: check_cloud
+
 
 # copied from rhel-system-roles/roles/ha_cluster/tasks/main.yml
 - name: "{{ __tname }} Set platform/version specific variables"
@@ -38,6 +48,7 @@
       ansible_facts['distribution_version'] }}.yml
     - "SAPHana_{{ sap_ha_cluster_sap_type }}.yml"
     - "SAPHana_{{ sap_ha_cluster_replication_type }}.yml"
+    - "Platform_{{ __sap_ha_cluster_vm_asset_tag }}.yml"
   vars:
     __sap_ha_cluster_vars_file: "{{ role_path }}/vars/{{ item }}"
   when: __sap_ha_cluster_vars_file is file
@@ -86,11 +97,6 @@
       - sap_ha_cluster_hana_sid is defined
       - sap_ha_cluster_hana_sid|length == 3
       - sap_ha_cluster_hana_sid not in __sap_sid_prohibited
-      # `ha_cluster` must be a dictionary
-#      - hostvars[node].ha_cluster is defined
-#      - lookup('vars', role_name + '_ha_cluster') is not string
-#      - lookup('vars', role_name + '_ha_cluster') is mapping
-      # `ha_cluster_cluster_properties` must be a list
       - sap_ha_cluster_cluster_properties is defined
       - sap_ha_cluster_extra_packages is defined
       - sap_ha_cluster_resource_primitives is defined
@@ -117,7 +123,7 @@
     ha_cluster_resource_clones: "{{ sap_ha_cluster_resource_clones }}"
     ha_cluster_constraints_order: "{{ sap_ha_cluster_constraints_order }}"
     ha_cluster_constraints_colocation: "{{ sap_ha_cluster_constraints_colocation }}"
-#    ha_cluster:  "{{ sap_ha_cluster }}"
+    ha_cluster_fence_agent_packages: "{{ sap_ha_cluster_fence_agent_packages }}"
   tags:
     - ha_cluster
 
