@@ -1,10 +1,5 @@
 ---
 
-- name: SAP Install Media Detect - IBM Db2 - Set fact for install media directory
-  set_fact:
-    ibmdb2_install_directory: "{{ sap_install_media_detect_directory }}/ibmdb2"
-    ibmdb2_client_install_directory: "{{ sap_install_media_detect_directory }}/ibmdb2_client"
-
 - name: SAP Install Media Detect - IBM Db2 - Create Directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -13,16 +8,18 @@
     owner: root
     group: root
   with_items:
-    - "{{ ibmdb2_install_directory }}"
-    - "{{ ibmdb2_client_install_directory }}"
+    - "{{ sap_install_media_detect_directory }}/ibmdb2/"
+    - "{{ sap_install_media_detect_directory }}/ibmdb2_extracted/"
+    - "{{ sap_install_media_detect_directory }}/ibmdb2_client_extracted/"
+    - "{{ sap_install_media_detect_directory }}/ibmdb2_license_extracted/"
 
-- name: List files in directory
+- name: SAP Install Media Detect - IBM Db2 - List files in directory
   ansible.builtin.shell: ls -1
   register: detect_directory_files
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
 
-- name: Detect ZIP files (including no file extensions), ignore errors
+- name: SAP Install Media Detect - IBM Db2 - Detect ZIP files (including no file extensions), ignore errors
   ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
   register: detect_directory_files_zip
 #  changed_when: "item.stdout | length > 0"
@@ -32,7 +29,7 @@
     chdir: "{{ sap_install_media_detect_directory }}"
   ignore_errors: true
 
-- name: Identify IBM Db2 installation media
+- name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 installation media
   ansible.builtin.shell: |
     if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db2setup' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_ibmdb2
@@ -42,7 +39,7 @@
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
 
-- name: Identify IBM Db2 Client installation media
+- name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 Client installation media
   ansible.builtin.shell: |
     if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db6_update_client.sh' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_ibmdb2_client
@@ -52,7 +49,7 @@
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
 
-- name: Identify IBM Db2 OEM license file
+- name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 OEM license file
   ansible.builtin.shell: |
     if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db2aese_c.lic' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_ibmdb2_license
@@ -62,23 +59,48 @@
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
 
-- name: Extract ZIP files of IBM DB2 installation media
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ ibmdb2_install_directory }}/{{ item }}_extracted; fi
+- name: SAP Install Media Detect - IBM Db2 - Extract ZIP files of IBM DB2 installation media
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/ibmdb2_extracted/{{ item }}_extracted; fi
   with_items: 
     - "{{ detect_directory_files_ibmdb2.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
 
-- name: Extract ZIP files of IBM DB2 Client installation media
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ ibmdb2_install_directory }}/{{ item }}_extracted; fi
+- name: SAP Install Media Detect - IBM Db2 - Extract ZIP files of IBM DB2 Client installation media
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/ibmdb2_client_extracted/{{ item }}_extracted; fi
   with_items: 
     - "{{ detect_directory_files_ibmdb2_client.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
 
-- name: Extract ZIP files of IBM DB2 OEM license file
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ ibmdb2_install_directory }}/{{ item }}_extracted; fi
+- name: SAP Install Media Detect - IBM Db2 - Extract ZIP files of IBM DB2 OEM license file
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/ibmdb2_license_extracted/{{ item }}_extracted; fi
   with_items: 
     - "{{ detect_directory_files_ibmdb2_license.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
+
+- name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 extracted
+  ansible.builtin.find:
+    paths: "{{ sap_install_media_detect_directory }}/ibmdb2_extracted"
+    recurse: yes
+    file_type: directory
+    contains: "LINUXX86_64"
+  register: detect_directory_ibmdb2_extracted
+
+- name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 Client extracted
+  ansible.builtin.find:
+    paths: "{{ sap_install_media_detect_directory }}/ibmdb2_client_extracted"
+    recurse: yes
+    file_type: directory
+    contains: "DATA_UNITS"
+  register: detect_directory_ibmdb2_client_extracted
+
+- name: SAP Install Media Detect - IBM Db2 - Local Directory source - move IBM Db2 compressed archive files
+  command: mv "{{ sap_install_media_detect_directory }}/{{ item }}" "{{ sap_install_media_detect_directory }}/ibmdb2/{{ item }}"
+  with_items: 
+    - "{{ detect_directory_files_ibmdb2.results | map(attribute='stdout') | select() }}"
+    - "{{ detect_directory_files_ibmdb2_client.results | map(attribute='stdout') | select() }}"
+    - "{{ detect_directory_files_ibmdb2_license.results | map(attribute='stdout') | select() }}"
+  when:
+    - sap_install_media_detect_source == "local_dir"
