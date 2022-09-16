@@ -10,23 +10,28 @@
   register: __sap_ha_install_pacemaker_cluster_create
   changed_when: __sap_ha_install_pacemaker_cluster_create.rc == 0
 
-- name: "SAP Pacemaker Setup - Get cluster node corosync status"
+- name: "SAP Pacemaker Setup - Wait for cluster nodes getting online"
   ansible.builtin.shell: |
     set -o pipefail &&
     pcs status nodes corosync | grep "Online"
   register: __sap_ha_install_pacemaker_cluster_online
-  failed_when: false
+  until: item.node_name.split('.')[0] in __sap_ha_install_pacemaker_cluster_online.stdout
+  retries: 10
+  delay: 10
   changed_when: false
-
-- name: "SAP Pacemaker Setup - Verify that all nodes are online"
-  ansible.builtin.assert:
-    that:
-      - item.node_name.split('.')[0] in __sap_ha_install_pacemaker_cluster_online.stdout
-    quiet: true
-    fail_msg: "Node not found in 'Online' status!"
   loop: "{{ sap_ha_install_pacemaker_cluster_nodes }}"
   loop_control:
     label: "Is online: {{ item.node_name.split('.')[0] }}"
+
+#- name: "SAP Pacemaker Setup - Verify that all nodes are online"
+#  ansible.builtin.assert:
+#    that:
+#      - item.node_name.split('.')[0] in __sap_ha_install_pacemaker_cluster_online.stdout
+#    quiet: true
+#    fail_msg: "Node not found in 'Online' status!"
+#  loop: "{{ sap_ha_install_pacemaker_cluster_nodes }}"
+#  loop_control:
+#    label: "Is online: {{ item.node_name.split('.')[0] }}"
 
 #- name: "SAP Pacemaker Setup - Set Expected Votes = {{ sap_ha_install_pacemaker_cluster_nodes | length }}"
 #  ansible.builtin.shell: |
