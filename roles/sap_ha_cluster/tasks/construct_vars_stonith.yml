@@ -11,6 +11,8 @@
     __stonith_enabled:
       - name: stonith-enabled
         value: true
+  when:
+    - (__stonith_enabled | map(attribute='name') | join('')) not in (__sap_ha_cluster_cluster_properties | map(attribute='attr') | flatten | map(attribute='name'))
 
 - name: "{{ __tname }} Add to cluster properties: stonith-timeout"
   ansible.builtin.set_fact:
@@ -19,6 +21,8 @@
     __stonith_timeout:
       - name: stonith-timeout
         value: 900
+  when:
+    - (__stonith_timeout | map(attribute='name') | join('')) not in (__sap_ha_cluster_cluster_properties | map(attribute='attr') | flatten | map(attribute='name'))
 
 - name: "{{ __tname }} Add to cluster properties: concurrent-fencing"
   ansible.builtin.set_fact:
@@ -27,12 +31,18 @@
     __concurrent_fencing:
       - name: concurrent-fencing
         value: true
-
+  when:
+    - (__concurrent_fencing | map(attribute='name') | join('')) not in (__sap_ha_cluster_cluster_properties | map(attribute='attr') | flatten | map(attribute='name'))
 
 # The STONITH resource is an element in the cluster_resource_primitives list
 - name: "{{ __tname }} Construct stonith resources definition"
   ansible.builtin.set_fact:
     __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + __stonith_resources }}"
   vars:
-    __stonith_resources: "{{ sap_ha_cluster_stonith_resources }}"  # defined in group_vars
+    # Take from SAP role list parameter in inventory for custom stonith resource config.
+    # There is no separate stonith resource parameter in the 'ha_cluster' role.
+    __stonith_resources: "{{ sap_ha_cluster_stonith_resources }}"
   no_log: true  # stonith resources usually contain secrets
+  when:
+    - sap_ha_cluster_stonith_resources is defined
+    - sap_ha_cluster_stonith_resources is iterable

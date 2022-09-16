@@ -1,19 +1,22 @@
 ---
+# 1. Role arguments are validated through meta/arguments_spec.yml (ansible >= 2.11)
+# 2. Detect SAP solution to be configured (scale-up, scale-out, etc.)
+#    * Play hosts must have SAP installed and landscape information discoverable ?!
+# 3. Include tasks for parameter validation for the selected solution
+#    * Certain parameters must match the target solution
+#      (networking, IDs, number of nodes)
+# 4. Include tasks for building the ha_cluster arguments for the selected solution
+#    * scale-up, scale-out, scale-up + mtr, scale-out + mtr
+# 5. Include ha_cluster role with the constructed parameters as role arguments
+# 6. Add solution specific config
+#    * srhook
+
+# DONE: make sure to first respect 'ha_cluster' native variables
+# Users can define 'ha_cluster' role parameters in their inventory
+
 # TODO: Build all resource/constraint configuration variables based on
 # simpler user input.
 # - Make resources configuration modular, allowing additional VIPs, for example
-
-# 1. This role's arguments are validated through meta/arguments_spec.yml
-# 2. Detect SAP solution to be configured (scale-up, scale-out, etc.)
-#    * Play hosts must have SAP installed and landscape information discoverable ?!
-#    * Certain parameters must match the solution (networking, IDs )
-# 3. Include tasks for parameter validation for the selected solution
-# 4. Include tasks for building the ha_cluster arguments for the selected solution
-# 5. Include ha_cluster role with the constructed parameters as vars arguments
-# 6. Add solution specific config, like srhook
-
-# TODO: make sure to first respect 'ha_cluster' native variables
-
 
 # The SAP ID must follow a strict format and not use reserved special values
 # TODO: This check may be better placed in a SAP role earlier in the chain...
@@ -23,6 +26,16 @@
       - sap_ha_cluster_hana_sid is defined
       - sap_ha_cluster_hana_sid|length == 3
       - sap_ha_cluster_hana_sid not in __sap_sid_prohibited
+  tags: always
+
+# Make sure that all parameters already set for 'ha_cluster' are also inherited.
+# Add to the include file a task for each parameter which this SAP cluster role
+# supports.
+- name: "{{ __tname }} Include tasks for checking 'ha_cluster' predefinitions"
+  ansible.builtin.include_tasks:
+    file: ascertain_ha_cluster_in_inventory.yml
+    apply:
+      tags: always
   tags: always
 
 # Determine which SAP landscape we are going to configure in the cluster.
@@ -45,7 +58,8 @@
       tags: check_platform
   tags: check_platform
 
-# copied from rhel-system-roles/roles/ha_cluster/tasks/main.yml
+# Copied from rhel-system-roles/roles/ha_cluster/tasks/main.yml and enhanced
+# for additional environment settings.
 - name: "{{ __tname }} Set platform/version specific variables"
   ansible.builtin.include_vars: "{{ __sap_ha_cluster_vars_file }}"
   loop:
@@ -105,8 +119,8 @@
     fail_msg: "Cluster build parameter construction has failed for this parameter."
 
 #### for debugging
-- name: "Fail here for now..."
-  ansible.builtin.fail:
+#- name: "Fail here for now..."
+#  ansible.builtin.fail:
 
 ### Up to here there has been NO changes, only environment validations and
 ### parameter constructions!
@@ -119,6 +133,7 @@
     name: linux-system-roles.ha_cluster
     apply:
       tags: ha_cluster
+      no_log: true
   vars:
     ha_cluster_cluster_name: "{{ __sap_ha_cluster_cluster_name }}"
     ha_cluster_hacluster_password: "{{ __sap_ha_cluster_hacluster_password }}"
@@ -128,9 +143,10 @@
     ha_cluster_extra_packages: "{{ __sap_ha_cluster_extra_packages }}"
     ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives }}"
     ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones }}"
-    ha_cluster_constraints_order: "{{ sap_ha_cluster_constraints_order }}"
-    ha_cluster_constraints_colocation: "{{ sap_ha_cluster_constraints_colocation }}"
-    ha_cluster_fence_agent_packages: "{{ sap_ha_cluster_fence_agent_packages }}"
+    ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order }}"
+    ha_cluster_constraints_colocation: "{{ __sap_ha_cluster_constraints_colocation }}"
+    ha_cluster_fence_agent_packages: "{{ __sap_ha_cluster_fence_agent_packages }}"
+#  no_log: true  # some parameters contain secrets
   tags: ha_cluster
 
 #### from old ha role
@@ -139,7 +155,7 @@
   ansible.builtin.shell: |
     pcs resource defaults update resource-stickiness=1000
     pcs resource defaults update migration-threshold=5000
-  changed_when: true
+  changed_when: not ansible_check_mode
 
 - name: "{{ __tname }} Include srHook configuration"
   ansible.builtin.include_tasks:

@@ -2,10 +2,12 @@
 # Variables containing variables must be constructed with values
 # to be fed into the included ha_cluster role
 
-# TODO:
 # - put here all scale-up and scale-out common resources
 # - certain differences like ra agent names are provided through
-# type specific variables
+#   type specific variables
+
+# TODO: add conditionals to verify that the same resource agent is not already
+#       defined in user input variables. Conflicting user input should take precedence.
 
 - name: "{{ __tname }} Add resource: SAP HANA Topology"
   ansible.builtin.set_fact:
@@ -134,7 +136,7 @@
               value: "true"
 
 # First start Topology, then HANA (automatically stops in reverse order)
-- name: "{{ __tname }} Add order constraint: Topology before HANA"
+- name: "{{ __tname }} Add order constraint: Topology starts before DB"
   ansible.builtin.set_fact:
     __sap_ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order + [ __constraint_order_topology ] }}"
   vars:
@@ -150,7 +152,7 @@
           value: "false"
 
 # Start the VIP only after the HANA resource has been promoted
-- name: "{{ __tname }} Add order constraint: VIP after HANA promoted"
+- name: "{{ __tname }} Add order constraint: VIP starts after DB is promoted"
   ansible.builtin.set_fact:
     __sap_ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order + [ __constraint_order_vip ] }}"
   vars:
@@ -163,7 +165,7 @@
         action: start
 
 # The VIP only runs where HANA is promoted
-- name: "{{ __tname }} Add colocation constraint: VIP runs where HANA promoted"
+- name: "{{ __tname }} Add colocation constraint: VIP runs where HANA is promoted"
   ansible.builtin.set_fact:
     __sap_ha_cluster_constraints_colocation: "{{ __sap_ha_cluster_constraints_colocation + [ __constraint_colo_vip ] }}"
   vars:

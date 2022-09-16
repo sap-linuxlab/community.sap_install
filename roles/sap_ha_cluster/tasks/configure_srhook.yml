@@ -15,12 +15,17 @@
     mode: "0755"
     owner: "{{ sap_ha_cluster_hana_sid | lower }}adm"
     group: sapsys
+  # Do not run in check mode because the path is created in the previous step
+  when: not ansible_check_mode
 
 - name: "{{ __tname }} Check global.ini for 'ha_dr_saphanasr'"
   ansible.builtin.shell: |
     grep ha_dr_saphanasr /usr/sap/{{ sap_ha_cluster_hana_sid | upper }}/SYS/global/hdb/custom/config/global.ini
-  register: trace_global
+  register: __sap_ha_cluster_srhook_trace_global
   failed_when: false
+  # This command should always run, even in check mode.
+  # It never does a change, but the return code is required for the next task.
+  check_mode: no
   changed_when: false
 
 - name: "{{ __tname }} Update srHook in global.ini"
@@ -35,7 +40,7 @@
 
       [trace]
       ha_dr_saphanasr = info
-  when: trace_global.rc == 1
+  when: __sap_ha_cluster_srhook_trace_global.rc == 1
 
 - name: "{{ __tname }} Add srHook sudo entries"
   ansible.builtin.template:
