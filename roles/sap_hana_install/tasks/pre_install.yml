@@ -83,6 +83,16 @@
         - '/hana/data'
       tags: sap_hana_install_chown_hana_directories
 
+    - name: SAP HANA Pre Install - Configure '/hana' SELinux file contexts
+      include_role:
+        name: selinux
+      vars:
+        selinux_fcontexts:
+          - { target: '/hana(/.*)?', setype: 'usr_t' }
+        selinux_restore_dirs:
+          - /hana
+      when: sap_hana_install_modify_selinux_labels
+
     - name: SAP HANA Pre Install - Get info about software extract directory '{{ sap_hana_install_software_extract_directory }}'
       ansible.builtin.stat:
         path: "{{ sap_hana_install_software_extract_directory }}"

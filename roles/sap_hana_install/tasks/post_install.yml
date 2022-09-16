@@ -155,6 +155,16 @@
   changed_when: no
   when: not ansible_check_mode
 
+- name: Configure '/usr/sap' SELinux file contexts
+  include_role:
+    name: selinux
+  vars:
+    selinux_fcontexts:
+      - { target: '/usr/sap(/.*)?', setype: 'usr_t' }
+    selinux_restore_dirs:
+      - /usr/sap
+  when: sap_hana_install_modify_selinux_labels
+
 - name: Set fact - HANA version
   ansible.builtin.set_fact:
     __sap_hana_install_fact_hana_version: "{{ __sap_hana_install_register_install_result.stdout.split(';')[0] }}"
