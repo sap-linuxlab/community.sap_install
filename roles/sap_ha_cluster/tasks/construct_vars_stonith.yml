@@ -4,7 +4,7 @@
 #
 # TODO: make sure to first respect 'ha_cluster' native variables
 
-- name: "{{ __tname }} Set add to cluster properties: stonith-enabled"
+- name: "{{ __tname }} Add to cluster properties: stonith-enabled"
   ansible.builtin.set_fact:
     __sap_ha_cluster_cluster_properties: "{{ __sap_ha_cluster_cluster_properties + [{ 'attr': __stonith_enabled }] }}"
   vars:
@@ -12,7 +12,15 @@
       - name: stonith-enabled
         value: true
 
-- name: "{{ __tname }} Set add to cluster properties: concurrent-fencing"
+- name: "{{ __tname }} Add to cluster properties: stonith-timeout"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_cluster_properties: "{{ __sap_ha_cluster_cluster_properties + [{ 'attr': __stonith_timeout }] }}"
+  vars:
+    __stonith_timeout:
+      - name: stonith-timeout
+        value: 900
+
+- name: "{{ __tname }} Add to cluster properties: concurrent-fencing"
   ansible.builtin.set_fact:
     __sap_ha_cluster_cluster_properties: "{{ __sap_ha_cluster_cluster_properties + [{ 'attr': __concurrent_fencing }] }}"
   vars:

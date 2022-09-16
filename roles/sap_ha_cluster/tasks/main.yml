@@ -14,6 +14,17 @@
 
 # TODO: make sure to first respect 'ha_cluster' native variables
 
+
+# The SAP ID must follow a strict format and not use reserved special values
+# TODO: This check may be better placed in a SAP role earlier in the chain...
+- name: "{{ __tname }} Validate SAP System ID"
+  ansible.builtin.assert:
+    that:
+      - sap_ha_cluster_hana_sid is defined
+      - sap_ha_cluster_hana_sid|length == 3
+      - sap_ha_cluster_hana_sid not in __sap_sid_prohibited
+  tags: always
+
 # Determine which SAP landscape we are going to configure in the cluster.
 # This is needed to include the landscape specific parameter values.
 # The result will be parameters:
@@ -68,54 +79,10 @@
     file: construct_vars_hana_scaleup.yml
   when: sap_ha_cluster_sap_type == 'scaleup'
 
-#- debug:
-#    var: item.id
-#  loop: "{{ __sap_ha_cluster_resource_primitives }}"
-
-- name: "Fail here for now..."
-  ansible.builtin.fail:
-
 - name: "{{ __tname }} Include variable construction for SAP HANA Scale-out"
   ansible.builtin.include_tasks:
     file: construct_vars_hana_scaleout.yml
   when: sap_ha_cluster_sap_type == 'scaleout'
-
-#- debug:
-#    var: ha_cluster_cluster_name
-
-- name: "Fail here for now..."
-  ansible.builtin.fail:
-
-#- name: "fail 1"
-#  fail:
-#  ignore_errors: "{{ ansible_check_mode }}"
-
-#- debug:
-#    msg: "{{ hostvars[node].
-#  vars:
-#    blahvar: "{{ sap_ha_cluster_ha_cluster }}"
-
-# verify input variables - if argument specifications are not strict enough
-# make this smarter, maybe in better include files
-#
-# safeguard: check if a cluster exists and save config first
-#
-- name: "{{ __tname }} Verify that cluster variables are defined"
-  ansible.builtin.assert:
-    that:
-      # The SAP ID must follow a strict format and not use reserved special values
-      - sap_ha_cluster_hana_sid is defined
-      - sap_ha_cluster_hana_sid|length == 3
-      - sap_ha_cluster_hana_sid not in __sap_sid_prohibited
-      - sap_ha_cluster_cluster_properties is defined
-      - sap_ha_cluster_extra_packages is defined
-      - sap_ha_cluster_resource_primitives is defined
-      - sap_ha_cluster_resource_clones is defined
-      - sap_ha_cluster_constraints_order is defined
-      - sap_ha_cluster_constraints_colocation is defined
-      - sap_ha_cluster_repos is defined
-#  tags: always
-
 
 # TODO: combine various definitions into one parameter for role include input
 # For example, multiple resource primitives are defined in different places for
@@ -123,7 +90,26 @@
 # resources.
 
 
-#- fail:
+# Before we are ready to call the ha_cluster role, we want to validate
+# that the minimum required parameters are defined and not empty.
+- name: "{{ __tname }} Validate parameters for 'ha_cluster' role input"
+  ansible.builtin.assert:
+    that:
+      - __sap_ha_cluster_cluster_properties is defined
+      - __sap_ha_cluster_extra_packages is defined
+      - __sap_ha_cluster_resource_primitives is defined
+      - __sap_ha_cluster_resource_clones is defined
+      - __sap_ha_cluster_constraints_order is defined
+      - __sap_ha_cluster_constraints_colocation is defined
+#      - blahtest is defined
+    fail_msg: "Cluster build parameter construction has failed for this parameter."
+
+#### for debugging
+- name: "Fail here for now..."
+  ansible.builtin.fail:
+
+### Up to here there has been NO changes, only environment validations and
+### parameter constructions!
 
 # include ha_cluster role from "linux-system-roles" (symlink to rhel-system-roles on rhel)
 - name: "{{ __tname }} Include System Role 'ha_cluster'"
@@ -131,7 +117,8 @@
 #    name: linux-system-roles.ha_cluster
   ansible.builtin.include_role:
     name: linux-system-roles.ha_cluster
-
+    apply:
+      tags: ha_cluster
   vars:
     ha_cluster_cluster_name: "{{ __sap_ha_cluster_cluster_name }}"
     ha_cluster_hacluster_password: "{{ __sap_ha_cluster_hacluster_password }}"
@@ -144,29 +131,9 @@
     ha_cluster_constraints_order: "{{ sap_ha_cluster_constraints_order }}"
     ha_cluster_constraints_colocation: "{{ sap_ha_cluster_constraints_colocation }}"
     ha_cluster_fence_agent_packages: "{{ sap_ha_cluster_fence_agent_packages }}"
-  tags:
-    - ha_cluster
+  tags: ha_cluster
 
 #### from old ha role
-
-- name: "{{ __tname }} Get current properties"
-  ansible.builtin.shell: |
-    pcs property list
-  register: __sap_ha_cluster_pcs_properties
-  changed_when: false
-  failed_when: false
-
-- name: "{{ __tname }} Allow concurrent fence actions"
-  ansible.builtin.shell: |
-    pcs property set concurrent-fencing=true
-  when:
-    - "'concurrent-fencing: true' not in __sap_ha_cluster_pcs_properties.stdout"
-
-- name: "{{ __tname }} Update STONITH timeout"
-  ansible.builtin.shell: |
-    pcs property set stonith-timeout=900
-  when:
-    - '"stonith-timeout: 900" not in __sap_ha_cluster_pcs_properties.stdout'
 
 - name: "{{ __tname }} Update resource default values"
   ansible.builtin.shell: |
