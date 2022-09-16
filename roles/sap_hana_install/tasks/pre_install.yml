@@ -83,9 +83,16 @@
         - '/hana/data'
       tags: sap_hana_install_chown_hana_directories
 
+    - name: Set selinux_execmod boolean for RHEL 9
+      ansible.builtin.command: setsebool -P selinuxuser_execmod 1
+      when:
+        - ansible_os_family == 'RedHat'
+        - ansible_distribution_major_version == '9'
+        - sap_hana_install_modify_selinux_labels
+
     - name: SAP HANA Pre Install - Configure '/hana' SELinux file contexts
-      include_role:
-        name: selinux
+      ansible.builtin.include_role:
+        name: linux-system-roles.selinux
       vars:
         selinux_fcontexts:
           - { target: '/hana(/.*)?', setype: 'usr_t' }
