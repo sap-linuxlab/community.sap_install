@@ -39,7 +39,7 @@ __tests = [
         'rc': '99',
         'role_vars': [
             {
-                'sap_general_preconfigure_fail_if_reboot_required': False
+                'sap_general_preconfigure_fail_if_reboot_required': False,
                 'sap_general_preconfigure_reboot_ok': True
             }
         ]
@@ -53,7 +53,7 @@ __tests = [
         'rc': '99',
         'role_vars': [
             {
-                'sap_general_preconfigure_fail_if_reboot_required': False
+                'sap_general_preconfigure_fail_if_reboot_required': False,
                 'sap_general_preconfigure_reboot_ok': True
             }
         ]
