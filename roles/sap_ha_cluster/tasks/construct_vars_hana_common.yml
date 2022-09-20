@@ -37,6 +37,8 @@
               value: 10
             - name: timeout
               value: 600
+  when:
+    - __resource_topology.agent not in (__sap_ha_cluster_resource_primitives | map(attribute='agent'))
 
 - name: "{{ __tname }} Add resource: SAP HANA DB"
   ansible.builtin.set_fact:
@@ -90,7 +92,10 @@
           attrs:
             - name: timeout
               value: 3600
+  when:
+    - __resource_hana.agent not in (__sap_ha_cluster_resource_primitives | map(attribute='agent'))
 
+# TODO: change logic to allow multiple VIP resources and constraints
 - name: "{{ __tname }} Add resource: SAP HANA VIP"
   ansible.builtin.set_fact:
     __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [ __resource_vip ] }}"
@@ -102,6 +107,8 @@
         - attrs:
             - name: ip
               value: "{{ sap_ha_cluster_hana_instance_vip }}"
+  when:
+    - __resource_vip.agent not in (__sap_ha_cluster_resource_primitives | map(attribute='agent'))
 
 - name: "{{ __tname }} Add resource clone: SAP HANA Topology"
   ansible.builtin.set_fact:
@@ -118,6 +125,8 @@
               value: 1
         - name: interleave
           value: "true"
+  when:
+    - __clone_topology.resource_id not in (__sap_ha_cluster_resource_clones | map(attribute='resource_id'))
 
 - name: "{{ __tname }} Add resource clone: SAP HANA DB"
   ansible.builtin.set_fact:
@@ -134,6 +143,8 @@
               value: 1
             - name: interleave
               value: "true"
+  when:
+    - __clone_hana.resource_id not in (__sap_ha_cluster_resource_clones | map(attribute='resource_id'))
 
 # First start Topology, then HANA (automatically stops in reverse order)
 - name: "{{ __tname }} Add order constraint: Topology starts before DB"
@@ -150,6 +161,8 @@
       options:
         - name: symmetrical
           value: "false"
+  when:
+    - __constraint_order_topology.resource_then.id not in (__sap_ha_cluster_constraints_order | map(attribute='resource_then'))
 
 # Start the VIP only after the HANA resource has been promoted
 - name: "{{ __tname }} Add order constraint: VIP starts after DB is promoted"
@@ -163,6 +176,8 @@
       resource_then:
         id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}_MASTER"
         action: start
+  when:
+    - __constraint_order_vip.resource_then.id not in (__sap_ha_cluster_constraints_order | map(attribute='resource_then'))
 
 # The VIP only runs where HANA is promoted
 - name: "{{ __tname }} Add colocation constraint: VIP runs where HANA is promoted"
@@ -178,3 +193,5 @@
       options:
         - name: score
           value: 2000
+  when:
+    - __constraint_colo_vip.resource_follower.id not in (__sap_ha_cluster_constraints_colocation | map(attribute='resource_follower'))
