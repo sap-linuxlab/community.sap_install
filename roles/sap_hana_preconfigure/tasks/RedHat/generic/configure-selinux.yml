@@ -1,0 +1,15 @@
+---
+
+- name: Configure SELinux file contexts
+  ansible.builtin.include_role:
+    name: fedora.linux_system_roles.selinux
+  vars:
+    selinux_booleans:
+      - { name: 'selinuxuser_execmod', state: 'on' }
+    selinux_fcontexts:
+      - { target: '/hana(/.*)?', setype: 'usr_t' }
+      - { target: '/usr/sap(/.*)?', setype: 'usr_t' }
+    selinux_restore_dirs:
+      - /hana
+      - /usr/sap
+  when: sap_hana_preconfigure_modify_selinux_labels

@@ -6,12 +6,18 @@ and then role sap_hana_preconfigure.
 
 ## Requirements
 
-To use this role, your system needs to be configured with the basic requirements for SAP NetWeaver or SAP HANA. This is typically done by running
-role sap_general_preconfigure (for RHEL managed nodes before RHEL 7.6, community maintained role sap-base-settings can be used).
-It is also strongly recommended to run role linux-system-roles.timesync for all systems running SAP HANA, to maintain an identical system time,
-before or after running role sap_hana_preconfigure.
+The role requires additional collections which are specified in `meta/collection-requirements.yml`. These are not automatically installed.
+You must install them like this:
 
-Managed nodes need to be properly registered to a repository source and have at least the following Red Hat repositories accessable (see also example playbook):
+`ansible-galaxy install -vv -r meta/collection-requirements.yml`
+
+To use this role, your system needs to be configured with the basic requirements for SAP NetWeaver or SAP HANA. This is typically done by
+running role sap_general_preconfigure (for RHEL managed nodes before RHEL 7.6, community maintained role sap-base-settings can be used).
+It is also strongly recommended to run role linux-system-roles.timesync for all systems running SAP HANA, to maintain an identical system
+time, before or after running role sap_hana_preconfigure.
+
+Managed nodes need to be properly registered to a repository source and have at least the following Red Hat repositories accessible
+(see also example playbook):
 
 for RHEL 7.x:
 - rhel-7-[server|for-power-le]-e4s-rpms
