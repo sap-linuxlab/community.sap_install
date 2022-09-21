@@ -4,22 +4,22 @@
 - name: Reboot the managed node
   ansible.builtin.reboot:
     test_command: /bin/true
-  listen: __oracledb_prep_reboot_handler
+  listen: __sap_anydb_install_oracle_reboot_handler
   when:
-    - oracledb_prep_reboot_ok | d(false)
+    - sap_anydb_install_oracle_prep_reboot_ok | d(false)
 
 - name: Let the role fail if a reboot is required
   ansible.builtin.fail:
     msg: Reboot is required!
-  listen: __oracledb_prep_reboot_handler
+  listen: __sap_anydb_install_oracle_reboot_handler
   when:
-    - oracledb_prep_fail_if_reboot_required | d(true)
-    - not oracledb_prep_reboot_ok | d(false)
+    - sap_anydb_install_oracle_prep_fail_if_reboot_required | d(true)
+    - not sap_anydb_install_oracle_prep_reboot_ok | d(false)
 
 - name: Show a warning message if a reboot is required
   ansible.builtin.debug:
     msg: "WARN: Reboot is required!"
-  listen: __oracledb_prep_reboot_handler
+  listen: __sap_anydb_install_oracle_reboot_handler
   when:
-    - not oracledb_prep_fail_if_reboot_required | d(true)
-    - not oracledb_prep_reboot_ok | d(false)
+    - not sap_anydb_install_oracle_prep_fail_if_reboot_required | d(true)
+    - not sap_anydb_install_oracle_prep_reboot_ok | d(false)

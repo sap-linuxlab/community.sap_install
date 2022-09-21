@@ -32,29 +32,29 @@
   become_user: oracle
   args:
     executable: /bin/csh
-    chdir: "{{ oracledb_base }}/dvd/19.0.0/"
-  register: oracledb_install
-  changed_when: "'SAP RUNINSTALLER: Completed' in oracledb_install.stdout"
-  failed_when: "oracledb_install.rc not in [ 0, 1 ]"
+    chdir: "{{ sap_anydb_install_oracle_base }}/dvd/19.0.0/"
+  register: __sap_anydb_install_oracle_install_exec
+  changed_when: "'SAP RUNINSTALLER: Completed' in __sap_anydb_install_oracle_install_exec.stdout"
+  failed_when: "__sap_anydb_install_oracle_install_exec.rc not in [ 0, 1 ]"
   ansible.builtin.shell: |
     setenv CV_ASSUME_DISTID "OL7"
     setenv DISPLAY
-    setenv DB_SID "{{ oracledb_sid }}"
-    setenv ORACLE_BASE "{{ oracledb_base }}"
+    setenv DB_SID "{{ sap_anydb_install_oracle_sid }}"
+    setenv ORACLE_BASE "{{ sap_anydb_install_oracle_base }}"
     setenv ORACLE_HOME "$ORACLE_BASE/$DB_SID/19.0.0"
     setenv ORACLE_HOME_NAME "OraDb19c_1"
     setenv IHRDBMS "$ORACLE_HOME"
     setenv OHRDBMS "$ORACLE_BASE/$DB_SID/19"
     setenv ORA_GOLD_IMAGE_FILE_L "$ORACLE_BASE/dvd/19.0.0/db_home"
-    setenv INVENTORY_LOCATION "{{ oracledb_inventory_central }}"
-    setenv oracle.install.db.config.starterdb.globalDBName "{{ oracledb_sid }}"
-    setenv oracle.install.db.config.starterdb.SID "{{ oracledb_sid }}"
+    setenv INVENTORY_LOCATION "{{ sap_anydb_install_oracle_inventory_central }}"
+    setenv oracle.install.db.config.starterdb.globalDBName "{{ sap_anydb_install_oracle_sid }}"
+    setenv oracle.install.db.config.starterdb.SID "{{ sap_anydb_install_oracle_sid }}"
     setenv oracle.install.db.config.starterdb.memoryLimit "{{ (ansible_memtotal_mb*0.95) | int }}"
     setenv oracle.install.db.config.starterdb.storageType "FILE_SYSTEM_STORAGE"
-    setenv oracle.install.db.config.starterdb.fileSystemStorage.dataLocation "{{ oracledb_filesystem_storage }}"
-    setenv oracle.install.db.config.starterdb.password.ALL "{{ oracledb_system_password }}"
-    setenv oracle.install.db.config.starterdb.password.SYS "{{ oracledb_system_password }}"
-    setenv oracle.install.db.config.starterdb.password.SYSTEM "{{ oracledb_system_password }}"
+    setenv oracle.install.db.config.starterdb.fileSystemStorage.dataLocation "{{ sap_anydb_install_oracle_filesystem_storage }}"
+    setenv oracle.install.db.config.starterdb.password.ALL "{{ sap_anydb_install_oracle_system_password }}"
+    setenv oracle.install.db.config.starterdb.password.SYS "{{ sap_anydb_install_oracle_system_password }}"
+    setenv oracle.install.db.config.starterdb.password.SYSTEM "{{ sap_anydb_install_oracle_system_password }}"
     setenv oracle.install.db.DBA_GROUP "dba"
     setenv oracle.install.db.BACKUPDBA_GROUP "dba"
     setenv oracle.install.db.DGDBA_GROUP "dba"
@@ -66,10 +66,10 @@
 - name: Oracle DB - Root command scripts for Oracle DB Inventory and Oracle DB Home, from root user
   become_user: root
   ansible.builtin.shell: |
-    export DB_SID="{{ oracledb_sid }}"
-    export ORACLE_BASE="{{ oracledb_base }}"
+    export DB_SID="{{ sap_anydb_install_oracle_sid }}"
+    export ORACLE_BASE="{{ sap_anydb_install_oracle_base }}"
     export ORACLE_HOME="$ORACLE_BASE/$DB_SID/19.0.0"
-    export INVENTORY_LOCATION="{{ oracledb_inventory_central }}"
+    export INVENTORY_LOCATION="{{ sap_anydb_install_oracle_inventory_central }}"
     $INVENTORY_LOCATION/orainstRoot.sh
     $ORACLE_HOME/root.sh
 
@@ -78,13 +78,13 @@
   become_user: oracle
   args:
     executable: /bin/csh
-  register: oracledb_config
-  changed_when: "'SAP RUNINSTALLER: Completed' in oracledb_config.stdout"
-  failed_when: "oracledb_config.rc not in [ 0, 1 ]"
+  register: __sap_anydb_install_oracle_config_exec
+  changed_when: "'SAP RUNINSTALLER: Completed' in __sap_anydb_install_oracle_config_exec.stdout"
+  failed_when: "__sap_anydb_install_oracle_config_exec.rc not in [ 0, 1 ]"
   ignore_errors: true
   ansible.builtin.shell: |
-    setenv DB_SID "{{ oracledb_sid }}"
-    export ORACLE_BASE="{{ oracledb_base }}"
+    setenv DB_SID "{{ sap_anydb_install_oracle_sid }}"
+    export ORACLE_BASE="{{ sap_anydb_install_oracle_base }}"
     setenv ORACLE_HOME "$ORACLE_BASE/$DB_SID/19.0.0"
     set CURRENT_DATE_ISO=`date +%Y-%m-%d`
     set ORACLEDB_RESP_GENERATED_FILE=`find $ORACLE_BASE -iname "db_$CURRENT_DATE_ISO*"`
@@ -94,8 +94,8 @@
   become_user: root
   ansible.builtin.shell: |
     ls -1 /oraInventory/logs/InstallActions*/installActions*
-  register: oracledb_logs
+  register: __sap_anydb_install_oracle_logs
 
 - name: Oracle DB - View the following Oracle DB installation log files
   ansible.builtin.debug:
-    var: oracledb_logs.stdout_lines
+    var: __sap_anydb_install_oracle_logs.stdout_lines
