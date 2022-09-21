@@ -6,6 +6,8 @@
 ######
 archives.downloadBasket = {{ sap_swpm_software_path }}
 
+# installation_export.archivesFolder = {{ sap_swpm_cd_export_path }}
+
 # NOTE: Specific media requirements will use format
 # SAPINST.CD.PACKAGE.<media_name> = <location>
 {% endif %}
@@ -21,11 +23,12 @@ HDB_Software_Dialogs.useMediaCD = {{ sap_swpm_software_use_media }}
 ######
 # swpm_installation_media_swpm1
 ######
-SAPINST.CD.PACKAGE.LOAD1 = {{ sap_swpm_cd_export_pt1_path }}
-SAPINST.CD.PACKAGE.LOAD2 = {{ sap_swpm_cd_export_pt2_path }}
 SAPINST.CD.PACKAGE.LANGUAGE = {{ sap_swpm_cd_language_path }}
 SAPINST.CD.PACKAGE.JAVA = {{ sap_swpm_cd_java_path }}
 SAPINST.CD.PACKAGE.RDBMS = {{ sap_swpm_cd_rdms_path }}
+# SAPINST.CD.PACKAGE.KERNEL =
+# SAPINST.CD.PACKAGE.KERNEL2 =
+# SAPINST.CD.PACKAGE.KERNEL3 =
 {% endif %}
 
 {% if 'swpm_installation_media_swpm1_exportfiles' in sap_swpm_inifile_list %}
@@ -33,8 +36,10 @@ SAPINST.CD.PACKAGE.RDBMS = {{ sap_swpm_cd_rdms_path }}
 # swpm_installation_media_swpm1_exportfiles
 ######
 SAPINST.CD.PACKAGE.EXPORT = {{ sap_swpm_cd_export_path }}
-# SAPINST.CD.PACKAGE.LOAD =
-# installation_export.archivesFolder = {{ sap_swpm_cd_export_path }}
+# SAPINST.CD.PACKAGE.LOAD
+SAPINST.CD.PACKAGE.LOAD1 = {{ sap_swpm_cd_export_pt1_path }}
+SAPINST.CD.PACKAGE.LOAD2 = {{ sap_swpm_cd_export_pt2_path }}
+# SAPINST.CD.PACKAGE.JMIG
 {% endif %}
 
 {% if 'swpm_installation_media_swpm1_ibmdb2' in sap_swpm_inifile_list %}
@@ -100,6 +105,22 @@ SAPINST.CD.PACKAGE.RDBMS-SYB-CLIENT = {{ sap_swpm_cd_sapase_client_path }}
 ######
 # Requested package : RDBMS-ADA
 SAPINST.CD.PACKAGE.RDBMS-ADA = {{ sap_swpm_cd_sapmaxdb_path }}
+{% endif %}
+
+{% if 'swpm_installation_media_download_service' in sap_swpm_inifile_list %}
+######
+# swpm_installation_media_download_service
+# Not in use by sap_swpm Ansible Role
+######
+# nwUsers.sapServiceSIDPassword =
+# download_service.directory =
+# DownloadService.EnableProxy =
+# DownloadService.HostName =
+# DownloadService.Password =
+# DownloadService.Port =
+# DownloadService.ProvideAuthentication =
+# DownloadService.Username =
+# DownloadService.planNumber =
 {% endif %}
 
 {% if 'sum_config' in sap_swpm_inifile_list %}
@@ -363,8 +384,8 @@ NW_Recovery_Install_HDB.extractParallelJobs = {{ sap_swpm_parallel_jobs_nr }}
 NW_Recovery_Install_HDB.sidAdmName = {{ sap_swpm_db_sid | lower }}adm
 NW_Recovery_Install_HDB.sidAdmPassword = {{ sap_swpm_db_sidadm_password }}
 # NW_HDB_getDBInfo.dbadmin = SYSTEM
-# NW_HDB_getDBInfo.tenantOsGroup =
-# NW_HDB_getDBInfo.tenantOsUser =
+# NW_HDB_getDBInfo.tenantOsGroup = {{ sap_swpm_db_sid | lower }}grp
+# NW_HDB_getDBInfo.tenantOsUser = {{ sap_swpm_db_sid | lower }}usr
 # NW_HDB_getDBInfo.tenantPort =
 # NW_HDB_DBClient.clientPathStrategy = LOCAL
 {% endif %}
@@ -404,18 +425,20 @@ HDB_Recovery_Dialogs.sidAdmPassword = {{ sap_swpm_db_sidadm_password }}
 # HDB_Recovery_Dialogs.skipExistenceCheck = false
 # HDB_Recovery_Dialogs.sourceDatabaseSid =
 # HDB_Recovery_Dialogs.useLicenseFile = false
-# NW_CreateDBandLoad.movePVCforUsagePiAndDi =
 # HDB_Recovery_Dialogs.licenseFile =
 # NW_Recovery_Install_HDB.checkIntegrity = false
 # NW_Recovery_Install_HDB.backupLocationHANA =
 # NW_Recovery_Install_HDB.backupLocationSAP =
 # NW_Recovery_Install_HDB.loadOrMount = load
+# NW_CreateDBandLoad.movePVCforUsagePiAndDi =
 {% endif %}
 
 {% if 'nw_config_anydb' in sap_swpm_inifile_list %}
 ######
 # nw_config_anydb
 ######
+# Distributed installation or system copy with any database and SAP Basis release 740 or higher:
+# Execute ABAP program 'RUTPOADAPT' for depooling. Set it to 'true' if declustering / depooling is selected for the distributed database instance installation option
 NW_CI_Instance_ABAP_Reports.executeReportsForDepooling = false
 {% endif %}
 
@@ -448,6 +471,7 @@ NW_GetSidNoProfiles.sid = {{ sap_swpm_sid }}
 ######
 NW_CI_Instance.ascsVirtualHostname = {{ sap_swpm_ascs_instance_hostname }}
 NW_CI_Instance.ascsInstanceNumber = {{ sap_swpm_ascs_instance_nr }}
+#NW_SCS_Instance.ascsVirtualHostname = {{ sap_swpm_ascs_instance_hostname }}
 NW_SCS_Instance.ascsInstanceNumber = {{ sap_swpm_ascs_instance_nr }}
 {% endif %}
 
@@ -461,6 +485,7 @@ NW_CI_Instance.scsInstanceNumber = {{ sap_swpm_java_scs_instance_nr }}
 NW_SCS_Instance.scsVirtualHostname = {{ sap_swpm_java_scs_instance_hostname }}
 # NW_SCS_Instance.scsInstanceNumber =
 NW_SCS_Instance.instanceNumber = {{ sap_swpm_java_scs_instance_nr }}
+NW_JAVA_Export.keyPhrase = {{ sap_swpm_master_password }}
 {% endif %}
 
 {% if 'nw_config_primary_application_server_instance' in sap_swpm_inifile_list %}
@@ -575,6 +600,18 @@ NW_CI_Instance_ABAP_Reports.enableActivateICFService = true
 
 # SAP INTERNAL USE ONLY
 # NW_CI_Instance_ABAP_Reports.enableTransportsWithoutStackXml = false
+
+# Specify new password of the DDIC user in client 000, different from Master Password
+# NW_CI_Instance_ABAP_Reports.ddic000Password =
+
+# Need specific new password of the DDIC user in client 000, different from Master Password
+# NW_CI_Instance_ABAP_Reports.needNewDDIC000Password = false
+
+# Need specific new password of the SAP* user in client 000, different from Master Password
+# NW_CI_Instance_ABAP_Reports.needNewSapStar000Password = false
+
+# Specify new password of the SAP* user in client 000, different from Master Password
+# NW_CI_Instance_ABAP_Reports.sapStar000Password =
 {% endif %}
 
 {% if 'nw_config_livecache' in sap_swpm_inifile_list %}
