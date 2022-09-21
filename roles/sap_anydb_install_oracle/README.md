@@ -4,7 +4,7 @@ Ansible role for Oracle DB 19.x installation for SAP
 
 ## Prerequisites
 
-### SAP HANA Software Installation .SAR Files
+### Software Installation files
 
 Download installation media from SAP Download Center on host, and set Ansible Variable `sap_anydb_install_oracle_extract_path` to this path.
 
@@ -24,8 +24,6 @@ Sample Ansible Playbook Execution:
     - `ansible-playbook -i "<target-host>" sap-anydb-oracle-install.yml -e "@inputs/oracledb.install"`
 
 ## Sample playbook
-
-### Sample playbook for installing a new scale-up (=single node) SAP HANA system
 
 ```yaml
 ---
