@@ -1,0 +1,25 @@
+---
+# handlers file for sap_anydb_install_oracle
+
+- name: Reboot the managed node
+  ansible.builtin.reboot:
+    test_command: /bin/true
+  listen: __sap_anydb_install_oracle_reboot_handler
+  when:
+    - sap_anydb_install_oracle_prep_reboot_ok | d(false)
+
+- name: Let the role fail if a reboot is required
+  ansible.builtin.fail:
+    msg: Reboot is required!
+  listen: __sap_anydb_install_oracle_reboot_handler
+  when:
+    - sap_anydb_install_oracle_prep_fail_if_reboot_required | d(true)
+    - not sap_anydb_install_oracle_prep_reboot_ok | d(false)
+
+- name: Show a warning message if a reboot is required
+  ansible.builtin.debug:
+    msg: "WARN: Reboot is required!"
+  listen: __sap_anydb_install_oracle_reboot_handler
+  when:
+    - not sap_anydb_install_oracle_prep_fail_if_reboot_required | d(true)
+    - not sap_anydb_install_oracle_prep_reboot_ok | d(false)

@@ -1,0 +1,51 @@
+---
+
+- name: Oracle DB - Process Oracle Response File jina template and create file {{ sap_anydb_install_oracle_base }}/dvd/19.0.0/generated_db_install.rsp
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/oracledb_rsp_install_dbinstall.j2"
+    dest: "{{ sap_anydb_install_oracle_base }}/dvd/19.0.0/generated_db_install.rsp"
+    mode: '0640'
+  register: __sap_anydb_install_oracle_resp_db_install
+
+# Installation requires change directory to Oracle RDBMS installation media directory
+- name: Oracle DB - Install Oracle DB, using Response File
+  become: true
+  become_user: oracle
+  args:
+    executable: /bin/csh
+    chdir: "{{ sap_anydb_install_oracle_base }}/dvd/19.0.0/"
+  register: __sap_anydb_install_oracle_install_exec
+  changed_when: "'SAP RUNINSTALLER: Completed' in __sap_anydb_install_oracle_install_exec.stdout"
+  failed_when: "__sap_anydb_install_oracle_install_exec.rc not in [ 0, 1 ]"
+  ansible.builtin.shell: |
+    setenv CV_ASSUME_DISTID "OL7"
+    setenv DISPLAY 
+    setenv DB_SID "{{ sap_anydb_install_oracle_sid }}"
+    {{ sap_anydb_install_oracle_base }}/dvd/19.0.0/db_home/SAP/19cinstall.sh -silent -ohinstall -responseFile {{ sap_anydb_install_oracle_base }}/dvd/19.0.0/generated_db_install.rsp
+
+- name: Oracle DB - Root command scripts for Oracle DB Inventory and Oracle DB Home, from root user
+  become_user: root
+  ansible.builtin.shell: |
+    export DB_SID="OR1"
+    export ORACLE_BASE="{{ sap_anydb_install_oracle_base }}"
+    export ORACLE_HOME="$ORACLE_BASE/$DB_SID/19.0.0"
+    export INVENTORY_LOCATION="{{ sap_anydb_install_oracle_inventory_central }}"
+    $INVENTORY_LOCATION/orainstRoot.sh
+    $ORACLE_HOME/root.sh
+
+- name: Oracle DB - Complete configuration of Oracle DB
+  become: true
+  become_user: oracle
+  args:
+    executable: /bin/csh
+  register: __sap_anydb_install_oracle_config_exec
+  changed_when: "'SAP RUNINSTALLER: Completed' in __sap_anydb_install_oracle_config_exec.stdout"
+  failed_when: "__sap_anydb_install_oracle_config_exec.rc not in [ 0, 1 ]"
+  ignore_errors: true
+  ansible.builtin.shell: |
+    setenv DB_SID "{{ sap_anydb_install_oracle_sid }}"
+    export ORACLE_BASE="{{ sap_anydb_install_oracle_base }}"
+    setenv ORACLE_HOME "$ORACLE_BASE/$DB_SID/19.0.0"
+    set CURRENT_DATE_ISO=`date +%Y-%m-%d`
+    set ORACLEDB_RESP_GENERATED_FILE=`find $ORACLE_BASE -iname "db_$CURRENT_DATE_ISO*"`
+    $ORACLE_HOME/runInstaller -silent -executeConfigTools -responseFile $ORACLEDB_RESP_GENERATED_FILE
