@@ -1,0 +1,101 @@
+---
+
+# Linux User 'oracle' uses C Shell, use setvar
+## CV_ASSUME_DISTID env var, special preparation: only for installation of Oracle Database 19c on Linux versions Red Hat Enterprise Linux 8 / Oracle Linux 8. SAP Note 2660017 - Oracle Database Software Installation on Unix
+## DISPLAY env var, not required for when Silent installation (-silent operator for RUNINSTALLER)
+## DB_SID env var / -db_sid option. If unset then error "[FATAL] [INS-35072] The SID cannot be left blank."
+## ORACLE_BASE env var / -oracle_base option, Oracle Base /oracle. If unset then error "[FATAL] [INS-32013] The Oracle base location is empty." If option -oracle_base unused, may cause "Using new ORACLE_BASE=/oracle/<DB_SID> instead of ORACLE_BASE=/oracle" which will cause directory lookup failure and error "[FATAL] [INS-35072] The SID cannot be left blank."
+## ORACLE_HOME env var / -install_home opiton, Oracle Home - Installation
+## ORACLE_HOME_NAME env var / -oracle_home_name option, Oracle Home - Installation name in Oracle Inventory. Uses a naming convention - see https://docs.oracle.com/cd/E26854_01/em.121/e37799/ch2_manage_oh.htm#OUICG137
+## OHRDBMS env var / -runtime_home, Oracle Home - Runtime
+## ORA_GOLD_IMAGE_FILE_L env var / -oracle_stage option, Oracle home image file path. If unset then error "(ERROR  ) -  Error during unzip occurred" where no file is given to extract
+## INVENTORY_LOCATION env var, Oracle Central Inventory path (must not be within ORACLE_BASE path)
+
+# Response file as env vars
+## oracle.install.db.config.starterdb.globalDBName env var. If unset then error "[FATAL] [INS-35071] Global database name cannot be left blank."
+## oracle.install.db.config.starterdb.SID env var. If unset then error "[FATAL] [INS-35072] The SID cannot be left blank."
+## oracle.install.db.config.starterdb.memoryLimit env var. If unset then error "[FATAL] [INS-35175] No value given for the allocated memory of the database."
+## oracle.install.db.config.starterdb.storageType env var. If unset then error "[FATAL] [INS-30501] Automatic Storage Management software is not configured on this system."
+## oracle.install.db.config.starterdb.fileSystemStorage.dataLocation env var. If unset then error "[FATAL] [INS-32013] The File Location is empty."
+## oracle.install.db.config.starterdb.password.ALL env var.
+## oracle.install.db.config.starterdb.password.SYS env var. If unset then error "[FATAL] [INS-30001] The SYS password is empty."
+## oracle.install.db.config.starterdb.password.SYSTEM env var. If unset then error "[FATAL] [INS-30001] The SYSTEM password is empty."
+## oracle.install.db.DBA_GROUP env var. If unset then error "[FATAL] [INS-35344] The value is not specified for Database Administrator (OSDBA) group."
+## oracle.install.db.BACKUPDBA_GROUP env var. If unset then error "[FATAL] [INS-35344] The value is not specified for Database Backup and Recovery (OSBACKUPDBA) group."
+## oracle.install.db.DGDBA_GROUP env var. If unset then error "[FATAL] [INS-35344] The value is not specified for Data Guard administrative (OSDGDBA) group."
+## oracle.install.db.KMDBA_GROUP env var. If unset then error "[FATAL] [INS-35344] The value is not specified for Encryption Key Management administrative (OSKMDBA) group."
+## oracle.install.db.OSRACDBA_GROUP env var. If unset then error "[FATAL] [INS-35344] The value is not specified for Real Application Cluster administrative (OSRACDBA) group.""
+
+# Installation requires change directory to Oracle RDBMS installation media directory
+- name: Oracle DB - Install Oracle DB
+  become: true
+  become_user: oracle
+  args:
+    executable: /bin/csh
+    chdir: "{{ sap_anydb_install_oracle_base }}/dvd/19.0.0/"
+  register: __sap_anydb_install_oracle_install_exec
+  changed_when: "'SAP RUNINSTALLER: Completed' in __sap_anydb_install_oracle_install_exec.stdout"
+  failed_when: "__sap_anydb_install_oracle_install_exec.rc not in [ 0, 1 ]"
+  ansible.builtin.shell: |
+    setenv CV_ASSUME_DISTID "OL7"
+    setenv DISPLAY
+    setenv DB_SID "{{ sap_anydb_install_oracle_sid }}"
+    setenv ORACLE_BASE "{{ sap_anydb_install_oracle_base }}"
+    setenv ORACLE_HOME "$ORACLE_BASE/$DB_SID/19.0.0"
+    setenv ORACLE_HOME_NAME "OraDb19c_1"
+    setenv IHRDBMS "$ORACLE_HOME"
+    setenv OHRDBMS "$ORACLE_BASE/$DB_SID/19"
+    setenv ORA_GOLD_IMAGE_FILE_L "$ORACLE_BASE/dvd/19.0.0/db_home"
+    setenv INVENTORY_LOCATION "{{ sap_anydb_install_oracle_inventory_central }}"
+    setenv oracle.install.db.config.starterdb.globalDBName "{{ sap_anydb_install_oracle_sid }}"
+    setenv oracle.install.db.config.starterdb.SID "{{ sap_anydb_install_oracle_sid }}"
+    setenv oracle.install.db.config.starterdb.memoryLimit "{{ (ansible_memtotal_mb*0.95) | int }}"
+    setenv oracle.install.db.config.starterdb.storageType "FILE_SYSTEM_STORAGE"
+    setenv oracle.install.db.config.starterdb.fileSystemStorage.dataLocation "{{ sap_anydb_install_oracle_filesystem_storage }}"
+    setenv oracle.install.db.config.starterdb.password.ALL "{{ sap_anydb_install_oracle_system_password }}"
+    setenv oracle.install.db.config.starterdb.password.SYS "{{ sap_anydb_install_oracle_system_password }}"
+    setenv oracle.install.db.config.starterdb.password.SYSTEM "{{ sap_anydb_install_oracle_system_password }}"
+    setenv oracle.install.db.DBA_GROUP "dba"
+    setenv oracle.install.db.BACKUPDBA_GROUP "dba"
+    setenv oracle.install.db.DGDBA_GROUP "dba"
+    setenv oracle.install.db.KMDBA_GROUP "dba"
+    setenv oracle.install.db.OSRACDBA_GROUP "dba"
+    $ORA_GOLD_IMAGE_FILE_L/SAP/19cinstall.sh -norsp -silent -ohinstall -db_sid "$DB_SID" -oracle_base "$ORACLE_BASE" -oracle_stage "$ORA_GOLD_IMAGE_FILE_L"
+#        $ORA_GOLD_IMAGE_FILE_L/SAP/19cinstall.sh -norsp -silent -ohinstall -db_sid "$DB_SID" -oracle_base "$ORACLE_BASE" -install_home "$ORACLE_HOME" -oracle_home_name "$ORACLE_HOME_NAME" -runtime_home "$OHRDBMS" -oracle_stage "$ORA_GOLD_IMAGE_FILE_L"
+
+- name: Oracle DB - Root command scripts for Oracle DB Inventory and Oracle DB Home, from root user
+  become_user: root
+  ansible.builtin.shell: |
+    export DB_SID="{{ sap_anydb_install_oracle_sid }}"
+    export ORACLE_BASE="{{ sap_anydb_install_oracle_base }}"
+    export ORACLE_HOME="$ORACLE_BASE/$DB_SID/19.0.0"
+    export INVENTORY_LOCATION="{{ sap_anydb_install_oracle_inventory_central }}"
+    $INVENTORY_LOCATION/orainstRoot.sh
+    $ORACLE_HOME/root.sh
+
+- name: Oracle DB - Complete configuration of Oracle DB
+  become: true
+  become_user: oracle
+  args:
+    executable: /bin/csh
+  register: __sap_anydb_install_oracle_config_exec
+  changed_when: "'SAP RUNINSTALLER: Completed' in __sap_anydb_install_oracle_config_exec.stdout"
+  failed_when: "__sap_anydb_install_oracle_config_exec.rc not in [ 0, 1 ]"
+  ignore_errors: true
+  ansible.builtin.shell: |
+    setenv DB_SID "{{ sap_anydb_install_oracle_sid }}"
+    export ORACLE_BASE="{{ sap_anydb_install_oracle_base }}"
+    setenv ORACLE_HOME "$ORACLE_BASE/$DB_SID/19.0.0"
+    set CURRENT_DATE_ISO=`date +%Y-%m-%d`
+    set ORACLEDB_RESP_GENERATED_FILE=`find $ORACLE_BASE -iname "db_$CURRENT_DATE_ISO*"`
+    $ORACLE_HOME/runInstaller -silent -executeConfigTools -responseFile $ORACLEDB_RESP_GENERATED_FILE
+
+- name: Oracle DB - Find log files
+  become_user: root
+  ansible.builtin.shell: |
+    ls -1 /oraInventory/logs/InstallActions*/installActions*
+  register: __sap_anydb_install_oracle_logs
+
+- name: Oracle DB - View the following Oracle DB installation log files
+  ansible.builtin.debug:
+    var: __sap_anydb_install_oracle_logs.stdout_lines
