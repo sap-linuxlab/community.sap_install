@@ -4,6 +4,14 @@
   ansible.builtin.debug:
     var: __sap_hana_preconfigure_sapnotes_versions | difference([''])
 
+- name: Configure - Create directory '/hana'
+  ansible.builtin.file:
+    path: '/hana'
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
 - name: Configure - Include configuration actions for required sapnotes
   ansible.builtin.include_tasks: "sapnote/{{ sap_note_line_item.number }}.yml"
   with_items: "{{ __sap_hana_preconfigure_sapnotes_versions | difference(['']) }}"

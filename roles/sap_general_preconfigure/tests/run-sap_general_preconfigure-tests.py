@@ -37,13 +37,18 @@ __tests = [
         'ignore_error_final': True,
         'compact_assert_output': False,
         'rc': '99',
-        'role_vars': []
+        'role_vars': [
+            {
+               'sap_general_preconfigure_fail_if_reboot_required': False,
+            }
+        ]
     },
     {
         'number': '2',
         'name': 'Run in assert mode on new system, \
                  check for enabled repos and for minor release lock, \
-                 check for possible RHEL update, ignore any assert error.',
+                 check for possible RHEL update, \
+                 ignore assert errors.',
         'command_line_parameter': '',
         'ignore_error_final': False,
         'compact_assert_output': False,
@@ -54,29 +59,17 @@ __tests = [
                 'sap_general_preconfigure_assert_ignore_errors': True,
                 'sap_general_preconfigure_update': True,
                 'sap_general_preconfigure_enable_repos': True,
-                'sap_general_preconfigure_set_minor_release': True
+                'sap_general_preconfigure_set_minor_release': True,
             }
         ]
     },
     {
         'number': '3',
-        'name': 'Run in normal mode on new system, no reboot.',
-        'command_line_parameter': '',
-        'ignore_error_final': False,
-        'compact_assert_output': False,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_general_preconfigure_fail_if_reboot_required': False
-            }
-        ]
-    },
-    {
-        'number': '4',
-        'name': 'Run in normal mode on modified system, \
+        'name': 'Run in normal mode on new system, \
                  enable repos and set minor release lock, \
                  check for possible RHEL update, \
-                 set SELinux to permisive, allow a reboot.',
+                 set SELinux to permisive, \
+                 allow a reboot.',
         'command_line_parameter': '',
         'ignore_error_final': False,
         'compact_assert_output': False,
@@ -87,37 +80,38 @@ __tests = [
                 'sap_general_preconfigure_enable_repos': True,
                 'sap_general_preconfigure_set_minor_release': True,
                 'sap_general_preconfigure_selinux_state': 'permissive',
-                'sap_general_preconfigure_reboot_ok': True
+                'sap_general_preconfigure_reboot_ok': True,
             }
         ]
     },
     {
-        'number': '5',
-        'name': 'Run in assert mode on modified system, \
+        'number': '4',
+        'name': 'Idempotency check: Run in normal mode on modified system, \
                  enable repos and set minor release lock, \
                  check for possible RHEL update, \
-                 set SELinux to permisive, ignore any assert errors.',
+                 set SELinux to permisive, \
+                 allow a reboot.',
         'command_line_parameter': '',
         'ignore_error_final': False,
         'compact_assert_output': False,
         'rc': '99',
         'role_vars': [
             {
-                'sap_general_preconfigure_assert': True,
-                'sap_general_preconfigure_assert_ignore_errors': True,
                 'sap_general_preconfigure_update': True,
                 'sap_general_preconfigure_enable_repos': True,
                 'sap_general_preconfigure_set_minor_release': True,
-                'sap_general_preconfigure_selinux_state': 'permissive'
+                'sap_general_preconfigure_selinux_state': 'permissive',
+                'sap_general_preconfigure_reboot_ok': True,
             }
         ]
     },
     {
-        'number': '6',
+        'number': '5',
         'name': 'Run in assert mode on modified system, \
-                 enable repos and set minor release lock, \
+                 check for repos and for the RHEL minor release lock, \
                  check for possible RHEL update, \
-                 set SELinux to permisive, ignore any assert errors.',
+                 check if SELinux is permisive, \
+                 ignore any assert error.',
         'command_line_parameter': '',
         'ignore_error_final': False,
         'compact_assert_output': True,
@@ -129,9 +123,18 @@ __tests = [
                 'sap_general_preconfigure_update': True,
                 'sap_general_preconfigure_enable_repos': True,
                 'sap_general_preconfigure_set_minor_release': True,
-                'sap_general_preconfigure_selinux_state': 'permissive'
+                'sap_general_preconfigure_selinux_state': 'permissive',
             }
         ]
+    },
+    {
+        'number': '6',
+        'name': 'Run in check mode on modified system.',
+        'command_line_parameter': '--check ',
+        'ignore_error_final': False,
+        'compact_assert_output': False,
+        'rc': '99',
+        'role_vars': []
     },
 ]
 

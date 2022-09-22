@@ -1,41 +1,23 @@
 ---
 
-- name: Count SELinux configuration database entries for /hana
-  ansible.builtin.shell: semanage fcontext -l | awk 'BEGIN{a=0}$1=="/hana(/.*)?"&&$NF~/usr_t/{a++}END{print a}'
+- name: Count SELinux configuration database entries for '/hana'
+  ansible.builtin.shell: set -o pipefail && semanage fcontext -l | awk 'BEGIN{a=0}$1=="/hana(/.*)?"&&$NF~/usr_t/{a++}END{print a}'
   register: __sap_hana_preconfigure_register_semanage_fcontext_hana_result
   when: sap_hana_preconfigure_modify_selinux_labels
 
-- name: Assert that there is an entry for /hana in the SELinux configuration database
+- name: Assert that there is an entry for '/hana' in the SELinux configuration database
   ansible.builtin.assert:
     that:
-      __sap_hana_preconfigure_register_semanage_fcontext_hana_result.stdout|int != 0
+      __sap_hana_preconfigure_register_semanage_fcontext_hana_result.stdout | int != 0
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
-- name: Count files in /hana and below without SELinux `usr_t` file context
-  ansible.builtin.shell: find /hana -exec ls -ldZ {} \; | awk 'BEGIN{a=0}$5!~/usr_t/{a++}END{print a}'
+- name: Count files in '/hana' and below without SELinux `usr_t` file context
+  ansible.builtin.shell: set -o pipefail && find /hana -exec ls -ldZ {} \; | awk 'BEGIN{a=0}$5!~/usr_t/{a++}END{print a}'
   register: __sap_hana_preconfigure_register_ls_fcontext_hana_result
   when: sap_hana_preconfigure_modify_selinux_labels
 
-- name: Assert that all files in /hana and below have the usr_t file context
+- name: Assert that all files in '/hana' and below have the usr_t file context
   ansible.builtin.assert:
     that:
-      __sap_hana_preconfigure_register_selinux_fcontext_hana_result.stdout|int == 0
-
-- name: Count SELinux configuration database entries for /usr/sap
-  ansible.builtin.shell: semanage fcontext -l | awk 'BEGIN{a=0}$1=="/usr/sap(/.*)?"&&$NF~/usr_t/{a++}END{print a}'
-  register: __sap_hana_preconfigure_register_semanage_fcontext_usr_sap_result
-  when: sap_hana_preconfigure_modify_selinux_labels
-
-- name: Assert that there is an entry for /usr/sap in the SELinux configuration database
-  ansible.builtin.assert:
-    that:
-      __sap_hana_preconfigure_register_semanage_fcontext_usr_sap_result.stdout|int != 0
-
-- name: Count files in /usr/sap and below without SELinux `usr_t` file context
-  ansible.builtin.shell: find /usr/sap -exec ls -ldZ {} \; | awk 'BEGIN{a=0}$5!~/usr_t/{a++}END{print a}'
-  register: __sap_hana_preconfigure_register_ls_fcontext_usr_sap_result
-  when: sap_hana_preconfigure_modify_selinux_labels
-
-- name: Assert that all files in /usr/sap and below have the usr_t file context
-  ansible.builtin.assert:
-    that:
-      __sap_hana_preconfigure_register_selinux_fcontext_usr_sap_result.stdout|int == 0
+      __sap_hana_preconfigure_register_selinux_fcontext_hana_result.stdout | int == 0
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"

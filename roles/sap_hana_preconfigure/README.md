@@ -74,11 +74,10 @@ The current version modifies this behavior:
   If sap_hana_preconfigure_use_tuned is set to `no`, the role will perform a static configuration, including the modification of the linux command line in grub.
 - The role can use tuned, or configure the kernel command line, or both.
 
-2) Previous versions of this role used variable sap_hana_preconfigure_selinux_state to set the SELinux state to disabled, which is mentioned in
-SAP notes 2292690 (RHEL 7) and 2777782 (RHEL 8). As role sap_general_preconfigure already allows to specify the desired SELinux state, and as
-sap_general_preconfigure is run before sap_hana_preconfigure, there is no need any more to let sap_hana_preconfigure configure the SELinux state.
-Same applies to the assertion of the SELinux state. Because of this, variable sap_hana_preconfigure_selinux_state has been removed from this role and
-tasks 2292690/08-disable-selinux.yml and 2777782/01-assert-selinux.yml have been commented out.
+2) Previous versions of this role used variable sap_hana_preconfigure_selinux_state to set the SELinux state to disabled, which is
+mentioned in SAP notes 2292690 (RHEL 7) and 2777782 (RHEL 8). As role sap_general_preconfigure already allows to specify the desired
+SELinux state, and as sap_general_preconfigure is run before sap_hana_preconfigure, there is no need any more to let
+sap_hana_preconfigure configure the SELinux state. Same applies to the assertion of the SELinux state.
 
 ## Role Variables
 

@@ -40,211 +40,137 @@ __tests = [
     },
     {
         'number': '2',
-        'name': 'Run in assert mode on new system. Ignore a final error.',
+        'name': 'Run in assert mode on new system, \
+                 ignore assert errors.',
         'command_line_parameter': '',
         'ignore_error_final': True,
         'compact_assert_output': False,
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_preconfigure_assert': True
+                'sap_hana_preconfigure_assert': True,
+                'sap_hana_preconfigure_assert_ignore_errors': True,
             }
         ]
     },
     {
         'number': '3',
-        'name': 'Run in assert mode on new system, \
-                 check for possible RHEL update, ignore any assert error.',
+        'name': 'Run in normal mode on new system, \
+                 check for possible RHEL update, \
+                 allow a reboot.',
         'command_line_parameter': '',
         'ignore_error_final': False,
         'compact_assert_output': False,
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_preconfigure_assert': True,
-                'sap_hana_preconfigure_assert_ignore_errors': True,
-                'sap_hana_preconfigure_update': True
+                'sap_hana_preconfigure_update': True,
+                'sap_hana_preconfigure_reboot_ok': True,
             }
         ]
     },
     {
         'number': '4',
-        'name': 'Run in assert mode on new system, \
+        'name': 'Idempotency check: Run in normal mode again, \
                  check for possible RHEL update, \
-                 compact output, \
-                 ignore any assert or final error.',
+                 allow a reboot.',
         'command_line_parameter': '',
-        'ignore_error_final': True,
-        'compact_assert_output': True,
+        'ignore_error_final': False,
+        'compact_assert_output': False,
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_preconfigure_assert': True,
-                'sap_hana_preconfigure_assert_ignore_errors': True,
-                'sap_hana_preconfigure_update': True
+                'sap_hana_preconfigure_update': True,
+                'sap_hana_preconfigure_reboot_ok': True,
             }
         ]
     },
     {
         'number': '5',
-        'name': 'Run in normal mode on new system, no reboot.',
+        'name': 'Run in assert mode on modified system, \
+                 check for possible RHEL update, \
+                 ignore any assert error.',
         'command_line_parameter': '',
         'ignore_error_final': False,
-        'compact_assert_output': False,
+        'compact_assert_output': True,
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_preconfigure_fail_if_reboot_required': False
+                'sap_hana_preconfigure_assert': True,
+                'sap_hana_preconfigure_assert_ignore_errors': True,
+                'sap_hana_preconfigure_update': True,
             }
         ]
     },
     {
         'number': '6',
-        'name': 'Run in check mode on configured system.',
-        'command_line_parameter': '--check ',
-        'ignore_error_final': False,
-        'compact_assert_output': False,
-        'rc': '99',
-        'role_vars': []
-    },
-    {
-        'number': '7',
-        'name': 'Run in assert mode on modified system. Ignore a final error.',
+        'name': 'Run in normal mode, \
+                 do not use tuned, \
+                 allow a reboot.',
         'command_line_parameter': '',
-        'ignore_error_final': True,
+        'ignore_error_final': False,
         'compact_assert_output': False,
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_preconfigure_assert': True
+                'sap_hana_preconfigure_use_tuned': False,
+                'sap_hana_preconfigure_reboot_ok': True,
+            }
+        ]
+    },
+    {
+        'number': '7',
+        'name': 'Idempotency check: Run in normal mode again, \
+                 do not use tuned, \
+                 allow a reboot.',
+        'command_line_parameter': '',
+        'ignore_error_final': False,
+        'compact_assert_output': False,
+        'rc': '99',
+        'role_vars': [
+            {
+                'sap_hana_preconfigure_use_tuned': False,
+                'sap_hana_preconfigure_reboot_ok': True,
             }
         ]
     },
     {
         'number': '8',
-        'name': 'Run in assert mode on modified system, \
-                 check for possible RHEL update, \
-                 compact output, \
-                 ignore any assert or final error.',
+        'name': 'Run in normal mode, \
+                 use tuned and also modify boot command line, \
+                 allow a reboot.',
         'command_line_parameter': '',
-        'ignore_error_final': True,
-        'compact_assert_output': True,
+        'ignore_error_final': False,
+        'compact_assert_output': False,
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_preconfigure_assert': True,
-                'sap_hana_preconfigure_assert_ignore_errors': True,
-                'sap_hana_preconfigure_update': True
+                'sap_hana_preconfigure_use_tuned': True,
+                'sap_hana_preconfigure_modify_grub_cmdline_linux': True,
+                'sap_hana_preconfigure_reboot_ok': True,
             }
         ]
     },
     {
         'number': '9',
-        'name': 'Run in normal mode. Update to the latest packages. Allow a reboot.',
+        'name': 'Idempotency check: Run in normal mode again, \
+                 use tuned and also modify boot command line, \
+                 allow a reboot.',
         'command_line_parameter': '',
         'ignore_error_final': False,
         'compact_assert_output': False,
         'rc': '99',
         'role_vars': [
             {
-                'sap_hana_preconfigure_enable_sap_hana_repos': True,
-                'sap_hana_preconfigure_set_minor_release': True,
-                'sap_hana_preconfigure_update': True,
-                'sap_hana_preconfigure_reboot_ok': True
+                'sap_hana_preconfigure_use_tuned': True,
+                'sap_hana_preconfigure_modify_grub_cmdline_linux': True,
+                'sap_hana_preconfigure_reboot_ok': True,
             }
         ]
     },
     {
         'number': '10',
-        'name': 'Run in assert mode on modified system. Ignore a final error.',
-        'command_line_parameter': '',
-        'ignore_error_final': True,
-        'compact_assert_output': False,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_hana_preconfigure_assert': True
-            }
-        ]
-    },
-    {
-        'number': '11',
-        'name': 'Run in assert mode on modified system, \
-                 check for possible RHEL update, \
-                 compact output, \
-                 ignore any assert or final error.',
-        'command_line_parameter': '',
-        'ignore_error_final': False,
-        'compact_assert_output': True,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_hana_preconfigure_assert': True,
-                'sap_hana_preconfigure_assert_ignore_errors': True,
-                'sap_hana_preconfigure_update': True
-            }
-        ]
-    },
-    {
-        'number': '12',
-        'name': 'Run in normal mode. Do not use tuned. Allow a reboot.',
-        'command_line_parameter': '',
-        'ignore_error_final': False,
-        'compact_assert_output': False,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_hana_preconfigure_enable_sap_hana_repos': True,
-                'sap_hana_preconfigure_set_minor_release': True,
-                'sap_hana_preconfigure_update': True,
-                'sap_hana_preconfigure_use_tuned': False,
-                'sap_hana_preconfigure_reboot_ok': True
-            }
-        ]
-    },
-    {
-        'number': '13',
-        'name': 'Run in assert mode again, \
-                 check for possible RHEL update, \
-                 check all config, \
-                 compact output, \
-                 ignore any assert or final error.',
-        'command_line_parameter': '',
-        'ignore_error_final': True,
-        'compact_assert_output': True,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_hana_preconfigure_assert': True,
-                'sap_hana_preconfigure_assert_all_config': True,
-                'sap_hana_preconfigure_assert_ignore_errors': True,
-                'sap_hana_preconfigure_update': True
-            }
-        ]
-    },
-    {
-        'number': '14',
-        'name': 'Run in normal mode. \
-                 Use tuned and also modify boot command line. \
-                 Allow a reboot.',
-        'command_line_parameter': '',
-        'ignore_error_final': False,
-        'compact_assert_output': False,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_hana_preconfigure_enable_sap_hana_repos': True,
-                'sap_hana_preconfigure_set_minor_release': True,
-                'sap_hana_preconfigure_update': True,
-                'sap_hana_preconfigure_use_tuned': True,
-                'sap_hana_preconfigure_modify_grub_cmdline_linux': True,
-                'sap_hana_preconfigure_reboot_ok': True
-            }
-        ]
-    },
-    {
-        'number': '15',
-        'name': 'Run in assert mode again, \
+        'name': 'Run in assert mode, \
                  check for possible RHEL update, \
                  check all config, \
                  compact output, \
@@ -258,9 +184,17 @@ __tests = [
                 'sap_hana_preconfigure_assert': True,
                 'sap_hana_preconfigure_assert_all_config': True,
                 'sap_hana_preconfigure_assert_ignore_errors': True,
-                'sap_hana_preconfigure_update': True
             }
         ]
+    },
+    {
+        'number': '11',
+        'name': 'Run in check mode on modified system.',
+        'command_line_parameter': '--check ',
+        'ignore_error_final': False,
+        'compact_assert_output': False,
+        'rc': '99',
+        'role_vars': []
     }
 ]
 

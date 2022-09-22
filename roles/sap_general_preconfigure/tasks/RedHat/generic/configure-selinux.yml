@@ -96,3 +96,15 @@
 - name: SELinux - Display the content of sap_general_preconfigure_fact_reboot_required
   ansible.builtin.debug:
     var: sap_general_preconfigure_fact_reboot_required | d(false)
+
+- name: Configure '/usr/sap' SELinux file labels
+  ansible.builtin.include_role:
+    name: fedora.linux_system_roles.selinux
+  vars:
+    selinux_booleans:
+      - { name: 'selinuxuser_execmod', state: 'on' }
+    selinux_fcontexts:
+      - { target: '/usr/sap(/.*)?', setype: 'usr_t' }
+    selinux_restore_dirs:
+      - '/usr/sap'
+  when: sap_general_preconfigure_modify_selinux_labels

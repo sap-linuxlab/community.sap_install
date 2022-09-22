@@ -1,20 +1,20 @@
 ---
 
-- name: Get info about file /etc/selinux/config
+- name: Get info about file '/etc/selinux/config'
   ansible.builtin.stat:
     path: /etc/selinux/config
   register: __sap_general_preconfigure_register_stat_selinux_conf_assert
 
-- name: Assert that file /etc/selinux/config exists and is a regular file
+- name: Assert that file '/etc/selinux/config' exists and is a regular file
   ansible.builtin.assert:
     that: __sap_general_preconfigure_register_stat_selinux_conf_assert.stat.isreg
     fail_msg: "FAIL: File /etc/selinux/config does not exist or is not a regular file!"
 #    success_msg: "PASS: File /etc/selinux/config exists and is a regular file."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
-- name: Warn about SELinux being set to 'enforcing'
+- name: Info about SELinux being set to 'enforcing'
   ansible.builtin.debug:
-    msg: "WARN: The SELinux state has been set to 'enforcing' (variable sap_general_preconfigure_selinux_state)."
+    msg: "INFO: The SELinux state has been set to 'enforcing' (variable sap_general_preconfigure_selinux_state)."
   ignore_errors: yes
   when: "sap_general_preconfigure_selinux_state == 'enforcing'"
 
@@ -46,10 +46,32 @@
   register: __sap_general_preconfigure_register_getenforce_assert
   changed_when: no
 
-- name: Assert that SELinux is set correctly
+- name: Assert that the SELinux state is set correctly
   ansible.builtin.assert:
     that: __sap_general_preconfigure_register_getenforce_assert.stdout | lower == "{{ sap_general_preconfigure_selinux_state }}"
     fail_msg: "FAIL: SELinux is currently not '{{ sap_general_preconfigure_selinux_state }}'!
                The current SELinux state is: '{{ __sap_general_preconfigure_register_getenforce_assert.stdout | lower }}'."
     success_msg: "PASS: SELinux is currently {{ sap_general_preconfigure_selinux_state }}."
+  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+
+- name: Count SELinux configuration database entries for '/usr/sap'
+  ansible.builtin.shell: set -o pipefail && semanage fcontext -l | awk 'BEGIN{a=0}$1=="/usr/sap(/.*)?"&&$NF~/usr_t/{a++}END{print a}'
+  register: __sap_general_preconfigure_register_semanage_fcontext_usr_sap_result
+  when: sap_general_preconfigure_modify_selinux_labels
+
+- name: Assert that there is an entry for '/usr/sap' in the SELinux configuration database
+  ansible.builtin.assert:
+    that:
+      __sap_general_preconfigure_register_semanage_fcontext_usr_sap_result.stdout | int != 0
+  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+
+- name: Count files in '/usr/sap' and below without SELinux `usr_t` file context
+  ansible.builtin.shell: set -o pipefail && find /usr/sap -exec ls -ldZ {} \; | awk 'BEGIN{a=0}$5!~/usr_t/{a++}END{print a}'
+  register: __sap_general_preconfigure_register_ls_fcontext_usr_sap_result
+  when: sap_general_preconfigure_modify_selinux_labels
+
+- name: Assert that all files in '/usr/sap' and below have the usr_t file context
+  ansible.builtin.assert:
+    that:
+      __sap_general_preconfigure_register_selinux_fcontext_usr_sap_result.stdout | int == 0
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
