@@ -62,8 +62,9 @@
       tags: check_platform
   tags: check_platform
 
-# Copied from rhel-system-roles/roles/ha_cluster/tasks/main.yml and enhanced
-# for additional environment settings.
+# Include vars files based on the environment
+# Make sure the include order is correct (potentially overwriting the same
+# parameters).
 - name: "{{ __tname }} Set platform/version specific variables"
   ansible.builtin.include_vars: "{{ __sap_ha_cluster_vars_file }}"
   loop:
@@ -102,6 +103,18 @@
     file: construct_vars_hana_scaleout.yml
   when: sap_ha_cluster_sap_type == 'scaleout'
 
+- name: "{{ __tname }} Include platform specific fencing prerequisites"
+  ansible.builtin.include_tasks:
+    file: "{{ item }}"
+  loop:
+    - "preconfigure_platform_{{ __sap_ha_cluster_platform_type }}.yml"
+  vars:
+    __sap_ha_cluster_platform_file: "{{ role_path }}/tasks/{{ item }}"
+  when:
+    - __sap_ha_cluster_platform_type is defined
+    - __sap_ha_cluster_platform_file is file
+  ignore_errors: "{{ ansible_check_mode }}"
+
 # TODO: combine various definitions into one parameter for role include input
 # For example, multiple resource primitives are defined in different places for
 # different purpose. The result shall be a complete list of all the constructed
@@ -110,6 +123,7 @@
 
 # Before we are ready to call the ha_cluster role, we want to validate
 # that the minimum required parameters are defined and not empty.
+# TODO: make this smarter, currently all these vars are pre-defined anyway
 - name: "{{ __tname }} Validate parameters for 'ha_cluster' role input"
   ansible.builtin.assert:
     that:

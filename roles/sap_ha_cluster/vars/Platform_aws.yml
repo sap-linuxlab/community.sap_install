@@ -1,0 +1,53 @@
+---
+# Variables specific on AWS cloud platform
+#
+# TODO: make sure to first respect 'ha_cluster' native variables
+
+sap_ha_cluster_fence_agent_packages:
+  - fence-agents-aws
+
+sap_ha_cluster_extra_packages:
+  - awscli
+
+__sap_ha_cluster_repos:
+  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
+    name: High Availability
+
+# Predefine
+__sap_ha_cluster_aws_instances: []
+
+## Requires:
+# sap_ha_cluster_aws_access_key_id:
+# sap_ha_cluster_aws_secret_access_key:
+# sap_ha_cluster_aws_region:
+# sap_ha_cluster_aws_vpc:
+
+# TODO: move to defaults
+sap_ha_cluster_aws_fence_power_timeout: 240
+sap_ha_cluster_aws_fence_reboot_retries: 4
+sap_ha_cluster_aws_fence_reboot_timeout: 400
+
+# TODO: construct parameter
+#__sap_ha_cluster_pcmk_host_map
+
+ha_cluster_resource_primitives:
+  - id: res_fence_aws
+    agent: "stonith:fence_aws"
+    instance_attrs:
+      - attrs:
+          - name: access_key
+            value: "{{ sap_ha_cluster_aws_access_key_id }}"
+          - name: secret_key
+            value: "{{ sap_ha_cluster_aws_secret_access_key }}"
+          - name: region
+            value: "{{ sap_ha_cluster_aws_region }}"
+          - name: pcmk_host_map
+            value: "{{ __sap_ha_cluster_pcmk_host_map }}"
+          - name: pcmk_reboot_retries
+            value: "{{ sap_ha_cluster_aws_fence_reboot_retries }}"
+          - name: pcmk_reboot_timeout
+            value: "{{ sap_ha_cluster_aws_fence_reboot_timeout }}"
+          - name: power_timeout
+            value: "{{ sap_ha_cluster_aws_fence_power_timeout }}"
+          - name:
+            value:
