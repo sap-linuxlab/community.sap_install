@@ -1,0 +1,21 @@
+---
+
+- name: SAP Install Media Detect - SAPCAR - Get SAPCAR executable file from folder - {{ sap_install_media_detect_directory }}
+  ansible.builtin.shell: ls SAPCAR*.EXE
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+  register: sap_swpm_sapcar_file_name_get
+  changed_when: false
+
+- name: SAP Install Media Detect - SAPCAR - Set fact
+  ansible.builtin.set_fact:
+    sap_swpm_sapcar_file_name: "{{ sap_swpm_sapcar_file_name_get.stdout }}"
+
+- name: SAP Install Media Detect - SAPCAR - Change ownership of SAPCAR
+  ansible.builtin.file:
+    path: "{{ sap_install_media_detect_directory }}/{{ sap_swpm_sapcar_file_name }}"
+    state: file
+    mode: '0755'
+    owner: root
+    group: root
+

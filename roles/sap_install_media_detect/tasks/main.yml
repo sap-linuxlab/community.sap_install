@@ -1,21 +1,100 @@
 ---
 
-- name: SAP Media Detect - Organize HANA
-  include_tasks: "organize_hana.yml"
+- name: SAP Install Media Detect - Prepare - Get unrar
+  include_tasks: "prepare/unrar_get.yml"
 
-- name: SAP Media Detect - Organize SWPM
-  include_tasks: "organize_swpm.yml"
+- name: SAP Install Media Detect - Organize SAPCAR
+  include_tasks: "detect_sapcar.yml"
 
-- name: SAP Media Detect - Check HANA
-  include_tasks: "check_hana.yml"
+- name: SAP Install Media Detect - Organize SAP HANA installation media files
+  include_tasks: "detect_saphana.yml"
+  when:
+    - sap_install_media_detect_db == "saphana"
 
-- name: SAP Media Detect - Check SWPM
-  include_tasks: "check_swpm.yml"
+- name: SAP Install Media Detect - Organize SAP SWPM installation media files
+  include_tasks: "detect_sapswpm.yml"
+  when:
+    - sap_install_media_detect_swpm == true
 
-- name: SAP Media Detect - Display Paths
+- name: SAP Install Media Detect - Organize SAP Host Agent installation media files
+  include_tasks: "detect_saphostagent.yml"
+  when:
+    - sap_install_media_detect_hostagent == true
+
+- name: SAP Install Media Detect - Organize SAP IGS installation media files
+  include_tasks: "detect_sapigs.yml"
+  when:
+    - sap_install_media_detect_igs == true
+
+- name: SAP Install Media Detect - Organize SAP Kernel installation media files
+  include_tasks: "detect_sapkernel.yml"
+  when:
+    - sap_install_media_detect_kernel == true
+
+- name: SAP Install Media Detect - Organize SAP Web Dispatcher installation media files
+  include_tasks: "detect_sapwebdisp.yml"
+  when:
+    - sap_install_media_detect_webdisp == true
+
+
+- name: SAP Install Media Detect - Complete Data Backup files for SAP HANA
+  include_tasks: "detect_backup_saphana.yml"
+  when:
+    - sap_install_media_detect_backup == "saphana"
+
+
+# Detect files which (historically) have filenames which are Numbered IDs only (e.g. 51054410_2 for SAP MaxDB 7.9)
+# Leave to last so directory has less files to scan
+
+- name: SAP Install Media Detect - Organize SAP ASE installation media files
+  include_tasks: "detect_sapanydb_sapase.yml"
+  when:
+    - sap_install_media_detect_db == "sapase"
+
+- name: SAP Install Media Detect - Organize SAP MaxDB installation media files
+  include_tasks: "detect_sapanydb_sapmaxdb.yml"
+  when:
+    - sap_install_media_detect_db == "sapmaxdb"
+
+- name: SAP Install Media Detect - Organize Oracle DB installation media files
+  include_tasks: "detect_sapanydb_oracledb.yml"
+  when:
+    - sap_install_media_detect_db == "oracledb"
+
+- name: SAP Install Media Detect - Organize IBM Db2 installation media files
+  include_tasks: "detect_sapanydb_ibmdb2.yml"
+  when:
+    - sap_install_media_detect_db == "ibmdb2"
+
+- name: SAP Install Media Detect - EXPORT files for SAP ECC
+  include_tasks: "detect_export_sapecc.yml"
+  when:
+    - sap_install_media_detect_export == "sapecc"
+
+- name: SAP Install Media Detect - EXPORT files for SAP S/4HANA
+  include_tasks: "detect_export_saps4hana.yml"
+  when:
+    - sap_install_media_detect_export == "saps4hana"
+
+
+- name: SAP Install Media Detection Completed - set global vars for subsequent Ansible Tasks
+  include_tasks: "set_global_vars.yml"
+
+
+# Output of detected SAP Software
+
+- name: SAP Install Media Detection Completed - Display Paths for SAP HANA
   debug:
     msg:
-      - "SWPM Software Path - {{ sap_swpm_software_path }}"
-      - "SWPM SAPCAR Path - {{ sap_swpm_sapcar_path }}"
-      - "SWPM Path - {{ sap_swpm_swpm_path }}"
       - "SAP HANA Path - {{ sap_hana_install_directory }}"
+  when:
+    - sap_install_media_detect_db == "saphana"
+
+- name: SAP Install Media Detection Completed - Display Paths for SAP SWPM
+  debug:
+    msg:
+      - "SAP SWPM Software Path - {{ sap_swpm_software_path }}"
+      - "SAP SWPM SAPCAR Path - {{ sap_swpm_sapcar_path }}"
+      - "SAP SWPM Path - {{ sap_swpm_swpm_path }}"
+  when:
+    - sap_install_media_detect_swpm == true
