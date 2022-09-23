@@ -40,7 +40,7 @@
 - name: SAP Install Media Detect - SAP ECC EXPORT - Identify SAP ECC EXPORT files
   ansible.builtin.shell: |
     if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXPORT_' ; then echo '{{ item }}' ; fi ;
-    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if ../unrar lb {{ item }} | grep -q 'DATA_UNITS/EXPORT_' ; then echo '{{ item }}' ; fi ; fi
+    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if "{{ sap_install_media_detect_unrar_binary }}" lb {{ item }} | grep -q 'DATA_UNITS/EXPORT_' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_ecc_export
   changed_when: "item | length > 0"
   with_items: 
@@ -75,7 +75,9 @@
     paths: "{{ sap_install_media_detect_directory }}/sapecc_export_extracted"
     recurse: yes
     file_type: directory
-    contains: "DATA_UNITS"
+#    contains: "DATA_UNITS"
+    patterns: '.*DATA_UNITS.*'
+    use_regex: yes
   register: detect_directory_export_extracted
 
 - name: SAP Install Media Detect - SAP ECC EXPORT - Local Directory source - re-list files in directory
@@ -113,7 +115,7 @@
 - name: SAP Install Media Detect - SAP ECC EXPORT - Local Directory source - re-identify SAP ECC EXPORT files
   ansible.builtin.shell: |
     if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXPORT_' ; then echo '{{ item }}' ; fi ;
-    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if ../unrar lb {{ item }} | grep -q 'DATA_UNITS/EXPORT_' ; then echo '{{ item }}' ; fi ; fi
+    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if "{{ sap_install_media_detect_unrar_binary }}" lb {{ item }} | grep -q 'DATA_UNITS/EXPORT_' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_ecc_export_repeated
   changed_when: "item | length > 0"
   with_items: 
