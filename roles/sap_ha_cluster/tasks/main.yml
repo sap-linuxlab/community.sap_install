@@ -54,7 +54,7 @@
       tags: check_sap
   tags: check_sap
 
-# Determine if we are on a cloud platform
+# Determine if we are on a cloud platform.
 - name: "{{ __tname }} Include tasks for platform detection"
   ansible.builtin.include_tasks:
     file: ascertain_platform_type.yml
@@ -62,9 +62,8 @@
       tags: check_platform
   tags: check_platform
 
-# Include vars files based on the environment
-# Make sure the include order is correct (potentially overwriting the same
-# parameters).
+# Include vars files based on the environment.
+# Respect order for potential variable precedence.
 - name: "{{ __tname }} Set platform/version specific variables"
   ansible.builtin.include_vars: "{{ __sap_ha_cluster_vars_file }}"
   loop:
@@ -156,7 +155,8 @@
         - __sap_ha_cluster_cib_query.stdout is defined
         - __sap_ha_cluster_cib_query.stdout|length > 0
 
-    # include ha_cluster role from "linux-system-roles" (symlink to rhel-system-roles on rhel)
+    # Cluster installation and configuration through the dedicated
+    # linux system role 'ha_cluster'
     - name: "{{ __tname }} Include System Role 'ha_cluster'"
       ansible.builtin.include_role:
         name: linux-system-roles.ha_cluster
@@ -175,16 +175,17 @@
         ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order }}"
         ha_cluster_constraints_colocation: "{{ __sap_ha_cluster_constraints_colocation }}"
         ha_cluster_fence_agent_packages: "{{ __sap_ha_cluster_fence_agent_packages }}"
-      no_log: true  # some parameters contain secrets
+#      no_log: true  # some parameters contain secrets
       tags: ha_cluster
 
-# TODO: test if the defaults can be updated as part of other parameters
+    # TODO: test if the defaults can be updated as part of other parameters
     - name: "{{ __tname }} Update resource default values"
       ansible.builtin.command:
         cmd: pcs resource defaults update {{ item }}
       loop:
         - "resource-stickiness={{ sap_ha_cluster_resource_stickiness }}"
         - "migration-threshold={{ sap_ha_cluster_migration_threshold }}"
+      run_once: true
 
     - name: "{{ __tname }} Include srHook configuration"
       ansible.builtin.include_tasks:
@@ -193,9 +194,9 @@
           tags: srhook
       tags: srhook
 
+### END OF BLOCK: prerequisite changes and cluster setup
   when:
     - not sap_ha_cluster_create_config_only
-### END OF BLOCK
 
 # TODO: how to deal with secrets in output? They should be masked somehow...
 

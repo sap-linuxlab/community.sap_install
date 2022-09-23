@@ -162,7 +162,7 @@
         - name: symmetrical
           value: "false"
   when:
-    - __constraint_order_topology.resource_then.id not in (__sap_ha_cluster_constraints_order | map(attribute='resource_then'))
+    - __constraint_order_topology.resource_then not in (__sap_ha_cluster_constraints_order | map(attribute='resource_then'))
 
 # Start the VIP only after the HANA resource has been promoted
 - name: "{{ __tname }} Add order constraint: VIP starts after DB is promoted"
@@ -177,7 +177,7 @@
         id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}_MASTER"
         action: start
   when:
-    - __constraint_order_vip.resource_then.id not in (__sap_ha_cluster_constraints_order | map(attribute='resource_then'))
+    - __constraint_order_vip.resource_then not in (__sap_ha_cluster_constraints_order | map(attribute='resource_then'))
 
 # The VIP only runs where HANA is promoted
 - name: "{{ __tname }} Add colocation constraint: VIP runs where HANA is promoted"
@@ -194,4 +194,4 @@
         - name: score
           value: 2000
   when:
-    - __constraint_colo_vip.resource_follower.id not in (__sap_ha_cluster_constraints_colocation | map(attribute='resource_follower'))
+    - __constraint_colo_vip.resource_follower not in (__sap_ha_cluster_constraints_colocation | map(attribute='resource_follower'))
