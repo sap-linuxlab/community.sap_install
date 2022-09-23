@@ -43,7 +43,7 @@ __tests = [
         'name': 'Run in assert mode on new system, \
                  ignore assert errors.',
         'command_line_parameter': '',
-        'ignore_error_final': True,
+        'ignore_error_final': False,
         'compact_assert_output': False,
         'rc': '99',
         'role_vars': [
@@ -120,22 +120,6 @@ __tests = [
     },
     {
         'number': '7',
-        'name': 'Idempotency check: Run in normal mode again, \
-                 do not use tuned, \
-                 allow a reboot.',
-        'command_line_parameter': '',
-        'ignore_error_final': False,
-        'compact_assert_output': False,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_hana_preconfigure_use_tuned': False,
-                'sap_hana_preconfigure_reboot_ok': True,
-            }
-        ]
-    },
-    {
-        'number': '8',
         'name': 'Run in normal mode, \
                  use tuned and also modify boot command line, \
                  allow a reboot.',
@@ -152,7 +136,7 @@ __tests = [
         ]
     },
     {
-        'number': '9',
+        'number': '8',
         'name': 'Idempotency check: Run in normal mode again, \
                  use tuned and also modify boot command line, \
                  allow a reboot.',
@@ -169,7 +153,7 @@ __tests = [
         ]
     },
     {
-        'number': '10',
+        'number': '9',
         'name': 'Run in assert mode, \
                  check for possible RHEL update, \
                  check all config, \
@@ -188,7 +172,7 @@ __tests = [
         ]
     },
     {
-        'number': '11',
+        'number': '10',
         'name': 'Run in check mode on modified system.',
         'command_line_parameter': '--check ',
         'ignore_error_final': False,
