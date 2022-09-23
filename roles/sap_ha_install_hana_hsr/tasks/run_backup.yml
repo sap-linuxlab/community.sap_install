@@ -1,57 +1,21 @@
-# [A] Run backup for SYSTEMDB
-- name: SAP HSR - [A] Run backup for SYSTEMDB
+---
+- name: "SAP HSR - Run backup for SYSTEMDB"
   shell: |
-        /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql \
-        -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
-        -m <<EOF
-        BACKUP DATA FOR SYSTEMDB USING FILE ('data_bck');
-        EOF
+    /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql \
+    -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
+    -m <<EOF
+    BACKUP DATA FOR SYSTEMDB USING FILE ('data_bck');
+    EOF
   args:
-     executable: /bin/bash
-  become: true
-  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
+    executable: /bin/bash
 
-# [A] Run backup in TENANTDB {{ sap_ha_install_hana_hsr_sid }}
-- name: SAP HSR - [A] Run backup in TENANTDB {{ sap_ha_install_hana_hsr_sid }}
+- name: "SAP HSR - Run backup in TENANTDB {{ sap_ha_install_hana_hsr_sid }}"
   shell: |
-        /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql \
-        -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
-        -m <<EOF
-        BACKUP DATA FOR {{ sap_ha_install_hana_hsr_sid }} USING FILE ('data_bck');
-        EOF
+    /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql \
+    -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
+    -m <<EOF
+    BACKUP DATA FOR {{ sap_ha_install_hana_hsr_sid }} USING FILE ('data_bck');
+    EOF
   args:
-     executable: /bin/bash
-  become: true
-  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
-
-# - name: Ensure a backup exists for SYSTEM
-#   shell: |
-#       source /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/home/.sapenv.sh && \
-#       /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/HDB{{ sap_ha_install_hana_hsr_instance_number }}/exe/hdbsql \
-#       -i {{ sap_ha_install_hana_hsr_instance_number }} -u SYSTEM -p {{ sap_ha_install_hana_hsr_db_system_password }} -d SYSTEMDB -m <<EOF
-#       BACKUP DATA USING FILE ('system_bck');
-#       EOF
-#   args:
-#      executable: /bin/bash
-#   become: true
-#   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
-#   register: systembackup
-#   changed_when: "'0 rows affected' in systembackup.stdout"
-#   when:
-#     - sap_ha_install_hana_hsr_role == 'primary'
-
-# - name: Ensure a backup exists for {{ sap_ha_install_hana_hsr_sid }}
-#   shell: |
-#       source /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/home/.sapenv.sh && \
-#       /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/HDB{{ sap_ha_install_hana_hsr_instance_number }}/exe/hdbsql \
-#       -i {{ sap_ha_install_hana_hsr_instance_number }} -u SYSTEM -p {{ sap_ha_install_hana_hsr_db_system_password }} -d SYSTEMDB -m <<EOF
-#       BACKUP DATA FOR {{ sap_ha_install_hana_hsr_sid }} USING FILE ('data_bck');
-#       EOF
-#   args:
-#      executable: /bin/bash
-#   become: true
-#   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
-#   register: databackup
-#   changed_when: "'0 rows affected' in databackup.stdout"
-#   when:
-#     - sap_ha_install_hana_hsr_role == 'primary'
+    executable: /bin/bash
+  failed_when: false

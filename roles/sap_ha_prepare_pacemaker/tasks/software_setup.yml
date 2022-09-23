@@ -1,0 +1,30 @@
+---
+- name: "SAP Prepare Pacemaker - Check RHEL HA Repos"
+  ansible.builtin.shell: |
+    yum repolist
+  args:
+    executable: /bin/bash
+    warn: no
+  become: true
+  become_user: root
+  register: sap_ha_prepare_pacemaker_check_ha_repos
+  changed_when: false
+
+- name: "SAP Prepare Pacemaker - Subscription Manager - Enable RHEL HA Repos"
+  ansible.builtin.command: 'subscription-manager repos --enable="{{ item }}"'
+  loop: "{{ sap_ha_prepare_pacemaker_rhsm_repos }}"
+  when:
+    - item not in sap_ha_prepare_pacemaker_check_ha_repos.stdout
+
+- name: "SAP Prepare Pacemaker - Install Packages"
+  ansible.builtin.yum:
+    name: '{{ sap_ha_prepare_pacemaker_packages }}'
+    state: present
+
+- name: "SAP Prepare Pacemaker - Install Packages - Vendor Specific"
+  ansible.builtin.yum:
+    name: "{{ vars['sap_ha_prepare_pacemaker_packages_' + sap_ha_prepare_pacemaker_type] }}"
+    state: present
+  when:
+    - sap_ha_prepare_pacemaker_type is defined
+    - vars['sap_ha_prepare_pacemaker_packages_' + sap_ha_prepare_pacemaker_type] is defined
