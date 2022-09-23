@@ -103,50 +103,58 @@
     file: construct_vars_hana_scaleout.yml
   when: sap_ha_cluster_sap_type == 'scaleout'
 
-- name: "{{ __tname }} Include platform specific fencing prerequisites"
-  ansible.builtin.include_tasks:
-    file: "{{ item }}"
-  loop:
-    - "preconfigure_platform_{{ __sap_ha_cluster_platform_type }}.yml"
-  vars:
-    __sap_ha_cluster_platform_file: "{{ role_path }}/tasks/{{ item }}"
-  when:
-    - __sap_ha_cluster_platform_type is defined
-    - __sap_ha_cluster_platform_file is file
-  ignore_errors: "{{ ansible_check_mode }}"
-
-# TODO: combine various definitions into one parameter for role include input
-# For example, multiple resource primitives are defined in different places for
-# different purpose. The result shall be a complete list of all the constructed
-# resources.
-
-
-# Before we are ready to call the ha_cluster role, we want to validate
-# that the minimum required parameters are defined and not empty.
-# TODO: make this smarter, currently all these vars are pre-defined anyway
-- name: "{{ __tname }} Validate parameters for 'ha_cluster' role input"
-  ansible.builtin.assert:
-    that:
-      - __sap_ha_cluster_cluster_properties is defined
-      - __sap_ha_cluster_extra_packages is defined
-      - __sap_ha_cluster_resource_primitives is defined
-      - __sap_ha_cluster_resource_clones is defined
-      - __sap_ha_cluster_constraints_order is defined
-      - __sap_ha_cluster_constraints_colocation is defined
-#      - blahtest is defined
-    fail_msg: "Cluster build parameter construction has failed for this parameter."
-
 #### for debugging
 #- name: "Fail here for now..."
 #  ansible.builtin.fail:
 
-### Up to here there has been NO changes, only environment validations and
-### parameter constructions!
-
-- name: "{{ __tname }} Block that executes the actual changes"
+- name: "{{ __tname }} Block with actual changes"
   block:
+    # Start with prerequisite changes for certain platforms, if applicable
+    - name: "{{ __tname }} Include platform specific fencing prerequisites"
+      ansible.builtin.include_tasks:
+        file: "{{ item }}"
+      loop:
+        - "preconfigure_platform_{{ __sap_ha_cluster_platform_type }}.yml"
+      vars:
+        __sap_ha_cluster_platform_file: "{{ role_path }}/tasks/{{ item }}"
+      when:
+        - __sap_ha_cluster_platform_type is defined
+        - __sap_ha_cluster_platform_file is file
+      ignore_errors: "{{ ansible_check_mode }}"
 
-# TODO: sanity: check if there is a cluster already and back up the CIB
+    # Before we are ready to call the ha_cluster role, we want to validate
+    # that the minimum required parameters are defined and not empty.
+    # TODO: make this smarter, currently all these vars are pre-defined anyway
+    - name: "{{ __tname }} Validate parameters for 'ha_cluster' role input"
+      ansible.builtin.assert:
+        that:
+          - __sap_ha_cluster_cluster_properties is defined
+          - __sap_ha_cluster_extra_packages is defined
+          - __sap_ha_cluster_resource_primitives is defined
+          - __sap_ha_cluster_resource_clones is defined
+          - __sap_ha_cluster_constraints_order is defined
+          - __sap_ha_cluster_constraints_colocation is defined
+        fail_msg: "Cluster build parameter construction has failed for this parameter."
+
+    - name: "{{ __tname }} Query if CIB already exists"
+      ansible.builtin.command:
+        cmd: cibadmin --query
+      register: __sap_ha_cluster_cib_query
+      check_mode: no
+      changed_when: false
+      failed_when: false
+
+    - name: "{{ __tname }} Create backup of existing CIB"
+      ansible.builtin.copy:
+        backup: true
+        content: "{{ __sap_ha_cluster_cib_query.stdout }}"
+        dest: /root/cib_backup.xml
+        group: root
+        owner: root
+        mode: 0600
+      when:
+        - __sap_ha_cluster_cib_query.stdout is defined
+        - __sap_ha_cluster_cib_query.stdout|length > 0
 
     # include ha_cluster role from "linux-system-roles" (symlink to rhel-system-roles on rhel)
     - name: "{{ __tname }} Include System Role 'ha_cluster'"
@@ -167,17 +175,16 @@
         ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order }}"
         ha_cluster_constraints_colocation: "{{ __sap_ha_cluster_constraints_colocation }}"
         ha_cluster_fence_agent_packages: "{{ __sap_ha_cluster_fence_agent_packages }}"
-    #  no_log: true  # some parameters contain secrets
+      no_log: true  # some parameters contain secrets
       tags: ha_cluster
-
-    #### from old ha role
 
 # TODO: test if the defaults can be updated as part of other parameters
     - name: "{{ __tname }} Update resource default values"
-      ansible.builtin.shell: |
-        pcs resource defaults update resource-stickiness=1000
-        pcs resource defaults update migration-threshold=5000
-      changed_when: not ansible_check_mode
+      ansible.builtin.command:
+        cmd: pcs resource defaults update {{ item }}
+      loop:
+        - "resource-stickiness={{ sap_ha_cluster_resource_stickiness }}"
+        - "migration-threshold={{ sap_ha_cluster_migration_threshold }}"
 
     - name: "{{ __tname }} Include srHook configuration"
       ansible.builtin.include_tasks:
