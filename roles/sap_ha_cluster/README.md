@@ -1,3 +1,6 @@
+<!-- BEGIN: Role Input Parameters -->
+## Role Input Parameters
+
 | Variable Name | Required | Description |
 |---------------|----------|-------------|
 | ha_cluster_cluster_name<br><sup>Alias: sap_ha_cluster_cluster_name</sup><br><sup>Type: str</sup> | False<br><br><sup>Default: "my-cluster"</sup> | The name of the pacemaker cluster. |
@@ -12,3 +15,4 @@
 | **sap_hana_instance_number**<br><sup>Alias: sap_ha_cluster_hana_instance_number</sup><br><sup>Type: str</sup> | **True** | The instance number of the SAP HANA database which is role will configure in the cluster. |
 | **sap_hana_sid**<br><sup>Alias: sap_ha_cluster_hana_sid</sup><br><sup>Type: str</sup> | **True** | The SAP System ID of the instance that will be configured in the cluster.<br>The SAP SID must follow SAP specifications - see SAP Note 1979280. |
 | **sap_hana_vip**<br><br><sup>Type: str</sup> | **True** | Virtual floating IP for SAP HANA DB connections.<br>This IP will always run on the promoted HANA node. |
+<!-- END: Role Input Parameters -->
