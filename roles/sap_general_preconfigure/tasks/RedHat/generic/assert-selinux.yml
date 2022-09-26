@@ -54,24 +54,56 @@
     success_msg: "PASS: SELinux is currently {{ sap_general_preconfigure_selinux_state }}."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
+- name: Install the package which provides the semanage command
+  ansible.builtin.package:
+    state: latest
+    name: policycoreutils-python-utils
+  when: sap_general_preconfigure_modify_selinux_labels
+
+- name: Check if the directory '/usr/sap' exists
+  ansible.builtin.stat:
+    path: '/usr/sap'
+  register: __sap_general_preconfigure_register_stat_usr_sap
+  failed_when: false
+  when: sap_general_preconfigure_modify_selinux_labels
+
+- name: Report that SELinux checking will not be performed if the directory '/usr/sap' does not exist
+  ansible.builtin.debug:
+    msg: "INFO: SELinux checks will not be run because the directory '/usr/sap' does not exist."
+  when:
+    - sap_general_preconfigure_modify_selinux_labels
+    - not __sap_general_preconfigure_register_stat_usr_sap.stat.exists or
+        (__sap_general_preconfigure_register_stat_usr_sap.stat.isdir is defined and
+           not __sap_general_preconfigure_register_stat_usr_sap.stat.isdir)
+
 - name: Count SELinux configuration database entries for '/usr/sap'
   ansible.builtin.shell: set -o pipefail && semanage fcontext -l | awk 'BEGIN{a=0}$1=="/usr/sap(/.*)?"&&$NF~/usr_t/{a++}END{print a}'
-  register: __sap_general_preconfigure_register_semanage_fcontext_usr_sap_result
-  when: sap_general_preconfigure_modify_selinux_labels
+  register: __sap_general_preconfigure_register_semanage_fcontext_usr_sap
+  when:
+    - sap_general_preconfigure_modify_selinux_labels
+    - __sap_general_preconfigure_register_stat_usr_sap.stat.isdir is defined and __sap_general_preconfigure_register_stat_usr_sap.stat.isdir
 
 - name: Assert that there is an entry for '/usr/sap' in the SELinux configuration database
   ansible.builtin.assert:
     that:
-      __sap_general_preconfigure_register_semanage_fcontext_usr_sap_result.stdout | int != 0
+      __sap_general_preconfigure_register_semanage_fcontext_usr_sap.stdout | int != 0
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+  when:
+    - sap_general_preconfigure_modify_selinux_labels
+    - __sap_general_preconfigure_register_stat_usr_sap.stat.isdir is defined and __sap_general_preconfigure_register_stat_usr_sap.stat.isdir
 
-- name: Count files in '/usr/sap' and below without SELinux `usr_t` file context
+- name: Count files in '/usr/sap' and below without SELinux 'usr_t' file context
   ansible.builtin.shell: set -o pipefail && find /usr/sap -exec ls -ldZ {} \; | awk 'BEGIN{a=0}$5!~/usr_t/{a++}END{print a}'
-  register: __sap_general_preconfigure_register_ls_fcontext_usr_sap_result
-  when: sap_general_preconfigure_modify_selinux_labels
+  register: __sap_general_preconfigure_register_ls_z_usr_sap
+  when:
+    - sap_general_preconfigure_modify_selinux_labels
+    - __sap_general_preconfigure_register_stat_usr_sap.stat.isdir is defined and __sap_general_preconfigure_register_stat_usr_sap.stat.isdir
 
-- name: Assert that all files in '/usr/sap' and below have the usr_t file context
+- name: Assert that all files in '/usr/sap' and below have the 'usr_t' file context
   ansible.builtin.assert:
     that:
-      __sap_general_preconfigure_register_selinux_fcontext_usr_sap_result.stdout | int == 0
+      __sap_general_preconfigure_register_selinux_z_usr_sap.stdout | int == 0
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+  when:
+    - sap_general_preconfigure_modify_selinux_labels
+    - __sap_general_preconfigure_register_stat_usr_sap.stat.isdir is defined and __sap_general_preconfigure_register_stat_usr_sap.stat.isdir

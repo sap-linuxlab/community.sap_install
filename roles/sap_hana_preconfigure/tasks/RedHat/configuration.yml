@@ -4,13 +4,35 @@
   ansible.builtin.debug:
     var: __sap_hana_preconfigure_sapnotes_versions | difference([''])
 
-- name: Configure - Create directory '/hana'
+- name: Configure - Set directory variables for setting SELinux file contexts
+  ansible.builtin.set_fact:
+    sap_hana_preconfigure_fact_targets_setypes: "{{ sap_hana_preconfigure_fact_targets_setypes | d([]) +
+      [ __sap_hana_preconfigure_tmp_dict_target_setype ] }}"
+  loop: "{{ sap_hana_preconfigure_hana_directories }}"
+  loop_control:
+    loop_var: line_item
+  vars:
+    __sap_hana_preconfigure_tmp_dict_target_setype:
+      target: "{{ line_item }}(/.*)?"
+      setype: 'usr_t'
+  when: sap_hana_preconfigure_modify_selinux_labels
+
+- name: Configure - Display directory variable
+  ansible.builtin.debug:
+    var: sap_hana_preconfigure_fact_targets_setypes
+  when: sap_hana_preconfigure_modify_selinux_labels
+
+- name: Configure - Create directories
   ansible.builtin.file:
-    path: '/hana'
+    path: "{{ line_item }}"
     state: directory
     mode: '0755'
     owner: root
     group: root
+  loop: "{{ sap_hana_preconfigure_hana_directories }}"
+  loop_control:
+    loop_var: line_item
+  when: sap_hana_preconfigure_create_directories or sap_hana_preconfigure_modify_selinux_labels
 
 - name: Configure - Include configuration actions for required sapnotes
   ansible.builtin.include_tasks: "sapnote/{{ sap_note_line_item.number }}.yml"

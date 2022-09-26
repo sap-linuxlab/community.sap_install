@@ -1,12 +1,12 @@
 ---
 
-- name: Configure '/hana' SELinux file labels
+- name: SAP HANA Pre Install - Configure SELinux file contexts
   ansible.builtin.include_role:
     name: fedora.linux_system_roles.selinux
   vars:
     selinux_booleans:
       - { name: 'selinuxuser_execmod', state: 'on' }
     selinux_fcontexts:
-      - { target: '/hana(/.*)?', setype: 'usr_t' }
+      - "{{ sap_hana_preconfigure_fact_targets_setypes }}"
     selinux_restore_dirs:
-      - '/hana'
+      - "{{ sap_hana_preconfigure_hana_directories }}"

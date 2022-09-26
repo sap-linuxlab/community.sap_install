@@ -131,7 +131,7 @@ __tests = [
         'number': '6',
         'name': 'Run in check mode on modified system.',
         'command_line_parameter': '--check ',
-        'ignore_error_final': False,
+        'ignore_error_final': True,
         'compact_assert_output': False,
         'rc': '99',
         'role_vars': []

@@ -56,6 +56,26 @@ sap_hana_preconfigure_req_repos_redhat_9_ppc64le: "{{ __sap_hana_preconfigure_re
 # Set to "yes" if you want the role to set the RHEL minor release, which is required for SAP HANA. Default is "no".
 sap_hana_preconfigure_set_minor_release: no
 
+# Set to 'no' if you do not want the SAP HANA directories to be created by the role. Default is 'yes'.
+# Note: The SAP HANA directories will always be created if 'sap_hana_preconfigure_modify_selinux_labels'
+# (see below) is set to 'yes', no matter how 'sap_hana_preconfigure_create_directories' is set.
+sap_hana_preconfigure_create_directories: yes
+
+# HANA directories to be created
+sap_hana_preconfigure_hana_directories:
+  - '/hana'
+#  - '/hana/shared'
+#  - '/hana/data'
+#  - '/hana/log'
+  - '/lss/shared'
+
+# For compatibility of SAP HANA with SELinux in enforcing mode, the role will recursively add
+# the 'usr_t' label to directories and files in the directories where HANA is installed.
+# If relabeling not desired, set the following variable to `no`.
+# Note: If the variable is set to 'yes', which is the default, the SAP HANA directories will be created
+# no matter how the variable 'sap_hana_preconfigure_create_directories' (see above) is set.
+sap_hana_preconfigure_modify_selinux_labels: yes
+
 # HANA Major and minor version
 # These variables are used in other SAP HANA related roles, e.g. sap-hana-mediacheck.
 sap_hana_version: "2"
@@ -78,11 +98,6 @@ sap_hana_preconfigure_reboot_ok: no
 
 # Set the following variable to "no" if you want the role to not fail if a reboot is required:
 sap_hana_preconfigure_fail_if_reboot_required: yes
-
-# For compatibility of SAP HANA with SELinux in enforcing mode, the role will recursively add
-# the 'usr_t' label to directories and files in `/hana`.
-# If relabeling not desired, set the following variable to `no`.
-sap_hana_preconfigure_modify_selinux_labels: yes
 
 ###
 #
