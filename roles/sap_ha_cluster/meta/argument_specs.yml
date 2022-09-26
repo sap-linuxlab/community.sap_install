@@ -12,12 +12,40 @@ argument_specs:
 
 # Take this template and copy it to the desired place.
 # Ideally sort by key (variable name) alphabetically.
+#
 #      sap_ha_cluster_
 #        description:
 #           -
 #        type:
 #        required: false
 #        default:
+
+      ha_cluster:
+        description:
+          - Optional host_vars parameter, if defined it must be set for each node.
+          - Definition of node name and IP addresses to be used for the pacemaker cluster.
+          - Required for resilient node communication by providing more than one corosync IP.
+          - Reference [https://github.com/linux-system-roles/ha_cluster/blob/master/README.md#nodes-names-and-addresses]
+        type: dict
+        required: false
+        options:
+          node_name:
+            description:
+              - The name of the node in the cluster.
+            default: <play host>
+            type: str
+          pcs_address:
+            description:
+              - An address used by pcs to communicate with the node.
+              - Can be a name, FQDN or IP address and can contain a port.
+            default: <play host>
+            type: str
+          corosync_addresses:
+            description:
+              - List of IP addresses used by Corosync.
+              - All nodes must have the same number of addresses.
+              - The order of the listed addresses  matters.
+            type: list
 
       ha_cluster_cluster_name:
         description:
