@@ -175,10 +175,19 @@
         ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order }}"
         ha_cluster_constraints_colocation: "{{ __sap_ha_cluster_constraints_colocation }}"
         ha_cluster_fence_agent_packages: "{{ __sap_ha_cluster_fence_agent_packages }}"
-#      no_log: true  # some parameters contain secrets
+      no_log: true  # some parameters contain secrets
       tags: ha_cluster
 
-    # TODO: test if the defaults can be updated as part of other parameters
+    # Resource defaults can currently not be updated through ha_cluster
+    # role parameters, and thus need to be added.
+    - name: "{{ __tname }} Check resource defaults"
+      ansible.builtin.command:
+        cmd: pcs resource defaults config
+      register: __sap_ha_cluster_check_resource_defaults
+      run_once: true
+      changed_when: false
+      check_mode: no
+
     - name: "{{ __tname }} Update resource default values"
       ansible.builtin.command:
         cmd: pcs resource defaults update {{ item }}
@@ -186,6 +195,8 @@
         - "resource-stickiness={{ sap_ha_cluster_resource_stickiness }}"
         - "migration-threshold={{ sap_ha_cluster_migration_threshold }}"
       run_once: true
+      when:
+        - item not in __sap_ha_cluster_check_resource_defaults.stdout
 
     - name: "{{ __tname }} Include srHook configuration"
       ansible.builtin.include_tasks:
@@ -198,7 +209,16 @@
   when:
     - not sap_ha_cluster_create_config_only
 
-# TODO: how to deal with secrets in output? They should be masked somehow...
+# Save all the constructed cluster parameters into a vars file.
+#
+# This will help re-using ha_cluster afterwards without loosing the already
+# configured resources and constraints.
+# The ha_cluster role will otherwise remove configuration that is not part
+# of the parameters provided during any subsequent run outside of the current
+# SAP system role.
+#
+# TODO: Deal with secrets in output. They should be masked, maybe with
+# their user provided variables?
 
 - name: "{{ __tname }} Create cluster configuration parameters file"
   ansible.builtin.template:
