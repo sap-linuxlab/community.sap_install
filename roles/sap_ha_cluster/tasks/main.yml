@@ -188,15 +188,13 @@
       changed_when: false
       check_mode: no
 
-    - name: "{{ __tname }} Update resource default values"
+    - name: "{{ __tname }} Update resource default attributes"
       ansible.builtin.command:
-        cmd: pcs resource defaults update {{ item }}
-      loop:
-        - "resource-stickiness={{ sap_ha_cluster_resource_stickiness }}"
-        - "migration-threshold={{ sap_ha_cluster_migration_threshold }}"
+        cmd: pcs resource defaults update {{ item.name }}={{ item.value }}
+      loop: "{{ sap_ha_cluster_resource_defaults }}"
       run_once: true
       when:
-        - item not in __sap_ha_cluster_check_resource_defaults.stdout
+        - item.name ~ '=' ~ item.value not in __sap_ha_cluster_check_resource_defaults.stdout
 
     - name: "{{ __tname }} Include srHook configuration"
       ansible.builtin.include_tasks:
