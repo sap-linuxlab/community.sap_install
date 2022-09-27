@@ -4,30 +4,6 @@ This Ansible Collection executes various SAP Software installations and configur
 
 This can be combined with other Ansible Collections to provide end-to-end automation, from download of SAP software installation media through to technical configuration and burstable SAP NetWeaver application servers (start/stop).
 
-## Available Scenarios and Infrastructure Platforms
-
-**Operating Systems (target machines)**
-
-- Red Hat Enterprise Linux for SAP Solutions[^rhel]
-  - RHEL 8.2, 8.4 and later
-
-| Scenario                              | Description                                                                                                                     | Infrastructure Platform&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;                                                                                                                                                                                                                        |
-| :------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SAP HANA single node installation** | Installation of a SAP HANA Database Server to a single machine                                                                  | <ul><li>:heavy_check_mark: AWS EC2</li><li>:warning: GCP VM</li><li>:warning: IBM Cloud, Intel VS</li><li>:warning: IBM Cloud, Power VS</li><li>:warning: Microsoft Azure</li><li>:heavy_check_mark: IBM PowerVM LPAR</li><li>:heavy_check_mark: OVirt VM</li><li>:warning: VMware vSphere VM</li></ul> |
-| **SAP HANA 2-node pacemaker cluster** | Installation of a SAP HANA Database Server with HANA System Replication (HSR) in a basic 2-node Pacemaker Cluster configuration | <ul><li>:warning: AWS EC2</li><li>:warning: GCP VM</li><li>:warning: IBM Cloud, Intel VS</li><li>:warning: IBM Cloud, Power VS</li><li>:warning: Microsoft Azure</li><li>:warning: IBM PowerVM LPAR</li><li>:heavy_check_mark: OVirt VM</li><li>:warning: VMware vSphere VM</li></ul> |
-
-Key:
-
-- :heavy_check_mark: Verified compatibility
-- :warning: Unverified and untested, expected to be compatible
-- :x: Not compatible
-
-**Out of Scope**
-
-- AWS Classic environment
-- Azure Classic environment using Azure Service Manager (ASM)
-- IBM Cloud Classic Infrastructure environment
-
 ## Functionality
 
 This Ansible Collection executes various SAP Software installations for different SAP solution scenarios, including:
@@ -78,7 +54,7 @@ Within this Ansible Collection, there are various Ansible Roles and no custom An
 | [sap_ha_set_hana](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_set_hana)                       | configure HA/DR for SAP HANA                                           |
 | [sap_ha_set_netweaver](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_set_netweaver)             | configure HA/DR for SAP NetWeaver                                      |
 | [sap_hostagent](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hostagent)                           | install SAP Host Agent                                                 |
-| [sap_storage](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_storage)                               | configure storage for SAP HANA, with LVM partitions and XFS filesystem |
+| [sap_storage_setup](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_storage_setup)                               | configure storage for SAP HANA, with LVM partitions and XFS filesystem |
 | [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect)     | detect and extract SAP Software installation media                     |
 
 **_Notes_**:
@@ -161,27 +137,6 @@ SAP SWPM Catalog Products which have been tested:
 - SAP Business Suite (i.e. ECC)
 - SAP NetWeaver applications (e.g. GRC)
 - SAP Web Dispatcher
-
-## References
-
-- Azure:
-
-  - [Azure Pacemaker Setup Guide](https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/high-availability-guide-rhel-pacemaker)
-
-- AWS:
-
-  - [Configuring SAP HANA Scale-Up System Replication with the RHEL HA Add-On on Amazon Web Services (AWS)](https://access.redhat.com/articles/3569621)
-
-- Google Cloud:
-
-  - [HA cluster configuration guide for SAP HANA on RHEL](https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel)
-
-- IBM Cloud:
-  - [IBM Cloud for SAP portfolio - IBM Cloud Docs](https://cloud.ibm.com/docs/sap)
-
-- RHEL:
-    - [Overview of the Red Hat Enterprise Linux for SAP Solutions subscription](https://access.redhat.com/solutions/3082481)
-    - [Automating SAP HANA Scale-Up System Replication using the RHEL HA Add-On](https://access.redhat.com/articles/3004101)
 
 ## License
 

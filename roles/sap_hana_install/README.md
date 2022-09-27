@@ -11,7 +11,7 @@ The role requires additional collections which are specified in `meta/collection
 ### Configure your system for the installation of SAP HANA
 
 - Make sure required volumes and filesystems are configured in the host.
-You can use the role `sap_storage` to configure this. More info [here](/roles/sap_storage)
+You can use the role `sap_storage_setup` to configure this. More info [here](/roles/sap_storage_setup)
 
 - Run the roles `sap_general_preconfigure` and `sap_hana_preconfigure` for installing required packages and
 for configuring system settings.
