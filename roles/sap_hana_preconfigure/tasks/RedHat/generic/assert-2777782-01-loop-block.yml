@@ -16,6 +16,7 @@
 - name: Count SELinux configuration database entries for '{{ line_item }}'
   ansible.builtin.shell: set -o pipefail && semanage fcontext -l | awk 'BEGIN{a=0}$1=="{{ line_item }}(/.*)?"&&$NF~/usr_t/{a++}END{print a}'
   register: __sap_hana_preconfigure_register_semanage_fcontext_hana
+  changed_when: false
   when: __sap_hana_preconfigure_register_stat_hana.stat.isdir is defined and __sap_hana_preconfigure_register_stat_hana.stat.isdir
 
 - name: Assert that there is an entry for '{{ line_item }}' in the SELinux configuration database
@@ -29,6 +30,7 @@
 - name: Count files in '{{ line_item }}' and below without SELinux 'usr_t' file context
   ansible.builtin.shell: set -o pipefail && find /hana -exec ls -ldZ {} \; | awk 'BEGIN{a=0}$5!~/usr_t/{a++}END{print a}'
   register: __sap_hana_preconfigure_register_ls_z_hana
+  changed_when: false
   when: __sap_hana_preconfigure_register_stat_hana.stat.isdir is defined and __sap_hana_preconfigure_register_stat_hana.stat.isdir
 
 - name: Assert that all files in '{{ line_item }}' and below have the 'usr_t' file context
