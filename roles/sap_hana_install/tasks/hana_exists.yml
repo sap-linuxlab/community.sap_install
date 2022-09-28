@@ -1,6 +1,7 @@
 ---
 
 - name: SAP HANA Checks - HANA admin user check
+  when: sap_hana_install_check_sidadm_user | d(true)
   block:
 
     - name: Check for sidadm user
@@ -17,11 +18,13 @@
                    Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
         success_msg: "PASS: User '{{ sap_hana_install_sid | lower }}adm' does not exist."
 
-  when: sap_hana_install_check_sidadm_user | d(true)
-
 # The role supports specifying the SAP HANA group id in variable `sap_hana_install_groupid`, which is the id of the sapsys group.
 # The SAP HANA installation will fail if there is already a group named sapsys but with a different ID. Let's better fail before.
 - name: SAP HANA Checks - Check HANA admin group
+  when:
+    - sap_hana_install_groupid is defined
+    - sap_hana_install_groupid | string != "None"
+    - sap_hana_install_groupid | string | length > 0
   block:
 
     - name: SAP HANA Checks - Get info about the ID of the sapsys group
@@ -40,11 +43,6 @@
 	           which has been specified in variable sap_hana_install_groupid.
 	           Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
       when: __sap_hana_install_register_getent_group_sapsys.rc == 0
-
-  when:
-    - sap_hana_install_groupid is defined
-    - sap_hana_install_groupid | string != "None"
-    - sap_hana_install_groupid | string | length > 0
 
 - name: SAP HANA Checks - Get info about directory '/hana/shared/{{ sap_hana_install_sid }}'
   ansible.builtin.stat:

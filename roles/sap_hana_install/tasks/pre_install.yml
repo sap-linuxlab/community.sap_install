@@ -19,6 +19,7 @@
 ################
 
 - name: Prepare the HANA software for installation, new system
+  when: sap_hana_install_new_system | d(true)
   block:
 
     - name: SAP HANA Pre Install - Normalize directory path
@@ -39,6 +40,7 @@
         success_msg: "PASS: The software directory '{{ __sap_hana_install_fact_software_directory }}' exist."
 
     - name: SAP HANA Pre Install - Assert directory permissions in case `sap_hana_install_software_extract_directory` is below `sap_hana_install_software_extract_directory`
+      when: sap_hana_install_software_extract_directory is search(sap_hana_install_software_directory)
       block:
 
         - name: SAP HANA Pre Install - Set fact for number of directory levels of the software directory
@@ -66,8 +68,6 @@
 #          loop: "{{ __sap_hana_install_fact_software_directories }}"
 #          loop_control:
 #            loop_var: line_item
-
-      when: sap_hana_install_software_extract_directory is search(sap_hana_install_software_directory)
 
     - name: SAP HANA Pre Install - Change ownership of HANA directories
       ansible.builtin.file:
@@ -129,6 +129,9 @@
       when: __sap_hana_install_register_stat_software_extract_directory.stat.exists
 
     - name: SAP HANA Pre Install - Set directory of 'hdblcm' from successful find result
+      when:
+        - __sap_hana_install_register_stat_software_extract_directory.stat.exists
+        - __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is defined
       block:
 
         - name: SAP HANA Pre Install - Set fact for 'hdblcm' installer directory if found initially
@@ -148,11 +151,8 @@
             fail_msg: "FAIL: File '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' could not be found. Installation of SAP HANA is not possible."
             success_msg: "Using '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' for the installation of SAP HANA."
 
-      when:
-        - __sap_hana_install_register_stat_software_extract_directory.stat.exists
-        - __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is defined
-
     - name: SAP HANA Pre Install - Extract SAR files if file 'hdblcm' was not found initially
+      when: __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is not defined
       block:
 
         - name: SAP HANA Pre Install - Run hdblcm prepare
@@ -181,13 +181,10 @@
             success_msg: "Using file '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' for the installation of SAP HANA."
           when: not ansible_check_mode
 
-      when: __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is not defined
-
-  when: sap_hana_install_new_system | d(true)
-
 # For an addhosts operation, we first use the hdblcm command for creating a new configfile template, which
 # we then process with the templating engine. The actual addhosts installation is done via the resident hdblcm.
 - name: Set the path to hdblcm, addhosts
+  when: not sap_hana_install_new_system | d(true)
   block:
 
     - name: SAP HANA Pre Install - Find directory 'SAP_HANA_DATABASE' in '{{ sap_hana_install_software_extract_directory }}'
@@ -201,8 +198,6 @@
     - name: SAP HANA Pre Install - Set fact for 'hdblcm' installer directory, addhosts
       ansible.builtin.set_fact:
         __sap_hana_install_fact_hdblcm_path: "{{ __sap_hana_install_register_find_directory_sap_hana_database_addhosts.files[0].path }}"
-
-  when: not sap_hana_install_new_system | d(true)
 
 ################
 # Pre Install Steps

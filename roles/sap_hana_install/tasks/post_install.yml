@@ -1,6 +1,7 @@
 ---
 
 - name: Tasks for new HANA Systems
+  when: sap_hana_install_new_system | d(true)
   block:
 
     - name: SAP HANA Post Install - Store connection information
@@ -51,11 +52,11 @@
       delegate_to: 127.0.0.1
       tags: sap_hana_install_generate_input_file
 
-  when: sap_hana_install_new_system | d(true)
-
 ################
 
 - name: Perform an hdblcm installation check
+  when: sap_hana_install_check_installation | d(false)
+  tags: sap_hana_install_check_installation
   block:
 
     - name: SAP HANA hdblcm installation check - Create a Jinja2 template from the hdblcm xml configfile template
@@ -136,9 +137,6 @@
       ansible.builtin.debug:
         var: __sap_hana_install_register_installation_check.stdout_lines
       when: not sap_hana_install_use_hdbcheck | d(true)
-
-  when: sap_hana_install_check_installation | d(false)
-  tags: sap_hana_install_check_installation
 
 - name: SAP HANA Install - Run 'hdblcm --list_systems' after the installation
   ansible.builtin.shell: |

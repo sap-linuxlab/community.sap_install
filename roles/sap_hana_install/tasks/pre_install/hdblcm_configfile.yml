@@ -28,6 +28,7 @@
   when: __sap_hana_install_register_stat_hdblcm_configfile.stat.exists
 
 - name: Create the hdblcm configfile dynamically
+  when: not __sap_hana_install_register_stat_hdblcm_configfile.stat.exists
   block:
 
     - name: SAP HANA Pre Install - Create the hdblcm configfile template '{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg'
@@ -70,8 +71,6 @@
         mode: '0644'
       register: __sap_hana_install_register_cftemplate
       when: not ansible_check_mode
-
-  when: not __sap_hana_install_register_stat_hdblcm_configfile.stat.exists
 
 - name: SAP HANA Pre Install - Display the path name of the hdblcm configfile
   ansible.builtin.debug:
