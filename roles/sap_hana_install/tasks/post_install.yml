@@ -112,27 +112,27 @@
         var: __sap_hana_install_fact_installation_check_command
 
 # Reason for noqa: The command to be executed contains input redirection
-    - name: SAP HANA hdblcm installation check - Perform the check # noqa command-instead-of-shell
+    - name: SAP HANA hdblcm installation check with hdbcheck - Perform the check # noqa command-instead-of-shell
       ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
       args:
         chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/global/hdb/install/bin"
       register: __sap_hana_install_register_installation_check
       when: sap_hana_install_use_hdbcheck | d(true)
 
-    - name: SAP HANA hdblcm installation check - Display the result
+    - name: SAP HANA hdblcm installation check with hdbcheck - Display the result
       ansible.builtin.debug:
         var: __sap_hana_install_register_installation_check.stdout_lines
       when: sap_hana_install_use_hdbcheck | d(true)
 
 # Reason for noqa: The command to be executed contains input redirection
-    - name: SAP HANA hdblcm installation check - Perform the check # noqa command-instead-of-shell
+    - name: SAP HANA hdblcm installation check with hdblcm - Perform the check # noqa command-instead-of-shell
       ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
       args:
         chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
       register: __sap_hana_install_register_installation_check
       when: not sap_hana_install_use_hdbcheck | d(true)
 
-    - name: SAP HANA hdblcm installation check - Display the result
+    - name: SAP HANA hdblcm installation check with hdblcm - Display the result
       ansible.builtin.debug:
         var: __sap_hana_install_register_installation_check.stdout_lines
       when: not sap_hana_install_use_hdbcheck | d(true)

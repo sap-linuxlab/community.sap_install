@@ -12,15 +12,29 @@
     - sap_hana_install_set_log_mode
     - sap_hana_install_configure_firewall
 
-- name: Fail if necessary variable 'sap_hana_install_sid' is not configured
+- name: Fail if necessary variable 'sap_hana_install_sid' is not defined
   ansible.builtin.fail:
-    msg: "Variable 'sap_hana_install_sid' is not configured."
+    msg: "The variable 'sap_hana_install_sid' is not defined."
   when: sap_hana_install_sid | length == 0
   tags: sap_hana_install_preinstall
 
-- name: Fail if necessary variable 'sap_hana_install_number' is not configured
+- name: Validate SAP HANA System ID - 'sap_hana_install_sid' consists of 3 characters
+  ansible.builtin.assert:
+    that: sap_hana_install_sid | length == 3
+    success_msg: "PASS: The length of the SAP System ID '{{ sap_hana_install_sid }}' is 3 characters."
+    fail_msg: "FAIL: The length of the SAP HANA System ID '{{ sap_hana_install_sid }}' is not 3 characters!"
+  tags: sap_hana_install_preinstall
+
+- name: Validate SAP HANA System ID - 'sap_hana_install_sid' is not in the list of reserved SAP SIDs
+  ansible.builtin.assert:
+    that: sap_hana_install_sid not in __sap_hana_install_sid_prohibited
+    success_msg: "PASS: The SAP HANA System ID '{{ sap_hana_install_sid }}' is not in the list of reserved SAP SIDs in SAP note 1979280 v.20."
+    fail_msg: "FAIL: The SAP HANA System ID '{{ sap_hana_install_sid }}' is in the list of reserved SAP SIDs in SAP note 1979280 v.20!"
+  tags: sap_hana_install_preinstall
+
+- name: Fail if necessary variable 'sap_hana_install_number' is not defined
   ansible.builtin.fail:
-    msg: "Variable 'sap_hana_install_number' is not configured."
+    msg: "The variable 'sap_hana_install_number' is not defined."
   when: sap_hana_install_number | length == 0
   tags: sap_hana_install_preinstall
 
