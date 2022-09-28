@@ -108,6 +108,9 @@
 
 - name: "SAP HA Cluster - Block with actual changes"
   block:
+  when:
+    - not sap_ha_cluster_create_config_only
+
     # Start with prerequisite changes for certain platforms, if applicable
     - name: "SAP HA Cluster - Include platform specific fencing prerequisites"
       ansible.builtin.include_tasks:
@@ -204,8 +207,6 @@
       tags: srhook
 
 ### END OF BLOCK: prerequisite changes and cluster setup
-  when:
-    - not sap_ha_cluster_create_config_only
 
 # Save all the constructed cluster parameters into a vars file.
 #

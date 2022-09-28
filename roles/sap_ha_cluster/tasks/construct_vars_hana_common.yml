@@ -11,7 +11,7 @@
 
 - name: "SAP HA Cluster - Add resource: SAP HANA Topology"
   ansible.builtin.set_fact:
-    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [ __resource_topology ] }}"
+    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [__resource_topology] }}"
   vars:
     __resource_topology:
       id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
@@ -42,7 +42,7 @@
 
 - name: "SAP HA Cluster - Add resource: SAP HANA DB"
   ansible.builtin.set_fact:
-    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [ __resource_hana ] }}"
+    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [__resource_hana] }}"
   vars:
     __resource_hana:
       id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
@@ -98,7 +98,7 @@
 # TODO: change logic to allow multiple VIP resources and constraints
 - name: "SAP HA Cluster - Add resource: SAP HANA VIP"
   ansible.builtin.set_fact:
-    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [ __resource_vip ] }}"
+    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [__resource_vip] }}"
   vars:
     __resource_vip:
       id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}_MASTER"
@@ -112,7 +112,7 @@
 
 - name: "SAP HA Cluster - Add resource clone: SAP HANA Topology"
   ansible.builtin.set_fact:
-    __sap_ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones + [ __clone_topology ] }}"
+    __sap_ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones + [__clone_topology] }}"
   vars:
     __clone_topology:
       resource_id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
@@ -130,7 +130,7 @@
 
 - name: "SAP HA Cluster - Add resource clone: SAP HANA DB"
   ansible.builtin.set_fact:
-    __sap_ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones + [ __clone_hana ] }}"
+    __sap_ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones + [__clone_hana] }}"
   vars:
     __clone_hana:
       resource_id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
@@ -149,7 +149,7 @@
 # First start Topology, then HANA (automatically stops in reverse order)
 - name: "SAP HA Cluster - Add order constraint: Topology starts before DB"
   ansible.builtin.set_fact:
-    __sap_ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order + [ __constraint_order_topology ] }}"
+    __sap_ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order + [__constraint_order_topology] }}"
   vars:
     __constraint_order_topology:
       resource_first:
@@ -167,7 +167,7 @@
 # Start the VIP only after the HANA resource has been promoted
 - name: "SAP HA Cluster - Add order constraint: VIP starts after DB is promoted"
   ansible.builtin.set_fact:
-    __sap_ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order + [ __constraint_order_vip ] }}"
+    __sap_ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order + [__constraint_order_vip] }}"
   vars:
     __constraint_order_vip:
       resource_first:
@@ -182,7 +182,7 @@
 # The VIP only runs where HANA is promoted
 - name: "SAP HA Cluster - Add colocation constraint: VIP runs where HANA is promoted"
   ansible.builtin.set_fact:
-    __sap_ha_cluster_constraints_colocation: "{{ __sap_ha_cluster_constraints_colocation + [ __constraint_colo_vip ] }}"
+    __sap_ha_cluster_constraints_colocation: "{{ __sap_ha_cluster_constraints_colocation + [__constraint_colo_vip] }}"
   vars:
     __constraint_colo_vip:
       resource_leader:
