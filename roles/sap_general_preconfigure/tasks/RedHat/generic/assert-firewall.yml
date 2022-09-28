@@ -10,6 +10,7 @@
 #          - "'disabled' in ansible_facts.packages['firewalld'].status"
 
 - name: Check firewalld
+  when: "'firewalld' in ansible_facts.packages"
   block:
 
 # Reason for noqa: We need to get the current status only
@@ -33,8 +34,6 @@
         fail_msg: "FAIL: Service 'firewalld' is active!"
         success_msg: "PASS: Service 'firewalld' is inactive."
       ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
-
-  when: "'firewalld' in ansible_facts.packages"
 
 - name: Report firewall install status
   ansible.builtin.debug:

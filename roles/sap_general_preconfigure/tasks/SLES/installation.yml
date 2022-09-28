@@ -6,7 +6,11 @@
     name: "{{ sap_general_preconfigure_packages }}"
 
 - name: Ensure that the minimum required package versions are installed
+  when:
+    - sap_general_preconfigure_min_package_check|bool
+    - __sap_general_preconfigure_min_pkgs|d([])
   block:
+
     - name: Create a list of minimum required package versions to be installed
 # How does it work?
 # 1 - Print the required package name and version with a prefix "1" followed by a space.
@@ -58,10 +62,6 @@
       with_items: "{{ __sap_general_preconfigure_register_minpkglist.results }}"
       loop_control:
         loop_var: line_item
-
-  when:
-    - sap_general_preconfigure_min_package_check|bool
-    - __sap_general_preconfigure_min_pkgs|d([])
 
 # Reason for noqa: Both yum and dnf support "state: latest"
 - name: Ensure that the system is updated to the latest patchlevel # noqa package-latest

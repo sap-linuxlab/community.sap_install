@@ -40,6 +40,11 @@
           sap_general_preconfigure_selinux_state
 
 - name: Set or unset SELinux kernel parameter, RHEL 8 and RHEL 9
+  when:
+    - ansible_os_family == 'RedHat'
+    - ( ansible_distribution_major_version == '8' or
+        ansible_distribution_major_version == '9'
+      )
   block:
 
     - name: SELinux - Examine grub entries
@@ -49,7 +54,12 @@
       changed_when: false
 
     - name: Disable SELinux on the kernel command line, RHEL 8 and RHEL 9
+      when:
+        - sap_general_preconfigure_selinux_state == 'disabled'
+        - __sap_general_preconfigure_register_grubby_info_all_selinux.stdout.split(' ').1 !=
+          __sap_general_preconfigure_register_grubby_info_all_selinux.stdout.split(' ').0
       block:
+
 # If the number of grub entries for args is different from the number of grub entries with "selinux=0",
 # we know that at least one grub entry is missing "selinux=0", so we make sure that all grub entries
 # contain "selinux=0"
@@ -63,13 +73,13 @@
           ansible.builtin.set_fact:
             sap_general_preconfigure_fact_reboot_required: true
 
-      when:
-        - sap_general_preconfigure_selinux_state == 'disabled'
-        - __sap_general_preconfigure_register_grubby_info_all_selinux.stdout.split(' ').1 !=
-          __sap_general_preconfigure_register_grubby_info_all_selinux.stdout.split(' ').0
-
     - name: Enable SELinux on the kernel command line, RHEL 8 and RHEL 9
+      when:
+        - sap_general_preconfigure_selinux_state == 'enforcing' or
+          sap_general_preconfigure_selinux_state == 'permissive'
+        - __sap_general_preconfigure_register_grubby_info_all_selinux.stdout.split(' ').1 != '0'
       block:
+
 # If the number of grub entries for args with "selinux=0" is not 0, we know that there is at least
 # one grub entry with "selinux=0", so we make sure that no grub entry contains "selinux=0"
         - name: Make sure SELinux is not disabled on the kernel command line, RHEL 8 and RHEL 9
@@ -81,17 +91,6 @@
         - name: SELinux, enable on the kernel command line - Set the flag that reboot is needed to apply changes # noqa no-handler
           ansible.builtin.set_fact:
             sap_general_preconfigure_fact_reboot_required: true
-
-      when:
-        - sap_general_preconfigure_selinux_state == 'enforcing' or
-          sap_general_preconfigure_selinux_state == 'permissive'
-        - __sap_general_preconfigure_register_grubby_info_all_selinux.stdout.split(' ').1 != '0'
-
-  when:
-    - ansible_os_family == 'RedHat'
-    - ( ansible_distribution_major_version == '8' or
-        ansible_distribution_major_version == '9'
-      )
 
 - name: SELinux - Display the content of sap_general_preconfigure_fact_reboot_required
   ansible.builtin.debug:
