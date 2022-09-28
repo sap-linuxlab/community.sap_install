@@ -9,7 +9,7 @@
 # TODO: add conditionals to verify that the same resource agent is not already
 #       defined in user input variables. Conflicting user input should take precedence.
 
-- name: "{{ __tname }} Add resource: SAP HANA Topology"
+- name: "SAP HA Cluster - Add resource: SAP HANA Topology"
   ansible.builtin.set_fact:
     __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [ __resource_topology ] }}"
   vars:
@@ -40,7 +40,7 @@
   when:
     - __resource_topology.agent not in (__sap_ha_cluster_resource_primitives | map(attribute='agent'))
 
-- name: "{{ __tname }} Add resource: SAP HANA DB"
+- name: "SAP HA Cluster - Add resource: SAP HANA DB"
   ansible.builtin.set_fact:
     __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [ __resource_hana ] }}"
   vars:
@@ -96,7 +96,7 @@
     - __resource_hana.agent not in (__sap_ha_cluster_resource_primitives | map(attribute='agent'))
 
 # TODO: change logic to allow multiple VIP resources and constraints
-- name: "{{ __tname }} Add resource: SAP HANA VIP"
+- name: "SAP HA Cluster - Add resource: SAP HANA VIP"
   ansible.builtin.set_fact:
     __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [ __resource_vip ] }}"
   vars:
@@ -110,7 +110,7 @@
   when:
     - __resource_vip.agent not in (__sap_ha_cluster_resource_primitives | map(attribute='agent'))
 
-- name: "{{ __tname }} Add resource clone: SAP HANA Topology"
+- name: "SAP HA Cluster - Add resource clone: SAP HANA Topology"
   ansible.builtin.set_fact:
     __sap_ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones + [ __clone_topology ] }}"
   vars:
@@ -128,7 +128,7 @@
   when:
     - __clone_topology.resource_id not in (__sap_ha_cluster_resource_clones | map(attribute='resource_id'))
 
-- name: "{{ __tname }} Add resource clone: SAP HANA DB"
+- name: "SAP HA Cluster - Add resource clone: SAP HANA DB"
   ansible.builtin.set_fact:
     __sap_ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones + [ __clone_hana ] }}"
   vars:
@@ -147,7 +147,7 @@
     - __clone_hana.resource_id not in (__sap_ha_cluster_resource_clones | map(attribute='resource_id'))
 
 # First start Topology, then HANA (automatically stops in reverse order)
-- name: "{{ __tname }} Add order constraint: Topology starts before DB"
+- name: "SAP HA Cluster - Add order constraint: Topology starts before DB"
   ansible.builtin.set_fact:
     __sap_ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order + [ __constraint_order_topology ] }}"
   vars:
@@ -165,7 +165,7 @@
     - __constraint_order_topology.resource_then not in (__sap_ha_cluster_constraints_order | map(attribute='resource_then'))
 
 # Start the VIP only after the HANA resource has been promoted
-- name: "{{ __tname }} Add order constraint: VIP starts after DB is promoted"
+- name: "SAP HA Cluster - Add order constraint: VIP starts after DB is promoted"
   ansible.builtin.set_fact:
     __sap_ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order + [ __constraint_order_vip ] }}"
   vars:
@@ -180,7 +180,7 @@
     - __constraint_order_vip.resource_then not in (__sap_ha_cluster_constraints_order | map(attribute='resource_then'))
 
 # The VIP only runs where HANA is promoted
-- name: "{{ __tname }} Add colocation constraint: VIP runs where HANA is promoted"
+- name: "SAP HA Cluster - Add colocation constraint: VIP runs where HANA is promoted"
   ansible.builtin.set_fact:
     __sap_ha_cluster_constraints_colocation: "{{ __sap_ha_cluster_constraints_colocation + [ __constraint_colo_vip ] }}"
   vars:

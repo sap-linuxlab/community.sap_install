@@ -24,7 +24,7 @@
 
 # The SAP ID must follow a strict format and not use reserved special values
 # TODO: This check may be better placed in a SAP role earlier in the chain...
-- name: "{{ __tname }} Validate SAP System ID"
+- name: "SAP HA Cluster - Validate SAP System ID"
   ansible.builtin.assert:
     that:
       - sap_ha_cluster_hana_sid is defined
@@ -35,7 +35,7 @@
 # Make sure that all parameters already set for 'ha_cluster' are also inherited.
 # Add to the include file a task for each parameter which this SAP cluster role
 # supports.
-- name: "{{ __tname }} Include tasks for checking 'ha_cluster' predefinitions"
+- name: "SAP HA Cluster - Include tasks for checking 'ha_cluster' predefinitions"
   ansible.builtin.include_tasks:
     file: ascertain_ha_cluster_in_inventory.yml
     apply:
@@ -47,7 +47,7 @@
 # The result will be parameters:
 # - sap_ha_cluster_sap_type (values: scaleup, scaleout)
 # - sap_ha_cluster_replication_type (values: mtr, ?)
-- name: "{{ __tname }} Include tasks for SAP landscape calculation"
+- name: "SAP HA Cluster - Include tasks for SAP landscape calculation"
   ansible.builtin.include_tasks:
     file: ascertain_sap_landscape.yml
     apply:
@@ -55,7 +55,7 @@
   tags: check_sap
 
 # Determine if we are on a cloud platform.
-- name: "{{ __tname }} Include tasks for platform detection"
+- name: "SAP HA Cluster - Include tasks for platform detection"
   ansible.builtin.include_tasks:
     file: ascertain_platform_type.yml
     apply:
@@ -64,7 +64,7 @@
 
 # Include vars files based on the environment.
 # Respect order for potential variable precedence.
-- name: "{{ __tname }} Set platform/version specific variables"
+- name: "SAP HA Cluster - Set platform/version specific variables"
   ansible.builtin.include_vars: "{{ __sap_ha_cluster_vars_file }}"
   loop:
     - "{{ ansible_facts['os_family'] }}.yml"
@@ -82,22 +82,22 @@
     __sap_ha_cluster_vars_file: "{{ role_path }}/vars/{{ item }}"
   when: __sap_ha_cluster_vars_file is file
 
-- name: "{{ __tname }} Include common variable construction tasks"
+- name: "SAP HA Cluster - Include common variable construction tasks"
   ansible.builtin.import_tasks: construct_vars_common.yml
 
-- name: "{{ __tname }} Include variable construction for STONITH resources"
+- name: "SAP HA Cluster - Include variable construction for STONITH resources"
   ansible.builtin.import_tasks: construct_vars_stonith.yml
 
-- name: "{{ __tname }} Include variable construction for SAP HANA common"
+- name: "SAP HA Cluster - Include variable construction for SAP HANA common"
   ansible.builtin.include_tasks:
     file: construct_vars_hana_common.yml
 
-- name: "{{ __tname }} Include variable construction for SAP HANA Scale-up"
+- name: "SAP HA Cluster - Include variable construction for SAP HANA Scale-up"
   ansible.builtin.include_tasks:
     file: construct_vars_hana_scaleup.yml
   when: sap_ha_cluster_sap_type == 'scaleup'
 
-- name: "{{ __tname }} Include variable construction for SAP HANA Scale-out"
+- name: "SAP HA Cluster - Include variable construction for SAP HANA Scale-out"
   ansible.builtin.include_tasks:
     file: construct_vars_hana_scaleout.yml
   when: sap_ha_cluster_sap_type == 'scaleout'
@@ -106,10 +106,10 @@
 # - name: "Fail here for now..."
 #   ansible.builtin.fail:
 
-- name: "{{ __tname }} Block with actual changes"
+- name: "SAP HA Cluster - Block with actual changes"
   block:
     # Start with prerequisite changes for certain platforms, if applicable
-    - name: "{{ __tname }} Include platform specific fencing prerequisites"
+    - name: "SAP HA Cluster - Include platform specific fencing prerequisites"
       ansible.builtin.include_tasks:
         file: "{{ item }}"
       loop:
@@ -124,7 +124,7 @@
     # Before we are ready to call the ha_cluster role, we want to validate
     # that the minimum required parameters are defined and not empty.
     # TODO: make this smarter, currently all these vars are pre-defined anyway
-    - name: "{{ __tname }} Validate parameters for 'ha_cluster' role input"
+    - name: "SAP HA Cluster - Validate parameters for 'ha_cluster' role input"
       ansible.builtin.assert:
         that:
           - __sap_ha_cluster_cluster_properties is defined
@@ -135,7 +135,7 @@
           - __sap_ha_cluster_constraints_colocation is defined
         fail_msg: "Cluster build parameter construction has failed for this parameter."
 
-    - name: "{{ __tname }} Query if CIB already exists"
+    - name: "SAP HA Cluster - Query if CIB already exists"
       ansible.builtin.command:
         cmd: cibadmin --query
       register: __sap_ha_cluster_cib_query
@@ -143,7 +143,7 @@
       changed_when: false
       failed_when: false
 
-    - name: "{{ __tname }} Create backup of existing CIB"
+    - name: "SAP HA Cluster - Create backup of existing CIB"
       ansible.builtin.copy:
         backup: true
         content: "{{ __sap_ha_cluster_cib_query.stdout }}"
@@ -157,7 +157,7 @@
 
     # Cluster installation and configuration through the dedicated
     # linux system role 'ha_cluster'
-    - name: "{{ __tname }} Include System Role 'ha_cluster'"
+    - name: "SAP HA Cluster - Include System Role 'ha_cluster'"
       ansible.builtin.include_role:
         name: linux-system-roles.ha_cluster
         apply:
@@ -180,7 +180,7 @@
 
     # Resource defaults can currently not be updated through ha_cluster
     # role parameters, and thus need to be added.
-    - name: "{{ __tname }} Check resource defaults"
+    - name: "SAP HA Cluster - Check resource defaults"
       ansible.builtin.command:
         cmd: pcs resource defaults config
       register: __sap_ha_cluster_check_resource_defaults
@@ -188,7 +188,7 @@
       changed_when: false
       check_mode: false
 
-    - name: "{{ __tname }} Update resource default attributes"
+    - name: "SAP HA Cluster - Update resource default attributes"
       ansible.builtin.command:
         cmd: pcs resource defaults update {{ item.name }}={{ item.value }}
       loop: "{{ sap_ha_cluster_resource_defaults }}"
@@ -196,7 +196,7 @@
       when:
         - item.name ~ '=' ~ item.value not in __sap_ha_cluster_check_resource_defaults.stdout
 
-    - name: "{{ __tname }} Include srHook configuration"
+    - name: "SAP HA Cluster - Include srHook configuration"
       ansible.builtin.include_tasks:
         file: configure_srhook.yml
         apply:
@@ -218,7 +218,7 @@
 # TODO: Deal with secrets in output. They should be masked, maybe with
 # their user provided variables?
 
-- name: "{{ __tname }} Create cluster configuration parameters file"
+- name: "SAP HA Cluster - Create cluster configuration parameters file"
   ansible.builtin.template:
     backup: true
     dest: "{{ sap_ha_cluster_create_config_dest }}"
@@ -231,7 +231,7 @@
   when:
     - sap_ha_cluster_create_config_dest is defined
 
-- name: "{{ __tname }} Display configuration parameters SAVE FILE location"
+- name: "SAP HA Cluster - Display configuration parameters SAVE FILE location"
   ansible.builtin.debug:
     msg: |
       The cluster resource configuration parameters have been saved here:

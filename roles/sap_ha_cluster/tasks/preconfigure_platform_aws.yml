@@ -1,14 +1,14 @@
 ---
 # Requirement to enable the fencing resource to function.
 
-- name: "{{ __tname }} Create awscli config directory"
+- name: "SAP HA Cluster - Create awscli config directory"
   ansible.builtin.file:
     mode: 0755
     owner: root
     path: /root/.aws
     state: directory
 
-- name: "{{ __tname }} Create awscli config"
+- name: "SAP HA Cluster - Create awscli config"
   ansible.builtin.blockinfile:
     backup: true
     block: |
@@ -19,7 +19,7 @@
     owner: root
     path: /root/.aws/config
 
-- name: "{{ __tname }} Store awscli credentials"
+- name: "SAP HA Cluster - Store awscli credentials"
   ansible.builtin.blockinfile:
     backup: true
     block: |
@@ -31,7 +31,7 @@
     owner: root
     path: /root/.aws/credentials
 
-- name: "{{ __tname }} Get VPC info"
+- name: "SAP HA Cluster - Get VPC info"
   ansible.builtin.shell: |
     aws ec2 describe-vpcs \
       --output text \
@@ -42,7 +42,7 @@
   run_once: true
   check_mode: false
 
-- name: "{{ __tname }} Get instances info"
+- name: "SAP HA Cluster - Get instances info"
   ansible.builtin.shell: |
     aws ec2 describe-instances \
       --output json \
@@ -52,7 +52,7 @@
   run_once: true
   check_mode: false
 
-- name: "{{ __tname }} Combine instance info into a dictionary"
+- name: "SAP HA Cluster - Combine instance info into a dictionary"
   ansible.builtin.set_fact:
     __sap_ha_cluster_aws_instances: "{{ __sap_ha_cluster_aws_instances + [{'private_ip': item.PrivateIpAddress, 'instance_id': item.InstanceId}] }}"
   loop: "{{ __sap_ha_cluster_aws_describe_instances.stdout }}"

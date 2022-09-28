@@ -2,7 +2,7 @@
 # The following variables are constructed here in order to be provided as
 # input for the included 'ha_cluster' system role.
 
-- name: "{{ __tname }} Add to cluster properties: stonith-enabled"
+- name: "SAP HA Cluster - Add to cluster properties: stonith-enabled"
   ansible.builtin.set_fact:
     __sap_ha_cluster_cluster_properties: "{{ __sap_ha_cluster_cluster_properties + [{ 'attr': __stonith_enabled }] }}"
   vars:
@@ -13,7 +13,7 @@
     - (__stonith_enabled | map(attribute='name') | join('')) not in
       (__sap_ha_cluster_cluster_properties | map(attribute='attr') | flatten | map(attribute='name'))
 
-- name: "{{ __tname }} Add to cluster properties: stonith-timeout"
+- name: "SAP HA Cluster - Add to cluster properties: stonith-timeout"
   ansible.builtin.set_fact:
     __sap_ha_cluster_cluster_properties: "{{ __sap_ha_cluster_cluster_properties + [{ 'attr': __stonith_timeout }] }}"
   vars:
@@ -24,7 +24,7 @@
     - (__stonith_timeout | map(attribute='name') | join('')) not in
       (__sap_ha_cluster_cluster_properties | map(attribute='attr') | flatten | map(attribute='name'))
 
-- name: "{{ __tname }} Add to cluster properties: concurrent-fencing"
+- name: "SAP HA Cluster - Add to cluster properties: concurrent-fencing"
   ansible.builtin.set_fact:
     __sap_ha_cluster_cluster_properties: "{{ __sap_ha_cluster_cluster_properties + [{ 'attr': __concurrent_fencing }] }}"
   vars:
@@ -36,7 +36,7 @@
       (__sap_ha_cluster_cluster_properties | map(attribute='attr') | flatten | map(attribute='name'))
 
 # The STONITH resource is an element in the cluster_resource_primitives list
-- name: "{{ __tname }} Construct stonith resources definition"
+- name: "SAP HA Cluster - Construct stonith resources definition"
   ansible.builtin.set_fact:
     __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + __stonith_resources }}"
   vars:
