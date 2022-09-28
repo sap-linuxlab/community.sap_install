@@ -101,7 +101,12 @@
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Minimum required package version check
+  when:
+    - sap_hana_preconfigure_min_package_check | bool
+    - __sap_hana_preconfigure_min_pkgs | d([])
+    - sap_hana_preconfigure_assert_ignore_errors | d(false)
   block:
+
     - name: Assert - Create a list of minimum required package versions to be installed
 # How does it work?
 # 1 - Print the required package name and version with a prefix "1" followed by a space.
@@ -156,11 +161,6 @@
         loop_var: line_item
         label: ""
       ignore_errors: yes
-
-  when:
-    - sap_hana_preconfigure_min_package_check | bool
-    - __sap_hana_preconfigure_min_pkgs | d([])
-    - sap_hana_preconfigure_assert_ignore_errors | d(false)
 
 - name: Report if no minimum required package version is defined for this RHEL release
   ansible.builtin.debug:

@@ -1,6 +1,10 @@
 ---
 
 - name: Perform specific steps for tuned profile on RHEL 8.0 ppc64le
+  when:
+    - sap_hana_preconfigure_use_tuned
+    - ansible_architecture == "ppc64le"
+    - ansible_distribution_version == "8.0"
   block:
 
     - name: RHEL 8.0 ppc64le - Create directory /etc/tuned/sap-hana-ppc64le
@@ -20,12 +24,8 @@
         mode: '0644'
         backup: yes
 
-  when:
-    - sap_hana_preconfigure_use_tuned
-    - ansible_architecture == "ppc64le"
-    - ansible_distribution_version == "8.0"
-
 - name: Perform steps for setting tuned profile
+  when: sap_hana_preconfigure_use_tuned
   block:
 
     - name: Enable and start tuned
@@ -45,7 +45,9 @@
         var: __sap_hana_preconfigure_register_current_tuned_profile.stdout_lines, __sap_hana_preconfigure_register_current_tuned_profile.stderr_lines
 
     - name: Switch to tuned profile '{{ sap_hana_preconfigure_tuned_profile }}' if not currently active
+      when: __sap_hana_preconfigure_register_current_tuned_profile.stdout != sap_hana_preconfigure_tuned_profile
       block:
+
         - name: Switch to tuned profile '{{ sap_hana_preconfigure_tuned_profile }}'
           ansible.builtin.command: /usr/sbin/tuned-adm profile '{{ sap_hana_preconfigure_tuned_profile }}'
           changed_when: true
@@ -59,9 +61,3 @@
         - name: Display the output of the tuned-adm active command after switching to profile '{{ sap_hana_preconfigure_tuned_profile }}'
           ansible.builtin.debug:
             var: __sap_hana_preconfigure_register_new_tuned_profile.stdout_lines, __sap_hana_preconfigure_register_new_tuned_profile.stderr_lines
-
-      when:
-        - __sap_hana_preconfigure_register_current_tuned_profile.stdout != sap_hana_preconfigure_tuned_profile
-
-  when:
-    - sap_hana_preconfigure_use_tuned

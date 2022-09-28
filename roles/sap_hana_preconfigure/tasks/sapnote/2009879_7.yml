@@ -20,7 +20,9 @@
 
 ### 3.9 - Create the compatibility links for HANA
 - name: Create compatibility links
+  when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_2009879_3_9 | d(false)
   block:
+
     - name: 3.9 create compatibility links for RHEL 7.2
       ansible.builtin.file: src=/usr/lib64/{{ line_item.src }} dest=/usr/lib64/{{ line_item.dest }} state=link
       with_items:
@@ -41,11 +43,9 @@
       loop_control:
         loop_var: line_item
 
-  when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_2009879_3_9 | d(false)
-
 ### 3.10 - THP -> SAP Note 2292690
 ### 3.11 - CPU Governor for performance -> TunedProfile -> SAP Note 2292690
-### 3.12 - Processor C-States für x86_64 -> SAP Note 2292690
+### 3.12 - Processor C-States for x86_64 -> SAP Note 2292690
 
 ### Set by HANA installer
 #- name: Configure - Increase file handles to 32800 for sapsys group

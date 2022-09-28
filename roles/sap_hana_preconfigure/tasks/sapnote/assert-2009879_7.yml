@@ -20,9 +20,13 @@
 
 ### 3.9 - Create the compatibility links for HANA
 - name: Check if required links exist
+  when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_2009879_3_9 | d(false)
   block:
+
     - name: ... in case of RHEL 7.2
+      when: "ansible_distribution_version == '7.2'"
       block:
+
         - name: RHEL 7.2 - Get info about file /usr/lib64/libssl.so.1.0.1
           ansible.builtin.stat:
             path: /usr/lib64/libssl.so.1.0.1
@@ -79,10 +83,10 @@
           ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
           when: __sap_hana_preconfigure_register_stat_libcrypto_rhel_72_assert.stat.exists
 
-      when: "ansible_distribution_version == '7.2'"
-
     - name: ... in case of RHEL 7.3 and above
+      when: "ansible_distribution_version != '7.2'"
       block:
+
         - name: Get info about file /usr/lib64/libssl.so.1.0.1
           ansible.builtin.stat:
             path: /usr/lib64/libssl.so.1.0.1
@@ -139,13 +143,9 @@
           ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
           when: __sap_hana_preconfigure_register_stat_libcrypto_rhel_7_assert.stat.exists
 
-      when: "ansible_distribution_version != '7.2'"
-
-  when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_2009879_3_9 | d(false)
-
 ### 3.10 - THP -> SAP Note 2292690
 ### 3.11 - CPU Governor for performance -> TunedProfile -> SAP Note 2292690
-### 3.12 - Processor C-States für x86_64 -> SAP Note 2292690
+### 3.12 - Processor C-States for x86_64 -> SAP Note 2292690
 
 ### Set by HANA installer
 #- name: Assert - increase file handles to 32800 for sapsys group

@@ -7,6 +7,9 @@
           (version {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^3024346$') | first).version }}): Linux kernel settings for NetApp NFS"
 
 - name: Set kernel tunables for NetApp NFS as per SAP note 3024346
+  when:
+    - sap_hana_preconfigure_use_netapp_settings_nfs|d(false)
+    - sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3024346|d(false)
   block:
 
     - name: Modify entries in file '{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}'
@@ -38,7 +41,3 @@
         regexp: '^options sunrpc tcp_max_slot_table_entries'
         line: options sunrpc tcp_max_slot_table_entries=128
       when: sap_hana_preconfigure_use_netapp_settings_nfsv3
-
-  when:
-    - sap_hana_preconfigure_use_netapp_settings_nfs|d(false)
-    - sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3024346|d(false)
