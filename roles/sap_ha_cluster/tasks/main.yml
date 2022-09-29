@@ -107,9 +107,9 @@
 #   ansible.builtin.fail:
 
 - name: "SAP HA Cluster - Block with actual changes"
-  block:
   when:
     - not sap_ha_cluster_create_config_only
+  block:
 
     # Start with prerequisite changes for certain platforms, if applicable
     - name: "SAP HA Cluster - Include platform specific fencing prerequisites"
@@ -147,7 +147,7 @@
       failed_when: false
 
     - name: "SAP HA Cluster - Create backup of existing CIB"
-      ansible.builtin.copy:
+      ansible.builtin.copy: # noqa template-instead-of-copy
         backup: true
         content: "{{ __sap_ha_cluster_cib_query.stdout }}"
         dest: /root/cib_backup.xml
