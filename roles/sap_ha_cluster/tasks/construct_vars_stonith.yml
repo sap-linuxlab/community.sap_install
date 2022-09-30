@@ -2,48 +2,27 @@
 # The following variables are constructed here in order to be provided as
 # input for the included 'ha_cluster' system role.
 
-- name: "SAP HA Cluster - Add to cluster properties: stonith-enabled"
-  ansible.builtin.set_fact:
-    __sap_ha_cluster_cluster_properties: "{{ __sap_ha_cluster_cluster_properties + [{'attr': __stonith_enabled}] }}"
-  vars:
-    __stonith_enabled:
-      - name: stonith-enabled
-        value: true
+- name: "SAP HA Cluster - Define cluster properties"
   when:
-    - (__stonith_enabled | map(attribute='name') | join('')) not in
+    - item.name not in
       (__sap_ha_cluster_cluster_properties | map(attribute='attr') | flatten | map(attribute='name'))
-
-- name: "SAP HA Cluster - Add to cluster properties: stonith-timeout"
   ansible.builtin.set_fact:
-    __sap_ha_cluster_cluster_properties: "{{ __sap_ha_cluster_cluster_properties + [{'attr': __stonith_timeout}] }}"
-  vars:
-    __stonith_timeout:
-      - name: stonith-timeout
-        value: 900
-  when:
-    - (__stonith_timeout | map(attribute='name') | join('')) not in
-      (__sap_ha_cluster_cluster_properties | map(attribute='attr') | flatten | map(attribute='name'))
-
-- name: "SAP HA Cluster - Add to cluster properties: concurrent-fencing"
-  ansible.builtin.set_fact:
-    __sap_ha_cluster_cluster_properties: "{{ __sap_ha_cluster_cluster_properties + [{'attr': __concurrent_fencing}] }}"
-  vars:
-    __concurrent_fencing:
-      - name: concurrent-fencing
-        value: true
-  when:
-    - (__concurrent_fencing | map(attribute='name') | join('')) not in
-      (__sap_ha_cluster_cluster_properties | map(attribute='attr') | flatten | map(attribute='name'))
+    __sap_ha_cluster_cluster_properties: "{{ __sap_ha_cluster_cluster_properties + [{'attr': item}] }}"
+  loop_control:
+    label: "{{ item.name }}"
+  loop:
+    - name: stonith-enabled
+      value: true
+    - name: stonith-timeout
+      value: 900
+    - name: concurrent-fencing
+      value: true
 
 # The STONITH resource is an element in the cluster_resource_primitives list
 - name: "SAP HA Cluster - Construct stonith resources definition"
-  ansible.builtin.set_fact:
-    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + __stonith_resources }}"
-  vars:
-    # Take from SAP role list parameter in inventory for custom stonith resource config.
-    # There is no separate stonith resource parameter in the 'ha_cluster' role.
-    __stonith_resources: "{{ sap_ha_cluster_stonith_resources }}"
-  no_log: true  # stonith resources usually contain secrets
   when:
     - sap_ha_cluster_stonith_resources is defined
     - sap_ha_cluster_stonith_resources is iterable
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + sap_ha_cluster_stonith_resources }}"
+  #no_log: true  # stonith resources usually contain secrets
