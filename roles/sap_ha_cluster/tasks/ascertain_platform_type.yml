@@ -18,10 +18,20 @@
 # ansible_product_name: "r5.8xlarge"
 # ansible_system_vendor: "Amazon EC2"
 
-# TODO: smarter detection based on multiple facts and providing one standard
+# TODO: detection based on multiple facts and providing one standard
 # name for use as platform type in related include files
 
-- name: "SAP HA Cluster - Set platform type based on Ansible facts"
+# TODO: workaround, pcmk_host_map must be defined before stonith vars are built
+# Mapping will probably be different on non-AWS platforms. To be adjusted...
+- name: "SAP HA Cluster - Construct pcmk_host_map for stonith"
+  when: (ansible_system_vendor | lower | replace(' ', '_')) == "amazon_ec2"
   ansible.builtin.set_fact:
-    __sap_ha_cluster_vm_asset_tag: "{{ ansible_facts.node.ansible_chassis_asset_tag | default('NA') }}"
-    # __sap_ha_cluster_platform_type:
+    __sap_ha_cluster_pcmk_host_map: >-
+      {% for entry in sap_hana_cluster_nodes -%}
+        {% for host in ansible_play_hosts -%}
+          {% if hostvars[host].ansible_hostname == entry.node_name -%}
+            {{ entry.node_name }}:{{ hostvars[host].ansible_board_asset_tag }}
+            {%- if not loop.last %};{% endif %}
+          {%- endif %}
+        {%- endfor %}
+      {%- endfor %}
