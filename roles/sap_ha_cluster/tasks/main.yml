@@ -77,7 +77,7 @@
       ansible_facts['distribution_version'] }}.yml
     - "SAPHana_{{ sap_ha_cluster_sap_type }}.yml"
     - "SAPHana_{{ sap_ha_cluster_replication_type }}.yml"
-    - "Platform_{{ __sap_ha_cluster_vm_asset_tag }}.yml"
+    - "Platform_{{ ansible_system_vendor | lower | replace(' ', '_') }}.yml"
   vars:
     __sap_ha_cluster_vars_file: "{{ role_path }}/vars/{{ item }}"
   when: __sap_ha_cluster_vars_file is file
@@ -102,10 +102,6 @@
     file: construct_vars_hana_scaleout.yml
   when: sap_ha_cluster_sap_type == 'scaleout'
 
-#### for debugging
-# - name: "Fail here for now..."
-#   ansible.builtin.fail:
-
 - name: "SAP HA Cluster - Block with actual changes"
   when:
     - not sap_ha_cluster_create_config_only
@@ -113,16 +109,14 @@
 
     # Start with prerequisite changes for certain platforms, if applicable
     - name: "SAP HA Cluster - Include platform specific fencing prerequisites"
+      when:
+        - __sap_ha_cluster_platform_file is file
       ansible.builtin.include_tasks:
         file: "{{ item }}"
       loop:
-        - "preconfigure_platform_{{ __sap_ha_cluster_platform_type }}.yml"
+        - "preconfigure_platform_{{ ansible_system_vendor | lower | replace(' ', '_') }}.yml"
       vars:
         __sap_ha_cluster_platform_file: "{{ role_path }}/tasks/{{ item }}"
-      when:
-        - __sap_ha_cluster_platform_type is defined
-        - __sap_ha_cluster_platform_file is file
-      ignore_errors: "{{ ansible_check_mode }}"
 
     # Before we are ready to call the ha_cluster role, we want to validate
     # that the minimum required parameters are defined and not empty.
@@ -165,7 +159,7 @@
         name: linux-system-roles.ha_cluster
         apply:
           tags: ha_cluster
-          no_log: true
+    #      no_log: true
       vars:
         ha_cluster_cluster_name: "{{ __sap_ha_cluster_cluster_name }}"
         ha_cluster_hacluster_password: "{{ __sap_ha_cluster_hacluster_password }}"
