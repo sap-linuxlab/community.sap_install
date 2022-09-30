@@ -10,8 +10,12 @@
     __sap_ha_cluster_hacluster_password: "{{ ha_cluster_hacluster_password | default(sap_ha_cluster_hacluster_password) }}"
   no_log: true
 
-- name: "SAP HA Cluster - Combine defined extra packages"
+- name: "SAP HA Cluster - Combine extra packages lists"
   ansible.builtin.set_fact:
-    __sap_ha_cluster_extra_packages: "{{ __sap_ha_cluster_extra_packages + sap_ha_cluster_extra_packages }}"
-  when:
-    - sap_ha_cluster_extra_packages is defined
+    __sap_ha_cluster_extra_packages: "{{
+      sap_ha_cluster_extra_packages
+      +
+      sap_ha_cluster_sap_extra_packages | default([])
+      +
+      sap_ha_cluster_platform_extra_packages | default([])
+    }}"
