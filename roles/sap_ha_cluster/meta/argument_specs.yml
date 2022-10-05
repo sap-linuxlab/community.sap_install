@@ -7,7 +7,7 @@ argument_specs:
 # in the current role namespace
 
   main:
-    short_description: SAP HA requirements
+    short_description: SAP HA automated cluster setup requirements
     options:
 
 # Take this template and copy it to the desired place.
@@ -28,7 +28,7 @@ argument_specs:
 
       ha_cluster:
         description:
-          - Optional host_vars parameter, if defined it must be set for each node.
+          - Optional **host_vars** parameter, if defined it must be set for each node.
           - Definition of node name and IP addresses to be used for the pacemaker cluster.
           - Required for resilient node communication by providing more than one corosync IP.
           - See https://github.com/linux-system-roles/ha_cluster/blob/master/README.md#nodes-names-and-addresses
@@ -53,6 +53,14 @@ argument_specs:
               - An address used by pcs to communicate with the node.
               - Can be a name, FQDN or IP address and can contain a port.
             type: str
+
+        example:
+          ha_cluster:
+            corosync_addresses:
+              - 192.168.1.10
+              - 192.168.2.10
+            node_name: nodeA
+            pcs_address: nodeA
 
       ha_cluster_cluster_name:
         alias: sap_ha_cluster_cluster_name
@@ -197,6 +205,23 @@ argument_specs:
         elements: str
         required: true
         type: list
+        options:
+          node_name:
+            description:
+              - Name of the cluster node, should match the remote system's hostname.
+            required: true
+          node_role:
+            choices:
+              - primary
+              - secondary
+            description:
+              - Role of this node in the SAP cluster setup.
+            required: true
+          hana_site:
+            description:
+              - Site of the cluster and/or SAP HANA System Replication node (for example 'DC01').
+              - Required for HANA System Replication configuration.
+            required: true
 
       sap_hana_instance_number:
         alias: sap_ha_cluster_hana_instance_number
@@ -230,8 +255,8 @@ argument_specs:
             type: str
           secondary:
             aliases:
-              - unpromoted
               - readonly
+              - unpromoted
             description:
               - An additional VIP can be used to run on a secondary node for read-only DB access.
             required: false
