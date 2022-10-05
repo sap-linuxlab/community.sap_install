@@ -14,7 +14,7 @@
     __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [__resource_topology] }}"
   vars:
     __resource_topology:
-      id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
+      id: "{{ sap_ha_cluster_hana_topology_resource_name }}"
       agent: "ocf:heartbeat:SAPHanaTopology"
       instance_attrs:
         - attrs:
@@ -45,7 +45,7 @@
     __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [__resource_hana] }}"
   vars:
     __resource_hana:
-      id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
+      id: "{{ sap_ha_cluster_hana_resource_name }}"
       agent: "ocf:heartbeat:{{ sap_ha_cluster_ra_hana }}"
       instance_attrs:
         - attrs:
@@ -95,27 +95,12 @@
   when:
     - __resource_hana.agent not in (__sap_ha_cluster_resource_primitives | map(attribute='agent'))
 
-# TODO: change logic to allow multiple VIP resources and constraints
-- name: "SAP HA Cluster - Add resource: SAP HANA VIP"
-  ansible.builtin.set_fact:
-    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [__resource_vip] }}"
-  vars:
-    __resource_vip:
-      id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}_MASTER"
-      agent: "ocf:heartbeat:IPaddr2"
-      instance_attrs:
-        - attrs:
-            - name: ip
-              value: "{{ sap_ha_cluster_hana_instance_vip }}"
-  when:
-    - __resource_vip.agent not in (__sap_ha_cluster_resource_primitives | map(attribute='agent'))
-
 - name: "SAP HA Cluster - Add resource clone: SAP HANA Topology"
   ansible.builtin.set_fact:
     __sap_ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones + [__clone_topology] }}"
   vars:
     __clone_topology:
-      resource_id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
+      resource_id: "{{ sap_ha_cluster_hana_topology_resource_name }}"
       promotable: "no"
       meta_attrs:
         - attrs:
@@ -133,7 +118,7 @@
     __sap_ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones + [__clone_hana] }}"
   vars:
     __clone_hana:
-      resource_id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
+      resource_id: "{{ sap_ha_cluster_hana_resource_name }}"
       promotable: "yes"
       meta_attrs:
         - attrs:
@@ -153,45 +138,13 @@
   vars:
     __constraint_order_topology:
       resource_first:
-        id: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}-clone"
+        id: "{{ sap_ha_cluster_hana_topology_resource_clone_name }}"
         action: start
       resource_then:
-        id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}-clone"
+        id: "{{ sap_ha_cluster_hana_resource_clone_name }}"
         action: start
       options:
         - name: symmetrical
           value: "false"
   when:
     - __constraint_order_topology.resource_then not in (__sap_ha_cluster_constraints_order | map(attribute='resource_then'))
-
-# Start the VIP only after the HANA resource has been promoted
-- name: "SAP HA Cluster - Add order constraint: VIP starts after DB is promoted"
-  ansible.builtin.set_fact:
-    __sap_ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order + [__constraint_order_vip] }}"
-  vars:
-    __constraint_order_vip:
-      resource_first:
-        id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}-clone"
-        action: promote
-      resource_then:
-        id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}_MASTER"
-        action: start
-  when:
-    - __constraint_order_vip.resource_then not in (__sap_ha_cluster_constraints_order | map(attribute='resource_then'))
-
-# The VIP only runs where HANA is promoted
-- name: "SAP HA Cluster - Add colocation constraint: VIP runs where HANA is promoted"
-  ansible.builtin.set_fact:
-    __sap_ha_cluster_constraints_colocation: "{{ __sap_ha_cluster_constraints_colocation + [__constraint_colo_vip] }}"
-  vars:
-    __constraint_colo_vip:
-      resource_leader:
-        id: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}-clone"
-        role: promoted
-      resource_follower:
-        id: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}_MASTER"
-      options:
-        - name: score
-          value: 2000
-  when:
-    - __constraint_colo_vip.resource_follower not in (__sap_ha_cluster_constraints_colocation | map(attribute='resource_follower'))
