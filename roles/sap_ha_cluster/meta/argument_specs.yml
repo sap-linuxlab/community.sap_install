@@ -222,16 +222,22 @@ argument_specs:
               - Site of the cluster and/or SAP HANA System Replication node (for example 'DC01').
               - Required for HANA System Replication configuration.
             required: true
+        example:
+          sap_hana_cluster_nodes:
+            - node_name: nodeA
+              node_role: primary
+              hana_site: DC01
+            - node_name: nodeB
+              node_role: secondary
+              hana_site: DC02
 
       sap_hana_instance_number:
-        alias: sap_ha_cluster_hana_instance_number
         description:
           - The instance number of the SAP HANA database which is role will configure in the cluster.
         required: true
         type: str
 
       sap_hana_sid:
-        alias: sap_ha_cluster_hana_sid
         description:
           - The SAP System ID of the instance that will be configured in the cluster.
           - The SAP SID must follow SAP specifications - see SAP Note 1979280.
@@ -240,24 +246,11 @@ argument_specs:
 
       sap_hana_vip:
         description:
-          - Virtual floating IP for SAP HANA DB connections.
-          - This IP will always run on the promoted HANA node.
+          - One floating IP is required for SAP HANA DB connection by clients.
+          - This main VIP will always run on the promoted HANA node and be moved with it during a failover.
         required: true
         type: dict
-        options:
-          primary:
-            aliases:
-              - main
-              - promoted
-            description:
-              - At least one Virtual IP is required to always reach the promoted SAP HANA DB.
-            required: true
-            type: str
-          secondary:
-            aliases:
-              - readonly
-              - unpromoted
-            description:
-              - An additional VIP can be used to run on a secondary node for read-only DB access.
-            required: false
-            type: str
+        required_one_of: [{ primary, main, rw, promoted }]
+        example:
+          sap_hana_vip:
+            primary: 192.168.10.100

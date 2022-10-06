@@ -20,7 +20,7 @@
 - name: "SAP HA Cluster - Add order constraint: Primary VIP starts after DB is promoted"
   when:
     - __constraint_order_vip.resource_then not in (__sap_ha_cluster_constraints_order | map(attribute='resource_then'))
-    - vip_list_item.key == 'primary'
+    - vip_list_item.key in __sap_ha_cluster_primary_synonyms
   ansible.builtin.set_fact:
     __sap_ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order + [__constraint_order_vip] }}"
   vars:
@@ -36,7 +36,7 @@
 - name: "SAP HA Cluster - Add colocation constraint: Primary VIP runs where HANA is promoted"
   when:
     - __constraint_colo_vip.resource_follower not in (__sap_ha_cluster_constraints_colocation | map(attribute='resource_follower'))
-    - vip_list_item.key == 'primary'
+    - vip_list_item.key in __sap_ha_cluster_primary_synonyms
   ansible.builtin.set_fact:
     __sap_ha_cluster_constraints_colocation: "{{ __sap_ha_cluster_constraints_colocation + [__constraint_colo_vip] }}"
   vars:
