@@ -4,7 +4,7 @@
 
 - name: "SAP HA Cluster - Include variable construction for VIP resources"
   when:
-    - __sap_ha_cluster_cloud_platform == ''
+    - __sap_ha_cluster_cloud_platform not in ['aws', 'ibmcloud']
     - (vip_list_item.value is defined) and (vip_list_item.value != '')
   ansible.builtin.include_tasks: construct_vars_vip_resources_default.yml
   loop: "{{ query('dict', sap_ha_cluster_vip_address) }}"
