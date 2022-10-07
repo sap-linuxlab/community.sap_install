@@ -1,0 +1,34 @@
+---
+# Platform detection for cloud platforms.
+# Potentially also useful for other virtual or hardware platforms.
+
+### AWS facts already available in Ansible
+#
+# ansible_bios_vendor: "Amazon EC2"
+# ansible_bios_version: "1.0"
+# ansible_board_asset_tag: "i-043d3c1a889ed9016"
+# ansible_board_name: "NA"
+# ansible_board_serial: "NA"
+# ansible_board_vendor: "Amazon EC2"
+# ansible_board_version: "NA"
+# ansible_chassis_asset_tag: "Amazon EC2"
+# ansible_chassis_serial: "NA"
+# ansible_chassis_vendor: "Amazon EC2"
+# ansible_chassis_version: "NA"
+# ansible_product_name: "r5.8xlarge"
+# ansible_system_vendor: "Amazon EC2"
+
+# TODO: detection based on multiple facts and providing one standard
+# name for use as platform type in related include files
+
+# TODO: workaround, pcmk_host_map must be defined before stonith vars are built
+# Mapping will probably be different on non-AWS platforms. To be adjusted...
+- name: "SAP HA Cluster - Construct pcmk_host_map for stonith"
+  when: (ansible_system_vendor | lower | replace(' ', '_')) == "amazon_ec2"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_pcmk_host_map: >-
+      {% for entry in sap_hana_cluster_nodes -%}
+        {% for host in ansible_play_hosts -%}
+          {% if hostvars[host].ansible_hostname == entry.node_name -%}
+            {{ entry.node_name }}:{{ hostvars[host].ansible_board_asset_tag }}
+      {%- if not loop.last %};{% endif %}{%- endif %}{%- endfor %}{%- endfor %}
