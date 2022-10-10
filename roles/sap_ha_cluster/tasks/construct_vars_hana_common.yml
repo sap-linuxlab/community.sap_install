@@ -1,0 +1,150 @@
+---
+# Variables containing variables must be constructed with values
+# to be fed into the included ha_cluster role
+
+# - put here all scale-up and scale-out common resources
+# - certain differences like ra agent names are provided through
+#   type specific variables
+
+# TODO: add conditionals to verify that the same resource agent is not already
+#       defined in user input variables. Conflicting user input should take precedence.
+
+- name: "SAP HA Cluster - Add resource: SAP HANA Topology"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [__resource_topology] }}"
+  vars:
+    __resource_topology:
+      id: "{{ sap_ha_cluster_hana_topology_resource_name }}"
+      agent: "ocf:heartbeat:SAPHanaTopology"
+      instance_attrs:
+        - attrs:
+            - name: SID
+              value: "{{ sap_ha_cluster_hana_sid }}"
+            - name: InstanceNumber
+              value: "{{ sap_ha_cluster_hana_instance_number }}"
+      operations:
+        - action: start
+          attrs:
+            - name: timeout
+              value: 600
+        - action: stop
+          attrs:
+            - name: timeout
+              value: 600
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 10
+            - name: timeout
+              value: 600
+  when:
+    - __resource_topology.agent not in (__sap_ha_cluster_resource_primitives | map(attribute='agent'))
+
+- name: "SAP HA Cluster - Add resource: SAP HANA DB"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + [__resource_hana] }}"
+  vars:
+    __resource_hana:
+      id: "{{ sap_ha_cluster_hana_resource_name }}"
+      agent: "ocf:heartbeat:{{ sap_ha_cluster_ra_hana }}"
+      instance_attrs:
+        - attrs:
+            - name: SID
+              value: "{{ sap_ha_cluster_hana_sid }}"
+            - name: InstanceNumber
+              value: "{{ sap_ha_cluster_hana_instance_number }}"
+            - name: AUTOMATED_REGISTER
+              value: "{{ sap_ha_cluster_hana_automated_register | string }}"
+            - name: DUPLICATE_PRIMARY_TIMEOUT
+              value: "{{ sap_ha_cluster_hana_duplicate_primary_timeout | string }}"
+            - name: PREFER_SITE_TAKEOVER
+              value: "{{ sap_ha_cluster_hana_prefer_site_takeover | string }}"
+      operations:
+        - action: start
+          attrs:
+            - name: timeout
+              value: 3600
+        - action: stop
+          attrs:
+            - name: timeout
+              value: 3600
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 121
+            - name: role
+              value: Slave
+            - name: timeout
+              value: 700
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 119
+            - name: role
+              value: Master
+            - name: timeout
+              value: 700
+        - action: promote
+          attrs:
+            - name: timeout
+              value: 3600
+        - action: demote
+          attrs:
+            - name: timeout
+              value: 3600
+  when:
+    - __resource_hana.agent not in (__sap_ha_cluster_resource_primitives | map(attribute='agent'))
+
+- name: "SAP HA Cluster - Add resource clone: SAP HANA Topology"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones + [__clone_topology] }}"
+  vars:
+    __clone_topology:
+      resource_id: "{{ sap_ha_cluster_hana_topology_resource_name }}"
+      promotable: "no"
+      meta_attrs:
+        - attrs:
+            - name: clone-max
+              value: 2
+            - name: clone-node-max
+              value: 1
+        - name: interleave
+          value: "true"
+  when:
+    - __clone_topology.resource_id not in (__sap_ha_cluster_resource_clones | map(attribute='resource_id'))
+
+- name: "SAP HA Cluster - Add resource clone: SAP HANA DB"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones + [__clone_hana] }}"
+  vars:
+    __clone_hana:
+      resource_id: "{{ sap_ha_cluster_hana_resource_name }}"
+      promotable: "yes"
+      meta_attrs:
+        - attrs:
+            - name: clone-max
+              value: 2
+            - name: clone-node-max
+              value: 1
+            - name: interleave
+              value: "true"
+  when:
+    - __clone_hana.resource_id not in (__sap_ha_cluster_resource_clones | map(attribute='resource_id'))
+
+# First start Topology, then HANA (automatically stops in reverse order)
+- name: "SAP HA Cluster - Add order constraint: Topology starts before DB"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order + [__constraint_order_topology] }}"
+  vars:
+    __constraint_order_topology:
+      resource_first:
+        id: "{{ sap_ha_cluster_hana_topology_resource_clone_name }}"
+        action: start
+      resource_then:
+        id: "{{ sap_ha_cluster_hana_resource_clone_name }}"
+        action: start
+      options:
+        - name: symmetrical
+          value: "false"
+  when:
+    - __constraint_order_topology.resource_then not in (__sap_ha_cluster_constraints_order | map(attribute='resource_then'))
