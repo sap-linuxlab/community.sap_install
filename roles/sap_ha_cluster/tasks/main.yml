@@ -57,7 +57,7 @@
 
 # Include vars files based on the environment.
 # Respect order for potential variable precedence.
-- name: "SAP HA Cluster - Set platform/version specific variables"
+- name: "SAP HA Cluster - Set platform/environment specific variables"
   when: __sap_ha_cluster_vars_file is file
   ansible.builtin.include_vars: "{{ __sap_ha_cluster_vars_file }}"
   loop:
@@ -71,7 +71,7 @@
       ansible_facts['distribution_version'] }}.yml
     - "SAPHana_{{ sap_ha_cluster_sap_type }}.yml"
     - "SAPHana_{{ sap_ha_cluster_replication_type }}.yml"
-    - "Platform_{{ ansible_system_vendor | lower | replace(' ', '_') }}.yml"
+    - "Platform_{{ __sap_ha_cluster_platform }}.yml"
   vars:
     __sap_ha_cluster_vars_file: "{{ role_path }}/vars/{{ item }}"
 
@@ -108,7 +108,7 @@
       ansible.builtin.include_tasks:
         file: "{{ item }}"
       loop:
-        - "platform/preconfigure_platform_{{ ansible_system_vendor | lower | replace(' ', '_') }}.yml"
+        - "platform/preconfigure_{{ ansible_system_vendor | lower | replace(' ', '_') }}.yml"
       vars:
         __sap_ha_cluster_platform_file: "{{ role_path }}/tasks/{{ item }}"
 
