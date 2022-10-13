@@ -14,13 +14,6 @@
 
 # TODO: Build all resource/constraint configuration variables based on
 # simpler user input (think: drop-down options in a UI)
-# - Make resources configuration modular, allowing additional VIPs, for example
-
-# TODO: create CIB backup before running ha_cluster
-
-# TODO: add parameter to just construct ha_cluster input variables and display the output
-# use-case: users can extract the parameters to add them to their variable files
-# and re-use ha_cluster with a complete set of configuration definitions
 
 # The SAP ID must follow a strict format and not use reserved special values
 # TODO: This check may be better placed in a SAP role earlier in the chain...
@@ -57,7 +50,7 @@
 # Determine if we are on a cloud platform.
 - name: "SAP HA Cluster - Include tasks for platform detection"
   ansible.builtin.include_tasks:
-    file: ascertain_platform_type.yml
+    file: platform/ascertain_platform_type.yml
     apply:
       tags: check_platform
   tags: check_platform
@@ -115,7 +108,7 @@
       ansible.builtin.include_tasks:
         file: "{{ item }}"
       loop:
-        - "preconfigure_platform_{{ ansible_system_vendor | lower | replace(' ', '_') }}.yml"
+        - "platform/preconfigure_platform_{{ ansible_system_vendor | lower | replace(' ', '_') }}.yml"
       vars:
         __sap_ha_cluster_platform_file: "{{ role_path }}/tasks/{{ item }}"
 
