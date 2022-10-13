@@ -61,17 +61,17 @@
   when: __sap_ha_cluster_vars_file is file
   ansible.builtin.include_vars: "{{ __sap_ha_cluster_vars_file }}"
   loop:
-    - "{{ ansible_facts['os_family'] }}.yml"
-    - "{{ ansible_facts['distribution'] }}.yml"
+    - "{{ ansible_facts['os_family'] | lower }}.yml"
+    - "{{ ansible_facts['distribution'] | lower }}.yml"
     - >-
-      {{ ansible_facts['distribution'] ~ '_' ~
+      {{ ansible_facts['distribution'] | lower ~ '_' ~
       ansible_facts['distribution_major_version'] }}.yml
     - >-
-      {{ ansible_facts['distribution'] ~ '_' ~
+      {{ ansible_facts['distribution'] | lower ~ '_' ~
       ansible_facts['distribution_version'] }}.yml
-    - "SAPHana_{{ sap_ha_cluster_sap_type }}.yml"
-    - "SAPHana_{{ sap_ha_cluster_replication_type }}.yml"
-    - "Platform_{{ __sap_ha_cluster_platform }}.yml"
+    - "saphana_{{ sap_ha_cluster_sap_type }}.yml"
+    - "saphana_{{ sap_ha_cluster_replication_type }}.yml"
+    - "platform_{{ __sap_ha_cluster_platform }}.yml"
   vars:
     __sap_ha_cluster_vars_file: "{{ role_path }}/vars/{{ item }}"
 

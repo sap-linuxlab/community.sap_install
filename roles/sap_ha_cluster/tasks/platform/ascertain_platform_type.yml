@@ -24,13 +24,13 @@
   when:
     - ansible_system_vendor == 'Amazon EC2'
   ansible.builtin.set_fact:
-    __sap_ha_cluster_platform: aws_ec2_instance
+    __sap_ha_cluster_platform: vm_aws_ec2
 
 
 # TODO: workaround, pcmk_host_map must be defined before stonith vars are built
 # Mapping will probably be different on non-AWS platforms. To be adjusted...
 - name: "SAP HA Cluster - Construct pcmk_host_map for stonith"
-  when: __sap_ha_cluster_platform == 'aws_ec2_instance'
+  when: __sap_ha_cluster_platform == 'vm_aws_ec2'
   ansible.builtin.set_fact:
     __sap_ha_cluster_pcmk_host_map: >-
       {% for entry in sap_hana_cluster_nodes -%}
