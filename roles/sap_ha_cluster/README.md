@@ -11,16 +11,16 @@ The cluster setup is managed through the `ha_cluster` Linux System Role.<br>
 ## Requirements
 
 Target Systems:
-- Supported OS: RHEL 8.4+
+- Supported OS: RHEL 8.3+
 - RHEL registration and access to High-Availability repository
 - SAP Hana installed and configured, for instance using the provided `sap_hana_*` Ansible roles in this repository
 
 Ansible Control System:
 - Ansible 2.9+
-- `Linux System Roles` collection from either source:
-  - RHEL package: rhel-system-roles-1.16.2
-  - Automation Hub: <to be defined>
-  - Ansible Galaxy: <to be defined>
+- `Linux System Roles` collection from either source and minimum version:
+  - RHEL package: _rhel-system-roles-1.13.0-1_ or later
+  - Red Hat Automation Hub: _rhel_system_roles 1.12.1_ or later
+  - Ansible Galaxy: _fedora.linux_system_roles:1.13.0_ or later
 
 <!-- END: Requirements -->
 
