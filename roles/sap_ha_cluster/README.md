@@ -175,7 +175,7 @@ _Currently only scale-up is supported_<br>
 
 ### sap_ha_cluster_vip_client_interface
 - _Type:_ `str`
-- _Default:_ `<ansible_default_ipv4.interface>`
+- _Default:_ `eth0`
 
 OS device name of the network interface to use for the Virtual IP configuration.<br>
 This is used for VIP agents that require an interface name, for example in cloud platform environments.<br>

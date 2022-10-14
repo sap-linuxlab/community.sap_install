@@ -7,73 +7,33 @@
 #      (networking, IDs, number of nodes)
 # 4. Include tasks for building the ha_cluster arguments for the selected solution
 #    * scale-up, scale-out, scale-up + mtr, scale-out + mtr
-# 5. Include ha_cluster role with the constructed parameters as role arguments
+# 5. Include LSR "ha_cluster" with the constructed parameters as role arguments
 # 6. Add solution specific config
 #    * srhook
-# 7. Save 'ha_cluster' input parameters in .yml file for easy re-use
+# 7. Save LSR "ha_cluster" input parameters in .yml file for easy re-use
 
 # TODO: Build all resource/constraint configuration variables based on
 # simpler user input (think: drop-down options in a UI)
 
-# The SAP ID must follow a strict format and not use reserved special values
-# TODO: This check may be better placed in a SAP role earlier in the chain...
-- name: "SAP HA Cluster - Validate SAP System ID"
-  ansible.builtin.assert:
-    that:
-      - sap_ha_cluster_hana_sid is defined
-      - sap_ha_cluster_hana_sid|length == 3
-      - sap_ha_cluster_hana_sid not in __sap_sid_prohibited
-  tags: always
+- name: "SAP HA Cluster - Include parameter validation tasks"
+  ansible.builtin.import_tasks: validate_input_parameters.yml
 
 # Make sure that all parameters already set for 'ha_cluster' are also inherited.
-# Add to the include file a task for each parameter which this SAP cluster role
+# Add to this file a task for EACH parameter which this SAP cluster role
 # supports.
 - name: "SAP HA Cluster - Include tasks for checking 'ha_cluster' predefinitions"
-  ansible.builtin.include_tasks:
-    file: ascertain_ha_cluster_in_inventory.yml
-    apply:
-      tags: always
-  tags: always
+  ansible.builtin.import_tasks: ascertain_ha_cluster_in_inventory.yml
+
+- name: "SAP HA Cluster - Include facts and common variables"
+  ansible.builtin.import_tasks: include_vars_common.yml
 
 # Determine which SAP landscape we are going to configure in the cluster.
-# This is needed to include the landscape specific parameter values.
-# The result will be parameters:
-# - sap_ha_cluster_sap_type (values: scaleup, scaleout)
-# - sap_ha_cluster_replication_type (values: mtr, ?)
 - name: "SAP HA Cluster - Include tasks for SAP landscape calculation"
-  ansible.builtin.include_tasks:
-    file: ascertain_sap_landscape.yml
-    apply:
-      tags: check_sap
-  tags: check_sap
+  ansible.builtin.import_tasks: ascertain_sap_landscape.yml
 
 # Determine if we are on a cloud platform.
 - name: "SAP HA Cluster - Include tasks for platform detection"
-  ansible.builtin.include_tasks:
-    file: platform/ascertain_platform_type.yml
-    apply:
-      tags: check_platform
-  tags: check_platform
-
-# Include vars files based on the environment.
-# Respect order for potential variable precedence.
-- name: "SAP HA Cluster - Set platform/environment specific variables"
-  when: __sap_ha_cluster_vars_file is file
-  ansible.builtin.include_vars: "{{ __sap_ha_cluster_vars_file }}"
-  loop:
-    - "{{ ansible_facts['os_family'] | lower }}.yml"
-    - "{{ ansible_facts['distribution'] | lower }}.yml"
-    - >-
-      {{ ansible_facts['distribution'] | lower ~ '_' ~
-      ansible_facts['distribution_major_version'] }}.yml
-    - >-
-      {{ ansible_facts['distribution'] | lower ~ '_' ~
-      ansible_facts['distribution_version'] }}.yml
-    - "saphana_{{ sap_ha_cluster_sap_type }}.yml"
-    - "saphana_{{ sap_ha_cluster_replication_type }}.yml"
-    - "platform_{{ __sap_ha_cluster_platform }}.yml"
-  vars:
-    __sap_ha_cluster_vars_file: "{{ role_path }}/vars/{{ item }}"
+  ansible.builtin.import_tasks: ascertain_platform_type.yml
 
 - name: "SAP HA Cluster - Include common variable construction tasks"
   ansible.builtin.import_tasks: construct_vars_common.yml
@@ -82,11 +42,10 @@
   ansible.builtin.import_tasks: construct_vars_stonith.yml
 
 - name: "SAP HA Cluster - Include variable construction for VIP resources"
-  ansible.builtin.include_tasks: include_construct_vip_resources.yml
+  ansible.builtin.import_tasks: include_construct_vip_resources.yml
 
 - name: "SAP HA Cluster - Include variable construction for SAP HANA common"
-  ansible.builtin.include_tasks:
-    file: construct_vars_hana_common.yml
+  ansible.builtin.import_tasks: construct_vars_hana_common.yml
 
 - name: "SAP HA Cluster - Include variable construction for SAP HANA Scale-up"
   when: sap_ha_cluster_sap_type == 'scaleup'
