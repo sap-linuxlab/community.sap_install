@@ -3,8 +3,8 @@
 # Argument specifications in this separate file maintain backwards compatibility.
 argument_specs:
 
-# TODO: make 'ha_cluster' role variables the primary names, but allow aliases
-# in the current role namespace
+# TODO: make 'ha_cluster' role variables the primary names
+# For required variables using aliases do not work and fail the argument validation.
 
   main:
     short_description: SAP HA automated cluster setup requirements
@@ -15,7 +15,6 @@ argument_specs:
 # Ideally sort by key (variable name) alphabetically.
 #
 #      sap_ha_cluster_
-#        alias:
 #        default:
 #        description:
 #           -
@@ -28,7 +27,7 @@ argument_specs:
 
       ha_cluster:
         description:
-          - Optional **host_vars** parameter, if defined it must be set for each node.
+          - Optional _**host_vars**_ parameter, if defined it must be set for each node.
           - Definition of node name and IP addresses to be used for the pacemaker cluster.
           - Required for resilient node communication by providing more than one corosync IP.
           - See https://github.com/linux-system-roles/ha_cluster/blob/master/README.md#nodes-names-and-addresses
@@ -38,17 +37,17 @@ argument_specs:
           corosync_addresses:
             default: <primary ip>
             description:
-              - List of IP addresses used by Corosync.
+              - List of one or more IP addresses to be used for Corosync.
               - All nodes must have the same number of addresses.
-              - The order of the listed addresses  matters.
+              - The order of the listed addresses matters.
             type: list
           node_name:
-            default: <play host>
+            default: <play host name>
             description:
               - The name of the node in the cluster.
             type: str
           pcs_address:
-            default: <play host>
+            default: <play host primary address>
             description:
               - An address used by pcs to communicate with the node.
               - Can be a name, FQDN or IP address and can contain a port.
@@ -63,7 +62,6 @@ argument_specs:
             pcs_address: nodeA
 
       ha_cluster_cluster_name:
-        alias: sap_ha_cluster_cluster_name
         default: my-cluster
         description:
           - The name of the pacemaker cluster.
@@ -71,7 +69,6 @@ argument_specs:
         type: str
 
       ha_cluster_hacluster_password:
-        alias: sap_hana_hacluster_password
         description:
           - The password of the `hacluster` user which is created during pacemaker installation.
         no_log: true
@@ -185,6 +182,7 @@ argument_specs:
         default: none
         description:
           - The type of SAP HANA site replication across multiple hosts.
+          - _Not yet supported_
         required: false
         type: str
 
@@ -195,20 +193,48 @@ argument_specs:
         default: scaleup
         description:
           - The SAP landscape to be installed.
+          - _Currently only scale-up is supported_
         required: false
         type: str
 
+      sap_ha_cluster_vip_client_interface:
+        default: "<ansible_default_ipv4.interface>"
+        description:
+          - OS device name of the network interface to use for the Virtual IP configuration.
+          - This is used for VIP agents that require an interface name, for example in cloud platform environments.
+        required: false
+        type: str
+
+      sap_ha_cluster_vip_resource_name:
+        default: "vip_<SID>_<Instance Number>"
+        description:
+          - Customize the name of the resource managing the Virtual IP.
+        required: false
+        type: str
+
+      sap_ha_cluster_vip_update_rt:
+        description:
+          - List one more routing table IDs for managing Virtual IP failover through routing table changes.
+          - Required for VIP configuration in AWS EC2 environments.
+        required: false
+        type: list
+
       sap_hana_cluster_nodes:
         description:
-          - List of cluster nodes and associated attributes (in dictionary format).
-          - This is required for the srHook configuration.
-        elements: str
+          - List of cluster nodes and associated attributes to describe the target SAP HA environment.
+          - This is required for the HANA System Replication configuration.
+        elements: dict
         required: true
         type: list
         options:
+          node_ip:
+            description:
+              - IP address of the node used for HANA System Replication.
+            required: true
           node_name:
             description:
-              - Name of the cluster node, should match the remote system's hostname.
+              - Name of the cluster node, should match the remote systems' hostnames.
+              - This is needed by the cluster members to know all their partner nodes.
             required: true
           node_role:
             choices:
@@ -216,20 +242,24 @@ argument_specs:
               - secondary
             description:
               - Role of this node in the SAP cluster setup.
+              - There must be only *one* primary, but there can be multiple secondary nodes.
             required: true
           hana_site:
             description:
               - Site of the cluster and/or SAP HANA System Replication node (for example 'DC01').
-              - Required for HANA System Replication configuration.
+              - This is required for HANA System Replication configuration.
             required: true
+
         example:
           sap_hana_cluster_nodes:
             - node_name: nodeA
               node_role: primary
               hana_site: DC01
+              node_ip: 192.168.5.1
             - node_name: nodeB
               node_role: secondary
               hana_site: DC02
+              node_ip: 192.168.5.2
 
       sap_hana_instance_number:
         description:
