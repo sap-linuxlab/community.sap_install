@@ -4,30 +4,28 @@
     path: /hana/shared/myHooks
     state: directory
     mode: "0755"
-    owner: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
+    owner: "{{ sap_ha_set_hana_sid | lower }}adm"
     group: sapsys
 
 - name: "SAP Pacemaker Hana - config sr_hook"
   ansible.builtin.copy:
-    remote_src: yes
+    remote_src: true
     src: /usr/share/SAPHanaSR/srHook/SAPHanaSR.py
     dest: /hana/shared/myHooks/SAPHanaSR.py
     mode: "0755"
-    owner: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
+    owner: "{{ sap_ha_set_hana_sid | lower }}adm"
     group: sapsys
 
 - name: "SAP Pacemaker Hana - check global.ini"
-  shell: |
-    grep ha_dr_saphanasr /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/SYS/global/hdb/custom/config/global.ini
-  args:
-    executable: /bin/bash
+  ansible.builtin.shell: |
+    grep ha_dr_saphanasr /usr/sap/{{ sap_ha_set_hana_sid | upper }}/SYS/global/hdb/custom/config/global.ini
   register: trace_global
   failed_when: false
   changed_when: false
 
 - name: "SAP Pacemaker Hana - update hook in global.ini"
   ansible.builtin.blockinfile:
-    path: /usr/sap/{{ sap_ha_install_hana_hsr_sid | upper }}/SYS/global/hdb/custom/config/global.ini
+    path: /usr/sap/{{ sap_ha_set_hana_sid | upper }}/SYS/global/hdb/custom/config/global.ini
     marker: ""
     block: |
       [ha_dr_provider_SAPHanaSR]

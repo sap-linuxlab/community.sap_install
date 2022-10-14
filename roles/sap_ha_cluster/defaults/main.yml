@@ -1,0 +1,58 @@
+---
+# Variables for the cluster setup must be constructed by dedicated tasks!
+# The included 'ha_cluster' role will not work with the role variables set
+# in this role.
+
+sap_ha_cluster_cluster_name: my-cluster
+
+sap_ha_cluster_create_config_only: false
+sap_ha_cluster_create_config_dest: sap_ha_cluster_resource_config.yml
+
+# Inherit SAP common parameters
+sap_ha_cluster_cluster_nodes: "{{ sap_hana_cluster_nodes }}"
+sap_ha_cluster_hana_sid: "{{ sap_hana_sid }}"
+sap_ha_cluster_hana_instance_number: "{{ sap_hana_instance_number }}"
+
+# Make sure that there is always the default fed into the included role
+sap_ha_cluster_fence_agent_packages:
+  - fence-agents-all
+
+sap_ha_cluster_extra_packages: "{{ ha_cluster_extra_packages | default([]) }}"
+
+# Adjusting resource defaults
+sap_ha_cluster_resource_defaults:
+  - name: resource-stickiness
+    value: 1000
+  - name: migration-threshold
+    value: 5000
+
+# The type of SAP landscape and multi-node replication
+# TODO: variable name update, depending on feedback
+# sap_ha_cluster_sap_type: ""
+sap_ha_cluster_replication_type: none
+
+# Optional parameters to customize HANA resources
+# AUTOMATED_REGISTER
+sap_ha_cluster_hana_automated_register: true
+# DUPLICATE_PRIMARY_TIMEOUT
+sap_ha_cluster_hana_duplicate_primary_timeout: 900
+# PREFER_SITE_TAKEOVER
+sap_ha_cluster_hana_prefer_site_takeover: true
+
+### stonith resource parameter defaults
+# not all of the defined variables will be needed for all fence types
+# ideally this is generic and covers all platform type agents
+sap_ha_cluster_fence_power_timeout: 240
+sap_ha_cluster_fence_reboot_retries: 4
+sap_ha_cluster_fence_reboot_timeout: 400
+
+### Resource default patterns
+sap_ha_cluster_vip_address: "{{ sap_hana_vip }}"
+sap_ha_cluster_vip_resource_agent: "ocf:heartbeat:IPaddr2"
+sap_ha_cluster_vip_resource_name: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
+
+# Resource IDs (names) as convenience parameters.
+sap_ha_cluster_hana_resource_name: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
+sap_ha_cluster_hana_resource_clone_name: "{{ sap_ha_cluster_hana_resource_name }}-clone"
+sap_ha_cluster_hana_topology_resource_name: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
+sap_ha_cluster_hana_topology_resource_clone_name: "{{ sap_ha_cluster_hana_topology_resource_name }}-clone"

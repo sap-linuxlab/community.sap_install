@@ -1,25 +1,26 @@
 ---
 # The following tasks are only included on the primary node!
 
-- name: "SAP Pacemaker Hana - Resource default update"
+- name: "SAP Pacemaker Hana - Resource defaults update command on RHEL8.2"
   ansible.builtin.set_fact:
     sap_ha_set_hana_resource_defaults: ""
   when: ansible_distribution_version == "8.2"
 
 - name: "SAP Pacemaker Hana - Update resource default values"
-  shell: |
+  ansible.builtin.shell: |
     pcs resource defaults {{ sap_ha_set_hana_resource_defaults }} resource-stickiness=1000
     pcs resource defaults {{ sap_ha_set_hana_resource_defaults }} migration-threshold=5000
+  changed_when: true
 
 - name: "SAP Pacemaker Hana - Check SAP HANA Resources Topology"
-  shell: |
+  ansible.builtin.shell: |
     pcs resource config SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}
   register: sap_ha_set_hana_check_resource_topology
   failed_when: false
   changed_when: false
 
 - name: "SAP Pacemaker Hana - Create SAP HANA Resource Topology"
-  shell: |
+  ansible.builtin.shell: |
     pcs resource create \
     SAPHanaTopology_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} \
     SAPHanaTopology SID={{ sap_ha_set_hana_sid }} \
@@ -30,14 +31,14 @@
     - sap_ha_set_hana_check_resource_topology.rc == 1
 
 - name: "SAP Pacemaker Hana - Check SAP HANA Resources Hana"
-  shell: |
+  ansible.builtin.shell: |
     pcs resource config SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}
   register: sap_ha_set_hana_check_resource_hana
   failed_when: false
   changed_when: false
 
 - name: "SAP Pacemaker Hana - Create SAP HANA Resource HANA"
-  shell: |
+  ansible.builtin.shell: |
     pcs resource create \
     SAPHana_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }} \
     SAPHana SID={{ sap_ha_set_hana_sid }} \
@@ -54,7 +55,7 @@
     - sap_ha_set_hana_check_resource_hana.rc == 1
 
 - name: "SAP Pacemaker Hana - Check SAP HANA Resources VIP"
-  shell: |
+  ansible.builtin.shell: |
     pcs resource config vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER
   register: sap_ha_set_hana_check_resource_vip
   when: sap_ha_set_hana_vip1 is defined
@@ -62,7 +63,7 @@
   changed_when: false
 
 - name: "SAP Pacemaker Hana - Create SAP HANA Resource VIP"
-  shell: |
+  ansible.builtin.shell: |
     pcs resource create \
     vip_{{ sap_ha_set_hana_sid }}_{{ sap_ha_set_hana_instance_number }}_MASTER \
     IPaddr2 ip="{{ sap_ha_set_hana_vip1 }}"

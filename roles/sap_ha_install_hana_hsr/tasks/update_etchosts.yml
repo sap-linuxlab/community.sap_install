@@ -1,7 +1,7 @@
 ---
 - name: "SAP HSR - Check /etc/hosts for conflicting entries"
-  shell: |
-    awk '(/{{ item.node_name }}/ && !/^{{ item.node_ip }}/) || (/^{{ item.node_ip }}/ && !/{{ item.node_name }}/)' /etc/hosts
+  ansible.builtin.shell: |
+    awk '(/{{ "( |\t)"+item.node_name+"($| |\t)" }}/ && !/^{{ item.node_ip+"( |\t)" }}/) || (/^{{ item.node_ip+"( |\t)" }}/ && !/{{ "( |\t)"+item.node_name+"($| |\t)" }}/)' /etc/hosts
   register: etchosts_conflict
   changed_when: false
   failed_when: etchosts_conflict.stdout != ''
@@ -9,14 +9,17 @@
   loop_control:
     label: "Check if {{ item.node_ip }} exists for hosts other than {{ item.node_name }}"
 
-- name: "SAP HSR - Add Cluster Nodes to /etc/hosts"
-  lineinfile:
+# ansible-lint:
+# no-tabs exception for standard aligned /etc/hosts entries
+- name: "SAP HSR - Add Cluster Nodes to /etc/hosts" # noqa no-tabs
+  ansible.builtin.lineinfile:
     path: /etc/hosts
     create: true
+    mode: '0644'
     state: present
     backup: yes
-    line: "{{ item.node_ip }}\t{{ item.node_name }}.{{ sap_ha_install_hana_hsr_fqdn }}\t{{ item.node_name }}"
-    regexp: (?i)^\s*{{ item.node_ip }}\s+{{ item.node_name }}
+    line: "{{ item.node_ip }}\t{{ item.node_name.split('.')[0] }}.{{ item.node_name.split('.')[1:] | join('.') or sap_ha_install_hana_hsr_fqdn }}\t{{ item.node_name.split('.')[0] }}"
+    regexp: (?i)^\s*{{ item.node_ip }}\s+{{ item.node_name.split('.')[0] }}
   loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
   loop_control:
-    label: "{{ item.node_ip }} {{ item.node_name }}.{{ sap_ha_install_hana_hsr_fqdn }} {{ item.node_name }}"
+    label: "{{ item.node_ip }}\t{{ item.node_name.split('.')[0] }}.{{ item.node_name.split('.')[1:] | join('.') or sap_ha_install_hana_hsr_fqdn }}\t{{ item.node_name.split('.')[0] }}"

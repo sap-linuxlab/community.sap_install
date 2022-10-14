@@ -1,26 +1,42 @@
 ---
 # The following tasks are only included on the primary node!
 
-- name: "SAP Pacemaker Setup - Setup Pacemaker cluster"
-  shell: |
+- name: "SAP Pacemaker Setup - Setup and enable/start Pacemaker cluster"
+  ansible.builtin.command: |
     pcs cluster setup \
     {{ sap_ha_install_pacemaker_cluster_name }} {% for node in sap_ha_install_pacemaker_cluster_nodes %}{{ node.node_name }}{{ " " if not loop.last else "" }}{% endfor %} \
-    totem token=30000 --force
+    totem token=30000 \
+    --enable --start --wait=30
+  register: __sap_ha_install_pacemaker_cluster_create
+  changed_when: __sap_ha_install_pacemaker_cluster_create.rc == 0
 
-- name: "SAP Pacemaker Setup - Start Pacemaker cluster"
-  shell: |
-    pcs cluster start --all
-    pcs cluster enable --all
+- name: "SAP Pacemaker Setup - Get cluster node corosync status"
+  ansible.builtin.shell: |
+    set -o pipefail &&
+    pcs status nodes corosync | grep "Online"
+  register: __sap_ha_install_pacemaker_cluster_online
+  failed_when: false
+  changed_when: false
 
-- name: "SAP Pacemaker Setup - Set Expected Votes = {{ sap_ha_install_pacemaker_cluster_nodes | length }}"
-  shell: |
-    pcs quorum expected-votes {{ sap_ha_install_pacemaker_cluster_nodes | length }}
+- name: "SAP Pacemaker Setup - Verify that all nodes are online"
+  ansible.builtin.assert:
+    that:
+      - item.node_name.split('.')[0] in __sap_ha_install_pacemaker_cluster_online.stdout
+    quiet: true
+    fail_msg: "Node not found in 'Online' status!"
+  loop: "{{ sap_ha_install_pacemaker_cluster_nodes }}"
+  loop_control:
+    label: "Is online: {{ item.node_name.split('.')[0] }}"
+
+#- name: "SAP Pacemaker Setup - Set Expected Votes = {{ sap_ha_install_pacemaker_cluster_nodes | length }}"
+#  ansible.builtin.shell: |
+#    pcs quorum expected-votes {{ sap_ha_install_pacemaker_cluster_nodes | length }}
 
 - name: "SAP Pacemaker Setup - Check pcs properties"
   include_tasks: check_properties.yml
 
 - name: "SAP Pacemaker Setup - Allow concurrent fence actions"
-  shell: |
+  ansible.builtin.shell: |
     pcs property set concurrent-fencing=true
   when:
     - "'concurrent-fencing: true' not in __sap_ha_install_pacemaker_pcs_properties.stdout"

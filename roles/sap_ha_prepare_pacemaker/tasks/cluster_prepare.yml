@@ -8,11 +8,11 @@
 - name: "SAP Prepare Pacemaker - Authenticate primary cluster node"
   ansible.builtin.shell: |
     pcs host auth \
-    {{ __sap_ha_prepare_pacemaker_primary_node }} \
+    {{ ansible_hostname }} \
     -u hacluster -p '{{ sap_ha_prepare_pacemaker_hacluster_password }}'
   register: pcs_host_auth_reg
   when:
-    - ansible_hostname == __sap_ha_prepare_pacemaker_primary_node
+    - ansible_hostname == __sap_ha_prepare_pacemaker_primary_node_name
 
 - name: "SAP Prepare Pacemaker - Authenticate secondary cluster node"
   ansible.builtin.shell: |
@@ -21,5 +21,5 @@
     -u hacluster -p '{{ sap_ha_prepare_pacemaker_hacluster_password }}'
   register: pcs_host_auth_reg
   when:
-    - ansible_hostname != __sap_ha_prepare_pacemaker_primary_node
+    - ansible_hostname != __sap_ha_prepare_pacemaker_primary_node_name
   delegate_to: "{{ __sap_ha_prepare_pacemaker_primary_node }}"

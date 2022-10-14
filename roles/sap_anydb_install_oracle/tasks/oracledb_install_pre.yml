@@ -1,0 +1,133 @@
+---
+
+# See further:
+## oracle-database-preinstall-12cr1.rpm
+## oracle-database-preinstall-12cr2.rpm
+## oracle-database-preinstall-19c.rpm >> https://yum.oracle.com/repo/OracleLinux/OL8/appstream/x86_64/getPackage/oracle-database-preinstall-19c-1.0-2.el8.x86_64.rpm
+- name: Install C Shell (CSH), Korn Shell (KSH) and other dependencies for Oracle DB
+  ansible.builtin.package:
+    name:
+    - csh
+    - ksh
+    - mksh
+    - bc
+    - bind-utils
+    - gcc
+    - gcc-c++
+    - glibc-devel
+    - libcap
+    - libaio
+    - libaio-devel
+    - libgcc
+    - libstdc++
+    - libstdc++-devel
+    - make
+    - psmisc
+    - rdma-core-devel
+    - smartmontools
+    - sysstat
+    - unzip
+    - xorg-x11-utils
+    - xorg-x11-xauth
+    - unixODBC
+    - unixODBC-devel
+    - libnsl
+    state: present
+  notify: __sap_anydb_install_oracle_reboot_handler
+
+# Removed Packages from RHEL 8.x
+# https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html-single/considerations_in_adopting_rhel_8/index#removed-packages_changes-to-packages
+#    - compat-libcap1
+#    - compat-libstdc++-33
+
+
+- name: Oracle DB - Create Linux User Groups
+  become_user: root
+  ansible.builtin.group:
+    name: "{{ item.group }}"
+    gid: "{{ item.gid }}"
+    state: present
+  loop:
+    - { group: oinstall, gid: '1001' }
+    - { group: dba, gid: '1002' }
+    - { group: oper, gid: '1003' }
+    - { group: oracle, gid: '1004' }
+
+- name: Oracle DB - Create Linux Users
+  become_user: root
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    uid: "{{ item.uid }}"
+    groups: "{{ item.groups }}"
+    shell: "{{ item.shell }}"
+    comment: "{{ item.comment }}"
+    append: yes
+    state: present
+  with_items:
+    - { name: 'oracle', uid: '1003', groups: 'oinstall,dba,oper', shell: '/bin/csh', comment: 'Oracle System Administrator' }
+
+- name: Oracle DB - Create directories, from root user
+  become_user: root
+  ansible.builtin.file:
+    state: directory
+    path: "{{ item.path }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: '0774'
+  loop: 
+    - { path: "{{ sap_anydb_install_oracle_base }}", owner: oracle, group: oinstall } #  Oracle Base directory
+    - { path: "{{ sap_anydb_install_oracle_base }}/dvd/19.0.0", owner: oracle, group: oinstall } #  Oracle home image file path
+    - { path: "{{ sap_anydb_install_oracle_base }}/{{ sap_anydb_install_oracle_sid }}/19.0.0", owner: oracle, group: oinstall } #  Oracle Home installation directory
+    - { path: "{{ sap_anydb_install_oracle_inventory_central }}", owner: oracle, group: oracle } #  Oracle Central Inventory
+    - { path: "{{ sap_anydb_install_oracle_base }}{{ sap_anydb_install_oracle_inventory_central }}", owner: oracle, group: oinstall } #  Oracle Inventory
+    - { path: "{{ sap_anydb_install_oracle_filesystem_storage }}", owner: oracle, group: oinstall }
+    - { path: /rman, owner: oracle, group: oinstall }
+    - { path: /archivelog, owner: oracle, group: oinstall }
+
+- name: Oracle DB - Copy installation media
+  ansible.builtin.copy:
+    remote_src: true
+    directory_mode: true
+    src: "{{ sap_anydb_install_oracle_extract_path }}/LINUX_X86_64/"
+    dest: "{{ sap_anydb_install_oracle_base }}/dvd/19.0.0"
+    owner: oracle
+    group: oinstall
+    mode: '0774'
+
+# Requires change directory to Oracle RDBMS installation media directory
+# Must extract to run the precheck
+- name: Oracle DB - check installation prerequisites for Oracle DB
+  become: true
+  become_user: oracle
+  args:
+    executable: /bin/csh
+    chdir: "{{ sap_anydb_install_oracle_base }}/dvd/19.0.0/"
+  register: __sap_anydb_install_oracle_precheck
+  changed_when: "'SAP RUNINSTALLER: Completed' in __sap_anydb_install_oracle_precheck.stdout"
+  failed_when: "__sap_anydb_install_oracle_precheck.rc not in [ 0, 1 ]"
+  ansible.builtin.shell: |
+    setenv CV_ASSUME_DISTID "OL7"
+    setenv DISPLAY
+    setenv DB_SID "{{ sap_anydb_install_oracle_sid }}"
+    setenv ORACLE_BASE "{{ sap_anydb_install_oracle_base }}"
+    setenv ORACLE_HOME "$ORACLE_BASE/$DB_SID/19.0.0"
+    setenv ORACLE_HOME_NAME "OraDb19c_1"
+    setenv IHRDBMS "$ORACLE_HOME"
+    setenv OHRDBMS "$ORACLE_BASE/$DB_SID/19"
+    setenv ORA_GOLD_IMAGE_FILE_L "$ORACLE_BASE/dvd/19.0.0/db_home"
+    setenv INVENTORY_LOCATION "{{ sap_anydb_install_oracle_inventory_central }}"
+    $ORA_GOLD_IMAGE_FILE_L/SAP/19cinstall.sh -norsp -silent -ohextract -ohcheck -db_sid "$DB_SID" -oracle_base "$ORACLE_BASE" -oracle_stage "$ORA_GOLD_IMAGE_FILE_L"
+  when:
+    - sap_anydb_install_oracle_prep_precheck
+
+# Avoid built-in file Ansible Module with absent, this would remove directory too
+- name: Oracle DB - remove extracted directory after precheck
+  ansible.builtin.shell: rm -rf "{{ sap_anydb_install_oracle_base }}/dvd/19.0.0/*"
+  when:
+    - sap_anydb_install_oracle_prep_precheck
+
+#- name: Oracle DB - debug output
+#  ansible.builtin.debug:
+#    var: __sap_anydb_install_oracle_precheck.stdout_lines
+#  when:
+#    - sap_anydb_install_oracle_prep_precheck

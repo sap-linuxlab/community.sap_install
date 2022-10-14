@@ -1,0 +1,66 @@
+---
+# Requirement to enable the fencing resource to function.
+
+- name: "SAP HA Cluster - Create awscli config directory"
+  ansible.builtin.file:
+    mode: 0755
+    owner: root
+    path: /root/.aws
+    state: directory
+
+- name: "SAP HA Cluster - Create awscli config"
+  ansible.builtin.blockinfile:
+    backup: true
+    block: |
+      [default]
+      region = {{ sap_ha_cluster_aws_region }}
+    create: true
+    mode: 0600
+    owner: root
+    path: /root/.aws/config
+
+- name: "SAP HA Cluster - Store awscli credentials"
+  ansible.builtin.blockinfile:
+    backup: true
+    block: |
+      [default]
+      aws_access_key_id = {{ sap_ha_cluster_aws_access_key_id }}
+      aws_secret_access_key = {{ sap_ha_cluster_aws_secret_access_key }}
+    create: true
+    mode: 0600
+    owner: root
+    path: /root/.aws/credentials
+  no_log: true
+
+# TODO: find a better way to work with multi-nic instances
+# The cluster setup works with the primary interface by default.
+
+# - name: "SAP HA Cluster - Get VPC info"
+#   ansible.builtin.shell: |
+#     aws ec2 describe-vpcs \
+#       --output text \
+#       --filters "Name=tag:Name,Values={{ sap_ha_cluster_aws_vpc }}" \
+#       --query 'Vpcs[*].VpcId'
+#   register: __sap_ha_cluster_aws_describe_vpcs
+#   changed_when: false
+#   run_once: true
+#   check_mode: false
+#
+# - name: "SAP HA Cluster - Get instances info"
+#   ansible.builtin.shell: |
+#     aws ec2 describe-instances \
+#       --output json \
+#       --query 'Reservations[].Instances[]'
+#   register: __sap_ha_cluster_aws_describe_instances
+#   changed_when: false
+#   run_once: true
+#   check_mode: false
+#
+# - name: "SAP HA Cluster - Combine instance info into a dictionary"
+#   ansible.builtin.set_fact:
+#     __sap_ha_cluster_aws_instances: "{{ __sap_ha_cluster_aws_instances + [{'private_ip': item.PrivateIpAddress, 'instance_id': item.InstanceId}] }}"
+#   loop: "{{ __sap_ha_cluster_aws_describe_instances.stdout }}"
+#   loop_control:
+#     label: "{{ item.PrivateIpAddress }}"
+#   run_once: true
+#   check_mode: false
