@@ -1,12 +1,4 @@
 ---
-# Variables specific on AWS EC2 cloud platform
-__sap_ha_cluster_cloud_platform: aws
-
-# New approach for VIP resource setup as per RH doc:
-# - 2 resources of types IPaddr2 and awsvip
-# - both in one resource group
-# - colo and order constraints for the resource group
-sap_ha_cluster_vip_resource_group_name: vipgroup
 
 # TODO: make sure to first respect 'ha_cluster' native variables
 
@@ -52,3 +44,22 @@ sap_ha_cluster_stonith_resources:
             value: "{{ sap_ha_cluster_fence_reboot_timeout }}"
           - name: power_timeout
             value: "{{ sap_ha_cluster_fence_power_timeout }}"
+
+
+# Platform specific VIP handling
+sap_ha_cluster_vip_strategy: aws_vpc_move_ip
+sap_ha_cluster_vip_resource_group_name: vipgroup
+
+__sap_ha_cluster_available_vip_agents:
+  # Testing only! Not officially supported for SAP on AWS.
+  ipaddr:
+    agent: "ocf:heartbeat:IPAddr2"
+
+  # Testing only! Not officially supported for SAP on AWS.
+  awsvip:
+    agent: "ocf:heartbeat:awsvip"
+    with: ipaddr
+
+  # Only officially supported agent to manage floating IPs.
+  aws_vpc_move_ip:
+    agent: "ocf:heartbeat:aws-vpc-move-ip"
