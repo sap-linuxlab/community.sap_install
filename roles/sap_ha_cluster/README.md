@@ -27,12 +27,17 @@ Ansible Control System:
 <!-- BEGIN: Role Input Parameters -->
 ## Role Input Parameters
 
-Required parameters:
+Minimum required parameters:
 - [ha_cluster_hacluster_password](#ha_cluster_hacluster_password)
 - [sap_hana_cluster_nodes](#sap_hana_cluster_nodes)
 - [sap_hana_instance_number](#sap_hana_instance_number)
 - [sap_hana_sid](#sap_hana_sid)
 - [sap_hana_vip](#sap_hana_vip)
+
+On cloud platforms additional parameters are required:
+
+- AWS: `sap_ha_cluster_aws_*` variables
+- `sap_ha_cluster_vip_update_rt`
 
 ---
 
