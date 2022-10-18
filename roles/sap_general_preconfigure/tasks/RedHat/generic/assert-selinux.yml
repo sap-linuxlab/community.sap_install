@@ -105,8 +105,9 @@
 
 - name: Assert that all files in '/usr/sap' and below have the 'usr_t' file context
   ansible.builtin.assert:
-    that:
-      __sap_general_preconfigure_register_selinux_z_usr_sap.stdout | int == 0
+    that: __sap_general_preconfigure_register_selinux_z_usr_sap.stdout | int == 0
+    fail_msg: "FAIL: There is at least one file in '/usr/sap' or below without the 'usr_t' file context!"
+    success_msg: "PASS: All files in '/usr/sap' and below have the 'usr_t' file context."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
   when:
     - sap_general_preconfigure_modify_selinux_labels
