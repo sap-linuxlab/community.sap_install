@@ -28,7 +28,7 @@
   when: __sap_hana_preconfigure_register_stat_hana.stat.isdir is defined and __sap_hana_preconfigure_register_stat_hana.stat.isdir
 
 - name: Count files in '{{ line_item }}' and below without SELinux 'usr_t' file context
-  ansible.builtin.shell: set -o pipefail && find /hana -exec ls -ldZ {} \; | awk 'BEGIN{a=0}$5!~/usr_t/{a++}END{print a}'
+  ansible.builtin.shell: "set -o pipefail && ls -1RZ {{ line_item }} | awk 'BEGIN{a=0}!/^$/&&NF>1&&$1!~/usr_t/{a++}END{print a}'"
   register: __sap_hana_preconfigure_register_ls_z_hana
   changed_when: false
   when: __sap_hana_preconfigure_register_stat_hana.stat.isdir is defined and __sap_hana_preconfigure_register_stat_hana.stat.isdir
