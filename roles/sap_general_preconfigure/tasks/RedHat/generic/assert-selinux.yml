@@ -28,7 +28,7 @@
 - name: "Check if the permanent configuration of the SELinux state is '{{ sap_general_preconfigure_selinux_state }}'"
   ansible.builtin.command: awk 'BEGIN{FS="="}/^SELINUX=/{print $NF}' /etc/selinux/config
   register: __sap_general_preconfigure_register_selinux_conf_assert
-  changed_when: no
+  changed_when: false
   ignore_errors: yes
   when: __sap_general_preconfigure_register_stat_selinux_conf_assert.stat.isreg
 
@@ -44,7 +44,7 @@
 - name: Assert - Determine the current SELinux state
   ansible.builtin.command: getenforce
   register: __sap_general_preconfigure_register_getenforce_assert
-  changed_when: no
+  changed_when: false
 
 - name: Assert that the SELinux state is set correctly
   ansible.builtin.assert:
@@ -82,6 +82,7 @@
 - name: Count SELinux configuration database entries for '/usr/sap'
   ansible.builtin.shell: set -o pipefail && semanage fcontext -l | awk 'BEGIN{a=0}$1=="/usr/sap(/.*)?"&&$NF~/usr_t/{a++}END{print a}'
   register: __sap_general_preconfigure_register_semanage_fcontext_usr_sap
+  changed_when: false
   when:
     - sap_general_preconfigure_modify_selinux_labels
     - __sap_general_preconfigure_register_stat_usr_sap.stat.isdir is defined and __sap_general_preconfigure_register_stat_usr_sap.stat.isdir
@@ -99,6 +100,7 @@
 - name: Count files in '/usr/sap' and below without SELinux 'usr_t' file context
   ansible.builtin.shell: "set -o pipefail && ls -1RZ /usr/sap | awk 'BEGIN{a=0}!/^$/&&NF>1&&$1!~/usr_t/{a++}END{print a}'"
   register: __sap_general_preconfigure_register_ls_z_usr_sap
+  changed_when: false
   when:
     - sap_general_preconfigure_modify_selinux_labels
     - __sap_general_preconfigure_register_stat_usr_sap.stat.isdir is defined and __sap_general_preconfigure_register_stat_usr_sap.stat.isdir
