@@ -1,6 +1,5 @@
 ---
-# Platform detection for cloud platforms.
-# Potentially also useful for other virtual or hardware platforms.
+# Platform detection for cloud and other infrastructure platforms.
 
 ### AWS facts already available in Ansible
 #
@@ -21,10 +20,17 @@
 # TODO: detection based on multiple facts and providing one standard
 # name for use as platform type in related include files
 
+- name: "SAP HA Cluster - Check if platform is AWS EC2 VM"
+  when:
+    - ansible_system_vendor == 'Amazon EC2'
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_platform: vm_aws_ec2
+
+
 # TODO: workaround, pcmk_host_map must be defined before stonith vars are built
 # Mapping will probably be different on non-AWS platforms. To be adjusted...
-- name: "SAP HA Cluster - Construct pcmk_host_map for stonith"
-  when: (ansible_system_vendor | lower | replace(' ', '_')) == "amazon_ec2"
+- name: "SAP HA Cluster - Construct pcmk_host_map for stonith on AWS EC2 VM"
+  when: __sap_ha_cluster_platform == 'vm_aws_ec2'
   ansible.builtin.set_fact:
     __sap_ha_cluster_pcmk_host_map: >-
       {% for entry in sap_hana_cluster_nodes -%}
@@ -32,3 +38,6 @@
           {% if hostvars[host].ansible_hostname == entry.node_name -%}
             {{ entry.node_name }}:{{ hostvars[host].ansible_board_asset_tag }}
       {%- if not loop.last %};{% endif %}{%- endif %}{%- endfor %}{%- endfor %}
+
+- name: "SAP HA Cluster - Include platform specific variables"
+  ansible.builtin.import_tasks: platform/include_vars_platform.yml

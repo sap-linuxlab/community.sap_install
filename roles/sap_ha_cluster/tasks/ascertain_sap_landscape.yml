@@ -10,12 +10,12 @@
 # 2 nodes are also valid for other scenarios.
 # TODO: collect possible rules for target landscapes
 
-- name: "SAP HA Cluster - Set landscape to scale-up if there are only 2 nodes"
+# Currently only 2-node scale-up is supported.
+- name: "SAP HA Cluster - Set landscape to scale-up if target is 2 nodes"
   when:
     - ansible_play_hosts|length == 2
-    - sap_ha_cluster_sap_type is not defined
   ansible.builtin.set_fact:
     sap_ha_cluster_sap_type: scaleup
 
-# TODO: validate the value of sap_ha_cluster_sap_type to
-# be a supported key (to catch mismatches if it is user-defined)
+- name: "SAP HA Cluster - Include HANA specific variables"
+  ansible.builtin.import_tasks: include_vars_saphana.yml
