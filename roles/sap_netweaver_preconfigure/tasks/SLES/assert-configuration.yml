@@ -1,0 +1,64 @@
+---
+- name: Populate service facts
+  ansible.builtin.service_facts:
+
+- name: Assert that saptune conflicting services are stopped
+  ansible.builtin.assert:
+    that: 
+      - "ansible_facts.services['{{ service }}.service'].state == 'inactive' or ansible_facts.services['{{ service }}.service'].state == 'stopped'"
+      - "ansible_facts.services['{{ service }}.service'].status == 'disabled'"
+    fail_msg: "FAIL: the service '{{ service }}' is not configured as expected"
+    success_msg: "PASS: the service '{{ service }}' is configured as expected"
+  loop: "{{ __sap_netweaver_preconfigure_saptune_conflicting_services }}"
+  loop_control:
+    loop_var: service
+
+- name: Assert that saptune is running and enabled
+  ansible.builtin.assert:
+    that: 
+      - "ansible_facts.services['saptune.service'].state == 'running'"
+      - "ansible_facts.services['saptune.service'].status == 'enabled'"
+    fail_msg: "FAIL: the service 'saptune' is not configured as expected"
+    success_msg: "PASS: the service 'saptune' is configured as expected"
+
+- name: Run saptune_check 
+  ansible.builtin.command: saptune_check
+  register: __sap_netweaver_preconfigure_register_saptune_check
+  changed_when: false
+  failed_when: false
+
+- name: Assert that saptune_check executed correctly
+  ansible.builtin.assert:
+    that: "__sap_netweaver_preconfigure_register_saptune_check.rc == 0"
+    fail_msg: "FAIL: the command saptune_check fails"
+    success_msg: "PASS: the command saptune_check executes as expected"
+
+- name: Discover active solution
+  ansible.builtin.command: saptune solution enabled
+  register: __sap_netweaver_preconfigure_register_saptune_status
+  changed_when: no
+
+- name: Set solution fact
+  ansible.builtin.set_fact:
+    __sap_netweaver_preconfigure_saptune_configured_solution: "{{ (__sap_netweaver_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1' ))[0] | default('NONE') }}"
+
+- name: Discover active solution
+  ansible.builtin.command: saptune solution enabled
+  register: __sap_netweaver_preconfigure_register_saptune_status
+  changed_when: no
+
+- name: Set fact for active solution
+  ansible.builtin.set_fact:
+    __sap_netweaver_preconfigure_fact_solution_configured: "{{ (__sap_netweaver_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}" # Capture the first block on none whitespace
+
+- name: Assert that active solution is the expected solution
+  ansible.builtin.assert:
+    that: __sap_netweaver_preconfigure_fact_solution_configured == sap_netweaver_preconfigure_saptune_solution
+    fail_msg: "FAIL: the configured saptune solution is '{{ __sap_netweaver_preconfigure_saptune_configured_solution }}'' and does not match the expected solution '{{ sap_netweaver_preconfigure_saptune_solution }}'"
+    success_msg: "PASS: the configured saptune solution matches the expected solution '{{ sap_netweaver_preconfigure_saptune_solution }}'"
+
+- name: Assert that adequate swap is configured
+  ansible.builtin.assert:
+    that: ansible_swaptotal_mb > sap_netweaver_preconfigure_min_swap_space_mb|int
+    fail_msg: "FAIL: A minimum of {{ sap_netweaver_preconfigure_min_swap_space_mb }}MiB is required but only {{ ansible_swaptotal_mb }}MiB was discovered"
+    success_msg: "PASS: the system has at least {{ sap_netweaver_preconfigure_min_swap_space_mb }}MiB of swap configured"

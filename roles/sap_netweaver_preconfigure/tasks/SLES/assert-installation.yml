@@ -1,0 +1,19 @@
+---
+#- name: Enable Debugging
+#  debug:
+#    verbosity: "{{ debuglevel }}"
+#
+#Capture all patterns along with their install status
+
+- name: Ensure required packages for SAP NetWeaver are installed
+  ansible.builtin.assert:
+    that: "'{{ package }}' in ansible_facts.packages"
+  loop: "{{ __sap_netweaver_preconfigure_packages }}"
+  loop_control:
+    loop_var: package
+
+- name: Assert saptune is at requested version
+  ansible.builtin.assert:
+    that: ansible_facts.packages['saptune'][0]['version'] == sap_netweaver_preconfigure_saptune_version
+    fail_msg: "FAIL: saptune version installed is {{ ansible_facts.packages['saptune'][0]['version'] }} but the version {{ sap_netweaver_preconfigure_saptune_version }} was expected"
+    success_msg: "PASS: the installed version of saptune meets the expected version: {{ sap_netweaver_preconfigure_saptune_version }}"
