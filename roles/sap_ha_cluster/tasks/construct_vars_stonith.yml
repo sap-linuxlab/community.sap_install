@@ -18,11 +18,44 @@
     - name: concurrent-fencing
       value: true
 
+# Combine the stonith resource config from
+# - assembled pcmk_host_map
+# - fence resource defaults
+# - fence agent specific required options
+
+- name: "SAP HA Cluster - Assemble the stonith resource definition"
+  ansible.builtin.set_fact:
+    sap_ha_cluster_stonith_resource:
+      - id: "res_{{ sap_ha_cluster_stonith_required.agent | split(':') | last }}"
+        agent: "{{ sap_ha_cluster_stonith_required.agent }}"
+        instance_attrs:
+          - attrs: |-
+              {% set attrs = [] -%}
+              {% set map = attrs.extend([
+                {
+                  'name': 'pcmk_host_map',
+                  'value': '"' + __sap_ha_cluster_pcmk_host_map + '"'
+                }]) -%}
+              {%- for agent_opt in (sap_ha_cluster_stonith_required.options | dict2items) -%}
+                {% set aopts = attrs.extend([
+                  {
+                    'name': agent_opt.key,
+                    'value': agent_opt.value
+                  }]) -%}
+              {%- endfor %}
+              {%- for fence_opt in (sap_ha_cluster_fence_options | dict2items) -%}
+                {% set fopts = attrs.extend([
+                  {
+                    'name': fence_opt.key,
+                    'value': fence_opt.value
+                  }]) -%}
+              {%- endfor %}
+              {{ attrs }}
+
 # The STONITH resource is an element in the cluster_resource_primitives list
 - name: "SAP HA Cluster - Construct stonith resources definition"
   when:
-    - sap_ha_cluster_stonith_resources is defined
-    - sap_ha_cluster_stonith_resources is iterable
+    - sap_ha_cluster_stonith_resource is defined
   ansible.builtin.set_fact:
-    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + sap_ha_cluster_stonith_resources }}"
+    __sap_ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives + (sap_ha_cluster_stonith_resource | from_yaml) }}"
   no_log: true  # stonith resources usually contain secrets

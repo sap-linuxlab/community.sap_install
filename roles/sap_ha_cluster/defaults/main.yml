@@ -8,8 +8,8 @@
 
 sap_ha_cluster_cluster_name: my-cluster
 
-sap_ha_cluster_create_config_only: false
-sap_ha_cluster_create_config_dest: sap_ha_cluster_resource_config.yml
+sap_ha_cluster_create_config_varfile: false
+sap_ha_cluster_create_config_dest: "{{ sap_ha_cluster_cluster_name }}_resource_config.yml"
 
 # Inherit SAP common parameters
 sap_ha_cluster_cluster_nodes: "{{ sap_hana_cluster_nodes }}"
@@ -43,11 +43,10 @@ sap_ha_cluster_hana_duplicate_primary_timeout: 900
 sap_ha_cluster_hana_prefer_site_takeover: true
 
 ### stonith resource parameter defaults
-# not all of the defined variables will be needed for all fence types
-# ideally this is generic and covers all platform type agents
-sap_ha_cluster_fence_power_timeout: 240
-sap_ha_cluster_fence_reboot_retries: 4
-sap_ha_cluster_fence_reboot_timeout: 400
+sap_ha_cluster_fence_options:
+  pcmk_reboot_retries: 4
+  pcmk_reboot_timeout: 400
+  power_timeout: 240
 
 ### Resource default patterns
 sap_ha_cluster_vip_address: "{{ sap_hana_vip }}"

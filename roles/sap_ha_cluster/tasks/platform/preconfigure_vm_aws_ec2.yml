@@ -32,35 +32,12 @@
     path: /root/.aws/credentials
   no_log: true
 
-# TODO: find a better way to work with multi-nic instances
-# The cluster setup works with the primary interface by default.
-
-# - name: "SAP HA Cluster - Get VPC info"
-#   ansible.builtin.shell: |
-#     aws ec2 describe-vpcs \
-#       --output text \
-#       --filters "Name=tag:Name,Values={{ sap_ha_cluster_aws_vpc }}" \
-#       --query 'Vpcs[*].VpcId'
-#   register: __sap_ha_cluster_aws_describe_vpcs
-#   changed_when: false
-#   run_once: true
-#   check_mode: false
-#
-# - name: "SAP HA Cluster - Get instances info"
-#   ansible.builtin.shell: |
-#     aws ec2 describe-instances \
-#       --output json \
-#       --query 'Reservations[].Instances[]'
-#   register: __sap_ha_cluster_aws_describe_instances
-#   changed_when: false
-#   run_once: true
-#   check_mode: false
-#
-# - name: "SAP HA Cluster - Combine instance info into a dictionary"
-#   ansible.builtin.set_fact:
-#     __sap_ha_cluster_aws_instances: "{{ __sap_ha_cluster_aws_instances + [{'private_ip': item.PrivateIpAddress, 'instance_id': item.InstanceId}] }}"
-#   loop: "{{ __sap_ha_cluster_aws_describe_instances.stdout }}"
-#   loop_control:
-#     label: "{{ item.PrivateIpAddress }}"
-#   run_once: true
-#   check_mode: false
+# pcmk_host_map format: <hostname1>:<host1-id>;<hostname2>:<host2-id>...
+- name: "SAP HA Cluster - Assemble host mapping"
+  ansible.builtin.set_fact:
+    __sap_ha_cluster_pcmk_host_map: >
+      {% for node in ansible_play_hosts_all -%}
+        {{ hostvars[node].ansible_hostname }}:{{ hostvars[node].ansible_board_asset_tag }}
+        {%- if not loop.last %};
+        {%- endif %}
+      {%- endfor %}

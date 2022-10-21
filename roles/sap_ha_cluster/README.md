@@ -100,36 +100,38 @@ Required for cluster nodes setup on Amazon cloud.<br>
 
 ### sap_ha_cluster_create_config_dest
 - _Type:_ `str`
-- _Default:_ `sap_ha_cluster_resource_config.yml`
+- _Default:_ `<cluster-name>_resource_config.yml`
 
-The cluster resource configuration created by this role will be saved in a Yaml file in the current working directory.<br>
+The pacemaker cluster resource configuration created by this role will be saved in a Yaml file in the current working directory.<br>
 Specify a path/filename to save the file elsewhere.<br>
+The file can be used as input vars file for an Ansible playbook running the 'ha_cluster' Linux System Role.<br>
 
-### sap_ha_cluster_create_config_only
+### sap_ha_cluster_create_config_varfile
 - _Type:_ `bool`
 - _Default:_ `False`
 
-Enable to only create an output of the parameters and values this role will use as input into the 'ha_cluster' role.<br>
-The output is saved in a variables file and used for individual execution of the 'ha_cluster' linux system role.<br>
+When enabled, all cluster configuration parameters this role constructs for executing the 'ha_cluster' Linux System role will be written into a file in Yaml format.<br>
+This allows using the output file later as input file for additional custom steps using the 'ha_cluster' role and covering the resource configuration in a cluster that was set up using this 'sap_ha_cluster' role.<br>
+When enabled this parameters file is also created when the playbook is run in check_mode (`--check`) and can be used to review the configuration parameters without executing actual changes on the target nodes.<br>
 WARNING! This report may include sensitive details like secrets required for certain cluster resources!<br>
 
-### sap_ha_cluster_fence_power_timeout
-- _Type:_ `int`
-- _Default:_ `240`
+### sap_ha_cluster_fence_options
+- _Type:_ `dict`
 
-STONITH resource parameter to test X seconds for status change after ON/OFF.<br>
+STONITH resource common parameters that apply to most fencing agents.<br>
+These options are applied to fencing resources this role uses automatically for pre-defined platforms (like AWS EC2, IBM Cloud VPC).<br>
+The listed options are set by default.<br>
+Additional options can be added by defining this parameter in dictionary format and adding the defaults plus any valid stonith resource key-value pair.<br>
 
-### sap_ha_cluster_fence_reboot_retries
-- _Type:_ `int`
-- _Default:_ `4`
-
-STONITH resource parameter to define how often it retries to restart a node.<br>
-
-### sap_ha_cluster_fence_reboot_timeout
-- _Type:_ `int`
-- _Default:_ `400`
-
-STONITH resource parameter to define after which timeout a node restart is returned as failed.<br>
+  - **pcmk_reboot_retries**<br>
+        _Default:_ `4`<br>
+        STONITH resource parameter to define how often it retries to restart a node.
+  - **pcmk_reboot_timeout**<br>
+        _Default:_ `400`<br>
+        STONITH resource parameter to define after which timeout a node restart is returned as failed.
+  - **power_timeout**<br>
+        _Default:_ `240`<br>
+        STONITH resource parameter to test X seconds for status change after ON/OFF.
 
 ### sap_ha_cluster_hana_automated_register
 - _Type:_ `bool`
@@ -163,6 +165,18 @@ Customize the cluster resource name of the SAP HANA DB resource.<br>
 - _Default:_ `SAPHanaTopology_<SID>_<Instance Number>`
 
 Customize the cluster resource name of the SAP HANA Topology resource.<br>
+
+### sap_ha_cluster_ibmcloud_api_key
+- _Type:_ `str`
+
+The API key is required to allow control of instances (for example for fencing operations).<br>
+Required for cluster nodes setup in IBM Cloud VPC.<br>
+
+### sap_ha_cluster_ibmcloud_region
+- _Type:_ `str`
+
+The cloud region key in which the instances are running.<br>
+Required for cluster nodes setup in IBM Cloud VPC.<br>
 
 ### sap_ha_cluster_replication_type
 - _Type:_ `str`

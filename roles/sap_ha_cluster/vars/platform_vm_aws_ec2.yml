@@ -22,29 +22,13 @@ __sap_ha_cluster_aws_instances: []
 # sap_ha_cluster_aws_region:
 # sap_ha_cluster_aws_vpc:
 
-# TODO: construct parameter
-# __sap_ha_cluster_pcmk_host_map
 
-sap_ha_cluster_stonith_resources:
-  - id: res_fence_aws
-    agent: "stonith:fence_aws"
-    instance_attrs:
-      - attrs:
-          - name: access_key
-            value: "{{ sap_ha_cluster_aws_access_key_id }}"
-          - name: secret_key
-            value: "{{ sap_ha_cluster_aws_secret_access_key }}"
-          - name: region
-            value: "{{ sap_ha_cluster_aws_region }}"
-          - name: pcmk_host_map
-            value: "{{ __sap_ha_cluster_pcmk_host_map }}"
-          - name: pcmk_reboot_retries
-            value: "{{ sap_ha_cluster_fence_reboot_retries }}"
-          - name: pcmk_reboot_timeout
-            value: "{{ sap_ha_cluster_fence_reboot_timeout }}"
-          - name: power_timeout
-            value: "{{ sap_ha_cluster_fence_power_timeout }}"
-
+sap_ha_cluster_stonith_required:
+  agent: "stonith:fence_aws"
+  options:
+    access_key: "{{ sap_ha_cluster_aws_access_key_id }}"
+    secret_key: "{{ sap_ha_cluster_aws_secret_access_key }}"
+    region: "{{ sap_ha_cluster_aws_region }}"
 
 # Platform specific VIP handling
 sap_ha_cluster_vip_strategy: aws_vpc_move_ip
