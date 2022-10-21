@@ -103,8 +103,9 @@ Required for cluster nodes setup on Amazon cloud.<br>
 - _Type:_ `str`
 - _Default:_ `<cluster-name>_resource_config.yml`
 
-The pacemaker cluster resource configuration created by this role will be saved in a Yaml file in the current working directory.<br>
-Specify a path/filename to save the file elsewhere.<br>
+The pacemaker cluster resource configuration optionally created by this role will be saved in a Yaml file in the current working directory.<br>
+Requires `sap_ha_cluster_create_config_varfile` to be enabled for generating the output file.<br>
+Specify a path/filename to save the file in a custom location.<br>
 The file can be used as input vars file for an Ansible playbook running the 'ha_cluster' Linux System Role.<br>
 
 ### sap_ha_cluster_create_config_varfile
