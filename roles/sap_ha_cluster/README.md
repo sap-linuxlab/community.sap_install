@@ -37,7 +37,8 @@ Minimum required parameters:
 On cloud platforms additional parameters are required:
 
 - AWS: `sap_ha_cluster_aws_*` variables
-- `sap_ha_cluster_vip_update_rt`
+- AWS: `sap_ha_cluster_vip_update_rt`
+- IBM Cloud VPC: `sap_ha_cluster_ibmcloud_*` variables
 
 ---
 
