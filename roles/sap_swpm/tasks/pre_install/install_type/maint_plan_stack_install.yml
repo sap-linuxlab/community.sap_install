@@ -2,20 +2,34 @@
 
 # Install using SAP Maintenance Planner Stack XML
 
-- name: SAP SWPM Pre Install - Fresh Install - Get MP Stack xml from {{ sap_swpm_software_path }}
+- name: SAP SWPM Pre Install - MP Stack XML - Get from {{ sap_swpm_software_path }}
   shell: |
     ls MP_Stack_*
   args:
     chdir: "{{ sap_swpm_software_path }}"
   register: sap_swpm_mp_stack_file_get
 
-- name: SAP SWPM Pre Install - Set fact for MP Stack
+- name: SAP SWPM Pre Install - MP Stack XML - Set fact
   set_fact:
     sap_swpm_mp_stack_path: "{{ sap_swpm_software_path }}"
     sap_swpm_mp_stack_file_name: "{{ sap_swpm_mp_stack_file_get.stdout }}"
-  when: "sap_swpm_mp_stack_file_get.exists"
+  when: "sap_swpm_mp_stack_file_get.stdout | length > 0"
 
-- name: SAP SWPM Pre Install - Set fact for MP Stack SWPM injection
+- name: SAP SWPM Pre Install - MP Stack XML - Set fact for SWPM injection
   ansible.builtin.set_fact:
     sap_swpm_swpm_command_mp_stack: "SAPINST_STACK_XML={{ sap_swpm_mp_stack_path }}/{{ sap_swpm_mp_stack_file_name }}"
-  when: "sap_swpm_mp_stack_file_get.exists"
+  when: "sap_swpm_mp_stack_file_get.stdout | length > 0"
+
+- name: SAP SWPM Pre Install - MP Stack XML - Ensure (1 of 2) SAP System ID is correct inside SAP Maintenance Plan Stack XML
+  ansible.builtin.replace:
+    path: "{{ sap_swpm_mp_stack_path }}/{{ sap_swpm_mp_stack_file_name }}"
+    regexp: '<constraint name="sid" value="([A-Z][0-9])\w"'
+    replace: '<constraint name="sid" value="{{ sap_swpm_sid | upper }}"'
+  when: "sap_swpm_mp_stack_file_get.stdout | length > 0"
+
+- name: SAP SWPM Pre Install - MP Stack XML - Ensure (2 of 2) SAP System ID is correct inside SAP Maintenance Plan Stack XML
+  ansible.builtin.replace:
+    path: "{{ sap_swpm_mp_stack_path }}/{{ sap_swpm_mp_stack_file_name }}"
+    regexp: '<sid>([A-Z][0-9])\w'
+    replace: '<sid>{{ sap_swpm_sid | upper }}'
+  when: "sap_swpm_mp_stack_file_get.stdout | length > 0"
