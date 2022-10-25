@@ -1,0 +1,21 @@
+---
+
+# Install using SAP Maintenance Planner Stack XML
+
+- name: SAP SWPM Pre Install - Fresh Install - Get MP Stack xml from {{ sap_swpm_software_path }}
+  shell: |
+    ls MP_Stack_*
+  args:
+    chdir: "{{ sap_swpm_software_path }}"
+  register: sap_swpm_mp_stack_file_get
+
+- name: SAP SWPM Pre Install - Set fact for MP Stack
+  set_fact:
+    sap_swpm_mp_stack_path: "{{ sap_swpm_software_path }}"
+    sap_swpm_mp_stack_file_name: "{{ sap_swpm_mp_stack_file_get.stdout }}"
+  when: "sap_swpm_mp_stack_file_get.exists"
+
+- name: SAP SWPM Pre Install - Set fact for MP Stack SWPM injection
+  ansible.builtin.set_fact:
+    sap_swpm_swpm_command_mp_stack: "SAPINST_STACK_XML={{ sap_swpm_mp_stack_path }}/{{ sap_swpm_mp_stack_file_name }}"
+  when: "sap_swpm_mp_stack_file_get.exists"
