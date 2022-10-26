@@ -5,28 +5,19 @@
     sap_swpm_swpm_installation_type: ""
     sap_swpm_swpm_installation_header: ""
     sap_swpm_swpm_command_virtual_hostname: ""
-    sap_swpm_no_nwas_install: false
-
-- name: SAP SWPM Pre Install - Determine if SAP Product without SAP NetWeaver AS
-  ansible.builtin.set_fact:
-    sap_swpm_no_nwas_install: 'true'
-  when:
-    - "'Webdispatcher' in sap_swpm_product_catalog_id"
-# todo: add items for further SAP products without SAP NetWeaver AS
 
 
 ################
 # Determine Installation Type
 ################
 
-- name: SAP SWPM Pre Install - Check if SAP Software installation without SAP NetWeaver AS
-  ansible.builtin.set_fact:
-    sap_swpm_swpm_installation_type: "no_nwas"
-    sap_swpm_swpm_installation_header: "Installing without SAP NetWeaver AS"
-  when:
-    - "not '.ABAPHA' in sap_swpm_product_catalog_id"
-    - "not '.CP' in sap_swpm_product_catalog_id"
-    - "sap_swpm_no_nwas_install | bool"
+#- name: SAP SWPM Pre Install - Check if general SAP Software installation
+#  ansible.builtin.set_fact:
+#    sap_swpm_swpm_installation_type: "general"
+#    sap_swpm_swpm_installation_header: "General installation of SAP Software"
+#  when:
+#    - "not '.ABAPHA' in sap_swpm_product_catalog_id"
+#    - "not '.CP' in sap_swpm_product_catalog_id"
 
 - name: SAP SWPM Pre Install - Check if System Copy (Backup/Restore)
   ansible.builtin.set_fact:
@@ -42,7 +33,6 @@
     sap_swpm_swpm_command_virtual_hostname: "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }}"
   when:
     - "'.ABAPHA' in sap_swpm_product_catalog_id"
-    - "not sap_swpm_standard | bool"
 
 - name: SAP SWPM Pre Install - Check if installation using SAP Maintenance Planner
   ansible.builtin.set_fact:
@@ -58,3 +48,5 @@
 
 - name: SAP SWPM Pre Install - Run Installation Type Steps
   ansible.builtin.include_tasks: "install_type/{{ sap_swpm_swpm_installation_type }}_install.yml"
+  when:
+    - "sap_swpm_swpm_installation_type | length > 0"
