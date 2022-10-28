@@ -1,49 +1,42 @@
+---
+# The following tasks are only included on the primary node!
 
-# [1] Authenticate Pacemaker cluster
-- name: SAP Pacemaker Setup - [1] Authenticate Pacemaker cluster
-  shell: |
-    pcs host auth \
-    {{ sap_ha_install_pacemaker_node1_hostname }} {{ sap_ha_install_pacemaker_node2_hostname }} \
-    -u hacluster -p '{{ sap_ha_install_pacemaker_hacluster_password }}'
-  register: pcs_host_auth_reg
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
-
-# [1] Setup Pacemaker cluster
-- name: SAP Pacemaker Setup - [1] Setup Pacemaker cluster
-  shell: |
+- name: "SAP Pacemaker Setup - Setup and enable/start Pacemaker cluster"
+  ansible.builtin.command: |
     pcs cluster setup \
-    {{ sap_ha_install_pacemaker_cluster_name }} {{ sap_ha_install_pacemaker_node1_hostname }} {{ sap_ha_install_pacemaker_node2_hostname }} \
-    totem token=30000 --force
-  register: pcs_cluster_setup_reg
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
+    {{ sap_ha_install_pacemaker_cluster_name }} {% for node in sap_ha_install_pacemaker_cluster_nodes %}{{ node.node_name }}{{ " " if not loop.last else "" }}{% endfor %} \
+    totem token=30000 \
+    --enable --start --wait=30
+  register: __sap_ha_install_pacemaker_cluster_create
+  changed_when: __sap_ha_install_pacemaker_cluster_create.rc == 0
 
-# [1] Start Pacemaker cluster
-- name: SAP Pacemaker Setup - [1] Start Pacemaker cluster
-  shell: |
-    pcs cluster start --all
-  register: pcs_cluster_start_reg
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
+- name: "SAP Pacemaker Setup - Get cluster node corosync status"
+  ansible.builtin.shell: |
+    set -o pipefail &&
+    pcs status nodes corosync | grep "Online"
+  register: __sap_ha_install_pacemaker_cluster_online
+  failed_when: false
+  changed_when: false
 
-# [1] Check Pacemaker cluster
-- name: SAP Pacemaker Setup - [1] Check Pacemaker cluster
-  shell: |
-    pcs status
-  register: pcs_status_reg
-  when:
-    - sap_ha_install_pacemaker_role == 'primary'
+- name: "SAP Pacemaker Setup - Verify that all nodes are online"
+  ansible.builtin.assert:
+    that:
+      - item.node_name.split('.')[0] in __sap_ha_install_pacemaker_cluster_online.stdout
+    quiet: true
+    fail_msg: "Node not found in 'Online' status!"
+  loop: "{{ sap_ha_install_pacemaker_cluster_nodes }}"
+  loop_control:
+    label: "Is online: {{ item.node_name.split('.')[0] }}"
 
-# [A] Set Expected Votes
-- name: SAP Pacemaker Setup - [1] Set Expected Votes
-  shell: |
-    pcs quorum expected-votes 2
-  register: pcs_quorum_expected_votes_reg
+#- name: "SAP Pacemaker Setup - Set Expected Votes = {{ sap_ha_install_pacemaker_cluster_nodes | length }}"
+#  ansible.builtin.shell: |
+#    pcs quorum expected-votes {{ sap_ha_install_pacemaker_cluster_nodes | length }}
 
-# [1] Allow concurrent fence actions
-- name: SAP Pacemaker Setup - [1] Allow concurrent fence actions
-  shell: |
+- name: "SAP Pacemaker Setup - Check pcs properties"
+  include_tasks: check_properties.yml
+
+- name: "SAP Pacemaker Setup - Allow concurrent fence actions"
+  ansible.builtin.shell: |
     pcs property set concurrent-fencing=true
   when:
-    - sap_ha_install_pacemaker_role== 'primary'
+    - "'concurrent-fencing: true' not in __sap_ha_install_pacemaker_pcs_properties.stdout"

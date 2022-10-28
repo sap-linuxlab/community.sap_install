@@ -1,35 +1,41 @@
+---
+
 - name: SAP SWPM Pre Install - Remove existing {{ sap_swpm_sid | lower }}adm
   block:
-    - name: SAP SWPM Pre Install - Kill all processes under {{ sap_swpm_sid | lower }}adm
-      ignore_errors: yes
-      shell: |
+
+# Reason for noqa: We currently do not determine if there are processes to be killed
+    - name: SAP SWPM Pre Install - Kill all processes under {{ sap_swpm_sid | lower }}adm # noqa no-changed-when
+      ansible.builtin.shell: |
         killall -u {{ sap_swpm_sid | lower }}adm
+      ignore_errors: yes
+
     - name: SAP SWPM Pre Install - Remove {{ sap_swpm_sid | lower }}adm
-      user:
+      ansible.builtin.user:
         name: '{{ sap_swpm_sid | lower }}adm'
         state: absent
-        remove: yes 
+        remove: yes
         force: yes
+
     - name: SAP SWPM Pre Install - Remove {{ sap_swpm_sid | lower }}adm group
-      group:
+      ansible.builtin.group:
         name: '{{ sap_swpm_sid | lower }}adm'
         state: absent
 
 - name: SAP SWPM Pre Install - Create sapsys group
-  group:
+  ansible.builtin.group:
     name: 'sapsys'
     gid: '{{ sap_swpm_sapsys_gid }}'
     state: present
 
 - name: SAP SWPM Pre Install - Create {{ sap_swpm_sid | lower }}adm
-  user:
+  ansible.builtin.user:
     name: '{{ sap_swpm_sid | lower }}adm'
     comment: "SAP User - {{ sap_swpm_sid }}"
     uid: '{{ sap_swpm_sidadm_uid }}'
     group: '{{ sap_swpm_sapsys_gid }}'
 
 - name: SAP SWPM Pre Install - Create a /usr/sap/{{ sap_swpm_sid }}
-  file:
+  ansible.builtin.file:
     path: /usr/sap/{{ sap_swpm_sid }}
     state: directory
     owner: '{{ sap_swpm_sid | lower }}adm'
@@ -38,7 +44,7 @@
     mode: '0755'
 
 # - name: SAP SWPM Pre Install - Purge parameters so it wont populate inifile.params to prevent SWPM from crashing
-#   set_facts:
+#   ansible.builtin.set_facts:
 #     sap_swpm_sapadm_uid: ""
 #     sap_swpm_sapsys_gid: ""
 #     sap_swpm_sidadm_uid: ""

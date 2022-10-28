@@ -1,83 +1,108 @@
 # sap_ha_install_hana_hsr Ansible Role
 
-Ansible role for SAP HANA System Replication Setup
-
-## Scope
-
-- **RedHat Enterprise Linux**
-    - Tested on RHEL 8.2
-
-- **Azure** 
-    - Tested
-    - Followed the steps based on the guide published in
-        - [Azure HA Guide](https://docs.microsoft.com/en-us/azure/virtual-machines/workloads/sap/sap-hana-high-availability-rhel)
-
-- **AWS**
-    - Future plans
+Ansible role for SAP HANA System Replication Setup on 2 nodes with the same OS and SAP HANA release.
 
 ## Overview
 
+The **sap_ha_install_hana_hsr** role is part of this system role sequence:
+
+| Sequence | System Role              | Description                                                  |
+| :------: | :----------------------- | :----------------------------------------------------------- |
+|    1.    | sap_general_preconfigure | System Preparation for SAP                                   |
+|    2.    | sap_hana_preconfigure    | System Preparation for SAP HANA                              |
+|    3.    | sap_hana_install         | Installation of SAP HANA Database                            |
+|    4.    | sap_ha_install_hana_hsr  | Configuration of SAP HANA System Replication                 |
+|    5.    | sap_ha_prepare_pacemaker | Authentication and Preparation of Nodes for Cluster Creation |
+|    6.    | sap_ha_install_pacemaker | Initialization of the Pacemaker Cluster                      |
+|    7.    | sap_ha_set_hana          | Configuration of SAP HANA Resources for SAP Solutions        |
+
+The **sap_ha_install_hana_hsr** roles configures a HANA system replication relationship which is used by the pacemaker cluster to automate SAP HANA System Replication (HSR). Prerequisite is the SAP HANA installation on the nodes.
+
+## Tasks included
+
+| Task                   | Description                                                                         |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| update_etchosts.yml    | all nodes of the cluster will be entered into the /etc/hosts, if not already exists |
+| configure_firewall.yml | this will configure the firewall für HANA system replication (opional)              |
+| hdbuserstore.yml       | create a user in the hdbuserstore                                                   |
+| log_mode.yml           | check/set database logmode                                                          |
+| pki_files.yml          | copy pki file from primary to secondary database                                    |
+| run_backup.yml         | perform backup on the primary note as pre required step for HANA system replication |
+| configure_hsr.yml      | enable HANA system replication on primary node and register secondary database node |
+
+## Common Variables/Parameters Used
+
+| Name                             | Description                     | Value            |
+| -------------------------------- | ------------------------------- | ---------------- |
+| sap_domain                       | Domain Name                     | e.g. example.com |
+| sap_hana_sid                     | SAP ID                          | e.g. RH1         |
+| sap_hana_instance_number         | Instance Number                 | e.g. 00          |
+| sap_hana_install_master_password | DB System Password              |
+| sap_hana_cluster_nodes           | Parameter list of cluster nodes |
+| sap_hana_hacluster_password      | Pacemaker hacluster Password    |
+
+## Role specific Variables
+
+| Name                              | Description      | Value                |
+| --------------------------------- | ---------------- | -------------------- |
+| sap_ha_install_hana_hsr_rep_mode  | replication mode | default is sync      |
+| sap_ha_install_hana_hsr_oper_mode | operation mode   | default is logreplay |
+
+In most cases you need to specify these variables only, if you want to use different values than the default values.
+
+## Requirements, Dependencies and Testing
+
+Tests are performed with other Ansible Roles in the sequence. Please refer to tests performed with final Ansible Roles:
+- [sap_ha_set_hana Ansible Role - Requirements, Dependencies and Testing](../sap_ha_set_hana/README.md#requirements-dependencies-and-testing)
+- [sap_ha_set_netweaver Ansible Role - Requirements, Dependencies and Testing](../sap_ha_set_netweaver/README.md#requirements-dependencies-and-testing)
+
+## Example Parameter File
+
+```yaml
+sap_hana_sid: "DB1"
+sap_hana_instance_number: "00"
+sap_hana_install_master_password: "my_hana-password"
+
+### Cluster Definition
+sap_ha_install_pacemaker_cluster_name: cluster1
+sap_hana_hacluster_password: "my_hacluster-password"
+
+sap_domain: example.com
+
+sap_hana_cluster_nodes:
+  - node_name: node1
+    node_ip: 192.168.1.11
+    node_role: primary
+    hana_site: DC01
+
+  - node_name: node2
+    node_ip: 192.168.1.12
+    node_role: secondary
+    hana_site: DC02
+```
+
 ### Execution Design
 
-- This Ansible role is designed to be executed using an external handler such `Terraform` or a separate `bash` script
-- Limitations of doing an SAP installation where scripts and Ansible playbooks have to be executed locally and not thru the usual `ansible command` -> `inventory of hosts` scenario
+Having the parameters specified as above, it can be executed with one command:
 
-    Sample execution:
+```text
+ansible-playbook example_playbook_with_parameters.ymnl
+```
 
-    ```bash
-    ansible-playbook --connection=local --limit localhost -i "localhost," sap-hana-hsr.yml -e "@input_file.yml"
-    ```
+If you need to execute the role using an external handled, you can also limit the playbook for specific a **host** adding parameter defined in e **parameter_file**.
 
-- This role must be ran on both the `primary` / `node1` and the `secondary` / `node2`
-- Tasks marked with `[A]` are executed for both `primary` / `node1` and `secondary` / `node2`
-- Tasks marked with `[1]` are only executed for `primary` / `node1`
-- Tasks marked with `[2]` are only executed for `secondary` / `node2`
+```text
+ansible-playbook -l node1 example_playbook.yml -e @parameter_file.yml
+```
 
-### Sample Execution Steps
+A good way to start is executing the playbook with the option _--list_tasks_. You can than start a playbook with the option _--start-at-task_ at a specific point. _--list_task_ will not start any task.
 
-- Run 1 - primary:
-    ```bash
-    ansible-playbook --connection=local --limit localhost -i "localhost," sap-hana-hsr.yml -e "@input_file1.yml"
-    ```
-    ```yaml
-    # input_file1.yml contents
-    sap_ha_install_hana_hsr_role: "primary"
-    <other variables>
-    ```
+For more information please check
 
-- Run 2 - secondary:
-    ```bash
-    ansible-playbook --connection=local --limit localhost -i "localhost," sap-hana-hsr.yml -e "@input_file2.yml"
-    ```
-    ```yaml
-    # input_file2.yml contents
-    sap_ha_install_hana_hsr_role: "secondary"
-    <other variables>
-    ```
-
-## Variables / Inputs
-
-| **Variable**                                             | **Info**                                  | **Default** | **Required** |
-| :---                                                     | :---                                      | :---        | :---         |
-| sap_ha_install_hana_hsr_role                             | `primary` or `secondary`                  | <none>      | yes          |
-| sap_ha_install_hana_hsr_sid                              | SID of the SAP HANA system                | <none>      | yes          |
-| sap_ha_install_hana_hsr_instance_number                  | Instance number of the SAP HANA system    | <none>      | yes          |
-| sap_ha_install_hana_hsr_db_system_password               | SYSTEM password of the SAP HANA system    | <none>      | yes          |
-| sap_ha_install_hana_hsr_alias                            | Alias name of the SAP HANA system         | <none>      | yes          |
-| sap_ha_install_hana_hsr_primary_ip                       | IP address of the `primary` node          | <none>      | yes          |
-| sap_ha_install_hana_hsr_primary_hostname                 | Hostname of the `primary` node            | <none>      | yes          |
-| sap_ha_install_hana_hsr_secondary_ip                     | IP address of the `secondary` node        | <none>      | yes          |
-| sap_ha_install_hana_hsr_secondary_hostname               | Hostname of the `secondary` node          | <none>      | yes          |
-| sap_ha_install_hana_hsr_fqdn                             | Fully qualified domain name               | <none>      | yes          |
-| sap_ha_install_hana_hsr_hdbuserstore_system_backup_user  | hdbuserstore username to be set           | <none>      | no           |
-| sap_ha_install_hana_hsr_rep_mode                         | HSR replication mode                      | 'sync'      | no           |
-| sap_ha_install_hana_hsr_oper_mode                        | HSR operation mode                        | 'logreplay' | no           |
-| sap_ha_install_hana_hsr_type                             | Cloud type - not used right now           | <none>      | not used     |
+```text
+ansible-playbook --help
+```
 
 ## License
 
 Apache license 2.0
-
-## Author Information
-
-IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice, Jason Masipiquena, Sherard Guico, Markus Moster

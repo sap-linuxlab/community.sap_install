@@ -13,7 +13,7 @@
     - name: Fill the variable for the generic list of required repos
       ansible.builtin.set_fact:
         __sap_hana_preconfigure_fact_required_repos: "{{ lookup('vars','__sap_hana_preconfigure_req_repos_redhat_' +
-        ansible_distribution_version|string|replace (\".\", \"_\") + '_' + ansible_architecture) }}"
+        ansible_distribution_version | string | replace (\".\", \"_\") + '_' + ansible_architecture) }}"
 
     - name: Construct valid argument list to the subscription-manager repos command
       ansible.builtin.set_fact:
@@ -68,19 +68,19 @@
 ### see https://www14.software.ibm.com/support/customercare/sas/f/lopdiags/home.html for details
 
 - name: Install the ibm-power-repo package
-  ansible.builtin.yum:
+  ansible.builtin.package:
     name: "{{ sap_hana_preconfigure_ibm_power_repo_url }}"
     state: present
     disable_gpg_check: True
   when:
     - ansible_architecture == "ppc64le"
-    - sap_hana_preconfigure_add_ibm_power_repo|d(true)
+    - sap_hana_preconfigure_add_ibm_power_repo | d(true)
 
 - name: Accept the license for the IBM Service and Productivity Tools
   ansible.builtin.shell: LESS=+q /opt/ibm/lop/configure <<<'y'
   when:
     - ansible_architecture == "ppc64le"
-    - sap_hana_preconfigure_add_ibm_power_repo|d(true)
+    - sap_hana_preconfigure_add_ibm_power_repo | d(true)
 
 # Reason for noqa: Both yum and dnf support "state: latest"
 - name: Install the IBM Service and Productivity Tools # noqa package-latest
@@ -153,7 +153,7 @@
         var: __sap_hana_preconfigure_register_minpkglist
 
     - name: Install minimum packages if required
-      ansible.builtin.yum:
+      ansible.builtin.package:
         name: "{{ line_item.stdout }}"
         state: present
       with_items: "{{ __sap_hana_preconfigure_register_minpkglist.results }}"
@@ -161,15 +161,15 @@
         loop_var: line_item
 
   when:
-    - sap_hana_preconfigure_min_package_check|bool
-    - __sap_hana_preconfigure_min_pkgs|d([])
+    - sap_hana_preconfigure_min_package_check | bool
+    - __sap_hana_preconfigure_min_pkgs | d([])
 
 # Reason for noqa: Both yum and dnf support "state: latest"
 - name: Ensure that the system is updated to the latest patchlevel # noqa package-latest
   ansible.builtin.package:
     state: latest
     name: "*"
-  when: sap_hana_preconfigure_update|bool
+  when: sap_hana_preconfigure_update | bool
 
 - name: "Set needs-restarting command in case of RHEL 7"
   ansible.builtin.set_fact:
@@ -220,7 +220,7 @@
 - name: Call reboot handler if necessary as per role sap_general_preconfigure
   ansible.builtin.command: /bin/true
   notify: __sap_hana_preconfigure_reboot_handler
-  when: sap_general_preconfigure_fact_reboot_required|d(false)
+  when: sap_general_preconfigure_fact_reboot_required | d(false)
 
 - name: Call reboot handler if necessary as per this role
   ansible.builtin.command: /bin/true

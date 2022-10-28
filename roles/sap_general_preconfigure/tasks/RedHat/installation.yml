@@ -21,10 +21,10 @@
     - name: Set final list of repos, non-s390x, auto
       ansible.builtin.set_fact:
         __sap_general_preconfigure_req_repos:
-          "{{ __sap_general_preconfigure_req_os_repos | list }} +
-           {{ __sap_general_preconfigure_req_netweaver_repos | list }} +
-           {{ __sap_general_preconfigure_req_hana_repos | list }} +
-           {{ __sap_general_preconfigure_req_ha_repos | list }}"
+          "{{ __sap_general_preconfigure_req_os_repos | list +
+           __sap_general_preconfigure_req_netweaver_repos | list +
+           __sap_general_preconfigure_req_hana_repos | list +
+           __sap_general_preconfigure_req_ha_repos | list }}"
       when:
         - sap_general_preconfigure_req_repos is undefined
         - ansible_architecture != 's390x'
@@ -32,9 +32,9 @@
     - name: Set final list of repos, s390x, auto
       ansible.builtin.set_fact:
         __sap_general_preconfigure_req_repos:
-          "{{ __sap_general_preconfigure_req_os_repos | list }} +
-           {{ __sap_general_preconfigure_req_netweaver_repos | list }} +
-           {{ __sap_general_preconfigure_req_ha_repos | list }}"
+          "{{ __sap_general_preconfigure_req_os_repos | list +
+           __sap_general_preconfigure_req_netweaver_repos | list +
+           __sap_general_preconfigure_req_ha_repos | list }}"
       when:
         - sap_general_preconfigure_req_repos is undefined
         - ansible_architecture == 's390x'
@@ -183,7 +183,7 @@
         var: __sap_general_preconfigure_register_minpkglist
 
     - name: Install minimum packages if required
-      ansible.builtin.yum:
+      ansible.builtin.package:
         name: "{{ line_item.stdout }}"
         state: present
       with_items: "{{ __sap_general_preconfigure_register_minpkglist.results }}"

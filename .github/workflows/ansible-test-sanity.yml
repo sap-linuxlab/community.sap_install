@@ -1,12 +1,18 @@
+---
+
 # Worflow for ansible-test sanity tests
 
-name: ansible-test sanity
+name: ansible-test sanity of the collection
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - dev
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+      - dev
 
   workflow_dispatch:
 
@@ -15,8 +21,67 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Perform sanity testing with ansible-test
-        uses: ansible-community/ansible-test-gh-action@release/v1
+      - name: Check out the code
+        uses: actions/checkout@v2
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v2
         with:
-          ansible-core-version: stable-2.11
-          testing-type: sanity
+          python-version: '3.9'
+
+      - name: Install test dependencies
+        run: pip3 install yamllint ansible ansible-lint
+
+#      - name: Install collection dependencies
+#        run: ansible-galaxy collection install community.general
+
+#      - name: List directory /home/runner/work/
+#        working-directory: /home/runner/
+#        run: ls -al /home/runner/work/
+
+#      - name: List directory /home/runner/work/_actions
+#        working-directory: /home/runner/
+#        run: ls -al /home/runner/work/_actions
+
+      - name: List directory /home/runner/work/_actions/actions
+        working-directory: /home/runner/
+        run: ls -al /home/runner/work/_actions/actions
+
+#      - name: List directory /home/runner/work/community.sap_install
+#        working-directory: /home/runner/
+#        run: ls -al /home/runner/work/community.sap_install
+
+#      - name: List directory /home/runner/work/community.sap_install/community.sap_install
+#        working-directory: /home/runner/
+#        run: ls -al /home/runner/work/community.sap_install/community.sap_install
+
+      - name: Move the collection to the correct location - Create new directory
+        run: mkdir -p /home/runner/.ansible/collections/ansible_collections/community
+
+      - name: Move the collection to the correct location - Move the collection
+        working-directory: /home/runner/
+        run: mv /home/runner/work/community.sap_install/community.sap_install /home/runner/.ansible/collections/ansible_collections/community
+
+#      - name: List directory /home/runner/.ansible/collections/ansible_collections/community
+#        working-directory: /home/runner/
+#        run: ls -al /home/runner/.ansible/collections/ansible_collections/community
+
+      - name: Move the collection to the correct location - Rename the directory
+        working-directory: /home/runner/
+        run: mv /home/runner/.ansible/collections/ansible_collections/community/community.sap_install /home/runner/.ansible/collections/ansible_collections/community/sap_install
+
+#      - name: List directory /home/runner/.ansible/collections/ansible_collections/community
+#        working-directory: /home/runner/
+#        run: ls -al /home/runner/.ansible/collections/ansible_collections/community
+
+#      - name: List directory /home/runner/.ansible/collections/ansible_collections/community/sap_install
+#        working-directory: /home/runner/
+#        run: ls -al /home/runner/.ansible/collections/ansible_collections/community/sap_install
+
+      - name: Run sanity tests
+        working-directory: /home/runner/.ansible/collections/ansible_collections/community/sap_install
+        run: ansible-test sanity
+
+      - name: Move the collection to its previous location
+        working-directory: /home/runner/
+        run: mv /home/runner/.ansible/collections/ansible_collections/community/sap_install /home/runner/work/community.sap_install/community.sap_install
