@@ -56,10 +56,10 @@
 
 - name: SAP HANA Checks - Check if SAP instances are installed with saphostctrl
   block:
-  when: __sap_hana_install_register_stat_saphostctrl.exists
+
     - name: SAP HANA Checks - Get list of installed SAP instances
       ansible.builtin.shell: /usr/sap/hostctrl/exe/saphostctrl -function ListInstances | cut -d":" -f2-
-      register: __sap_hana_install_register_instancelist 
+      register: __sap_hana_install_register_instancelist
       changed_when: false
 
     - name: SAP HANA Checks - debug found instances
@@ -69,42 +69,42 @@
 
     - name: SAP HANA Checks - set variables with found instances
       ansible.builtin.set_fact:
-         __sap_hana_install_fact_running_sid: "{{ sap_hana_deployment_register_instancelist.stdout.split('-')[0] }}"
-         __sap_hana_install_fact_running_instance: "{{ sap_hana_deployment_register_instancelist.stdout.split('-')[1] }}"
-         __sap_hana_install_fact_running_description: "{{ sap_hana_deployment_register_instancelist.stdout.split('-')[2] }}"
+        __sap_hana_install_fact_running_sid: "{{ sap_hana_deployment_register_instancelist.stdout.split('-')[0] }}"
+        __sap_hana_install_fact_running_instance: "{{ sap_hana_deployment_register_instancelist.stdout.split('-')[1] }}"
+        __sap_hana_install_fact_running_description: "{{ sap_hana_deployment_register_instancelist.stdout.split('-')[2] }}"
 
-     - name: SAP HANA Checks - perfectky fine running Hana version found
-       ansible.builtin.debug:
-         msg: "Hana SID {{ __sap_hana_install_fact_running_sid }} Instance {{ __sap_hana_install_fact_running_instance }}"
-         verbosity: 1
-         
-     - name: SAP HANA Checks - desired HANA is installed and running
-       ansible.builtin.set_fact:
-         __sap_hana_install_fact_is_installed: true
-       when:
-         - __sap_hana_install_fact_running_sid == sap_hana_install_sid
-         - __sap_hana_install_fact_running_instance == sap_hana_install_number
+    - name: SAP HANA Checks - perfectky fine running Hana version found
+      ansible.builtin.debug:
+        msg: "Hana SID {{ __sap_hana_install_fact_running_sid }} Instance {{ __sap_hana_install_fact_running_instance }}"
+        verbosity: 1
 
-     - name: SAP HANA Checks - trying to install HANA with other SID and same instance
-       fail:
-         msg: "HANA {{ __sap_hana_install_fact_running_sid }} already exists with instance number {{ __sap_hana_install_fact_running_instance }"
-       when:
-         - __sap_hana_install_fact_running_sid != sap_hana_install_sid
-         - __sap_hana_install_fact_running_instance == sap_hana_install_number
+    - name: SAP HANA Checks - desired HANA is installed and running
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_is_installed: true
+      when:
+        - __sap_hana_install_fact_running_sid == sap_hana_install_sid
+        - __sap_hana_install_fact_running_instance == sap_hana_install_number
 
-     - name: SAP HANA Checks - trying to install HANA with identical SID and other instance number
-       fail:
-         msg: "HANA {{ __sap_hana_install_fact_running_sid }} already exists with instance number {{ __sap_hana_install_fact_running_instance }}"
-       when:
-         - __sap_hana_install_fact_running_sid == sap_hana_install_sid
-         - __sap_hana_install_fact_running_instance != sap_hana_install_number
+    - name: SAP HANA Checks - trying to install HANA with other SID and same instance
+      fail:
+        msg: "HANA {{ __sap_hana_install_fact_running_sid }} already exists with instance number {{ __sap_hana_install_fact_running_instance }"
+      when:
+        - __sap_hana_install_fact_running_sid != sap_hana_install_sid
+        - __sap_hana_install_fact_running_instance == sap_hana_install_number
 
+    - name: SAP HANA Checks - trying to install HANA with identical SID and other instance number
+      fail:
+        msg: "HANA {{ __sap_hana_install_fact_running_sid }} already exists with instance number {{ __sap_hana_install_fact_running_instance }}"
+      when:
+        - __sap_hana_install_fact_running_sid == sap_hana_install_sid
+        - __sap_hana_install_fact_running_instance != sap_hana_install_number
 
-## If saphostcontrol is not installed 
+  when: __sap_hana_install_register_stat_saphostctrl.exists
+
+## If saphostcontrol is not installed
 
 - name: SAP HANA Checks - Check directories if no saphostctrl is found
   block:
-  when: not __sap_hana_install_register_stat_saphostctrl.exists
     - name: SAP HANA Checks - Get info about directory '/hana/shared/{{ sap_hana_install_sid }}'
       ansible.builtin.stat:
         path: "/hana/shared/{{ sap_hana_install_sid }}"
@@ -148,3 +148,4 @@
                    Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
         success_msg: "PASS: Directory '/usr/sap/{{ sap_hana_install_sid }}' does not exist."
       when: __sap_hana_install_register_files_in_usr_sap_sid_assert.matched|int != 0
+  when: not __sap_hana_install_register_stat_saphostctrl.exists
