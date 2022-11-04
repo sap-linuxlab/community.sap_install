@@ -4,7 +4,8 @@ Ansible role for SAP HANA Installation
 
 ## Requirements
 
-The role requires additional collections which are specified in `meta/collection-requirements.yml`. These are not automatically installed.  You must install them like this:
+The role requires additional collections which are specified in `meta/collection-requirements.yml`. Before using this role,
+make sure that the required collections are installed, for example by using the following command:
 
 `ansible-galaxy install -vv -r meta/collection-requirements.yml`
 
