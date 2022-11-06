@@ -1,0 +1,94 @@
+---
+
+- name: "Check if server is booted in BIOS or UEFI mode"
+  stat:
+    path: /sys/firmware/efi
+    get_checksum: no
+  register: __sap_vm_preconfigure_register_stat_sys_firmware_efi
+  listen: __sap_vm_preconfigure_regenerate_grub2_conf_handler
+  when:
+    - sap_vm_preconfigure_run_grub2_mkconfig|d(true)
+
+- name: Debug BIOS or UEFI
+  debug:
+    var: __sap_vm_preconfigure_register_stat_sys_firmware_efi.stat.exists
+  listen: __sap_vm_preconfigure_regenerate_grub2_conf_handler
+  when:
+    - sap_vm_preconfigure_run_grub2_mkconfig|d(true)
+
+- name: "Run grub-mkconfig (BIOS mode)"
+  command: grub2-mkconfig -o /boot/grub2/grub.cfg
+  register: __sap_vm_preconfigure_register_grub2_mkconfig_bios_mode
+  listen: __sap_vm_preconfigure_regenerate_grub2_conf_handler
+  notify: __sap_vm_preconfigure_reboot_handler
+  when:
+    - not __sap_vm_preconfigure_register_stat_sys_firmware_efi.stat.exists
+    - sap_vm_preconfigure_run_grub2_mkconfig|d(true)
+
+- name: "Debug grub-mkconfig BIOS mode"
+  debug:
+    var: __sap_vm_preconfigure_register_grub2_mkconfig_bios_mode.stdout_lines,
+         __sap_vm_preconfigure_register_grub2_mkconfig_bios_mode.stderr_lines
+  listen: __sap_vm_preconfigure_regenerate_grub2_conf_handler
+  when:
+    - not __sap_vm_preconfigure_register_stat_sys_firmware_efi.stat.exists
+    - sap_vm_preconfigure_run_grub2_mkconfig|d(true)
+
+- name: "Set the grub.cfg location RHEL"
+  set_fact:
+    __sap_vm_preconfigure_uefi_boot_dir: /boot/efi/EFI/redhat/grub.cfg
+  when: 
+    - ansible_distribution == 'RedHat'
+
+- name: "Set the grub.cfg location SLES"
+  set_fact:
+    __sap_vm_preconfigure_uefi_boot_dir: /boot/efi/EFI/BOOT/grub.cfg
+  when: 
+    - ansible_distribution == 'SLES' or ansible_distribution == 'SLES_SAP'    
+
+- name: "Run grub-mkconfig (UEFI mode)"
+  command: "grub2-mkconfig -o {{ __sap_vm_preconfigure_uefi_boot_dir }}"
+  register: __sap_vm_preconfigure_register_grub2_mkconfig_uefi_mode
+  listen: __sap_vm_preconfigure_regenerate_grub2_conf_handler
+  notify: __sap_vm_preconfigure_reboot_handler
+  when:
+    - __sap_vm_preconfigure_register_stat_sys_firmware_efi.stat.exists
+    - sap_vm_preconfigure_run_grub2_mkconfig|d(true)
+
+- name: "Debug grub-mkconfig UEFI"
+  debug:
+    var: __sap_vm_preconfigure_register_grub2_mkconfig_uefi_mode.stdout_lines,
+         __sap_vm_preconfigure_register_grub2_mkconfig_uefi_mode.stderr_lines
+  listen: __sap_vm_preconfigure_regenerate_grub2_conf_handler
+  when:
+    - __sap_vm_preconfigure_register_stat_sys_firmware_efi.stat.exists
+    - sap_vm_preconfigure_run_grub2_mkconfig|d(true)
+
+- name: "Run grubby for enabling TSX"
+  command: grubby --args="tsx=on" --update-kernel=ALL
+  register: __sap_vm_preconfigure_register_grubby_update
+  listen: __sap_vm_preconfigure_grubby_update_handler
+  notify: __sap_vm_preconfigure_reboot_handler
+
+- name: Reboot the managed node
+  reboot:
+    test_command: /bin/true
+  listen: __sap_vm_preconfigure_reboot_handler
+  when:
+    - sap_vm_preconfigure_reboot_ok|d(false)
+
+- name: Let the role fail if a reboot is required
+  fail:
+    msg: Reboot is required!
+  listen: __sap_vm_preconfigure_reboot_handler
+  when:
+    - sap_vm_preconfigure_fail_if_reboot_required|d(true)
+    - not sap_vm_preconfigure_reboot_ok|d(false)
+
+- name: Show a warning message if a reboot is required
+  debug:
+    msg: "WARN: Reboot is required!"
+  listen: __sap_vm_preconfigure_reboot_handler
+  when:
+    - not sap_vm_preconfigure_fail_if_reboot_required|d(true)
+    - not sap_vm_preconfigure_reboot_ok|d(false)
