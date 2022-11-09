@@ -588,6 +588,25 @@ UmeConfiguration.umeInstance = {{ sap_swpm_ume_instance_nr }}
 UmeConfiguration.umeType = {{ sap_swpm_ume_type }}
 {% endif %}
 
+{% if 'nw_config_java_feature_template_ids' in sap_swpm_inifile_list %}
+######
+# nw_config_java_feature_template_ids
+######
+NW_internal.useProductVersionDescriptor = true
+
+# If use PV = true
+# SAP SWPM 1.0 for SAP NetWeaver AS (JAVA), Product Version Software Instance **Feature Template IDs** comma-separated list
+Select_PPMS_Instances.ListOfSelectedInstances = {% set selected_ids = [] %}{%- for item_selected in sap_swpm_java_template_id_selected_list %}
+{%- if item_selected in sap_swpm_java_template_id_lookup_dictionary -%}
+{{ selected_ids.append(sap_swpm_java_template_id_lookup_dictionary[item_selected]) }}
+{%- endif %}
+{%- endfor %}{{ selected_ids | flatten | join(',') }}
+
+## If use PV = false [LEGACY for before NWAS JAVA 7.40]
+## Comma-separated value list containing which product instances (former usage types) are installed. Used for handling product instances in unattended mode.
+## SAP_Software_Features_Select.selectedInstancesForInstallation = AS,AAS,BASIC,NW-MODEL,ESR,PI,PI-AF
+{%- endif %}
+
 {% if 'nw_config_webdisp_generic' in sap_swpm_inifile_list %}
 ######
 # nw_config_webdisp_generic
