@@ -24,6 +24,7 @@ The necessary preparation is done in the role **sap_ha_prepare_pacemaker**.
 | Task               | Description                         |
 | ------------------ | ----------------------------------- |
 | cluster_setup.yml  | create a cluster without ressources |
+| cluster_config.yml | configure cluster                   |
 | stonith_config.yml | configure a stonith device          |
 
 ## Common Variables/Parameters Used

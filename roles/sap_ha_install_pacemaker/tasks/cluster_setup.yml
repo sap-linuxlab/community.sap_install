@@ -27,16 +27,3 @@
   loop: "{{ sap_ha_install_pacemaker_cluster_nodes }}"
   loop_control:
     label: "Is online: {{ item.node_name.split('.')[0] }}"
-
-#- name: "SAP Pacemaker Setup - Set Expected Votes = {{ sap_ha_install_pacemaker_cluster_nodes | length }}"
-#  ansible.builtin.shell: |
-#    pcs quorum expected-votes {{ sap_ha_install_pacemaker_cluster_nodes | length }}
-
-- name: "SAP Pacemaker Setup - Check pcs properties"
-  include_tasks: check_properties.yml
-
-- name: "SAP Pacemaker Setup - Allow concurrent fence actions"
-  ansible.builtin.shell: |
-    pcs property set concurrent-fencing=true
-  when:
-    - "'concurrent-fencing: true' not in __sap_ha_install_pacemaker_pcs_properties.stdout"
