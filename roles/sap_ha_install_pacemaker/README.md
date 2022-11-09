@@ -42,6 +42,7 @@ The necessary preparation is done in the role **sap_ha_prepare_pacemaker**.
 
 | Name                                     | Description                                            | Value                         |
 | ---------------------------------------- | ------------------------------------------------------ | ----------------------------- |
+| sap_ha_install_pacemaker_autostart       | Enable Cluster autostart at boot time                  | true                          |
 | sap_ha_install_pacemaker_vip1            | VirtualIP address to the master database node          | sap_hana_vip1                 |
 | sap_ha_install_pacemaker_vip2            | VirtualIP address to the slave database node (planned) | sap_hana_vip2                 |
 | sap_ha_install_pacemaker_stonith_devices | parameter to configure stonith device                  | sap_pacemaker_stonith_devices |

@@ -13,3 +13,17 @@
     pcs property set concurrent-fencing=true
   when:
     - "'concurrent-fencing: true' not in __sap_ha_install_pacemaker_pcs_properties.stdout"
+
+- name: "SAP Pacemaker Setup - Disable Cluster autostart if configured"
+  ansible.builtin.shell: |
+    pcs cluster disable --all
+  when:
+    - "'pacemaker: active/enabled' in __sap_ha_install_pacemaker_pcs_status.stdout"
+    - not sap_ha_install_pacemaker_autostart
+
+- name: "SAP Pacemaker Setup - Enable Cluster autostart if configured"
+  ansible.builtin.shell: |
+    pcs cluster enable --all
+  when:
+    - "'pacemaker: active/disabled' in __sap_ha_install_pacemaker_pcs_status.stdout"
+    - sap_ha_install_pacemaker_autostart
