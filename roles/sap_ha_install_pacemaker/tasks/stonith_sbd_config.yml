@@ -1,0 +1,37 @@
+---
+# The following tasks are only included on the primary node!
+- name: "SAP Pacemaker Setup - Stonith SBD Configuration - Check cluster status"
+  include_tasks: check_status.yml
+
+- name: "SAP Pacemaker Setup - Stonith SBD Configuration - Check SBD device headers"
+  ansible.builtin.shell: |
+    sbd -d {{ item }} dump
+  register: __sap_ha_install_pacemaker_stonith_sbd_devices
+  changed_when: false
+  failed_when: false
+  loop: "{{ sap_ha_install_pacemaker_stonith_sbd_devices | default([]) }}"
+
+- name: "SAP Pacemaker Setup - Stonith SBD Configuration - Create SBD device headers"
+  ansible.builtin.shell: |
+    pcs stonith sbd device setup \
+    watchdog-timeout={{ sap_ha_install_pacemaker_stonith_sbd_timeout_watchdog }} \
+    msgwait-timeout={{ sap_ha_install_pacemaker_stonith_sbd_timeout_msgwait }} \
+    device={{ item.item }} \
+    --force
+  loop: "{{ __sap_ha_install_pacemaker_stonith_sbd_devices.results }}"
+  when:
+    - item.rc != 0
+
+- name: "SAP Pacemaker Setup - Stonith SBD Configuration - Enable SBD in cluster"
+  ansible.builtin.shell: |
+    # put cluster into maintenance-mode to not disturb running resources
+    pcs property set maintenance-mode=true
+    # stop cluster
+    pcs cluster stop --all
+    # enable SBD in cluster
+    pcs stonith sbd enable {% for dev in sap_ha_install_pacemaker_stonith_sbd_devices %}device={{ dev }} {% endfor %}
+    # start cluster again
+    pcs cluster start --all
+    pcs property set maintenance-mode=false
+  when:
+    - '"YES | YES | YES" not in __sap_ha_install_pacemaker_pcs_stonith_sbd_status.stdout'

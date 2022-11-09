@@ -39,6 +39,41 @@
     - pacemaker
     - ha
 
+- name: "SAP Install Pacemaker - Stonith SBD Node Configuration"
+  include_tasks:
+    file: stonith_sbd_node_config.yml
+    apply:
+      tags:
+        - sbd
+        - stonith
+        - pacemaker
+        - ha
+  when:
+    - sap_ha_install_pacemaker_stonith_sbd_devices is defined
+  tags:
+    - sbd
+    - stonith
+    - ha
+    - pacemaker
+
+- name: "SAP Install Pacemaker - Stonith SBD Configuration"
+  include_tasks:
+    file: stonith_sbd_config.yml
+    apply:
+      tags:
+        - sbd
+        - stonith
+        - pacemaker
+        - ha
+  when:
+    - ansible_hostname == __sap_ha_install_pacemaker_primary_node
+    - sap_ha_install_pacemaker_stonith_sbd_devices is defined
+  tags:
+    - sbd
+    - stonith
+    - ha
+    - pacemaker
+
 - name: "SAP Install Pacemaker - Stonith Configuration"
   include_tasks:
     file: stonith_config.yml

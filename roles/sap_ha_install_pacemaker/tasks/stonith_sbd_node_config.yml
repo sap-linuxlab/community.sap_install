@@ -1,0 +1,40 @@
+---
+- name: "SAP Pacemaker Setup - Stonith SBD Node Configuration - Load watchdog kernel module"
+  community.general.modprobe:
+    name: "{{ sap_ha_install_pacemaker_stonith_sbd_watchdog_module }}"
+    state: present
+  when:
+    - sap_ha_install_pacemaker_stonith_sbd_watchdog_module is defined
+
+- name: "SAP Pacemaker Setup - Stonith SBD Node Configuration - Configure watchdog kernel module"
+  ansible.builtin.lineinfile:
+    path: "/etc/modules-load.d/{{ sap_ha_install_pacemaker_stonith_sbd_watchdog_module }}.conf"
+    create: yes
+    mode: 0644
+    regex: ".*{{ sap_ha_install_pacemaker_stonith_sbd_watchdog_module }}.*"
+    line: "{{ sap_ha_install_pacemaker_stonith_sbd_watchdog_module }}"
+  when:
+    - sap_ha_install_pacemaker_stonith_sbd_watchdog_module is defined
+
+- name: "SAP Pacemaker Setup - Stonith SBD Node Configuration - Unload watchdog kernel module blocklist"
+  community.general.modprobe:
+    name: "{{ sap_ha_install_pacemaker_stonith_sbd_watchdog_module_blocklist }}"
+    state: absent
+  when:
+    - sap_ha_install_pacemaker_stonith_sbd_watchdog_module_blocklist is defined
+
+- name: "SAP Pacemaker Setup - Stonith SBD Node Configuration - Configure watchdog kernel module blocklist"
+  ansible.builtin.lineinfile:
+    path: "/etc/modprobe.d/{{ sap_ha_install_pacemaker_stonith_sbd_watchdog_module_blocklist }}.conf"
+    create: yes
+    mode: 0644
+    regex: ".*{{ sap_ha_install_pacemaker_stonith_sbd_watchdog_module_blocklist }}.*"
+    line: "blacklist {{ sap_ha_install_pacemaker_stonith_sbd_watchdog_module_blocklist }}"
+  when:
+    - sap_ha_install_pacemaker_stonith_sbd_watchdog_module_blocklist is defined
+
+## will be done by pcs
+#- name: "SAP Pacemaker Setup - Enable SBD service"
+#  ansible.builtin.service:
+#    name: sbd
+#    enabled: yes
