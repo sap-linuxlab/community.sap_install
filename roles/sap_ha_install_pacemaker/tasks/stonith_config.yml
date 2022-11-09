@@ -1,22 +1,22 @@
 ---
 # The following tasks are only included on the primary node!
-- name: "SAP Pacemaker Setup - Check pcs properties"
+- name: "SAP Pacemaker Setup - Stonith - Check pcs properties"
   include_tasks: check_properties.yml
 
-- name: "SAP Pacemaker Setup - Update STONITH timeout"
+- name: "SAP Pacemaker Setup - Stonith - Update Stonith timeout"
   ansible.builtin.shell: |
     pcs property set stonith-timeout={{ sap_ha_install_pacemaker_stonith_timeout }}
   when:
     - '"stonith-timeout: " + sap_ha_install_pacemaker_stonith_timeout not in __sap_ha_install_pacemaker_pcs_properties.stdout'
 
-- name: "SAP Pacemaker Setup - Check the fence device"
+- name: "SAP Pacemaker Setup - Stonith - Check the fence device"
   ansible.builtin.shell: |
     pcs stonith config
   register: __sap_ha_install_pacemaker_stonith_check
   changed_when: false
   failed_when: false
 
-- name: "SAP Pacemaker Setup - Configure the fence device"
+- name: "SAP Pacemaker Setup - Stonith - Configure Stonith resources in cluster"
   ansible.builtin.shell: |
     pcs stonith create \
     {{ item.name }} {{ item.agent }} \
@@ -30,7 +30,7 @@
   failed_when:
     - __sap_ha_install_pacemaker_configure_fence_device.stderr != ""
 
-- name: "SAP Pacemaker Setup - Enable the STONITH devices"
+- name: "SAP Pacemaker Setup - Stonith - Enable Stonith in cluster"
   ansible.builtin.shell: |
     pcs property set stonith-enabled=true
   when:
