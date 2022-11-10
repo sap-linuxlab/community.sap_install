@@ -2,7 +2,7 @@
 # The following variables are constructed here in order to be provided as
 # input for the included 'ha_cluster' system role.
 
-- name: "SAP HA Cluster - Define cluster properties"
+- name: "SAP HA Prepare Pacemaker - Define cluster properties"
   when:
     - item.name not in
       (__sap_ha_pacemaker_cluster_cluster_properties | map(attribute='attr') | flatten | map(attribute='name'))
@@ -23,7 +23,7 @@
 # - fence resource defaults
 # - fence agent specific required options
 
-- name: "SAP HA Cluster - Assemble the stonith resource definition"
+- name: "SAP HA Prepare Pacemaker - Assemble the stonith resource definition"
   ansible.builtin.set_fact:
     sap_ha_pacemaker_cluster_stonith_resource:
       - id: "res_{{ sap_ha_pacemaker_cluster_stonith_required.agent | split(':') | last }}"
@@ -53,7 +53,7 @@
               {{ attrs }}
 
 # The STONITH resource is an element in the cluster_resource_primitives list
-- name: "SAP HA Cluster - Construct stonith resources definition"
+- name: "SAP HA Prepare Pacemaker - Construct stonith resources definition"
   when:
     - sap_ha_pacemaker_cluster_stonith_resource is defined
   ansible.builtin.set_fact:

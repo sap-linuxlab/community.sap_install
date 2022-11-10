@@ -1,14 +1,14 @@
 ---
 # Requirement to enable the fencing resource to function.
 
-- name: "SAP HA Cluster - Create awscli config directory"
+- name: "SAP HA Prepare Pacemaker - Create awscli config directory"
   ansible.builtin.file:
     mode: 0755
     owner: root
     path: /root/.aws
     state: directory
 
-- name: "SAP HA Cluster - Create awscli config"
+- name: "SAP HA Prepare Pacemaker - Create awscli config"
   ansible.builtin.blockinfile:
     backup: true
     block: |
@@ -19,7 +19,7 @@
     owner: root
     path: /root/.aws/config
 
-- name: "SAP HA Cluster - Store awscli credentials"
+- name: "SAP HA Prepare Pacemaker - Store awscli credentials"
   ansible.builtin.blockinfile:
     backup: true
     block: |
@@ -33,7 +33,7 @@
   no_log: true
 
 # pcmk_host_map format: <hostname1>:<host1-id>;<hostname2>:<host2-id>...
-- name: "SAP HA Cluster - Assemble host mapping"
+- name: "SAP HA Prepare Pacemaker - Assemble host mapping"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_pcmk_host_map: >
       {% for node in ansible_play_hosts_all -%}

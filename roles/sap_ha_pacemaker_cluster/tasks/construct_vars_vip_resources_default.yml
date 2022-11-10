@@ -2,7 +2,7 @@
 # Reminder: This file is included in a loop over a dictionary.
 
 # VIP resource definition itself
-- name: "SAP HA Cluster - Add resource: VIP {{ vip_list_item.key }}"
+- name: "SAP HA Prepare Pacemaker - Add resource: VIP {{ vip_list_item.key }}"
   when:
     - sap_ha_pacemaker_cluster_vip_resource_name ~ '_' ~ vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
   ansible.builtin.set_fact:
@@ -17,7 +17,7 @@
               value: "{{ vip_list_item.value | quote }}"
 
 # Start the VIP(s) only after the HANA resource has been promoted
-- name: "SAP HA Cluster - Add order constraint: Primary VIP starts after DB is promoted"
+- name: "SAP HA Prepare Pacemaker - Add order constraint: Primary VIP starts after DB is promoted"
   when:
     - __constraint_order_vip.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))
     - vip_list_item.key in __sap_ha_pacemaker_cluster_primary_synonyms
@@ -33,7 +33,7 @@
         action: start
 
 # The VIP only runs where HANA is promoted
-- name: "SAP HA Cluster - Add colocation constraint: Primary VIP runs where HANA is promoted"
+- name: "SAP HA Prepare Pacemaker - Add colocation constraint: Primary VIP runs where HANA is promoted"
   when:
     - __constraint_colo_vip.resource_follower not in (__sap_ha_pacemaker_cluster_constraints_colocation | map(attribute='resource_follower'))
     - vip_list_item.key in __sap_ha_pacemaker_cluster_primary_synonyms

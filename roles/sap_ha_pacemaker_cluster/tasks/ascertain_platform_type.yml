@@ -24,13 +24,13 @@
 # TODO: detection based on multiple facts and providing one standard
 # name for use as platform type in related include files
 
-- name: "SAP HA Cluster - Check if platform is AWS EC2 VM"
+- name: "SAP HA Prepare Pacemaker - Check if platform is AWS EC2 VM"
   when:
     - ansible_system_vendor == 'Amazon EC2'
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_platform: vm_aws_ec2
 
-- name: "SAP HA Cluster - Check if platform is IBM VPC VM"
+- name: "SAP HA Prepare Pacemaker - Check if platform is IBM VPC VM"
   when:
     - ansible_chassis_asset_tag == 'ibmcloud'
   ansible.builtin.set_fact:
@@ -39,7 +39,7 @@
 # Call tasks to discover information that is needed as input for any further steps.
 # Run this before including the platform vars in order to build vars based on the
 # discovered data.
-- name: "SAP HA Cluster - Include platform specific information collection"
+- name: "SAP HA Prepare Pacemaker - Include platform specific information collection"
   when: __sap_ha_pacemaker_cluster_platform_info is file
   ansible.builtin.include_tasks:
     file: "{{ item }}"
@@ -48,5 +48,5 @@
   vars:
     __sap_ha_pacemaker_cluster_platform_info: "{{ role_path }}/tasks/{{ item }}"
 
-- name: "SAP HA Cluster - Include platform specific variables"
+- name: "SAP HA Prepare Pacemaker - Include platform specific variables"
   ansible.builtin.import_tasks: platform/include_vars_platform.yml

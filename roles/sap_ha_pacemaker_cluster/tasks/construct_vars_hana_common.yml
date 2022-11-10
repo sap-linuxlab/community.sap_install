@@ -9,7 +9,7 @@
 # TODO: add conditionals to verify that the same resource agent is not already
 #       defined in user input variables. Conflicting user input should take precedence.
 
-- name: "SAP HA Cluster - Add resource: SAP HANA Topology"
+- name: "SAP HA Prepare Pacemaker - Add resource: SAP HANA Topology"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_topology] }}"
   vars:
@@ -40,7 +40,7 @@
   when:
     - __resource_topology.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
 
-- name: "SAP HA Cluster - Add resource: SAP HANA DB"
+- name: "SAP HA Prepare Pacemaker - Add resource: SAP HANA DB"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_hana] }}"
   vars:
@@ -95,7 +95,7 @@
   when:
     - __resource_hana.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
 
-- name: "SAP HA Cluster - Add resource clone: SAP HANA Topology"
+- name: "SAP HA Prepare Pacemaker - Add resource clone: SAP HANA Topology"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_topology] }}"
   vars:
@@ -113,7 +113,7 @@
   when:
     - __clone_topology.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
 
-- name: "SAP HA Cluster - Add resource clone: SAP HANA DB"
+- name: "SAP HA Prepare Pacemaker - Add resource clone: SAP HANA DB"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_hana] }}"
   vars:
@@ -132,7 +132,7 @@
     - __clone_hana.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
 
 # First start Topology, then HANA (automatically stops in reverse order)
-- name: "SAP HA Cluster - Add order constraint: Topology starts before DB"
+- name: "SAP HA Prepare Pacemaker - Add order constraint: Topology starts before DB"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_topology] }}"
   vars:

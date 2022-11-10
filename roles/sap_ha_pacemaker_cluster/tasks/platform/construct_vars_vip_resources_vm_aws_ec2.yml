@@ -1,7 +1,7 @@
 ---
 # Reminder: This file is included in a loop over a dictionary.
 
-- name: "SAP HA Cluster - Add resource: OS floating IP (dev/test only)"
+- name: "SAP HA Prepare Pacemaker - Add resource: OS floating IP (dev/test only)"
   when:
     - sap_ha_pacemaker_cluster_vip_resource_name ~ '_' ~ vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - (sap_ha_pacemaker_cluster_vip_strategy == 'ipaddr') or
@@ -19,7 +19,7 @@
             - name: ip
               value: "{{ vip_list_item.value }}"
 
-- name: "SAP HA Cluster - Add resource: AWS floating IP (dev/test only)"
+- name: "SAP HA Prepare Pacemaker - Add resource: AWS floating IP (dev/test only)"
   when:
     - ('pri' ~ sap_ha_pacemaker_cluster_vip_resource_name ~ '_' ~ vip_list_item.key) not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_strategy == 'awsvip'
@@ -34,7 +34,7 @@
             - name: secondary_private_ip
               value: "{{ vip_list_item.value }}"
 
-- name: "SAP HA Cluster - Add resource group for VIP resources"
+- name: "SAP HA Prepare Pacemaker - Add resource group for VIP resources"
   when:
     - __vip_group.id is not in (__sap_ha_pacemaker_cluster_resource_groups | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_strategy in ['awsvip']
@@ -48,7 +48,7 @@
         - "{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
         - "pri{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
 
-- name: "SAP HA Cluster - Add resource: AWS VIP routing"
+- name: "SAP HA Prepare Pacemaker - Add resource: AWS VIP routing"
   when:
     - (sap_ha_pacemaker_cluster_vip_resource_name ~ '_' ~ vip_list_item.key) not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_strategy == 'aws_vpc_move_ip'
@@ -69,7 +69,7 @@
               value: "{{ sap_ha_pacemaker_cluster_vip_update_rt | join(',') }}"
 
 # Start the VIP(s) only after the HANA resource has been promoted
-- name: "SAP HA Cluster - Add order constraint: Primary VIP starts after DB is promoted"
+- name: "SAP HA Prepare Pacemaker - Add order constraint: Primary VIP starts after DB is promoted"
   when:
     - __constraint_order_vip.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))
     - vip_list_item.key in __sap_ha_pacemaker_cluster_primary_synonyms
@@ -85,7 +85,7 @@
         action: start
 
 # The VIP only runs where HANA is promoted
-- name: "SAP HA Cluster - Add colocation constraint: Primary VIP runs where HANA is promoted"
+- name: "SAP HA Prepare Pacemaker - Add colocation constraint: Primary VIP runs where HANA is promoted"
   when:
     - __constraint_colo_vip.resource_follower not in (__sap_ha_pacemaker_cluster_constraints_colocation | map(attribute='resource_follower'))
     - vip_list_item.key in __sap_ha_pacemaker_cluster_primary_synonyms
@@ -103,7 +103,7 @@
           value: 2000
 
 # Start the secondary VIP after the HANA resource has been promoted
-- name: "SAP HA Cluster - Add order constraint: Read-only VIP starts after DB is promoted"
+- name: "SAP HA Prepare Pacemaker - Add order constraint: Read-only VIP starts after DB is promoted"
   when:
     - __constraint_order_vip.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))
     - vip_list_item.key in __sap_ha_pacemaker_cluster_secondary_synonyms
@@ -119,7 +119,7 @@
         action: start
 
 # The secondary VIP only runs where HANA is UNpromoted
-- name: "SAP HA Cluster - Add colocation constraint: Read-only VIP runs where HANA is not promoted"
+- name: "SAP HA Prepare Pacemaker - Add colocation constraint: Read-only VIP runs where HANA is not promoted"
   when:
     - __constraint_colo_vip.resource_follower not in (__sap_ha_pacemaker_cluster_constraints_colocation | map(attribute='resource_follower'))
     - vip_list_item.key in __sap_ha_pacemaker_cluster_secondary_synonyms

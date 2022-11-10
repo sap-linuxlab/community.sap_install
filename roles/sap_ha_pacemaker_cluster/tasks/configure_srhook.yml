@@ -1,5 +1,5 @@
 ---
-- name: "SAP HA Cluster - Create srHook shared directory"
+- name: "SAP HA Pacemaker srHook - Create srHook shared directory"
   ansible.builtin.file:
     path: "{{ sap_ha_pacemaker_cluster_hadr_provider_path }}"
     state: directory
@@ -7,7 +7,7 @@
     owner: "{{ sap_ha_pacemaker_cluster_hana_sid | lower }}adm"
     group: sapsys
 
-- name: "SAP HA Cluster - Copy srHook to shared directory"
+- name: "SAP HA Pacemaker srHook - Copy srHook to shared directory"
   ansible.builtin.copy:
     remote_src: true
     src: /usr/share/SAPHanaSR/srHook/SAPHanaSR.py
@@ -18,7 +18,7 @@
   # Do not run in check mode because the path is created in the previous step
   when: not ansible_check_mode
 
-- name: "SAP HA Cluster - Check global.ini for 'ha_dr_saphanasr'"
+- name: "SAP HA Pacemaker srHook - Check global.ini for 'ha_dr_saphanasr'"
   ansible.builtin.shell: |
     grep ha_dr_saphanasr /usr/sap/{{ sap_ha_pacemaker_cluster_hana_sid | upper }}/SYS/global/hdb/custom/config/global.ini
   register: __sap_ha_pacemaker_cluster_srhook_trace_global
@@ -28,7 +28,7 @@
   check_mode: false
   changed_when: false
 
-- name: "SAP HA Cluster - Update srHook in global.ini"
+- name: "SAP HA Pacemaker srHook - Update srHook in global.ini"
   ansible.builtin.blockinfile:
     path: /usr/sap/{{ sap_ha_pacemaker_cluster_hana_sid | upper }}/SYS/global/hdb/custom/config/global.ini
     marker: ""
@@ -42,7 +42,7 @@
       ha_dr_saphanasr = info
   when: __sap_ha_pacemaker_cluster_srhook_trace_global.rc == 1
 
-- name: "SAP HA Cluster - Add srHook sudo entries"
+- name: "SAP HA Pacemaker srHook - Add srHook sudo entries"
   ansible.builtin.template:
     backup: true
     dest: /etc/sudoers.d/20-saphana
