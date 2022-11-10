@@ -18,6 +18,8 @@ argument_specs:
 #        default:
 #        description:
 #           -
+#        example:
+#
 #        required: false
 #        type:
 #        options: # additional options for lists and dicts
@@ -31,6 +33,14 @@ argument_specs:
           - Definition of node name and IP addresses to be used for the pacemaker cluster.
           - Required for resilient node communication by providing more than one corosync IP.
           - See https://github.com/linux-system-roles/ha_cluster/blob/master/README.md#nodes-names-and-addresses
+        example:
+          ha_cluster:
+            corosync_addresses:
+              - 192.168.1.10
+              - 192.168.2.10
+            node_name: nodeA
+            pcs_address: nodeA
+
         required: false
         type: dict
         options:
@@ -52,14 +62,6 @@ argument_specs:
               - An address used by pcs to communicate with the node.
               - Can be a name, FQDN or IP address and can contain a port.
             type: str
-
-        example:
-          ha_cluster:
-            corosync_addresses:
-              - 192.168.1.10
-              - 192.168.2.10
-            node_name: nodeA
-            pcs_address: nodeA
 
       ha_cluster_cluster_name:
         default: my-cluster
@@ -122,6 +124,13 @@ argument_specs:
           - These options are applied to fencing resources this role uses automatically for pre-defined platforms (like AWS EC2, IBM Cloud VPC).
           - The listed options are set by default.
           - Additional options can be added by defining this parameter in dictionary format and adding the defaults plus any valid stonith resource key-value pair.
+
+        example:
+          sap_ha_pacemaker_cluster_fence_options:
+            pcmk_reboot_retries: 4
+            pcmk_reboot_timeout: 400
+            power_timeout: 240
+
         required: false
         type: dict
 
@@ -147,12 +156,6 @@ argument_specs:
               - STONITH resource parameter to test X seconds for status change after ON/OFF.
             required: false
             type: int
-
-        example:
-          sap_ha_pacemaker_cluster_fence_options:
-            pcmk_reboot_retries: 4
-            pcmk_reboot_timeout: 400
-            power_timeout: 240
 
       sap_ha_pacemaker_cluster_hana_automated_register:
         default: true
@@ -257,6 +260,18 @@ argument_specs:
         description:
           - List of cluster nodes and associated attributes to describe the target SAP HA environment.
           - This is required for the HANA System Replication configuration.
+
+        example:
+          sap_hana_cluster_nodes:
+            - node_name: nodeA
+              node_role: primary
+              hana_site: DC01
+              node_ip: 192.168.5.1
+            - node_name: nodeB
+              node_role: secondary
+              hana_site: DC02
+              node_ip: 192.168.5.2
+
         elements: dict
         required: true
         type: list
@@ -284,17 +299,6 @@ argument_specs:
               - This is required for HANA System Replication configuration.
             required: true
 
-        example:
-          sap_hana_cluster_nodes:
-            - node_name: nodeA
-              node_role: primary
-              hana_site: DC01
-              node_ip: 192.168.5.1
-            - node_name: nodeB
-              node_role: secondary
-              hana_site: DC02
-              node_ip: 192.168.5.2
-
       sap_hana_instance_number:
         description:
           - The instance number of the SAP HANA database which is role will configure in the cluster.
@@ -312,9 +316,11 @@ argument_specs:
         description:
           - One floating IP is required for SAP HANA DB connection by clients.
           - This main VIP will always run on the promoted HANA node and be moved with it during a failover.
-        required: true
-        type: dict
-        required_one_of: [{ primary, main, rw, promoted }]
+
         example:
           sap_hana_vip:
             primary: 192.168.10.100
+
+        required: true
+        type: dict
+        required_one_of: [{ primary, main, rw, promoted }]
