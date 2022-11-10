@@ -48,12 +48,12 @@
   ansible.builtin.import_tasks: construct_vars_hana_common.yml
 
 - name: "SAP HA Cluster - Include variable construction for SAP HANA Scale-up"
-  when: sap_ha_cluster_sap_type == 'scaleup'
+  when: sap_ha_pacemaker_cluster_sap_type == 'scaleup'
   ansible.builtin.include_tasks:
     file: construct_vars_hana_scaleup.yml
 
 - name: "SAP HA Cluster - Include variable construction for SAP HANA Scale-out"
-  when: sap_ha_cluster_sap_type == 'scaleout'
+  when: sap_ha_pacemaker_cluster_sap_type == 'scaleout'
   ansible.builtin.include_tasks:
     file: construct_vars_hana_scaleout.yml
 
@@ -62,13 +62,13 @@
 
     # Start with prerequisite changes for certain platforms, if applicable
     - name: "SAP HA Cluster - Include platform specific prerequisites"
-      when: __sap_ha_cluster_platform_file is file
+      when: __sap_ha_pacemaker_cluster_platform_file is file
       ansible.builtin.include_tasks:
         file: "{{ item }}"
       loop:
-        - "platform/preconfigure_{{ __sap_ha_cluster_platform }}.yml"
+        - "platform/preconfigure_{{ __sap_ha_pacemaker_cluster_platform }}.yml"
       vars:
-        __sap_ha_cluster_platform_file: "{{ role_path }}/tasks/{{ item }}"
+        __sap_ha_pacemaker_cluster_platform_file: "{{ role_path }}/tasks/{{ item }}"
 
     # Before we are ready to call the ha_cluster role, we want to validate
     # that the minimum required parameters are defined and not empty.
@@ -76,29 +76,29 @@
     - name: "SAP HA Cluster - Validate parameters for 'ha_cluster' role input"
       ansible.builtin.assert:
         that:
-          - __sap_ha_cluster_cluster_properties is defined
-          - __sap_ha_cluster_extra_packages is defined
-          - __sap_ha_cluster_resource_primitives is defined
-          - __sap_ha_cluster_resource_clones is defined
-          - __sap_ha_cluster_constraints_order is defined
-          - __sap_ha_cluster_constraints_colocation is defined
+          - __sap_ha_pacemaker_cluster_cluster_properties is defined
+          - __sap_ha_pacemaker_cluster_extra_packages is defined
+          - __sap_ha_pacemaker_cluster_resource_primitives is defined
+          - __sap_ha_pacemaker_cluster_resource_clones is defined
+          - __sap_ha_pacemaker_cluster_constraints_order is defined
+          - __sap_ha_pacemaker_cluster_constraints_colocation is defined
         fail_msg: "Cluster build parameter construction has failed for this parameter."
 
     - name: "SAP HA Cluster - Query if CIB already exists"
       ansible.builtin.command:
         cmd: cibadmin --query
-      register: __sap_ha_cluster_cib_query
+      register: __sap_ha_pacemaker_cluster_cib_query
       check_mode: false
       changed_when: false
       failed_when: false
 
     - name: "SAP HA Cluster - Create backup of existing CIB"
       when:
-        - __sap_ha_cluster_cib_query.stdout is defined
-        - __sap_ha_cluster_cib_query.stdout|length > 0
+        - __sap_ha_pacemaker_cluster_cib_query.stdout is defined
+        - __sap_ha_pacemaker_cluster_cib_query.stdout|length > 0
       ansible.builtin.copy: # noqa template-instead-of-copy
         backup: true
-        content: "{{ __sap_ha_cluster_cib_query.stdout }}"
+        content: "{{ __sap_ha_pacemaker_cluster_cib_query.stdout }}"
         dest: /root/cib_backup.xml
         group: root
         owner: root
@@ -114,18 +114,18 @@
           no_log: true  # some parameters contain secrets
       no_log: true  # some parameters contain secrets
       vars:
-        __ha_cluster_repos: "{{ __sap_ha_cluster_repos }}"
-        ha_cluster_cluster_name: "{{ __sap_ha_cluster_cluster_name }}"
-        ha_cluster_constraints_order: "{{ __sap_ha_cluster_constraints_order }}"
-        ha_cluster_constraints_colocation: "{{ __sap_ha_cluster_constraints_colocation }}"
-        ha_cluster_cluster_properties: "{{ __sap_ha_cluster_cluster_properties }}"
-        ha_cluster_extra_packages: "{{ __sap_ha_cluster_extra_packages }}"
-        ha_cluster_fence_agent_packages: "{{ __sap_ha_cluster_fence_agent_packages }}"
-        ha_cluster_hacluster_password: "{{ __sap_ha_cluster_hacluster_password }}"
-        ha_cluster_properties: "{{ __sap_ha_cluster_cluster_properties }}"
-        ha_cluster_resource_clones: "{{ __sap_ha_cluster_resource_clones }}"
-        ha_cluster_resource_groups: "{{ __sap_ha_cluster_resource_groups }}"
-        ha_cluster_resource_primitives: "{{ __sap_ha_cluster_resource_primitives }}"
+        __ha_cluster_repos: "{{ __sap_ha_pacemaker_cluster_repos }}"
+        ha_cluster_cluster_name: "{{ __sap_ha_pacemaker_cluster_cluster_name }}"
+        ha_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order }}"
+        ha_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation }}"
+        ha_cluster_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties }}"
+        ha_cluster_extra_packages: "{{ __sap_ha_pacemaker_cluster_extra_packages }}"
+        ha_cluster_fence_agent_packages: "{{ __sap_ha_pacemaker_cluster_fence_agent_packages }}"
+        ha_cluster_hacluster_password: "{{ __sap_ha_pacemaker_cluster_hacluster_password }}"
+        ha_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties }}"
+        ha_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones }}"
+        ha_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups }}"
+        ha_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives }}"
       tags: ha_cluster
 
     # Resource defaults can currently not be updated through ha_cluster
@@ -133,17 +133,17 @@
     - name: "SAP HA Cluster - Check resource defaults"
       ansible.builtin.command:
         cmd: pcs resource defaults config
-      register: __sap_ha_cluster_check_resource_defaults
+      register: __sap_ha_pacemaker_cluster_check_resource_defaults
       run_once: true
       changed_when: false
       check_mode: false
 
     - name: "SAP HA Cluster - Update resource default attributes"
       when:
-        - item.name ~ '=' ~ item.value not in __sap_ha_cluster_check_resource_defaults.stdout
+        - item.name ~ '=' ~ item.value not in __sap_ha_pacemaker_cluster_check_resource_defaults.stdout
       ansible.builtin.command:
         cmd: pcs resource defaults update {{ item.name }}={{ item.value }}
-      loop: "{{ sap_ha_cluster_resource_defaults }}"
+      loop: "{{ sap_ha_pacemaker_cluster_resource_defaults }}"
       run_once: true
 
     - name: "SAP HA Cluster - Include srHook configuration"
@@ -167,10 +167,10 @@
 # their user provided variables?
 
 - name: "SAP HA Cluster - Create cluster configuration parameters file"
-  when: sap_ha_cluster_create_config_dest is defined
+  when: sap_ha_pacemaker_cluster_create_config_dest is defined
   ansible.builtin.template:
     backup: true
-    dest: "{{ sap_ha_cluster_create_config_dest }}"
+    dest: "{{ sap_ha_pacemaker_cluster_create_config_dest }}"
     mode: 0600
     src: cluster_create_config.j2
     trim_blocks: true
@@ -181,11 +181,11 @@
   check_mode: false
 
 - name: "SAP HA Cluster - Display configuration parameters SAVE FILE location"
-  when: sap_ha_cluster_create_config_varfile
+  when: sap_ha_pacemaker_cluster_create_config_varfile
   ansible.builtin.debug:
     msg: |
       The cluster resource configuration parameters have been saved here:
-      >>>>>     {{ sap_ha_cluster_create_config_dest }}    <<<<<
+      >>>>>     {{ sap_ha_pacemaker_cluster_create_config_dest }}    <<<<<
 
       Please include these variable definitions if you run the 'ha_cluster'
       linux system role separately.

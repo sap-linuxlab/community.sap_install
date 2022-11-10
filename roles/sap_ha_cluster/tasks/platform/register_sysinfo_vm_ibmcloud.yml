@@ -4,15 +4,15 @@
 - name: "SAP HA Cluster - Register instance ID"
   ansible.builtin.shell: |
     dmidecode -s system-family
-  register: __sap_ha_cluster_register_ibmcloud_instance
+  register: __sap_ha_pacemaker_cluster_register_ibmcloud_instance
   changed_when: false
   check_mode: false
 
 - name: "SAP HA Cluster - Assemble host mapping"
   ansible.builtin.set_fact:
-    __sap_ha_cluster_pcmk_host_map: >-
+    __sap_ha_pacemaker_cluster_pcmk_host_map: >-
       {% for node in ansible_play_hosts_all -%}
-        {{ hostvars[node].ansible_hostname }}:{{ hostvars[node].__sap_ha_cluster_register_ibmcloud_instance.stdout }}
+        {{ hostvars[node].ansible_hostname }}:{{ hostvars[node].__sap_ha_pacemaker_cluster_register_ibmcloud_instance.stdout }}
         {%- if not loop.last %};
         {%- endif %}
       {% endfor %}

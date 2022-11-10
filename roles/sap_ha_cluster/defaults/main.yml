@@ -6,24 +6,24 @@
 # Do NOT USE ANSIBLE FACTS for defaults to be compatible with
 # playbooks that disable generic fact gathering!
 
-sap_ha_cluster_cluster_name: my-cluster
+sap_ha_pacemaker_cluster_cluster_name: my-cluster
 
-sap_ha_cluster_create_config_varfile: false
-sap_ha_cluster_create_config_dest: "{{ sap_ha_cluster_cluster_name }}_resource_config.yml"
+sap_ha_pacemaker_cluster_create_config_varfile: false
+sap_ha_pacemaker_cluster_create_config_dest: "{{ sap_ha_pacemaker_cluster_cluster_name }}_resource_config.yml"
 
 # Inherit SAP common parameters
-sap_ha_cluster_cluster_nodes: "{{ sap_hana_cluster_nodes }}"
-sap_ha_cluster_hana_sid: "{{ sap_hana_sid }}"
-sap_ha_cluster_hana_instance_number: "{{ sap_hana_instance_number }}"
+sap_ha_pacemaker_cluster_cluster_nodes: "{{ sap_hana_cluster_nodes }}"
+sap_ha_pacemaker_cluster_hana_sid: "{{ sap_hana_sid }}"
+sap_ha_pacemaker_cluster_hana_instance_number: "{{ sap_hana_instance_number }}"
 
 # Make sure that there is always the default fed into the included role
-sap_ha_cluster_fence_agent_packages:
+sap_ha_pacemaker_cluster_fence_agent_packages:
   - fence-agents-all
 
-sap_ha_cluster_extra_packages: "{{ ha_cluster_extra_packages | default([]) }}"
+sap_ha_pacemaker_cluster_extra_packages: "{{ ha_cluster_extra_packages | default([]) }}"
 
 # Adjusting resource defaults
-sap_ha_cluster_resource_defaults:
+sap_ha_pacemaker_cluster_resource_defaults:
   - name: resource-stickiness
     value: 1000
   - name: migration-threshold
@@ -31,34 +31,34 @@ sap_ha_cluster_resource_defaults:
 
 # The type of SAP landscape and multi-node replication
 # TODO: Type definitions and feature support
-# sap_ha_cluster_sap_type:
-sap_ha_cluster_replication_type: none
+# sap_ha_pacemaker_cluster_sap_type:
+sap_ha_pacemaker_cluster_replication_type: none
 
 # Optional parameters to customize HANA resources
 # AUTOMATED_REGISTER
-sap_ha_cluster_hana_automated_register: true
+sap_ha_pacemaker_cluster_hana_automated_register: true
 # DUPLICATE_PRIMARY_TIMEOUT
-sap_ha_cluster_hana_duplicate_primary_timeout: 900
+sap_ha_pacemaker_cluster_hana_duplicate_primary_timeout: 900
 # PREFER_SITE_TAKEOVER
-sap_ha_cluster_hana_prefer_site_takeover: true
+sap_ha_pacemaker_cluster_hana_prefer_site_takeover: true
 
 ### stonith resource parameter defaults
-sap_ha_cluster_fence_options:
+sap_ha_pacemaker_cluster_fence_options:
   pcmk_reboot_retries: 4
   pcmk_reboot_timeout: 400
   power_timeout: 240
 
 ### Resource default patterns
-sap_ha_cluster_vip_address: "{{ sap_hana_vip }}"
-sap_ha_cluster_vip_resource_agent: "ocf:heartbeat:IPaddr2"
-sap_ha_cluster_vip_resource_name: "vip_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
+sap_ha_pacemaker_cluster_vip_address: "{{ sap_hana_vip }}"
+sap_ha_pacemaker_cluster_vip_resource_agent: "ocf:heartbeat:IPaddr2"
+sap_ha_pacemaker_cluster_vip_resource_name: "vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_number }}"
 
 # Resource IDs (names) as convenience parameters.
-sap_ha_cluster_hana_resource_name: "SAPHana_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
-sap_ha_cluster_hana_resource_clone_name: "{{ sap_ha_cluster_hana_resource_name }}-clone"
-sap_ha_cluster_hana_topology_resource_name: "SAPHanaTopology_{{ sap_ha_cluster_hana_sid }}_{{ sap_ha_cluster_hana_instance_number }}"
-sap_ha_cluster_hana_topology_resource_clone_name: "{{ sap_ha_cluster_hana_topology_resource_name }}-clone"
+sap_ha_pacemaker_cluster_hana_resource_name: "SAPHana_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_number }}"
+sap_ha_pacemaker_cluster_hana_resource_clone_name: "{{ sap_ha_pacemaker_cluster_hana_resource_name }}-clone"
+sap_ha_pacemaker_cluster_hana_topology_resource_name: "SAPHanaTopology_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_number }}"
+sap_ha_pacemaker_cluster_hana_topology_resource_clone_name: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_name }}-clone"
 
 # TODO: network interface name used for client access
-sap_ha_cluster_vip_client_interface: eth0
-sap_ha_cluster_vip_update_rt: []
+sap_ha_pacemaker_cluster_vip_client_interface: eth0
+sap_ha_pacemaker_cluster_vip_update_rt: []

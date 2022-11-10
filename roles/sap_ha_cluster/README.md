@@ -1,9 +1,9 @@
 <!-- BEGIN: Role Introduction -->
-# sap_ha_cluster Ansible Role
+# sap_ha_pacemaker_cluster Ansible Role
 
 This role installs pacemaker cluster packages and configures the cluster and SAP cluster resources.
 The cluster setup is managed through the `ha_cluster` Linux System Role.<br>
-`sap_ha_cluster` is acting as a wrapper that takes care of the SAP environment parameter definitions, platform specific variables and additional steps to complete the SAP HA Cluster setup after pacemaker configuration.
+`sap_ha_pacemaker_cluster` is acting as a wrapper that takes care of the SAP environment parameter definitions, platform specific variables and additional steps to complete the SAP HA Cluster setup after pacemaker configuration.
 
 <!-- END: Role Introduction -->
 
@@ -36,9 +36,9 @@ Minimum required parameters:
 
 On cloud platforms additional parameters are required:
 
-- AWS: `sap_ha_cluster_aws_*` variables
-- AWS: `sap_ha_cluster_vip_update_rt`
-- IBM Cloud VPC: `sap_ha_cluster_ibmcloud_*` variables
+- AWS: `sap_ha_pacemaker_cluster_aws_*` variables
+- AWS: `sap_ha_pacemaker_cluster_vip_update_rt`
+- IBM Cloud VPC: `sap_ha_pacemaker_cluster_ibmcloud_*` variables
 
 ---
 

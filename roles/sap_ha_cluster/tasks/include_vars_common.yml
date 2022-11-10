@@ -3,15 +3,15 @@
 - name: "SAP HA Cluster - Collect required facts"
   when:
     - not ansible_facts.keys() | list |
-      intersect(__sap_ha_cluster_required_facts) == __sap_ha_cluster_required_facts
+      intersect(__sap_ha_pacemaker_cluster_required_facts) == __sap_ha_pacemaker_cluster_required_facts
   ansible.builtin.setup:
     gather_subset: hardware,interfaces
 
 # Include vars files based on the environment.
 # Respect order for potential variable precedence.
 - name: "SAP HA Cluster - Include environment specific variables"
-  when: __sap_ha_cluster_vars_file is file
-  ansible.builtin.include_vars: "{{ __sap_ha_cluster_vars_file }}"
+  when: __sap_ha_pacemaker_cluster_vars_file is file
+  ansible.builtin.include_vars: "{{ __sap_ha_pacemaker_cluster_vars_file }}"
   loop:
     - "{{ ansible_os_family | lower }}.yml"
     - "{{ ansible_distribution | lower }}.yml"
@@ -22,4 +22,4 @@
       {{ ansible_distribution | lower ~ '_' ~
       ansible_distribution_version }}.yml
   vars:
-    __sap_ha_cluster_vars_file: "{{ role_path }}/vars/{{ item }}"
+    __sap_ha_pacemaker_cluster_vars_file: "{{ role_path }}/vars/{{ item }}"
