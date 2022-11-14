@@ -99,6 +99,20 @@ Required for cluster nodes setup on Amazon cloud.<br>
 AWS secret key, paired with the access key for instance control.<br>
 Required for cluster nodes setup on Amazon cloud.<br>
 
+### sap_ha_pacemaker_cluster_cluster_properties
+- _Type:_ `dict`
+- _Default:_ `see example`
+
+Standard pacemaker cluster properties are configured with recommended settings for cluster node fencing.<br>
+
+Example:
+```yaml
+sap_ha_pacemaker_cluster_cluster_properties:
+  concurrent-fencing: true
+  stonith-enabled: true
+  stonith-timeout: 900
+```
+
 ### sap_ha_pacemaker_cluster_create_config_dest
 - _Type:_ `str`
 - _Default:_ `<cluster-name>_resource_config.yml`
@@ -194,6 +208,19 @@ Required for cluster nodes setup in IBM Cloud VPC.<br>
 
 The type of SAP HANA site replication across multiple hosts.<br>
 _Not yet supported_<br>
+
+### sap_ha_pacemaker_cluster_resource_defaults
+- _Type:_ `dict`
+- _Default:_ `See example`
+
+Set default parameters in the cluster that will be valid for all pacemaker resources.<br>
+
+Example:
+```yaml
+sap_ha_pacemaker_cluster_resource_defaults:
+  migration-threshold: 5000
+  resource-stickiness: 1000
+```
 
 ### sap_ha_pacemaker_cluster_sap_type
 - _Type:_ `str`
