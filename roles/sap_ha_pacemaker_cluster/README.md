@@ -101,7 +101,7 @@ Required for cluster nodes setup on Amazon cloud.<br>
 
 ### sap_ha_pacemaker_cluster_cluster_properties
 - _Type:_ `dict`
-- _Default:_ `see example`
+- _Default:_ `See example`
 
 Standard pacemaker cluster properties are configured with recommended settings for cluster node fencing.<br>
 
@@ -161,12 +161,14 @@ sap_ha_pacemaker_cluster_fence_options:
 - _Type:_ `bool`
 - _Default:_ `True`
 
+Parameter for the 'SAPHana' cluster resource.<br>
 Define if a former primary should be re-registered automatically as secondary.<br>
 
 ### sap_ha_pacemaker_cluster_hana_duplicate_primary_timeout
 - _Type:_ `int`
 - _Default:_ `900`
 
+Parameter for the 'SAPHana' cluster resource.<br>
 Time difference needed between to primary time stamps, if a dual-primary situation occurs.<br>
 If the time difference is less than the time gap, then the cluster holds one or both instances in a "WAITING" status.<br>
 This is to give an admin a chance to react on a failover. A failed former primary will be registered after the time difference is passed.<br>
@@ -175,6 +177,7 @@ This is to give an admin a chance to react on a failover. A failed former primar
 - _Type:_ `bool`
 - _Default:_ `True`
 
+Parameter for the 'SAPHana' cluster resource.<br>
 Set to "false" if the cluster should first attempt to restart the instance on the same node.<br>
 When set to "true" (default) a failover to secondary will be initiated on resource failure.<br>
 
@@ -213,7 +216,7 @@ _Not yet supported_<br>
 - _Type:_ `dict`
 - _Default:_ `See example`
 
-Set default parameters in the cluster that will be valid for all pacemaker resources.<br>
+Set default parameters that will be valid for all pacemaker resources.<br>
 
 Example:
 ```yaml
