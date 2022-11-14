@@ -112,11 +112,17 @@ com.sap.engine.services.dc.api.cmd.Runner deploy \
 --port 52004
 ```
 
-**Example deploy.lst file:**
+**Example deploy.lst files:**
 ```
 /software/sapnwas_java_export_extracted/DATA_UNITS/JAVA_J2EE_OSINDEP_UT/SERVERCORE22_0.SCA
 /software/sapnwas_java_export_extracted/DATA_UNITS/JAVA_J2EE_OSINDEP_UT/J2EEAPPS22_0.SCA
 /software/sapnwas_java_export_extracted/DATA_UNITS/JAVA_J2EE_OSINDEP_UT/JSPM22_0.SCA
+etc
+```
+```
+/software/sap_solman_java_export_extracted/DATA_UNITS/SOLMAN72_JAVA_UT/LMSERVICE12_0.SCA
+/software/sap_solman_java_export_extracted/DATA_UNITS/SOLMAN72_JAVA_UT/ADSSAP19_1.SCA
+/software/sap_solman_java_export_extracted/DATA_UNITS/SOLMAN72_JAVA_UT/ISAGENTMINJ500_0.SCA
 etc
 ```
 
