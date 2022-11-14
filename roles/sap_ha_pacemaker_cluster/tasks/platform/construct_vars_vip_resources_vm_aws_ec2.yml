@@ -4,16 +4,16 @@
 - name: "SAP HA Prepare Pacemaker - Add resource: OS floating IP (dev/test only)"
   when:
     - sap_ha_pacemaker_cluster_vip_resource_name ~ '_' ~ vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
-    - (sap_ha_pacemaker_cluster_vip_strategy == 'ipaddr') or
-      (__sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_strategy].with is defined and
-      'ipaddr' in __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_strategy].with)
+    - (sap_ha_pacemaker_cluster_vip_method == 'ipaddr') or
+      (__sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with is defined and
+      'ipaddr' in __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with)
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
     __sap_ha_pacemaker_cluster_vip_contraint_id: "{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
   vars:
     __resource_vip:
       id: "{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
-      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_strategy].agent }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
       instance_attrs:
         - attrs:
             - name: ip
@@ -22,13 +22,13 @@
 - name: "SAP HA Prepare Pacemaker - Add resource: AWS floating IP (dev/test only)"
   when:
     - ('pri' ~ sap_ha_pacemaker_cluster_vip_resource_name ~ '_' ~ vip_list_item.key) not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
-    - sap_ha_pacemaker_cluster_vip_strategy == 'awsvip'
+    - sap_ha_pacemaker_cluster_vip_method == 'awsvip'
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
   vars:
     __resource_vip:
       id: "pri{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
-      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_strategy].agent }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
       instance_attrs:
         - attrs:
             - name: secondary_private_ip
@@ -37,7 +37,7 @@
 - name: "SAP HA Prepare Pacemaker - Add resource group for VIP resources"
   when:
     - __vip_group.id is not in (__sap_ha_pacemaker_cluster_resource_groups | map(attribute='id'))
-    - sap_ha_pacemaker_cluster_vip_strategy in ['awsvip']
+    - sap_ha_pacemaker_cluster_vip_method in ['awsvip']
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__vip_group] }}"
     __sap_ha_pacemaker_cluster_vip_contraint_id: "{{ sap_ha_pacemaker_cluster_vip_resource_group_name }}_{{ vip_list_item.key }}"
@@ -51,14 +51,14 @@
 - name: "SAP HA Prepare Pacemaker - Add resource: AWS VIP routing"
   when:
     - (sap_ha_pacemaker_cluster_vip_resource_name ~ '_' ~ vip_list_item.key) not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
-    - sap_ha_pacemaker_cluster_vip_strategy == 'aws_vpc_move_ip'
+    - sap_ha_pacemaker_cluster_vip_method == 'aws_vpc_move_ip'
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
     __sap_ha_pacemaker_cluster_vip_contraint_id: "{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
   vars:
     __resource_vip:
       id: "{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
-      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_strategy].agent }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
       instance_attrs:
         - attrs:
             - name: ip

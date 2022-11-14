@@ -132,7 +132,8 @@
     # role parameters, and thus need to be added.
     - name: "SAP HA Install Pacemaker - Check resource defaults"
       ansible.builtin.command:
-        cmd: pcs resource defaults config
+        cmd: |
+          pcs resource defaults config
       register: __sap_ha_pacemaker_cluster_check_resource_defaults
       run_once: true
       changed_when: false
@@ -140,10 +141,13 @@
 
     - name: "SAP HA Install Pacemaker - Update resource default attributes"
       when:
-        - item.name ~ '=' ~ item.value not in __sap_ha_pacemaker_cluster_check_resource_defaults.stdout
+        - item.key ~ '=' ~ item.value not in __sap_ha_pacemaker_cluster_check_resource_defaults.stdout
       ansible.builtin.command:
-        cmd: pcs resource defaults update {{ item.name }}={{ item.value }}
-      loop: "{{ sap_ha_pacemaker_cluster_resource_defaults }}"
+        cmd: |
+          pcs resource defaults update {{ item.key }}={{ item.value }}
+      loop: "{{ sap_ha_pacemaker_cluster_resource_defaults | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}={{ item.value }}"
       run_once: true
 
     - name: "SAP HA Install Pacemaker - Include srHook configuration"

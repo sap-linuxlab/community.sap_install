@@ -2,32 +2,44 @@
 # The following variables are constructed here in order to be provided as
 # input for the included 'ha_cluster' system role.
 
-- name: "SAP HA Prepare Pacemaker - Define cluster properties"
+- name: "SAP HA Prepare Pacemaker - Define cluster stonith properties"
   when:
-    - item.name not in
-      (__sap_ha_pacemaker_cluster_cluster_properties | map(attribute='attr') | flatten | map(attribute='name'))
+    - sap_ha_pacemaker_cluster_cluster_properties is defined
+    - sap_ha_pacemaker_cluster_cluster_properties is iterable
+    - sap_ha_pacemaker_cluster_cluster_properties | length > 0
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties + [{'attr': item}] }}"
-  loop_control:
-    label: "{{ item.name }}"
-  loop:
-    - name: stonith-enabled
-      value: true
-    - name: stonith-timeout
-      value: 900
-    - name: concurrent-fencing
-      value: true
+    __sap_ha_pacemaker_cluster_cluster_properties:
+      - attrs: |-
+          {% set attrs = __sap_ha_pacemaker_cluster_cluster_properties | map(attribute='attrs') | flatten -%}
+          {%- for default_cluster_properties in (sap_ha_pacemaker_cluster_cluster_properties | dict2items) -%}
+            {% if default_cluster_properties.key not in
+            (__sap_ha_pacemaker_cluster_cluster_properties | map(attribute='attrs') | flatten | map(attribute='name')) -%}
+              {% set role_attrs = attrs.extend([
+                {
+                  'name': default_cluster_properties.key,
+                  'value': default_cluster_properties.value
+                }
+              ]) -%}
+            {%- endif %}
+          {%- endfor %}
+          {{ attrs }}
 
-# Combine the stonith resource config from
+# Combine the default stonith resource config from
 # - assembled pcmk_host_map
-# - fence resource defaults
+#   (see platform tasks: __sap_ha_pacemaker_cluster_pcmk_host_map)
 # - fence agent specific required options
+#   (see platform vars: sap_ha_pacemaker_cluster_stonith_default)
+# - generic pacemaker fence resource options
+#   (see defaults: sap_ha_pacemaker_cluster_fence_options)
 
-- name: "SAP HA Prepare Pacemaker - Assemble the stonith resource definition"
+- name: "SAP HA Prepare Pacemaker - Assemble the stonith resource definition from platform default"
+  when:
+    - sap_ha_pacemaker_cluster_stonith_default is defined
+    - sap_ha_pacemaker_cluster_stonith_custom is not defined
   ansible.builtin.set_fact:
-    sap_ha_pacemaker_cluster_stonith_resource:
-      - id: "res_{{ sap_ha_pacemaker_cluster_stonith_required.agent | split(':') | last }}"
-        agent: "{{ sap_ha_pacemaker_cluster_stonith_required.agent }}"
+    __sap_ha_pacemaker_cluster_stonith_resource:
+      - id: "res_{{ sap_ha_pacemaker_cluster_stonith_default.agent | split(':') | last }}"
+        agent: "{{ sap_ha_pacemaker_cluster_stonith_default.agent }}"
         instance_attrs:
           - attrs: |-
               {% set attrs = [] -%}
@@ -36,7 +48,7 @@
                   'name': 'pcmk_host_map',
                   'value': '"' + __sap_ha_pacemaker_cluster_pcmk_host_map + '"'
                 }]) -%}
-              {%- for agent_opt in (sap_ha_pacemaker_cluster_stonith_required.options | dict2items) -%}
+              {%- for agent_opt in (sap_ha_pacemaker_cluster_stonith_default.options | dict2items) -%}
                 {% set aopts = attrs.extend([
                   {
                     'name': agent_opt.key,
@@ -52,10 +64,39 @@
               {%- endfor %}
               {{ attrs }}
 
+- name: "SAP HA Prepare Pacemaker - Assemble the stonith resources from custom definition"
+  when:
+    - sap_ha_pacemaker_cluster_stonith_custom is defined
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_stonith_resource:
+      - id: "res_{{ item.name }}"
+        agent: "{{ item.agent }}"
+        instance_attrs:
+          - attrs: |-
+              {% set attrs = [] -%}
+              {%- for option in (item.options | dict2items) -%}
+                {% set aopts = attrs.extend([
+                  {
+                    'name': option.key,
+                    'value': option.value
+                  }
+                ]) -%}
+              {%- endfor %}
+              {{ attrs }}
+  loop: "{{ sap_ha_pacemaker_cluster_stonith_custom }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+
 # The STONITH resource is an element in the cluster_resource_primitives list
 - name: "SAP HA Prepare Pacemaker - Construct stonith resources definition"
   when:
-    - sap_ha_pacemaker_cluster_stonith_resource is defined
+    - __sap_ha_pacemaker_cluster_stonith_resource is defined
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + (sap_ha_pacemaker_cluster_stonith_resource | from_yaml) }}"
+    __sap_ha_pacemaker_cluster_resource_primitives: |-
+      {{
+        __sap_ha_pacemaker_cluster_resource_primitives
+        +
+        (__sap_ha_pacemaker_cluster_stonith_resource | from_yaml)
+      }}
   no_log: true  # stonith resources usually contain secrets
