@@ -43,6 +43,9 @@
     - sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_3024346 | d(false)
 
 - name: Check NetApp modprobe conf file for SAP HANA with NFSv3
+  when:
+    - sap_hana_preconfigure_use_netapp_settings_nfsv3 | d(false)
+    - sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_3024346 | d(false)
   block:
     - name: Get info about file /etc/modprobe.d/sunrpc.conf
       ansible.builtin.stat:
@@ -63,10 +66,6 @@
         success_msg: "PASS: File /etc/modprobe.d/sunrpc.conf is a regular file."
       ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
       when: __sap_hana_preconfigure_register_etc_modprobe_sunrpc_conf_assert.stat.exists
-
-  when:
-    - sap_hana_preconfigure_use_netapp_settings_nfsv3 | d(false)
-    - sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_3024346 | d(false)
 
 - name: Get value of 'options sunrpc tcp_max_slot_table_entries' from /etc/modprobe.d/sunrpc.conf
   ansible.builtin.command: awk 'BEGIN{FS="="}/options sunrpc tcp_max_slot_table_entries/{print $NF}' /etc/modprobe.d/sunrpc.conf

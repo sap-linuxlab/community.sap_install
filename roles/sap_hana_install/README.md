@@ -235,7 +235,7 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 
 - Check if directory `/usr/sap/<sid>` exists. If yes, abort the role.
 
-#### Pre-Install 
+#### Pre-Install
 
 - Set all passwords to follow master password if set to 'y'.
 
@@ -299,7 +299,7 @@ in a temporary directory for use by the hdblcm command in the next step.
 
 ### Add hosts to an existing SAP HANA Installation
 
-#### Pre-Install 
+#### Pre-Install
 
 - Process SAP HANA configfile based on input parameters.
 

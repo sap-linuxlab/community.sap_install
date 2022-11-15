@@ -30,7 +30,7 @@ This role has been tested and working for the following SAP products
 
 1. SAPCAR executable
 
-2. Software Provisioning Manager .SAR file 
+2. Software Provisioning Manager .SAR file
     - `SWPM*.SAR`
 
 3. SAP Installation files

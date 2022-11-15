@@ -3,7 +3,7 @@
 # Striped volume
 - name: SAP Storage Preparation - {{ sap_storage_cloud_type | upper }} - {{ sap_storage_az_vmsize }} - {{ item.value.name }} - Striped
   block:
-    
+
     # Get LUNs from metadata
     - name: SAP Storage Preparation - {{ sap_storage_cloud_type | upper }} - {{ sap_storage_az_vmsize }} - {{ item.value.name }} Get LUNs from metadata
       shell: |
@@ -20,7 +20,7 @@
       args:
         executable: /bin/bash
       register: pvs_reg
-    
+
     - set_fact:
         pvs_list: "{{ pvs_reg.stdout.split() }}"
 
@@ -39,7 +39,7 @@
         size: 100%VG
         opts: "-i{{ item.value.numluns }} -I{{ item.value.stripesize }}"
 
-  when: 
+  when:
     - "item.value.numluns != '1'"
 
 # Single volume
@@ -77,7 +77,7 @@
         lv: "{{ item.value.lv }}"
         size: 100%VG
 
-  when: 
+  when:
     - "item.value.numluns == '1'"
 
 # Create Filesystem
