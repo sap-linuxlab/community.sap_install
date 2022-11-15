@@ -1,22 +1,23 @@
 ---
 
-- name: SAP SWPM Pre Install - Remove existing {{ sap_swpm_sid | lower }}adm
+- name: SAP SWPM Pre Install - Remove existing {{ sap_swpm_sid | lower + 'adm' }}
   block:
 
 # Reason for noqa: We currently do not determine if there are processes to be killed
-    - name: SAP SWPM Pre Install - Kill all processes under {{ sap_swpm_sid | lower }}adm # noqa no-changed-when
+    - name: SAP SWPM Pre Install - Kill all processes under {{ sap_swpm_sid | lower + 'adm' }}
       ansible.builtin.shell: |
         killall -u {{ sap_swpm_sid | lower }}adm
       ignore_errors: yes
+      changed_when: true
 
-    - name: SAP SWPM Pre Install - Remove {{ sap_swpm_sid | lower }}adm
+    - name: SAP SWPM Pre Install - Remove user {{ sap_swpm_sid | lower + 'adm' }}
       ansible.builtin.user:
         name: '{{ sap_swpm_sid | lower }}adm'
         state: absent
         remove: yes
         force: yes
 
-    - name: SAP SWPM Pre Install - Remove {{ sap_swpm_sid | lower }}adm group
+    - name: SAP SWPM Pre Install - Remove group {{ sap_swpm_sid | lower + 'adm' }}
       ansible.builtin.group:
         name: '{{ sap_swpm_sid | lower }}adm'
         state: absent
@@ -27,7 +28,7 @@
     gid: '{{ sap_swpm_sapsys_gid }}'
     state: present
 
-- name: SAP SWPM Pre Install - Create {{ sap_swpm_sid | lower }}adm
+- name: SAP SWPM Pre Install - Create {{ sap_swpm_sid | lower + 'adm' }}
   ansible.builtin.user:
     name: '{{ sap_swpm_sid | lower }}adm'
     comment: "SAP User - {{ sap_swpm_sid }}"

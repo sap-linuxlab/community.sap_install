@@ -1,7 +1,7 @@
 ---
 
 # Reason for noqa: The command might change things but we do not yet attempt to find out
-- name: SAP SWPM Post Install - Set {{ sap_swpm_sid | lower }}adm to no expire # noqa no-changed-when
+- name: SAP SWPM Post Install - ensure password expiry disabled {{ sap_swpm_sid | lower + 'adm' }}
   ansible.builtin.shell: |
     chage -m 0 -M 99999 -I -1 -E -1 {{ sap_swpm_sid | lower }}adm
     chage -m 0 -M 99999 -I -1 -E -1 sapadm
@@ -9,6 +9,7 @@
     executable: /bin/bash
   become: true
   register: sap_swpm_post_install_sidadm_noexpire
+  changed_when: true
 
 # Firewall
 
