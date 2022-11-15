@@ -1,0 +1,17 @@
+---
+# tasks file for sap_vm_preconfigure
+
+- name: Trigger tuned profile sap-hana-kvm-guest activation
+  include_tasks: set-tuned-profile.yml
+
+- name: Set filename prefix to empty string if role is run in normal mode
+  set_fact:
+    __sap_vm_preconfigure_fact_assert_prefix: ""
+  when: not sap_vm_preconfigure_assert|d(false)
+
+- name: Prepend filename with assert string if role is run in assert mode
+  set_fact:
+    __sap_vm_preconfigure_fact_assert_prefix: "assert-"
+  when: sap_hypervisor_node_preconfigure_assert|d(false)
+
+- include_tasks: '{{ __sap_vm_preconfigure_fact_assert_prefix }}set-tuned-profile.yml'

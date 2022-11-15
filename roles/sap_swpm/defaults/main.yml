@@ -48,13 +48,18 @@ sap_swpm_inifile_list:
 #  - swpm_installation_media_swpm1_oracledb_19
 #  - swpm_installation_media_swpm1_sapase
 #  - swpm_installation_media_swpm1_sapmaxdb
-#  - sum_config
+#  - maintenance_plan_stack_tms_config
+#  - maintenance_plan_stack_tms_transports
+#  - maintenance_plan_stack_spam_config
+#  - maintenance_plan_stack_sum_config
+#  - maintenance_plan_stack_sum_10_batch_mode
   - credentials
   - credentials_hana
 #  - credentials_anydb_ibmdb2
 #  - credentials_anydb_oracledb
 #  - credentials_anydb_sapase
 #  - credentials_anydb_sapmaxdb
+#  - credentials_nwas_ssfs
   - db_config_hana
 #  - db_config_anydb_all
 #  - db_config_anydb_ibmdb2
@@ -67,6 +72,7 @@ sap_swpm_inifile_list:
   - db_connection_nw_hana
 #  - db_connection_nw_anydb_ibmdb2
 #  - db_connection_nw_anydb_oracledb
+#  - db_connection_nw_anydb_sapase
   - db_restore_hana
 #  - nw_config_anydb
   - nw_config_other
@@ -76,11 +82,16 @@ sap_swpm_inifile_list:
 #  - nw_config_ers
   - nw_config_ports
 #  - nw_config_java_ume
+#  - nw_config_java_feature_template_ids
 #  - nw_config_webdisp_generic
 #  - nw_config_webdisp_gateway
   - nw_config_host_agent
 #  - nw_config_post_abap_reports
   - sap_os_linux_user
+
+## Not in use
+#  - swpm_installation_media_download_service
+#  - solman_daa_swpm1
 
 
 ########################################
@@ -142,6 +153,7 @@ sap_swpm_spam_update: 'false'
 sap_swpm_spam_update_sar:
 sap_swpm_configure_tms: 'true'
 sap_swpm_tmsadm_password:
+sap_swpm_tms_tr_files_path:
 # --- Experimental --- #
 
 sap_swpm_install_saphostagent: 'true'
@@ -173,6 +185,54 @@ sap_swpm_ddic_000_password:
 # initial = not an HA setup
 # set this in the input file when installing ascs, ers to indicate an HA setup
 sap_swpm_virtual_hostname: "initial"
+
+
+########################################
+#   SWPM Ansible Role variables
+#   for Default Mode
+#   - Lookup list of Feature Template IDs
+########################################
+
+sap_swpm_java_template_id_selected_list:
+  - java_engine_ee
+  - java_nwas_as
+  - java_adobe_document_services
+
+sap_swpm_java_template_id_lookup_dictionary:
+  java_nwas_as:
+    - 01200615324800000135 # Application Server Java
+#    - 01200615324800002844 # !!! Ignore, SAP NWAS 7.40 JAVA only
+  java_engine_se:
+    - 01200615324800000125 # Adapter Engine (Java SE)
+  java_engine_ee:
+    - 01200615324800000165 # Adapter Engine (Java EE)
+  java_nwdi:
+    - 01200615324800000129 # Development Infrastructure
+    - 01200615324800003960 # Developer Studio
+  java_composition_environment:
+    - 01200615324800002968 # Composition Platform
+    - 01200615324800002888 # Guided Procedures
+#    - 01200615324800002884 # !!! Ignore, SAP NWAS 7.40 JAVA only
+  java_enterprise_portal:
+    - 01200615324800000164 # EP Core - Application Portal
+    - 01200615324800000174 # Enterprise Portal
+  java_enterprise_service_repository:
+    - 01200615324800002887 # Enterprise Services Repository
+    - 01200615324800000149 # ESR Content
+  java_adobe_document_services:
+    - 01200615324800000128 # Adobe Document Services
+    - 01200314694800005225 # PDF Export
+  java_pi_aex:
+    - 01200615324800003841 # Advanced Adapter Engine Extnd
+  java_bi_bpm:
+    - 01200615324800000150 # BI Java
+    - 01200615324800002897 # BPM
+  java_scheduling_cps:
+    - 01200615324800000153 # Central Process Scheduling
+  java_solman:
+    - 01200615324800001035 # Solution Manager
+  java_demo:
+    - 01200615324800002898 # Demo Applications
 
 
 ########################################
@@ -309,6 +369,7 @@ sap_swpm_generic: 'false'
 sap_swpm_swpm_installation_type: ""
 sap_swpm_swpm_installation_header: ""
 sap_swpm_swpm_command_virtual_hostname: ""
+sap_swpm_swpm_command_mp_stack: ""
 
 # Firewall setup
 sap_swpm_setup_firewall: 'false'

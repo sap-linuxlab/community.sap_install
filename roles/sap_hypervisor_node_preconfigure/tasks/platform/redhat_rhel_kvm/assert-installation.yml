@@ -1,0 +1,14 @@
+---
+- name: Gather package facts
+  ansible.builtin.package_facts:
+
+- name: Assert that all required packages are installed
+  ansible.builtin.assert:
+    that: "'{{ line_item }}' in ansible_facts.packages"
+    fail_msg: "FAIL: Package '{{ line_item }}' is not installed!"
+    success_msg: "PASS: Package '{{ line_item }}' is installed."
+  with_items:
+    - "{{ sap_hypervisor_node_preconfigure_packages }}"
+  loop_control:
+    loop_var: line_item
+  ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"
