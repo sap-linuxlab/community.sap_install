@@ -1,0 +1,13 @@
+---
+- name: Assert - Check tuned profile
+  block:
+    - name: Get tuned profile
+      ansible.builtin.command: tuned-adm active
+      register: __sap_hypervisor_node_preconfigure_tuned_profile_assert
+
+    - name: Verify tuned profile
+      ansible.builtin.assert:
+        that: "'Current active profile: sap-hana-kvm-host' in __sap_hypervisor_node_preconfigure_tuned_profile_assert.stdout"
+        fail_msg: "FAIL: tuned profile is not sap-hana-kvm-host"
+        success_msg: "PASS: tuned profile is sap-hana-kvm-host"
+      ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"

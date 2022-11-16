@@ -1,0 +1,25 @@
+---
+
+- name: SAP Install Media Detect - SAP Host Agent - Set fact for install media directory
+  set_fact:
+    sap_hostagent_install_directory: "{{ sap_install_media_detect_directory }}/sap_hostagent"
+
+- name: SAP Install Media Detect - SAP Host Agent - Create Directory - {{ sap_hostagent_install_directory }}
+  file:
+    path: "{{ sap_hostagent_install_directory }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+# SAPHOSTAGENT
+- name: SAP Install Media Detect - SAP Host Agent - Get SAPHOSTAGENT SAR file from folder - {{ sap_install_media_detect_directory }}
+  ansible.builtin.shell: |
+    ls SAPHOSTAGENT*SAR
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+  register: saphostagent_sarfile
+
+- name: SAP Install Media Detect - SAP Host Agent - Copy SAPHOSTAGENT SAR file
+  ansible.builtin.shell: |
+    cp {{ sap_install_media_detect_directory }}/{{ saphostagent_sarfile.stdout }} {{ sap_hostagent_install_directory }}/{{ saphostagent_sarfile.stdout }}

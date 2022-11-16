@@ -1,0 +1,33 @@
+---
+- name: Check file permissions
+  ansible.builtin.command: "stat -c%a /usr/libexec/vdsm/hooks/before_vm_start/{{ item }}"
+  register: __sap_hypervisor_node_preconfigure_register_file_permissions_assert
+
+- name: Assert hook file permissions
+  ansible.builtin.assert:
+    that: "__sap_hypervisor_node_preconfigure_register_file_permissions_assert.stdout == '755'"
+    fail_msg: "FAIL: Hook {{ item }} does not have the correct file permissions (!= 755)."
+    success_msg: "PASS: Hook {{ item }} does have the correct file permissions (755)."
+  ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"
+
+- name: Create tmp dir
+  ansible.builtin.file:
+    path: /tmp/sap_hypervisor_node_preconfigure
+    state: directory
+
+- name: Copy hook for checking
+  ansible.builtin.copy:
+    dest: "/tmp/sap_hypervisor_node_preconfigure/{{ item }}"
+    src: "{{ item }}"
+
+- name: Diff hook
+  ansible.builtin.command: "diff -uw /tmp/sap_hypervisor_node_preconfigure/{{ item }} /usr/libexec/vdsm/hooks/before_vm_start/{{ item }}"
+  register: __sap_hypervisor_node_preconfigure_register_hook_diff_assert
+  ignore_errors: yes
+
+- name: Assert hook content
+  ansible.builtin.assert:
+    that: "__sap_hypervisor_node_preconfigure_register_hook_diff_assert.rc == 0"
+    fail_msg: "FAIL: Hook {{ item }} has been modified, please investigate manually."
+    success_msg: "PASS: Hook {{ item }} not modified"
+  ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"

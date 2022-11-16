@@ -1,8 +1,45 @@
 ---
+
+# CHECK: we need to define variables, when the Hana Replication interface != ansible_hostname
+# for now I set the default to ansible_hostname, so I can update the rest of the role with that variable
+#  __sap_ha_install_hana_hsr_node_name
+#  __sap_ha_install_hana_hsr_node_domain
+- name: "SAP HSR - Pick up interface node name from definition"
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_node_name: "{{ ansible_hostname }}"
+  tags: always
+
+## The following variables can be used to simplify the role
+
+- name: "SAP - HSR create information on HSR connection interface"
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_connection:
+      node_name: "{{ item.node_name.split('.')[0] }}"
+      node_domain: "{{ item.node_name.split('.')[1:] | join('.') or sap_ha_install_hana_hsr_fqdn }}"
+      node_ip: "{{ item.node_ip }}"
+      node_role: "{{ item.node_role | default('secondary') }}"
+      hana_site: "{{ item.hana_site }}"
+  loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
+  loop_control:
+    label: "{{ item.node_name }}"
+  when:
+    - item.node_ip in ansible_all_ipv4_addresses
+  tags: always
+
+- name: SAP HSR - Check that hsr interface is configured on host
+  ansible.builtin.assert:
+    that:
+      - __sap_ha_install_hana_hsr_connection.node_ip is defined
+      - __sap_ha_install_hana_hsr_connection.node_ip != ""
+    fail_msg: "The IP adress configured for HSR does not exist on this host"
+    success_msg: "The IP adress for HSR is configured on this host"
+  tags: always
+
 - name: "SAP HSR - Pick up primary node name from definition"
   ansible.builtin.set_fact:
     __sap_ha_install_hana_hsr_primary_node: "{{ item.node_name }}"
-    __sap_ha_install_hana_hsr_primary_node_name: "{{ item.node_name }}"
+    __sap_ha_install_hana_hsr_primary_node_name: "{{ item.node_name.split('.')[0] }}"
+    __sap_ha_install_hana_hsr_primary_node_domain: "{{ item.node_name.split('.')[1:] | join('.') }}"
     __sap_ha_install_hana_hsr_primary_node_ip: "{{ item.node_ip }}"
   when:
     - item.node_role is defined
@@ -10,10 +47,7 @@
   loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
   loop_control:
     label: "{{ item.node_name }}"
-  tags:
-    - hsr_hdbuserstore
-    - hsr_pki
-    - hsr_register
+  tags: always
 
 - name: "SAP HSR - Verify that Ansible can connect to the defined primary node by name"
   ansible.builtin.command: |
@@ -21,7 +55,7 @@
   delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node_name }}"
   register: __sap_ha_install_hana_hsr_primary_node_name_check
   when:
-    - ansible_hostname != __sap_ha_install_hana_hsr_primary_node_name
+    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
   ignore_unreachable: true
   ignore_errors: true
   failed_when: false
@@ -62,7 +96,7 @@
 
   # block settings
   when:
-    - ansible_hostname != __sap_ha_install_hana_hsr_primary_node_name
+    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
     - __sap_ha_install_hana_hsr_primary_node_name_check.unreachable is defined
     - __sap_ha_install_hana_hsr_primary_node_name_check.unreachable
   become: false
@@ -106,7 +140,7 @@
       vars:
         __sap_ha_install_hana_hsr_secpath: "/usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs"
   when:
-    - ansible_hostname != __sap_ha_install_hana_hsr_primary_node_name
+    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
   tags:
     - hsr_pki
 
@@ -119,7 +153,7 @@
       become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
       tags: hsr_backup
   when:
-    - ansible_hostname == __sap_ha_install_hana_hsr_primary_node_name
+    - __sap_ha_install_hana_hsr_node_name == __sap_ha_install_hana_hsr_primary_node_name
   tags:
     - hsr_backup
 

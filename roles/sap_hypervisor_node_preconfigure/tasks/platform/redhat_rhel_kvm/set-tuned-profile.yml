@@ -1,0 +1,40 @@
+---
+- name: Create tuned profile directory /usr/lib/tuned/sap-hana-kvm-host
+  ansible.builtin.file:
+    path: /usr/lib/tuned/sap-hana-kvm-host
+    state: directory
+  become: true
+  become_user: root
+
+- name: Create sap-hana-kvm-host tuned profile
+  ansible.builtin.copy:
+    dest: "/usr/lib/tuned/sap-hana-kvm-host/tuned.conf"
+    content: |
+        #
+        # tuned configuration
+        #
+        [main]
+        summary=Optimize for running as KVM host for SAP HANA as virtual guest
+        include=throughput-performance
+
+        [sysctl]
+        # Start background writeback (via writeback threads) at this percentage (system
+        # default is 10%)
+        vm.dirty_background_ratio = 5
+
+        # The total time the scheduler will consider a migrated process
+        # "cache hot" and thus less likely to be re-migrated
+        # (system default is 500000, i.e. 0.5 ms)
+        kernel.sched_migration_cost_ns = 5000000
+
+        [cpu]
+        # Setting C3 state sleep mode/power savings on X86
+        # and force_latency=70 on Power
+        force_latency=cstate.id:3|70
+  become: true
+  become_user: root
+
+- name: Activate tuned profile
+  ansible.builtin.command: tuned-adm profile sap-hana-kvm-host
+  become: true
+  become_user: root

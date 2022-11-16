@@ -9,7 +9,7 @@ Detection of installation media is available for SAP HANA and the various key in
 SAP Business Applications based upon SAP NetWeaver (e.g. SAP S/4HANA, SAP BW/4HANA, SAP ECC, SAP BW, SAP WebDispatcher etc).
 As an example, SAP HANA Client would be detected and the SAP Kernel Part I/II would be detected.
 
-Once detection and extraction are completed, the file paths are shown and stored as variables for subsequent use by other Ansible Tasks.
+Once detection (e.g. using `zipinfo -1` and `unrar lb`) and extraction are completed, the file paths are shown and stored as variables for subsequent use by other Ansible Tasks.
 
 ## Dependencies
 

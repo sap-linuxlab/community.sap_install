@@ -50,6 +50,12 @@ The **sap_ha_install_hana_hsr** roles configures a HANA system replication relat
 
 In most cases you need to specify these variables only, if you want to use different values than the default values.
 
+## Requirements, Dependencies and Testing
+
+Tests are performed with other Ansible Roles in the sequence. Please refer to tests performed with final Ansible Roles:
+- [sap_ha_set_hana Ansible Role - Requirements, Dependencies and Testing](../sap_ha_set_hana/README.md#requirements-dependencies-and-testing)
+- [sap_ha_set_netweaver Ansible Role - Requirements, Dependencies and Testing](../sap_ha_set_netweaver/README.md#requirements-dependencies-and-testing)
+
 ## Example Parameter File
 
 ```yaml

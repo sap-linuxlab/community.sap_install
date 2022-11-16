@@ -1,0 +1,82 @@
+---
+# Platform detection for cloud and other infrastructure platforms.
+
+### AWS facts already available in Ansible
+#
+# ansible_bios_vendor: "Amazon EC2"
+# ansible_bios_version: "1.0"
+# ansible_board_asset_tag: "i-043d3c1a889ed9016"
+# ansible_board_name: "NA"
+# ansible_board_serial: "NA"
+# ansible_board_vendor: "Amazon EC2"
+# ansible_board_version: "NA"
+# ansible_chassis_asset_tag: "Amazon EC2"
+# ansible_chassis_serial: "NA"
+# ansible_chassis_vendor: "Amazon EC2"
+# ansible_chassis_version: "NA"
+# ansible_product_name: "r5.8xlarge"
+# ansible_system_vendor: "Amazon EC2"
+
+# TODO: detection based on multiple facts and providing one standard
+# name for use as platform type in related include files
+
+
+- name: SAP virtual machine detect platform - decision set fact
+  set_fact:
+    sap_vm_platform: "{{ sap_vm_platform_detection_decision }}"
+    # cloud_aliyun_ecs_vm, cloud_aws_ec2_vs, cloud_gcp_ce_vm, cloud_ibmcloud_powervs, cloud_ibmcloud_vs, cloud_msazure_vm, ibmpower_lpar, redhat_ocp_virt_vm, redhat_rhel_kvm_vm, vmware_vsphere_vm
+
+
+- name: SAP virtual machine detect platform - confirm AWS EC2 Virtual Server
+  when: sap_vm_platform == cloud_aws_ec2_vs
+  block:
+
+  - name: (AWS) Get instance metadata token
+    ansible.builtin.uri:
+      headers:
+        X-aws-ec2-metadata-token-ttl-seconds: 21600
+      method: PUT
+      return_content: true
+      url: http://169.254.169.254/latest/api/token
+    register: detect_cloud_provider_aws_token
+    changed_when: false
+    ignore_errors: true
+
+  - name: (AWS) Get instance metadata ami-id
+    ansible.builtin.uri:
+      headers:
+        X-aws-ec2-metadata-token: "{{ detect_cloud_provider_aws_token.content }}"
+      method: GET
+      return_content: true
+      url: http://169.254.169.254/latest/meta-data/ami-id
+    register: detect_cloud_provider_aws_ami_id
+    changed_when: false
+    ignore_errors: true
+
+  - name: (AWS) Set detect_cloud_provider_cloud_provider
+    ansible.builtin.set_fact:
+      sap_detect_cloud_provider_cloud_provider: "aws"
+    when:
+      - not detect_cloud_provider_aws_ami_id.failed
+
+
+- name: SAP virtual machine detect platform - confirm MicrosofT Azure Virtual Machine
+  when: sap_vm_platform == cloud_msazure_vm
+  block:
+
+  - name: (Azure) Get instance metadata
+    ansible.builtin.uri:
+      headers:
+        Metadata: true
+      method: GET
+      url: http://169.254.169.254/metadata/instance/compute?api-version=2021-10-01
+    register: detect_cloud_provider_azure_instance_metadata
+    changed_when: false
+    ignore_errors: true
+
+  - name: (Azure) Set detect_cloud_provider_cloud_provider
+    ansible.builtin.set_fact:
+      sap_detect_cloud_provider_cloud_provider: "azure"
+    when:
+      - detect_cloud_provider_azure_instance_metadata.json.azEnvironment is defined
+      - detect_cloud_provider_azure_instance_metadata.json.azEnvironment == "AzurePublicCloud"
