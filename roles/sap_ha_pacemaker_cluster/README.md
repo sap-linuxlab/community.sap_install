@@ -56,11 +56,6 @@ ha_cluster:
   - 192.168.1.10
   - 192.168.2.10
   node_name: nodeA
-  pcs_address: nodeA
-  sbd_devices:
-  - /dev/vdw
-  - /dev/vdz
-  sbd_watchdog: /dev/watchdog1
 ```
 
 ### ha_cluster_cluster_name
