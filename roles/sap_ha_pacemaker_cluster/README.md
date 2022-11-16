@@ -47,7 +47,7 @@ On cloud platforms additional parameters are required:
 
 Optional _**host_vars**_ parameter - if defined it must be set for each node.<br>
 Dictionary that can contain various node options for the pacemaker cluster configuration.<br>
-Supported options can be reviewed in the `ha_cluster` Linux System Role (https://github.com/linux-system-roles/ha_cluster/blob/master/README.md#nodes-names-and-addresses).<br>
+Supported options can be reviewed in the `ha_cluster` Linux System Role (https://github.com/linux-system-roles/ha_cluster/blob/master/README.md).<br>
 
 Example:
 ```yaml
