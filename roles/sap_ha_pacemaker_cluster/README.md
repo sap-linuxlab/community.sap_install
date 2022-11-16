@@ -45,20 +45,9 @@ On cloud platforms additional parameters are required:
 ### ha_cluster
 - _Type:_ `dict`
 
-Optional _**host_vars**_ parameter, if defined it must be set for each node.<br>
-Definition of node name and IP addresses to be used for the pacemaker cluster.<br>
-Required for resilient node communication by providing more than one corosync IP.<br>
-See https://github.com/linux-system-roles/ha_cluster/blob/master/README.md#nodes-names-and-addresses<br>
-
-  - **corosync_addresses**<br>
-        _Default:_ `<primary ip>`<br>
-        List of one or more IP addresses to be used for Corosync.<br>All nodes must have the same number of addresses.<br>The order of the listed addresses matters.
-  - **node_name**<br>
-        _Default:_ `<play host name>`<br>
-        The name of the node in the cluster.
-  - **pcs_address**<br>
-        _Default:_ `<play host primary address>`<br>
-        An address used by pcs to communicate with the node.<br>Can be a name, FQDN or IP address and can contain a port.
+Optional _**host_vars**_ parameter - if defined it must be set for each node.<br>
+Dictionary that can contain various node options for the pacemaker cluster configuration.<br>
+{'Supported options can be reviewed in the `ha_cluster` Linux System Role': 'https://github.com/linux-system-roles/ha_cluster/blob/master/README.md#nodes-names-and-addresses'}<br>
 
 Example:
 ```yaml
@@ -68,6 +57,10 @@ ha_cluster:
   - 192.168.2.10
   node_name: nodeA
   pcs_address: nodeA
+  sbd_devices:
+  - /dev/vdw
+  - /dev/vdz
+  sbd_watchdog: /dev/watchdog1
 ```
 
 ### ha_cluster_cluster_name
