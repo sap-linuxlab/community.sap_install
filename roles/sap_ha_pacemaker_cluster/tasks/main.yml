@@ -1,0 +1,197 @@
+---
+# 1. Role arguments are validated through meta/arguments_spec.yml (ansible >= 2.11)
+# 2. Detect SAP solution to be configured (scale-up, scale-out, etc.)
+#    * Play hosts must have SAP installed and landscape information discoverable ?!
+# 3. Include tasks for parameter validation for the selected solution
+#    * Certain parameters must match the target solution
+#      (networking, IDs, number of nodes)
+# 4. Include tasks for building the ha_cluster arguments for the selected solution
+#    * scale-up, scale-out, scale-up + mtr, scale-out + mtr
+# 5. Include LSR "ha_cluster" with the constructed parameters as role arguments
+# 6. Add solution specific config
+#    * srhook
+# 7. Save LSR "ha_cluster" input parameters in .yml file for easy re-use
+
+# TODO: Build all resource/constraint configuration variables based on
+# simpler user input (think: drop-down options in a UI)
+
+- name: "SAP HA Prepare Pacemaker - Include parameter validation tasks"
+  ansible.builtin.import_tasks: validate_input_parameters.yml
+
+# Make sure that all parameters already set for 'ha_cluster' are also inherited.
+# Add to this file a task for EACH parameter which this SAP cluster role
+# supports.
+- name: "SAP HA Prepare Pacemaker - Include tasks for checking 'ha_cluster' predefinitions"
+  ansible.builtin.import_tasks: ascertain_ha_cluster_in_inventory.yml
+
+- name: "SAP HA Prepare Pacemaker - Include facts and common variables"
+  ansible.builtin.import_tasks: include_vars_common.yml
+
+# Determine which SAP landscape we are going to configure in the cluster.
+- name: "SAP HA Prepare Pacemaker - Include tasks for SAP landscape calculation"
+  ansible.builtin.import_tasks: ascertain_sap_landscape.yml
+
+# Determine if we are on a cloud platform.
+- name: "SAP HA Prepare Pacemaker - Include tasks for platform detection"
+  ansible.builtin.import_tasks: ascertain_platform_type.yml
+
+- name: "SAP HA Prepare Pacemaker - Include common variable construction tasks"
+  ansible.builtin.import_tasks: construct_vars_common.yml
+
+- name: "SAP HA Prepare Pacemaker - Include variable construction for STONITH resources"
+  ansible.builtin.import_tasks: construct_vars_stonith.yml
+
+- name: "SAP HA Prepare Pacemaker - Include variable construction for VIP resources"
+  ansible.builtin.import_tasks: include_construct_vip_resources.yml
+
+- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP HANA common"
+  ansible.builtin.import_tasks: construct_vars_hana_common.yml
+
+- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP HANA Scale-up"
+  when: sap_ha_pacemaker_cluster_sap_type == 'scaleup'
+  ansible.builtin.include_tasks:
+    file: construct_vars_hana_scaleup.yml
+
+- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP HANA Scale-out"
+  when: sap_ha_pacemaker_cluster_sap_type == 'scaleout'
+  ansible.builtin.include_tasks:
+    file: construct_vars_hana_scaleout.yml
+
+- name: "SAP HA Install Pacemaker - Block with actual changes"
+  block:
+
+    # Start with prerequisite changes for certain platforms, if applicable
+    - name: "SAP HA Install Pacemaker - Include platform specific prerequisites"
+      when: __sap_ha_pacemaker_cluster_platform_file is file
+      ansible.builtin.include_tasks:
+        file: "{{ item }}"
+      loop:
+        - "platform/preconfigure_{{ __sap_ha_pacemaker_cluster_platform }}.yml"
+      vars:
+        __sap_ha_pacemaker_cluster_platform_file: "{{ role_path }}/tasks/{{ item }}"
+
+    # Before we are ready to call the ha_cluster role, we want to validate
+    # that the minimum required parameters are defined and not empty.
+    # TODO: make this smarter, currently all these vars are pre-defined anyway
+    - name: "SAP HA Install Pacemaker - Validate parameters for 'ha_cluster' role input"
+      ansible.builtin.assert:
+        that:
+          - __sap_ha_pacemaker_cluster_cluster_properties is defined
+          - __sap_ha_pacemaker_cluster_extra_packages is defined
+          - __sap_ha_pacemaker_cluster_resource_primitives is defined
+          - __sap_ha_pacemaker_cluster_resource_clones is defined
+          - __sap_ha_pacemaker_cluster_constraints_order is defined
+          - __sap_ha_pacemaker_cluster_constraints_colocation is defined
+        fail_msg: "Cluster build parameter construction has failed for this parameter."
+
+    - name: "SAP HA Install Pacemaker - Query if CIB already exists"
+      ansible.builtin.command:
+        cmd: cibadmin --query
+      register: __sap_ha_pacemaker_cluster_cib_query
+      check_mode: false
+      changed_when: false
+      failed_when: false
+
+    - name: "SAP HA Install Pacemaker - Create backup of existing CIB"
+      when:
+        - __sap_ha_pacemaker_cluster_cib_query.stdout is defined
+        - __sap_ha_pacemaker_cluster_cib_query.stdout|length > 0
+      ansible.builtin.copy: # noqa template-instead-of-copy
+        backup: true
+        content: "{{ __sap_ha_pacemaker_cluster_cib_query.stdout }}"
+        dest: /root/cib_backup.xml
+        group: root
+        owner: root
+        mode: 0600
+
+    # Cluster installation and configuration through the dedicated
+    # linux system role 'ha_cluster'
+    - name: "SAP HA Install Pacemaker - Include System Role 'ha_cluster'"
+      ansible.builtin.include_role:
+        name: linux-system-roles.ha_cluster
+        apply:
+          tags: ha_cluster
+          no_log: true  # some parameters contain secrets
+      no_log: true  # some parameters contain secrets
+      vars:
+        __ha_cluster_repos: "{{ __sap_ha_pacemaker_cluster_repos }}"
+        ha_cluster_cluster_name: "{{ __sap_ha_pacemaker_cluster_cluster_name }}"
+        ha_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order }}"
+        ha_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation }}"
+        ha_cluster_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties }}"
+        ha_cluster_extra_packages: "{{ __sap_ha_pacemaker_cluster_extra_packages }}"
+        ha_cluster_fence_agent_packages: "{{ __sap_ha_pacemaker_cluster_fence_agent_packages }}"
+        ha_cluster_hacluster_password: "{{ __sap_ha_pacemaker_cluster_hacluster_password }}"
+        ha_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties }}"
+        ha_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones }}"
+        ha_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups }}"
+        ha_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives }}"
+      tags: ha_cluster
+
+    # Resource defaults can currently not be updated through ha_cluster
+    # role parameters, and thus need to be added.
+    - name: "SAP HA Install Pacemaker - Check resource defaults"
+      ansible.builtin.command:
+        cmd: |
+          pcs resource defaults config
+      register: __sap_ha_pacemaker_cluster_check_resource_defaults
+      run_once: true
+      changed_when: false
+      check_mode: false
+
+    - name: "SAP HA Install Pacemaker - Update resource default attributes"
+      when:
+        - item.key ~ '=' ~ item.value not in __sap_ha_pacemaker_cluster_check_resource_defaults.stdout
+      ansible.builtin.command:
+        cmd: |
+          pcs resource defaults update {{ item.key }}={{ item.value }}
+      loop: "{{ sap_ha_pacemaker_cluster_resource_defaults | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}={{ item.value }}"
+      run_once: true
+
+    - name: "SAP HA Install Pacemaker - Include srHook configuration"
+      ansible.builtin.include_tasks:
+        file: configure_srhook.yml
+        apply:
+          tags: srhook
+      tags: srhook
+
+### END OF BLOCK: prerequisite changes and cluster setup
+
+# Save all the constructed cluster parameters into a vars file.
+#
+# This will help re-using ha_cluster afterwards without loosing the already
+# configured resources and constraints.
+# The ha_cluster role will otherwise remove configuration that is not part
+# of the parameters provided during any subsequent run outside of the current
+# SAP system role.
+#
+# TODO: Deal with secrets in output. They should be masked, maybe with
+# their user provided variables?
+
+- name: "SAP HA Install Pacemaker - Create cluster configuration parameters file"
+  when: sap_ha_pacemaker_cluster_create_config_dest is defined
+  ansible.builtin.template:
+    backup: true
+    dest: "{{ sap_ha_pacemaker_cluster_create_config_dest }}"
+    mode: 0600
+    src: cluster_create_config.j2
+    trim_blocks: true
+    lstrip_blocks: true
+  delegate_to: localhost
+  run_once: true
+  become: false
+  check_mode: false
+
+- name: "SAP HA Install Pacemaker - Display configuration parameters SAVE FILE location"
+  when: sap_ha_pacemaker_cluster_create_config_varfile
+  ansible.builtin.debug:
+    msg: |
+      The cluster resource configuration parameters have been saved here:
+      >>>>>     {{ sap_ha_pacemaker_cluster_create_config_dest }}    <<<<<
+
+      Please include these variable definitions if you run the 'ha_cluster'
+      linux system role separately.
+      !! Secret values of resources may be included in this output !!
+  run_once: true

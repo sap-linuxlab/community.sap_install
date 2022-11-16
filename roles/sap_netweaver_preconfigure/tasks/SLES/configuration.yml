@@ -5,13 +5,17 @@
     var: __sap_netweaver_preconfigure_sapnotes | difference([''])
 
 - name: Include installation actions for required sapnotes
-  ansible.builtin.include_tasks: "../tasks/sapnote/{{ item }}/installation.yml"
+  ansible.builtin.include_tasks: "../tasks/sapnote/{{ sap_note_line_item }}/installation.yml"
   with_items: "{{ __sap_netweaver_preconfigure_sapnotes | difference(['']) }}"
+  loop_control:
+    loop_var: sap_note_line_item
   when: __sap_netweaver_preconfigure_sapnotes is defined
 
 - name: Include configuration actions for required sapnotes
-  ansible.builtin.include_tasks: "../tasks/sapnote/{{ item }}/configuration.yml"
+  ansible.builtin.include_tasks: "../tasks/sapnote/{{ sap_note_line_item }}/configuration.yml"
   with_items: "{{ __sap_netweaver_preconfigure_sapnotes | difference(['']) }}"
+  loop_control:
+    loop_var: sap_note_line_item
   when: __sap_netweaver_preconfigure_sapnotes is defined
 
 - name: Warn if not enough swap space is configured

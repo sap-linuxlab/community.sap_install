@@ -1,60 +1,47 @@
 ---
 
-- name: SAP SWPM Pre Install - Determine if Generic Product
-  ansible.builtin.set_fact:
-    sap_swpm_generic: 'true'
-  when:
-    - "'Webdispatcher' in sap_swpm_product_catalog_id"
-# todo: add items for generic SAP products
-
-################
-# Determine Installation Type
-################
-
 - name: SAP SWPM Pre Install - Determine Installation Type
   ansible.builtin.set_fact:
     sap_swpm_swpm_installation_type: ""
     sap_swpm_swpm_installation_header: ""
     sap_swpm_swpm_command_virtual_hostname: ""
+    sap_swpm_swpm_command_mp_stack: ""
 
-# Restore from backup
-- name: SAP SWPM Pre Install - Check if Backup Restore
+
+################
+# Determine Installation Type
+################
+
+#- name: SAP SWPM Pre Install - Check if general SAP Software installation
+#  ansible.builtin.set_fact:
+#    sap_swpm_swpm_installation_type: "general"
+#    sap_swpm_swpm_installation_header: "General installation of SAP Software"
+#  when:
+#    - "not '.ABAPHA' in sap_swpm_product_catalog_id"
+#    - "not '.CP' in sap_swpm_product_catalog_id"
+
+- name: SAP SWPM Pre Install - Check if System Copy (Backup/Restore)
   ansible.builtin.set_fact:
     sap_swpm_swpm_installation_type: "restore"
-    sap_swpm_swpm_installation_header: "Restoring from Backup"
+    sap_swpm_swpm_installation_header: "System Copy restore from backup"
   when:
     - "'.CP' in sap_swpm_product_catalog_id"
 
-# Standard
-- name: SAP SWPM Pre Install - Check if Standard Installation
-  ansible.builtin.set_fact:
-    sap_swpm_swpm_installation_type: "standard"
-    sap_swpm_swpm_installation_header: "Installing"
-  when:
-    - "not '.ABAPHA' in sap_swpm_product_catalog_id"
-    - "not '.CP' in sap_swpm_product_catalog_id"
-    - "'initial' in sap_swpm_virtual_hostname"
-    - "not sap_swpm_generic | bool"
-
-# Generic
-- name: SAP SWPM Pre Install - Check if Generic SAP Product Installation
-  ansible.builtin.set_fact:
-    sap_swpm_swpm_installation_type: "generic"
-    sap_swpm_swpm_installation_header: "Installing Generic SAP Product"
-  when:
-    - "not '.CP' in sap_swpm_product_catalog_id"
-    - "sap_swpm_generic | bool"
-
-# High Availability
-- name: SAP SWPM Pre Install - Check if High Availability Installation
+- name: SAP SWPM Pre Install - Check if SAP High Availability installation
   ansible.builtin.set_fact:
     sap_swpm_swpm_installation_type: "ha"
     sap_swpm_swpm_installation_header: "High Availability Installation using virtual hostname"
     sap_swpm_swpm_command_virtual_hostname: "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }}"
   when:
     - "'.ABAPHA' in sap_swpm_product_catalog_id"
-    - "not 'initial' in sap_swpm_virtual_hostname"
-    - "not sap_swpm_generic | bool"
+
+- name: SAP SWPM Pre Install - Check if installation using SAP Maintenance Planner
+  ansible.builtin.set_fact:
+    sap_swpm_swpm_installation_type: "maint_plan_stack"
+    sap_swpm_swpm_installation_header: "Installing using SAP Maintenance Planner Stack XML"
+    sap_swpm_swpm_command_mp_stack: "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }}"
+  when:
+    - sap_swpm_mp_stack_path is defined and not sap_swpm_mp_stack_path is none
 
 ################
 # Run Installation Type Steps
@@ -62,3 +49,5 @@
 
 - name: SAP SWPM Pre Install - Run Installation Type Steps
   ansible.builtin.include_tasks: "install_type/{{ sap_swpm_swpm_installation_type }}_install.yml"
+  when:
+    - "sap_swpm_swpm_installation_type | length > 0"
