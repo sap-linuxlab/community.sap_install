@@ -1,0 +1,91 @@
+---
+
+- name: SAP Install Media Detect - SAP ASE - Create Directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  with_items:
+    - "{{ sap_install_media_detect_directory }}/sapase/"
+    - "{{ sap_install_media_detect_directory }}/sapase_extracted/"
+    - "{{ sap_install_media_detect_directory }}/sapase_client_extracted/"
+
+- name: SAP Install Media Detect - SAP ASE - List files in directory
+  ansible.builtin.shell: ls -1
+  register: detect_directory_files
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+
+- name: SAP Install Media Detect - SAP ASE - Detect ZIP files (including no file extensions), ignore errors
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
+  register: detect_directory_files_zip
+#  changed_when: "item.stdout | length > 0"
+  with_items: 
+    - "{{ detect_directory_files.stdout_lines }}"
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+  ignore_errors: true
+
+- name: SAP Install Media Detect - SAP ASE - Identify SAP ASE installation media
+  ansible.builtin.shell: |
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'BD_SYBASE_ASE' ; then echo '{{ item }}' ; fi ; fi
+  register: detect_directory_files_sapase
+  changed_when: "item | length > 0"
+  with_items: 
+    - "{{ detect_directory_files_zip.results | map(attribute='stdout') | select() }}"
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+
+- name: SAP Install Media Detect - SAP ASE - Identify SAP ASE Client installation media
+  ansible.builtin.find:
+    paths: "{{ sap_install_media_detect_directory }}"
+    recurse: yes
+    file_type: file
+    patterns: '.*ASEBC.*'
+    use_regex: yes
+  register: detect_directory_files_sapase_client
+
+- name: SAP Install Media Detect - SAP ASE - Extract ZIP files of SAP ASE installation media
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/sapase_extracted/{{ item }}_extracted; fi
+  with_items: 
+    - "{{ detect_directory_files_sapase.results | map(attribute='stdout') | select() }}"
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+
+- name: SAP Install Media Detect - SAP ASE - Extract SAP ASE 16.0 Client with SAPCAR
+  ansible.builtin.shell: |
+    chmod +x {{ sap_install_media_detect_directory }}/{{ sap_swpm_sapcar_file_name }}
+    {{ sap_install_media_detect_directory }}/{{ sap_swpm_sapcar_file_name }} \
+    -xvf {{ item }} \
+    -manifest SIGNATURE.SMF \
+    -R "{{ sap_install_media_detect_directory }}/sapase_client_extracted"
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+  with_items: 
+    - "{{ detect_directory_files_sapase_client.files[0].path }}"
+
+- name: SAP Install Media Detect - SAP ASE - Identify SAP ASE extracted
+  ansible.builtin.find:
+    paths: "{{ sap_install_media_detect_directory }}/sapase_extracted"
+    recurse: yes
+    file_type: directory
+    patterns: ".*SYBASE_LINUX.*" # Use patterns to identify directory with this string
+    use_regex: yes
+  register: detect_directory_sapase_extracted
+
+- name: SAP Install Media Detect - SAP ASE - Identify SAP ASE Client extracted
+  ansible.builtin.find:
+    paths: "{{ sap_install_media_detect_directory }}/sapase_client_extracted"
+    recurse: yes
+    file_type: directory
+    contains: "sybodbc" # Use contains to find specific filename
+  register: detect_directory_sapase_client_extracted
+
+- name: SAP Install Media Detect - SAP ASE - Local Directory source - move SAP ASE compressed archive files
+  command: mv "{{ sap_install_media_detect_directory }}/{{ item }}" "{{ sap_install_media_detect_directory }}/sapase/{{ item }}"
+  with_items: 
+    - "{{ detect_directory_files_sapase.results | map(attribute='stdout') | select() }}"
+  when:
+    - sap_install_media_detect_source == "local_dir"

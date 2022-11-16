@@ -1,0 +1,25 @@
+---
+# Gather specific subsets of facts if the required facts are not yet available.
+- name: "SAP HA Prepare Pacemaker - Collect required facts"
+  when:
+    - not ansible_facts.keys() | list |
+      intersect(__sap_ha_pacemaker_cluster_required_facts) == __sap_ha_pacemaker_cluster_required_facts
+  ansible.builtin.setup:
+    gather_subset: hardware,interfaces
+
+# Include vars files based on the environment.
+# Respect order for potential variable precedence.
+- name: "SAP HA Prepare Pacemaker - Include environment specific variables"
+  when: __sap_ha_pacemaker_cluster_vars_file is file
+  ansible.builtin.include_vars: "{{ __sap_ha_pacemaker_cluster_vars_file }}"
+  loop:
+    - "{{ ansible_os_family | lower }}.yml"
+    - "{{ ansible_distribution | lower }}.yml"
+    - >-
+      {{ ansible_distribution | lower ~ '_' ~
+      ansible_distribution_major_version }}.yml
+    - >-
+      {{ ansible_distribution | lower ~ '_' ~
+      ansible_distribution_version }}.yml
+  vars:
+    __sap_ha_pacemaker_cluster_vars_file: "{{ role_path }}/vars/{{ item }}"

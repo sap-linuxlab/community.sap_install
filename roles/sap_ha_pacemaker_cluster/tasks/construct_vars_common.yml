@@ -1,0 +1,29 @@
+---
+# Create or combine input parameters for the ha_cluster role.
+
+- name: "SAP HA Prepare Pacemaker - Set cluster name"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_cluster_name: "{{ ha_cluster_cluster_name | default(sap_ha_pacemaker_cluster_cluster_name) }}"
+
+- name: "SAP HA Prepare Pacemaker - Register the 'hacluster' user password"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_hacluster_password: "{{ ha_cluster_hacluster_password | default(sap_ha_pacemaker_cluster_hacluster_password) }}"
+  no_log: true
+
+- name: "SAP HA Prepare Pacemaker - Combine extra packages lists"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_extra_packages: "{{
+      sap_ha_pacemaker_cluster_extra_packages
+      +
+      sap_ha_pacemaker_cluster_sap_extra_packages | default([])
+      +
+      sap_ha_pacemaker_cluster_platform_extra_packages | default([])
+    }}"
+
+- name: "SAP HA Prepare Pacemaker - Combine fence agent packages lists"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_fence_agent_packages: "{{
+      sap_ha_pacemaker_cluster_fence_agent_packages
+      +
+      __sap_ha_pacemaker_cluster_fence_agent_packages
+    }}"

@@ -18,6 +18,9 @@
         tags: sap_swpm_configure_firewall
 
       - name: SAP SWPM Post Install - Firewall Setup
+        when:
+          - sap_swpm_wd_instance_nr is defined
+          - sap_swpm_wd_instance_nr | length
         ansible.builtin.set_fact:
           sap_nw_firewall_ports:
             - "3200-3399"
@@ -29,6 +32,8 @@
             - "443{{ sap_swpm_ascs_instance_nr }}"
             - "8090"
             - "44390"
+            # "{{ '443' +  sap_swpm_wd_instance_nr if sap_swpm_wd_instance_nr is not empty }}"
+            - "443{{ sap_swpm_wd_instance_nr }}"
 
       - name: SAP SWPM Post Install - Add Ports Based on NR - {{ sap_swpm_pas_instance_nr }}
         ansible.builtin.include_tasks: update_firewall.yml

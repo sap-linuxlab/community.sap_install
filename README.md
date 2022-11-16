@@ -72,7 +72,6 @@ The logic has been separated to support a flexible execution of the different st
 | [sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_install)                     | [![Ansible Lint for sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_install.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint%20sap_hana_install.yml)                               |
 
 **_Notes:_**
-
 - Ansible Playbook localhost executions may have limitations on SAP Software installations
 - Ansible Roles for HA/DR are all designed for execution with Terraform
 

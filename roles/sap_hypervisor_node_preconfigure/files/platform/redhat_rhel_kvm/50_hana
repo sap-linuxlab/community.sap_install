@@ -1,0 +1,65 @@
+#!/usr/bin/python3
+ 
+import os
+import sys
+import traceback
+ 
+import hooking
+ 
+'''
+Syntax:
+hana=1 (value doesn't matter)
+
+The VM must be configured as High Performance with 1GB hugepages.
+For that the following kernel boot line is required for the hypervisor:
+
+"default_hugepagesz=1GB hugepagesz=1GB hugepages=[# hugepages needed]"
+
+In addition the "hugepages" custom property needs to be set to 1048576.
+'''
+ 
+ 
+if 'hana' in os.environ:
+    try:
+        domxml = hooking.read_domxml()
+        domain = domxml.getElementsByTagName('domain')[0]
+        if not len(domain.getElementsByTagName('memoryBacking')):
+            sys.stderr.write('hugepages: VM is no High Performance VM\n')
+            sys.exit(0)
+ 
+        if len(domain.getElementsByTagName('cpu')):
+            cpu = domain.getElementsByTagName('cpu')[0]
+            feature_tsc = domxml.createElement('feature')
+            feature_tsc.setAttribute('policy', 'require')
+            feature_tsc.setAttribute('name', 'invtsc')
+            feature_rdt = domxml.createElement('feature')
+            feature_rdt.setAttribute('policy', 'require')
+            feature_rdt.setAttribute('name', 'rdtscp')
+            feature_x2apic = domxml.createElement('feature')
+            feature_x2apic.setAttribute('policy', 'require')
+            feature_x2apic.setAttribute('name', 'x2apic')
+            feature_lvl3 = domxml.createElement('cache')
+            feature_lvl3.setAttribute('level','3')
+            feature_lvl3.setAttribute('mode','emulate')
+            cpu.appendChild(feature_tsc)
+            cpu.appendChild(feature_rdt)
+            cpu.appendChild(feature_lvl3)
+            cpu.appendChild(feature_x2apic)
+
+        if len(domain.getElementsByTagName('clock')):
+            clock = domain.getElementsByTagName('clock')[0]
+            tscClock = domxml.createElement('clock')
+            tscClock.setAttribute('offset', 'utc')
+            timer = domxml.createElement('timer')
+            timer.setAttribute('name','tsc')
+            # Uncomment and adjust for live migration (adjust frequency to match the lowest value in your cluster)
+            #timer.setAttribute('frequency','2494140000')
+            tscClock.appendChild(timer)
+            domain.removeChild(clock)
+            domain.appendChild(tscClock)
+
+        hooking.write_domxml(domxml)
+    except Exception:
+        sys.stderr.write('highperf hook: [unexpected error]: %s\n' %
+                         traceback.format_exc())
+        sys.exit(2)
