@@ -167,12 +167,12 @@
     msg: "INFO: No minimum required package version defined (variable __sap_hana_preconfigure_min_pkgs)."
   when: not __sap_hana_preconfigure_min_pkgs | d([])
 
-- name: Get info about possible package updates
+# Reason for noqa: The yum module appears to not support the check-update option
+- name: Get info about possible package updates # noqa command-instead-of-module
   ansible.builtin.command: yum check-update
   register: __sap_hana_preconfigure_register_yum_check_update_assert
-  args:
-    warn: false
   changed_when: false
+  no_log: true
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
   when: sap_hana_preconfigure_update
 
