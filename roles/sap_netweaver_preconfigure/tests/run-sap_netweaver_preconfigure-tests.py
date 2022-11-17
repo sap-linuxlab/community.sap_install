@@ -40,49 +40,21 @@ __tests = [
     },
     {
         'number': '2',
-        'name': 'Run in assert mode on new system. Ignore a final error.',
+        'name': 'Run in assert mode on new system, \
+                 ignore assert errors.',
         'command_line_parameter': '',
         'ignore_error_final': True,
         'compact_assert_output': False,
         'rc': '99',
         'role_vars': [
             {
-                'sap_netweaver_preconfigure_assert': True
+                'sap_netweaver_preconfigure_assert': True,
+                'sap_netweaver_preconfigure_assert_ignore_errors': True,
             }
         ]
     },
     {
         'number': '3',
-        'name': 'Run in assert mode on new system, ignore any assert error.',
-        'command_line_parameter': '',
-        'ignore_error_final': False,
-        'compact_assert_output': False,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_netweaver_preconfigure_assert': True,
-                'sap_netweaver_preconfigure_assert_ignore_errors': True
-            }
-        ]
-    },
-    {
-        'number': '4',
-        'name': 'Run in assert mode on new system, \
-                 compact output, \
-                 ignore any assert or final error.',
-        'command_line_parameter': '',
-        'ignore_error_final': True,
-        'compact_assert_output': True,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_netweaver_preconfigure_assert': True,
-                'sap_netweaver_preconfigure_assert_ignore_errors': True
-            }
-        ]
-    },
-    {
-        'number': '5',
         'name': 'Run in normal mode on new system. \
                  Do not fail in case not enough swap space is configured.',
         'command_line_parameter': '',
@@ -91,34 +63,12 @@ __tests = [
         'rc': '99',
         'role_vars': [
             {
-                'sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured': False
+                'sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured': False,
             }
         ]
     },
     {
-        'number': '6',
-        'name': 'Run in check mode on configured system. Ignore a final error.',
-        'command_line_parameter': '--check ',
-        'ignore_error_final': True,
-        'compact_assert_output': False,
-        'rc': '99',
-        'role_vars': []
-    },
-    {
-        'number': '7',
-        'name': 'Run in assert mode on modified system. Ignore a final error.',
-        'command_line_parameter': '',
-        'ignore_error_final': True,
-        'compact_assert_output': False,
-        'rc': '99',
-        'role_vars': [
-            {
-                'sap_netweaver_preconfigure_assert': True
-            }
-        ]
-    },
-    {
-        'number': '8',
+        'number': '4',
         'name': 'Run in assert mode on modified system, \
                  compact output, \
                  ignore any assert error.',
@@ -129,10 +79,19 @@ __tests = [
         'role_vars': [
             {
                 'sap_netweaver_preconfigure_assert': True,
-                'sap_netweaver_preconfigure_assert_ignore_errors': True
+                'sap_netweaver_preconfigure_assert_ignore_errors': True,
             }
         ]
-    }
+    },
+    {
+        'number': '5',
+        'name': 'Run in check mode on configured system. Ignore a final error.',
+        'command_line_parameter': '--check ',
+        'ignore_error_final': True,
+        'compact_assert_output': False,
+        'rc': '99',
+        'role_vars': []
+    },
 ]
 
 for par1 in __tests:
@@ -147,7 +106,7 @@ for par1 in __tests:
         command += str(par2)
     command += '"'
     if par1['compact_assert_output']:
-        command += ' | ../tools/beautify-assert-output.sh'
+        command += ' | ./beautify-assert-output.sh'
     print("command: " + command)
     _py_rc = os.system(command)
     par1['rc'] = str(int(_py_rc / 256))

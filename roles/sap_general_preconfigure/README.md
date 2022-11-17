@@ -4,6 +4,11 @@ This role installs required packages and performs configuration steps which are 
 
 ## Requirements
 
+The role requires additional collections which are specified in `meta/collection-requirements.yml`. Before using this role,
+make sure that the required collections are installed, for example by using the following command:
+
+`ansible-galaxy install -vv -r meta/collection-requirements.yml`
+
 To use this role, your system needs to be installed according to:
 - RHEL 7: SAP note 2002167, Red Hat Enterprise Linux 7.x: Installation and Upgrade, section "Installing Red Hat Enterprise Linux 7"
 - RHEL 8: SAP note 2772999, Red Hat Enterprise Linux 8.x: Installation and Configuration, section "Installing Red Hat Enterprise Linux 8".

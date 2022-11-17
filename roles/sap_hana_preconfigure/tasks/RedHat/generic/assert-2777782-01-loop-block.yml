@@ -1,0 +1,42 @@
+---
+
+- name: 2777782-01 - Check if the directory '{{ line_item }}' exists
+  ansible.builtin.stat:
+    path: "{{ line_item }}"
+  register: __sap_hana_preconfigure_register_stat_hana
+  failed_when: false
+
+- name: Report that SELinux checking will not be performed if the directory '{{ line_item }}' does not exist
+  ansible.builtin.debug:
+    msg: "INFO: SELinux checks will not be run because the directory '{{ line_item }}' does not exist."
+  when: not __sap_hana_preconfigure_register_stat_hana.stat.exists or
+        (__sap_hana_preconfigure_register_stat_hana.stat.isdir is defined and
+           not __sap_hana_preconfigure_register_stat_hana.stat.isdir)
+
+- name: Count SELinux configuration database entries for '{{ line_item }}'
+  ansible.builtin.shell: set -o pipefail && semanage fcontext -l | awk 'BEGIN{a=0}$1=="{{ line_item }}(/.*)?"&&$NF~/usr_t/{a++}END{print a}'
+  register: __sap_hana_preconfigure_register_semanage_fcontext_hana
+  changed_when: false
+  when: __sap_hana_preconfigure_register_stat_hana.stat.isdir is defined and __sap_hana_preconfigure_register_stat_hana.stat.isdir
+
+- name: Assert that there is an entry for '{{ line_item }}' in the SELinux configuration database
+  ansible.builtin.assert:
+    that: __sap_hana_preconfigure_register_semanage_fcontext_hana.stdout | int != 0
+    fail_msg: "FAIL: There is no entry for '{{ line_item }}' in the SELinux configuration database!"
+    success_msg: "PASS: There is an entry for '{{ line_item }}' in the SELinux configuration database."
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
+  when: __sap_hana_preconfigure_register_stat_hana.stat.isdir is defined and __sap_hana_preconfigure_register_stat_hana.stat.isdir
+
+- name: Count files in '{{ line_item }}' and below without SELinux 'usr_t' file context
+  ansible.builtin.shell: "set -o pipefail && ls -1RZ {{ line_item }} | awk 'BEGIN{a=0}!/^$/&&NF>1&&$1!~/usr_t/{a++}END{print a}'"
+  register: __sap_hana_preconfigure_register_ls_z_hana
+  changed_when: false
+  when: __sap_hana_preconfigure_register_stat_hana.stat.isdir is defined and __sap_hana_preconfigure_register_stat_hana.stat.isdir
+
+- name: Assert that all files in '{{ line_item }}' and below have the 'usr_t' file context
+  ansible.builtin.assert:
+    that: __sap_hana_preconfigure_register_ls_z_hana.stdout | int == 0
+    fail_msg: "FAIL: There is at least one file in '{{ line_item }}' or below without the 'usr_t' file context!"
+    success_msg: "PASS: All files in '{{ line_item }}' and below have the 'usr_t' file context."
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
+  when: __sap_hana_preconfigure_register_stat_hana.stat.isdir is defined and __sap_hana_preconfigure_register_stat_hana.stat.isdir

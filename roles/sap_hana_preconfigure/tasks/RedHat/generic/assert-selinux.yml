@@ -1,0 +1,14 @@
+---
+
+# Reason for noqa: Both yum and dnf support "state: latest"
+- name: Install the package which provides the semanage command # noqa package-latest
+  ansible.builtin.package:
+    state: latest
+    name: policycoreutils-python-utils
+
+- name: Assert SELinux directory settings
+  ansible.builtin.include_tasks: assert-2777782-01-loop-block.yml
+  loop: "{{ sap_hana_preconfigure_hana_directories }}"
+  loop_control:
+    loop_var: line_item
+  when: sap_hana_preconfigure_modify_selinux_labels

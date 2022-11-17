@@ -1,6 +1,7 @@
 ---
 
 - name: Perform steps for enabling required repos
+  when: sap_general_preconfigure_enable_repos
   block:
 
     - name: Unset list of RHEL repos, SAP NetWeaver
@@ -85,8 +86,6 @@
       ansible.builtin.debug:
         var: __sap_general_preconfigure_register_yum_repolist.stdout_lines
 
-  when: sap_general_preconfigure_enable_repos
-
 - name: Detect if the RHEL minor release lock is set
   ansible.builtin.shell: set -o pipefail && subscription-manager release --show | awk '{print $NF}'
   register: __sap_general_preconfigure_register_subscription_manager_release
@@ -107,7 +106,7 @@
     - __sap_general_preconfigure_register_subscription_manager_release.stdout != ansible_distribution_version
 
 - name: Ensure that the required package groups are installed, RHEL 7
-  ansible.builtin.command: "yum install {{ sap_general_preconfigure_packagegroups|join(' ') }} -y"
+  ansible.builtin.command: "yum install {{ sap_general_preconfigure_packagegroups | join(' ') }} -y"
   args:
     warn: false
   register: __sap_general_preconfigure_register_yum_group_install
@@ -120,7 +119,7 @@
 
 - name: Ensure that the required package groups are installed, RHEL 8 and RHEL 9
 # Note: We want to avoid unwanted package upgrades, see bug 1983749.
-  ansible.builtin.command: "yum install {{ sap_general_preconfigure_packagegroups|join(' ') }} --nobest --exclude=kernel* -y"
+  ansible.builtin.command: "yum install {{ sap_general_preconfigure_packagegroups | join(' ') }} --nobest --exclude=kernel* -y"
   args:
     warn: false
   register: __sap_general_preconfigure_register_yum_group_install
@@ -137,7 +136,11 @@
     name: "{{ sap_general_preconfigure_packages }}"
 
 - name: Ensure that the minimum required package versions are installed
+  when:
+    - sap_general_preconfigure_min_package_check|bool
+    - __sap_general_preconfigure_min_pkgs|d([])
   block:
+
     - name: Create a list of minimum required package versions to be installed
 # How does it work?
 # 1 - Print the required package name and version with a prefix "1" followed by a space.
@@ -190,10 +193,6 @@
       loop_control:
         loop_var: line_item
 
-  when:
-    - sap_general_preconfigure_min_package_check|bool
-    - __sap_general_preconfigure_min_pkgs|d([])
-
 # Reason for noqa: Both yum and dnf support "state: latest"
 - name: Ensure that the system is updated to the latest patchlevel # noqa package-latest
   ansible.builtin.package:
@@ -243,12 +242,12 @@
   ansible.builtin.set_fact:
     sap_general_preconfigure_fact_reboot_required: false
 
-- name: needs-restarting - Set the flag that reboot is needed to apply changes
+- name: For needs-restarting - Set the flag that reboot is needed to apply changes
   ansible.builtin.set_fact:
     sap_general_preconfigure_fact_reboot_required: true
   when: __sap_general_preconfigure_register_needs_restarting is failed
 
-- name: needs-restarting - Display the content of sap_general_preconfigure_fact_reboot_required
+- name: For needs-restarting - Display the content of sap_general_preconfigure_fact_reboot_required
   ansible.builtin.debug:
     var: sap_general_preconfigure_fact_reboot_required
 

@@ -3,7 +3,11 @@
 # can be configured by tuned profile sap-hana, entry "governor=performance"
 #   in included tuned profile throughput-performance
 - name: Assert - Perform steps for checking the CPU Governor for performance
+  when: ansible_architecture == 'x86_64' and
+        (not sap_hana_preconfigure_use_tuned or
+           sap_hana_preconfigure_assert_all_config)
   block:
+
     - name: Check if system is able to set CPU Governor for performance (x86_64 platform only)
       ansible.builtin.shell: LC_ALL=C cpupower frequency-info -g | awk '/available cpufreq governors/{print $(NF-1), $NF}'
       check_mode: no
@@ -17,7 +21,9 @@
              __sap_hana_preconfigure_register_cpupower_frequency_info_supported_assert.stderr_lines
 
     - name: Check that the CPU Governor for performance is configured (x86_64 platform only)
+      when: "__sap_hana_preconfigure_register_cpupower_frequency_info_supported_assert.stdout != 'Not Available'"
       block:
+
         - name: Get info about file /etc/rc.d/rc.local
           ansible.builtin.stat:
             path: /etc/rc.d/rc.local
@@ -78,14 +84,7 @@
             success_msg: "PASS: The current status of the CPU Governor for performance is 'performance'."
           ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
-      when: "__sap_hana_preconfigure_register_cpupower_frequency_info_supported_assert.stdout != 'Not Available'"
-
     - name: Report if the system does not support setting the CPU Governor for performance
       ansible.builtin.debug:
         msg: "INFO: The system is not capable of setting the CPU Governor for 'performance'."
       when: "__sap_hana_preconfigure_register_cpupower_frequency_info_supported_assert.stdout == 'Not Available'"
-
-  when: ansible_architecture == 'x86_64' and
-        (not sap_hana_preconfigure_use_tuned or
-           sap_hana_preconfigure_assert_all_config
-        )

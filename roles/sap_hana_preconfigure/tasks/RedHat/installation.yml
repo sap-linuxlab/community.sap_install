@@ -1,5 +1,9 @@
 ---
 
+- name: Get the current RHEL release
+  ansible.builtin.setup:
+    gather_subset: distribution_version
+
 - name: Ensure that the system is running a RHEL release which is supported for SAP HANA
   ansible.builtin.assert:
     that: ansible_distribution_version in "{{ sap_hana_preconfigure_supported_rhel_minor_releases }}"
@@ -8,12 +12,14 @@
   ignore_errors: "{{ not sap_hana_preconfigure_min_rhel_release_check }}"
 
 - name: Perform steps for enabling repos for SAP HANA
+  when: sap_hana_preconfigure_enable_sap_hana_repos
   block:
+
 # repos required for SAP HANA on RHEL 7 and RHEL 8:
     - name: Fill the variable for the generic list of required repos
       ansible.builtin.set_fact:
-        __sap_hana_preconfigure_fact_required_repos: "{{ lookup('vars','__sap_hana_preconfigure_req_repos_redhat_' +
-        ansible_distribution_version | string | replace (\".\", \"_\") + '_' + ansible_architecture) }}"
+        __sap_hana_preconfigure_fact_required_repos: "{{ lookup('vars', '__sap_hana_preconfigure_req_repos_redhat_' +
+        ansible_distribution_version | string | replace(\".\", \"_\") + '_' + ansible_architecture) }}"
 
     - name: Construct valid argument list to the subscription-manager repos command
       ansible.builtin.set_fact:
@@ -28,8 +34,6 @@
     - name: Display the output of the subscription-manager repos --enable command
       ansible.builtin.debug:
         var: __sap_hana_preconfigure_register_subscription_enable_repos
-
-  when: sap_hana_preconfigure_enable_sap_hana_repos
 
 - name: Detect if the minor RHEL release is set
   ansible.builtin.shell: set -o pipefail && subscription-manager release --show | awk '{print $NF}'
@@ -107,7 +111,11 @@
 #  when: ansible_architecture == "ppc64le"
 
 - name: Ensure that the minimum required package versions are installed
+  when:
+    - sap_hana_preconfigure_min_package_check | bool
+    - __sap_hana_preconfigure_min_pkgs | d([])
   block:
+
     - name: Create a list of minimum required package versions to be installed
 # How does it work?
 # 1 - Print the required package name and version with a prefix "1" followed by a space.
@@ -159,10 +167,6 @@
       with_items: "{{ __sap_hana_preconfigure_register_minpkglist.results }}"
       loop_control:
         loop_var: line_item
-
-  when:
-    - sap_hana_preconfigure_min_package_check | bool
-    - __sap_hana_preconfigure_min_pkgs | d([])
 
 # Reason for noqa: Both yum and dnf support "state: latest"
 - name: Ensure that the system is updated to the latest patchlevel # noqa package-latest

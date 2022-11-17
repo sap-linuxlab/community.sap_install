@@ -31,7 +31,9 @@
 #    __sap_netweaver_preconfigure_register_active_tuned_profile: "{{ __sap_netweaver_preconfigure_register_current_tuned_profile.stdout }}"
 
 - name: Switch to tuned profile sap-netweaver if not currently active
+  when: __sap_netweaver_preconfigure_register_current_tuned_profile.stdout != 'sap-netweaver'
   block:
+
     - name: Switch to tuned profile sap-netweaver
       ansible.builtin.command: /usr/sbin/tuned-adm profile sap-netweaver
       changed_when: true
@@ -49,5 +51,3 @@
 #    - name: Set a variable which contains the name of the now active tuned profile
 #      set_fact:
 #        __sap_netweaver_preconfigure_register_active_tuned_profile: "{{ __sap_netweaver_preconfigure_register_new_tuned_profile.stdout }}"
-  when:
-    - __sap_netweaver_preconfigure_register_current_tuned_profile.stdout != 'sap-netweaver'

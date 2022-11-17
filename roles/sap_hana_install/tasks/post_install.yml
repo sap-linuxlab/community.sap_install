@@ -1,6 +1,7 @@
 ---
 
 - name: Tasks for new HANA Systems
+  when: sap_hana_install_new_system | d(true)
   block:
 
     - name: SAP HANA Post Install - Store connection information
@@ -53,11 +54,11 @@
         ansible_become: false
       tags: sap_hana_install_generate_input_file
 
-  when: sap_hana_install_new_system | d(true)
-
 ################
 
 - name: Perform an hdblcm installation check
+  when: sap_hana_install_check_installation | d(false)
+  tags: sap_hana_install_check_installation
   block:
 
     - name: SAP HANA hdblcm installation check - Create a Jinja2 template from the hdblcm xml configfile template
@@ -114,33 +115,30 @@
         var: __sap_hana_install_fact_installation_check_command
 
 # Reason for noqa: The command to be executed contains input redirection
-    - name: SAP HANA hdblcm installation check - Perform the check # noqa command-instead-of-shell
+    - name: SAP HANA hdblcm installation check with hdbcheck - Perform the check # noqa command-instead-of-shell
       ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
       args:
         chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/global/hdb/install/bin"
       register: __sap_hana_install_register_installation_check
       when: sap_hana_install_use_hdbcheck | d(true)
 
-    - name: SAP HANA hdblcm installation check - Display the result
+    - name: SAP HANA hdblcm installation check with hdbcheck - Display the result
       ansible.builtin.debug:
         var: __sap_hana_install_register_installation_check.stdout_lines
       when: sap_hana_install_use_hdbcheck | d(true)
 
 # Reason for noqa: The command to be executed contains input redirection
-    - name: SAP HANA hdblcm installation check - Perform the check # noqa command-instead-of-shell
+    - name: SAP HANA hdblcm installation check with hdblcm - Perform the check # noqa command-instead-of-shell
       ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
       args:
         chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
       register: __sap_hana_install_register_installation_check
       when: not sap_hana_install_use_hdbcheck | d(true)
 
-    - name: SAP HANA hdblcm installation check - Display the result
+    - name: SAP HANA hdblcm installation check with hdblcm - Display the result
       ansible.builtin.debug:
         var: __sap_hana_install_register_installation_check.stdout_lines
       when: not sap_hana_install_use_hdbcheck | d(true)
-
-  when: sap_hana_install_check_installation | d(false)
-  tags: sap_hana_install_check_installation
 
 - name: SAP HANA Install - Run 'hdblcm --list_systems' after the installation
   ansible.builtin.shell: |
@@ -156,6 +154,16 @@
   register: __sap_hana_install_register_install_result
   changed_when: no
   when: not ansible_check_mode
+
+- name: Configure '/usr/sap' SELinux file contexts
+  ansible.builtin.include_role:
+    name: '{{ sap_hana_install_system_roles_collection }}.selinux'
+  vars:
+    selinux_fcontexts:
+      - { target: '/usr/sap(/.*)?', setype: 'usr_t' }
+    selinux_restore_dirs:
+      - /usr/sap
+  when: sap_hana_install_modify_selinux_labels
 
 - name: Set fact - HANA version
   ansible.builtin.set_fact:

@@ -15,12 +15,12 @@
 - name: Set filename prefix to empty string if role is run in normal mode
   ansible.builtin.set_fact:
     assert_prefix: ""
-  when: not sap_hana_preconfigure_assert|d(false)
+  when: not sap_hana_preconfigure_assert | d(false)
 
 - name: Prepend filename with assert string if role is run in assert mode
   ansible.builtin.set_fact:
     assert_prefix: "assert-"
-  when: sap_hana_preconfigure_assert|d(false)
+  when: sap_hana_preconfigure_assert | d(false)
 
 - name: Examine the OS minor version
   ansible.builtin.set_fact:
@@ -36,7 +36,7 @@
     var: sap_general_preconfigure_fact_reboot_required
 
 - include_tasks: '{{ item }}/{{ assert_prefix }}installation.yml'
-  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_installation|d(false)
+  when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_installation | d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'
     - '{{ ansible_distribution }}'
@@ -45,7 +45,7 @@
   ansible.builtin.package_facts:
 
 - include_tasks: '{{ item }}/{{ assert_prefix }}configuration.yml'
-  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_configuration|d(false)
+  when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_configuration | d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'
     - '{{ ansible_distribution }}'

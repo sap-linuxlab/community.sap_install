@@ -1,0 +1,1 @@
+../tools/beautify-assert-output.sh

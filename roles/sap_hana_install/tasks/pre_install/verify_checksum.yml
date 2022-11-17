@@ -11,12 +11,13 @@
   when: not __sap_hana_install_register_stat_checksum_file.stat.exists
 
 - name: Continue if checksum file exists
+  when: __sap_hana_install_register_stat_checksum_file.stat.exists
   block:
 
 # We are using awk to search for the file name in the checksum file. If there is no entry for the file, instead of
 # displaying the checksum for the file, we display the string 'Missing entry' on stdout.
 # Reason for noqa: A double brace might also occur in an awk command sequence.
-    - name: SAP HANA hdblcm prepare - Get expected checksum from file # noqa var-spacing
+    - name: SAP HANA hdblcm prepare - Get expected checksum from file # noqa jinja[spacing]
       ansible.builtin.command: "awk 'BEGIN{a=0}/{{ __sap_hana_install_passed_file_dict.file }}/{a++; print $1}END{if (a==0){print \"Missing entry\"}}' {{ __sap_hana_install_passed_file_dict.checksum_file }}"
       check_mode: no
       register: __sap_hana_install_register_checksum_from_file
@@ -43,5 +44,3 @@
         success_msg: "PASS: The checksum of file '{{ __sap_hana_install_passed_file_dict.dir }}/{{ __sap_hana_install_passed_file_dict.file }}'
            matches the checksum stored in file '{{ __sap_hana_install_passed_file_dict.checksum_file }}'."
       when: __sap_hana_install_register_checksum_from_file.stdout != 'Missing entry'
-
-  when: __sap_hana_install_register_stat_checksum_file.stat.exists
