@@ -9,12 +9,13 @@
   when: ansible_architecture == "ppc64le"
   block:
 
-# Reason for noqa: In assert mode, we do not enforce a certain configuration.
-    - name: Check if package pseries-energy is not installed # noqa command-instead-of-module
+    - name: Check if package pseries-energy is not installed
       ansible.builtin.command: yum info installed pseries-energy
       register: __sap_hana_preconfigure_register_yum_pseries_energy_assert
       changed_when: no
       ignore_errors: yes
+      args:
+        warn: false
 
     - name: Assert that package pseries-energy is not installed
       ansible.builtin.assert:
