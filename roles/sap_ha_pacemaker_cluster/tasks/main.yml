@@ -171,7 +171,9 @@
 # their user provided variables?
 
 - name: "SAP HA Install Pacemaker - Create cluster configuration parameters file"
-  when: sap_ha_pacemaker_cluster_create_config_dest is defined
+  when: 
+    - sap_ha_pacemaker_cluster_create_config_dest | length
+    - sap_ha_pacemaker_cluster_create_config_varfile
   ansible.builtin.template:
     backup: true
     dest: "{{ sap_ha_pacemaker_cluster_create_config_dest }}"
@@ -185,7 +187,9 @@
   check_mode: false
 
 - name: "SAP HA Install Pacemaker - Display configuration parameters SAVE FILE location"
-  when: sap_ha_pacemaker_cluster_create_config_varfile
+  when: 
+    - sap_ha_pacemaker_cluster_create_config_varfile
+    - sap_ha_pacemaker_cluster_create_config_dest | length
   ansible.builtin.debug:
     msg: |
       The cluster resource configuration parameters have been saved here:
