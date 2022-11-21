@@ -233,12 +233,17 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 
 #### Perform Initial Checks
 
+These checks are only performed if `sap_hana_install_force` is set to `true`. Its default value is `false`
 - If variable `sap_hana_install_check_sidadm_user` is undefined or set to `y`: Check if user sidadm exists. If yes,
   abort the role.
 
-- Check if directory `/hana/shared/<sid>` exists. If yes, abort the role.
+- Check if `/usr/sap/hostctrl/exe/saphostctrl` exists and get info on running HANA instances. 
+  - If conclicting instances exist the role aborts with a failure
+  - If desired instance is running, the role aborts with success
 
-- Check if directory `/usr/sap/<sid>` exists. If yes, abort the role.
+- If  `/usr/sap/hostctrl/exe/saphostctrl`  does not exist
+   -  Check if directory `/hana/shared/<sid>` exists. If yes and not empty, abort the role.
+  - Check if directory `/usr/sap/<sid>` exists. If yes and not empty, abort the role.
 
 #### Pre-Install 
 
