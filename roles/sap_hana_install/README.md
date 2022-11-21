@@ -238,7 +238,7 @@ These checks are only performed if `sap_hana_install_force` is set to `true`. It
   abort the role.
 
 - Check if `/usr/sap/hostctrl/exe/saphostctrl` exists and get info on running HANA instances.
-  - If conclicting instances exist the role aborts with a failure
+  - If conflicting instances exist the role aborts with a failure
   - If desired instance is running, the role aborts with success
 
 - If  `/usr/sap/hostctrl/exe/saphostctrl`  does not exist
