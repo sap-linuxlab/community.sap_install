@@ -12,6 +12,8 @@
 ## The following variables can be used to simplify the role
 
 - name: "SAP - HSR create information on HSR connection interface"
+  when:
+    - item.node_ip in ansible_all_ipv4_addresses
   ansible.builtin.set_fact:
     __sap_ha_install_hana_hsr_connection:
       node_name: "{{ item.node_name.split('.')[0] }}"
@@ -22,8 +24,6 @@
   loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
   loop_control:
     label: "{{ item.node_name }}"
-  when:
-    - item.node_ip in ansible_all_ipv4_addresses
   tags: always
 
 - name: SAP HSR - Check that hsr interface is configured on host
@@ -36,26 +36,26 @@
   tags: always
 
 - name: "SAP HSR - Pick up primary node name from definition"
+  when:
+    - item.node_role is defined
+    - item.node_role == 'primary'
   ansible.builtin.set_fact:
     __sap_ha_install_hana_hsr_primary_node: "{{ item.node_name }}"
     __sap_ha_install_hana_hsr_primary_node_name: "{{ item.node_name.split('.')[0] }}"
     __sap_ha_install_hana_hsr_primary_node_domain: "{{ item.node_name.split('.')[1:] | join('.') }}"
     __sap_ha_install_hana_hsr_primary_node_ip: "{{ item.node_ip }}"
-  when:
-    - item.node_role is defined
-    - item.node_role == 'primary'
   loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
   loop_control:
     label: "{{ item.node_name }}"
   tags: always
 
 - name: "SAP HSR - Verify that Ansible can connect to the defined primary node by name"
+  when:
+    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
   ansible.builtin.command: |
     hostname -s
   delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node_name }}"
   register: __sap_ha_install_hana_hsr_primary_node_name_check
-  when:
-    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
   ignore_unreachable: true
   ignore_errors: true
   failed_when: false
@@ -66,8 +66,18 @@
 
 # BEGIN of primary node connectivity test block
 - name: "SAP HSR - Check block to verify Ansible access to primary node"
+  # block settings
+  when:
+    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
+    - __sap_ha_install_hana_hsr_primary_node_name_check.unreachable is defined
+    - __sap_ha_install_hana_hsr_primary_node_name_check.unreachable
+  become: false
+  tags:
+    - hsr_pki
   block:
     - name: "SAP HSR - Verify that Ansible can connect to the defined primary node by IP"
+      when:
+        - __sap_ha_install_hana_hsr_primary_node_ip_check.stdout == __sap_ha_install_hana_hsr_primary_node_name
       ansible.builtin.command: |
         hostname -s
       delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node_ip }}"
@@ -80,38 +90,27 @@
     - name: "SAP HSR - Use IP for tasks that must run on the primary node"
       ansible.builtin.set_fact:
         __sap_ha_install_hana_hsr_primary_node: "{{ __sap_ha_install_hana_hsr_primary_node_ip }}"
-      when:
-        - __sap_ha_install_hana_hsr_primary_node_ip_check.stdout == __sap_ha_install_hana_hsr_primary_node_name
 
     - name: "SAP HSR - Fail if the primary node cannot be connected to"
+      when:
+        - __sap_ha_install_hana_hsr_primary_node_ip_check.unreachable is defined or
+          __sap_ha_install_hana_hsr_primary_node_ip_check.stdout != __sap_ha_install_hana_hsr_primary_node_name
       ansible.builtin.fail:
         msg: |
           Aborting due to issues identifying and connecting to the primary node.
           It can either not be reached by host name or the connected IP returns
           an unmatching hostname.
 
-      when:
-        - __sap_ha_install_hana_hsr_primary_node_ip_check.unreachable is defined or
-          __sap_ha_install_hana_hsr_primary_node_ip_check.stdout != __sap_ha_install_hana_hsr_primary_node_name
-
-  # block settings
-  when:
-    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
-    - __sap_ha_install_hana_hsr_primary_node_name_check.unreachable is defined
-    - __sap_ha_install_hana_hsr_primary_node_name_check.unreachable
-  become: false
-  tags:
-    - hsr_pki
 # END of primary node connectivity test block
 
 - name: "SAP HSR - Update /etc/hosts"
+  when:
+    - (sap_hana_update_etchosts is defined and sap_hana_update_etchosts) or
+      sap_ha_install_hana_hsr_update_etchosts
   ansible.builtin.include_tasks:
     file: update_etchosts.yml
     apply:
       tags: hsr_etchosts
-  when:
-    - (sap_hana_update_etchosts is defined and sap_hana_update_etchosts) or
-      sap_ha_install_hana_hsr_update_etchosts
   tags:
     - hsr_etchosts
 
@@ -133,27 +132,27 @@
 
 # Steps only running on secondary nodes
 - name: "SAP HSR - PKI Files"
+  when:
+    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
   ansible.builtin.include_tasks:
     file: pki_files.yml
     apply:
       tags: hsr_pki
       vars:
         __sap_ha_install_hana_hsr_secpath: "/usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs"
-  when:
-    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
   tags:
     - hsr_pki
 
 # Steps only executed on a primary node
 - name: "SAP HSR - Run Backup"
+  when:
+    - __sap_ha_install_hana_hsr_node_name == __sap_ha_install_hana_hsr_primary_node_name
   ansible.builtin.include_tasks:
     file: run_backup.yml
     apply:
       become: true
       become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
       tags: hsr_backup
-  when:
-    - __sap_ha_install_hana_hsr_node_name == __sap_ha_install_hana_hsr_primary_node_name
   tags:
     - hsr_backup
 
