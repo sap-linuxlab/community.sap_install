@@ -237,7 +237,7 @@ These checks are only performed if `sap_hana_install_force` is set to `true`. It
 - If variable `sap_hana_install_check_sidadm_user` is undefined or set to `y`: Check if user sidadm exists. If yes,
   abort the role.
 
-- Check if `/usr/sap/hostctrl/exe/saphostctrl` exists and get info on running HANA instances. 
+- Check if `/usr/sap/hostctrl/exe/saphostctrl` exists and get info on running HANA instances.
   - If conclicting instances exist the role aborts with a failure
   - If desired instance is running, the role aborts with success
 
@@ -245,7 +245,7 @@ These checks are only performed if `sap_hana_install_force` is set to `true`. It
    -  Check if directory `/hana/shared/<sid>` exists. If yes and not empty, abort the role.
   - Check if directory `/usr/sap/<sid>` exists. If yes and not empty, abort the role.
 
-#### Pre-Install 
+#### Pre-Install
 
 - Set all passwords to follow master password if set to 'y'.
 
@@ -309,7 +309,7 @@ in a temporary directory for use by the hdblcm command in the next step.
 
 ### Add hosts to an existing SAP HANA Installation
 
-#### Pre-Install 
+#### Pre-Install
 
 - Process SAP HANA configfile based on input parameters.
 
