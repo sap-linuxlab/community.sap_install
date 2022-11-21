@@ -97,26 +97,26 @@
 ## If saphostcontrol is not installed
 
 - name: SAP HANA Checks - Check directories if no saphostctrl is found
-  block:
   when: not __sap_hana_install_register_stat_saphostctrl.stat.exists
-    - name: SAP HANA Checks - Get info about directory '/hana/shared/{{ sap_hana_install_sid }}'
+  block:
+    - name: SAP HANA Checks - Get info about directory "{{ '/hana/shared/' + sap_hana_install_sid }}"
       ansible.builtin.stat:
         path: "/hana/shared/{{ sap_hana_install_sid }}"
       check_mode: no
       register: __sap_hana_install_register_stat_hana_shared_sid_assert
       failed_when: no
 
-    - name: SAP HANA Checks - Check if directory  '/hana/shared/{{ sap_hana_install_sid }}' is empty
+    - name: SAP HANA Checks - Check if directory is empty '/hana/shared/{{ sap_hana_install_sid }}'
       ansible.builtin.find:
         paths: "/hana/shared/{{ sap_hana_install_sid }}"
         patterns: '*'
       register: __sap_hana_install_register_files_in_hana_shared_sid_assert
       when: __sap_hana_install_register_stat_hana_shared_sid_assert.stat.exists
 
-    - name: SAP HANA Checks - Assert that directory '/hana/shared/{{ sap_hana_install_sid }}' does not exist or is empty
+    - name: SAP HANA Checks - Assert that directory does not exist or is empty '/hana/shared/{{ sap_hana_install_sid }}'
       ansible.builtin.assert:
         that: not __sap_hana_install_register_stat_hana_shared_sid_assert.stat.exists
-        fail_msg: "FAIL: Directory '/hana/shared/{{ sap_hana_install_sid }}' exists!
+        fail_msg: "FAIL: Directory '/hana/shared/{{ sap_hana_install_sid }}' exists and is not empty!
                    Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
         success_msg: "PASS: Directory '/hana/shared/{{ sap_hana_install_sid }}' does not exist."
       when: __sap_hana_install_register_files_in_hana_shared_sid_assert.matched|int != 0
@@ -128,17 +128,17 @@
       register: __sap_hana_install_register_stat_usr_sap_sid_assert
       failed_when: no
 
-    - name: SAP HANA Checks - Check if directory  '/usr/sap/{{ sap_hana_install_sid }}' is empty
+    - name: SAP HANA Checks - Check if directory is empty '/usr/sap/{{ sap_hana_install_sid }}'
       ansible.builtin.find:
         paths: "/usr/sap/{{ sap_hana_install_sid }}"
         patterns: '*'
       register: __sap_hana_install_register_files_in_usr_sap_sid_assert
       when: __sap_hana_install_register_stat_usr_sap_sid_assert.stat.exists
 
-    - name: SAP HANA Checks - Assert that directory '/usr/sap/{{ sap_hana_install_sid }}' does not exist or is empty
+    - name: SAP HANA Checks - Assert that directory does not exist or is empty '/usr/sap/{{ sap_hana_install_sid }}'
       ansible.builtin.assert:
         that: not __sap_hana_install_register_stat_usr_sap_sid_assert.stat.exists
-        fail_msg: "FAIL: Directory '/usr/sap/{{ sap_hana_install_sid }}' exists!
+        fail_msg: "FAIL: Directory '/usr/sap/{{ sap_hana_install_sid }}' exists and is not empty!
                    Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
         success_msg: "PASS: Directory '/usr/sap/{{ sap_hana_install_sid }}' does not exist."
       when: __sap_hana_install_register_files_in_usr_sap_sid_assert.matched|int != 0
