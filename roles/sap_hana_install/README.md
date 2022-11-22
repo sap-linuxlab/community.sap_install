@@ -81,9 +81,6 @@ If this role is executed on more than one host in parallel and the software extr
 the role will only extract the files on the first host on which the extraction has started. The role will proceed on the other hosts
 after the extraction of SAR files has completed.
 
-If NFS is used for sharing the SAP HANA installation media between the nodes, then it is required to define `sap_hana_install_configfile_directory`. The default for `sap_hana_install_configfile_directory` is  "{{ sap_hana_install_software_extract_directory }}/configfiles". This variable should point to a non nfs path. After installation, if a cleanup of configfile is required, then set `sap_hana_install_cleanup_configfile_directory` as true. If a cleanup of software extract directory is required then set sap_hana_install_cleanup_extract_directory as true. The default value for both these cleanup actins are false
-
-
 - Sample directory `sap_hana_install_software_extract_directory` containing extracted SAP HANA software installation files
     ```console
     [root@hanahost extracted]# ll -lrt
