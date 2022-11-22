@@ -160,6 +160,18 @@
     __sap_hana_install_fact_hana_version: "{{ __sap_hana_install_register_install_result.stdout.split(';')[0] }}"
   when: not ansible_check_mode
 
+- name: SAP HANA Post Install - Deleting software extract directory '{{ sap_hana_install_software_extract_directory }}'
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_software_extract_directory }}" 
+    state: absent
+  when: sap_hana_install_cleanup_extract_directory 
+
+- name: SAP HANA Post Install - Deleting Configfile Directory '{{ sap_hana_install_configfile_directory }}'
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_configfile_directory }}"
+    state: absent
+  when: sap_hana_install_cleanup_configfile_directory
+
 - name: Set fact - HANA hosts
   ansible.builtin.set_fact:
     __sap_hana_install_fact_hana_hosts: "{{ __sap_hana_install_register_install_result.stdout.split(';')[1] }}"
