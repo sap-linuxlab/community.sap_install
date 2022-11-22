@@ -3,7 +3,7 @@
 sap_vm_preconfigure
 ==================
 
-This role will set and check the required settings and parameters for a guest (VM) running on RHV/KVM for SAP HANA. 
+This role will set and check the required settings and parameters for a guest (VM) running on RHV/KVM for SAP HANA.
 
 
 Requirements
