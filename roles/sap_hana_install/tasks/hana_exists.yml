@@ -1,49 +1,5 @@
 ---
 
-- name: SAP HANA Checks - HANA admin user check
-  when: sap_hana_install_check_sidadm_user | d(true)
-  block:
-
-    - name: Check for sidadm user
-      ansible.builtin.command: getent passwd {{ sap_hana_install_sid | lower }}adm
-      check_mode: no
-      register: __sap_hana_install_register_getent_passwd_sidadm
-      changed_when: no
-      failed_when: no
-
-    - name: SAP HANA Checks - Assert that there is no sidadm user
-      ansible.builtin.assert:
-        that: __sap_hana_install_register_getent_passwd_sidadm.rc != 0
-        fail_msg: "FAIL: User '{{ sap_hana_install_sid | lower }}adm' exists!
-                   Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
-        success_msg: "PASS: User '{{ sap_hana_install_sid | lower }}adm' does not exist."
-
-# The role supports specifying the SAP HANA group id in variable `sap_hana_install_groupid`, which is the id of the sapsys group.
-# The SAP HANA installation will fail if there is already a group named sapsys but with a different ID. Let's better fail before.
-- name: SAP HANA Checks - Check HANA admin group
-  when:
-    - sap_hana_install_groupid is defined
-    - sap_hana_install_groupid | string != "None"
-    - sap_hana_install_groupid | string | length > 0
-  block:
-
-    - name: SAP HANA Checks - Get info about the ID of the sapsys group
-      ansible.builtin.command: getent group sapsys
-      check_mode: no
-      register: __sap_hana_install_register_getent_group_sapsys
-      changed_when: no
-      failed_when: no
-
-    - name: SAP HANA Checks - In case there is a group sapsys, assert that its group ID is identical to sap_hana_install_groupid
-      ansible.builtin.assert:
-        that: "{{ __sap_hana_install_register_getent_group_sapsys.stdout.split(':')[2] }} == {{ sap_hana_install_groupid }}"
-        success_msg: "PASS: The group ID of 'sapsys' is identical to the value of variable
-                      sap_hana_install_groupid, which is '{{ sap_hana_install_groupid }}'"
-        fail_msg: "FAIL: Group sapsys exists but with a different group ID than '{{ sap_hana_install_groupid }}',
-	           which has been specified in variable sap_hana_install_groupid.
-	           Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
-      when: __sap_hana_install_register_getent_group_sapsys.rc == 0
-
 ## Try to use saphostctrl to figure out if HANA or other SID is installed
 - name: SAP HANA Checks - Check if saphostctrl is installed
   ansible.builtin.stat:
@@ -147,3 +103,50 @@
                    Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
         success_msg: "PASS: Directory '/usr/sap/{{ sap_hana_install_sid }}' does not exist."
       when: __sap_hana_install_register_files_in_usr_sap_sid_assert.matched|int != 0
+
+- name: SAP HANA Checks - HANA admin user check
+  when:
+    - sap_hana_install_check_sidadm_user | d(true)
+    - not __sap_hana_install_fact_is_installed| d(false)
+  block:
+
+    - name: Check for sidadm user
+      ansible.builtin.command: getent passwd {{ sap_hana_install_sid | lower }}adm
+      check_mode: no
+      register: __sap_hana_install_register_getent_passwd_sidadm
+      changed_when: no
+      failed_when: no
+
+    - name: SAP HANA Checks - Assert that there is no sidadm user
+      ansible.builtin.assert:
+        that: __sap_hana_install_register_getent_passwd_sidadm.rc != 0
+        fail_msg: "FAIL: User '{{ sap_hana_install_sid | lower }}adm' exists!
+                   Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
+        success_msg: "PASS: User '{{ sap_hana_install_sid | lower }}adm' does not exist."
+
+# The role supports specifying the SAP HANA group id in variable `sap_hana_install_groupid`, which is the id of the sapsys group.
+# The SAP HANA installation will fail if there is already a group named sapsys but with a different ID. Let's better fail before.
+- name: SAP HANA Checks - Check HANA admin group
+  when:
+    - sap_hana_install_groupid is defined
+    - sap_hana_install_groupid | string != "None"
+    - sap_hana_install_groupid | string | length > 0
+    - not __sap_hana_install_fact_is_installed| d(false)
+  block:
+
+    - name: SAP HANA Checks - Get info about the ID of the sapsys group
+      ansible.builtin.command: getent group sapsys
+      check_mode: no
+      register: __sap_hana_install_register_getent_group_sapsys
+      changed_when: no
+      failed_when: no
+
+    - name: SAP HANA Checks - In case there is a group sapsys, assert that its group ID is identical to sap_hana_install_groupid
+      ansible.builtin.assert:
+        that: "{{ __sap_hana_install_register_getent_group_sapsys.stdout.split(':')[2] }} == {{ sap_hana_install_groupid }}"
+        success_msg: "PASS: The group ID of 'sapsys' is identical to the value of variable
+                      sap_hana_install_groupid, which is '{{ sap_hana_install_groupid }}'"
+        fail_msg: "FAIL: Group sapsys exists but with a different group ID than '{{ sap_hana_install_groupid }}',
+	           which has been specified in variable sap_hana_install_groupid.
+	           Because of this, SAP HANA with SID '{{ sap_hana_install_sid }}' will not be installed."
+      when: __sap_hana_install_register_getent_group_sapsys.rc == 0
