@@ -105,8 +105,6 @@
 
 - name: Ensure that the required package groups are installed, RHEL 7
   ansible.builtin.command: "yum install {{ sap_general_preconfigure_packagegroups | join(' ') }} -y"
-  args:
-    warn: false
   register: __sap_general_preconfigure_register_yum_group_install
   when: ansible_distribution_major_version == '7'
 
@@ -118,8 +116,6 @@
 - name: Ensure that the required package groups are installed, RHEL 8 and RHEL 9
 # Note: We want to avoid unwanted package upgrades, see bug 1983749.
   ansible.builtin.command: "yum install {{ sap_general_preconfigure_packagegroups | join(' ') }} --nobest --exclude=kernel* -y"
-  args:
-    warn: false
   register: __sap_general_preconfigure_register_yum_group_install
   when: ansible_distribution_major_version == '8' or ansible_distribution_major_version == '9'
 
@@ -228,8 +224,6 @@
   register: __sap_general_preconfigure_register_needs_restarting
   ignore_errors: true
   changed_when: false
-  args:
-    warn: false
   check_mode: false
 
 - name: Display the output of the reboot requirement check
