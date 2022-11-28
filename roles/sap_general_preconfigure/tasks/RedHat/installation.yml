@@ -109,15 +109,14 @@
     state: present
   when: ansible_distribution_major_version == '7'
 
-# Reason for noqa: We do not want package updates when using the package module, see also Red Hat bug 1983749
-- name: Ensure that the required package groups are installed, RHEL 8 and RHEL 9 # noqa command-instead-of-module
-  ansible.builtin.command: "yum install {{ sap_general_preconfigure_packagegroups | join(' ') }} --nobest --exclude=kernel* -y"
+# Note: We do not want package updates, see Red Hat bug 1983749.
+- name: Ensure that the required package groups are installed, RHEL 8 and RHEL 9
+  ansible.builtin.dnf:
+    name: "{{ sap_general_preconfigure_packagegroups }}"
+    state: present
+    exclude: kernel*
+    nobest: true
   register: __sap_general_preconfigure_register_yum_group_install
-  when: ansible_distribution_major_version == '8' or ansible_distribution_major_version == '9'
-
-- name: Display the output of the yum install command
-  ansible.builtin.debug:
-    var: __sap_general_preconfigure_register_yum_group_install
   when: ansible_distribution_major_version == '8' or ansible_distribution_major_version == '9'
 
 - name: Ensure that the required packages are installed
