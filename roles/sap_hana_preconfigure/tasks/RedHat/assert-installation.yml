@@ -85,8 +85,6 @@
   ansible.builtin.shell: set -o pipefail && yum info installed {{ __sap_hana_preconfigure_required_ppc64le | map('quote') | join(' ') }} | awk '/Name/{n=$NF}/Version/{v=$NF}/Release/{r=$NF}/Description/{printf ("%s\n", n)}'
   register: __sap_hana_preconfigure_register_required_ppc64le_packages_assert
   changed_when: no
-  args:
-    warn: false
 
 - name: Assert that all required IBM packages are installed
   ansible.builtin.assert:
@@ -223,8 +221,6 @@
   ansible.builtin.shell: "{{ __sap_hana_preconfigure_fact_needs_restarting_command_assert }}"
   register: __sap_hana_preconfigure_register_needs_restarting_assert
   changed_when: false
-  args:
-    warn: false
   check_mode: false
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
