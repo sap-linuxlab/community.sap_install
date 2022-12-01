@@ -33,10 +33,10 @@
         loop_var: __sap_hana_install_loop_instance
         label: "{{ __sap_hana_install_loop_instance.split('-')[0] | trim }}"
 
-    - name: SAP HANA Checks - Trying to install HANA with other SID and same instance
+    - name: SAP HANA Checks - Trying to install HANA with other SID and existing instance number
       ansible.builtin.fail:
-        msg: "HANA {{ __sap_hana_install_loop_instance.split('-')[0] | trim }}
-              already exists with the instance number {{ sap_hana_install_number }}!"
+        msg: "The instance number {{ sap_hana_install_number }} is already used by
+              HANA system {{ __sap_hana_install_loop_instance.split('-')[0] | trim }}!"
       when:
         - __sap_hana_install_loop_instance.split('-')[0] | trim != sap_hana_install_sid
         - __sap_hana_install_loop_instance.split('-')[1] | trim == sap_hana_install_number
@@ -45,9 +45,9 @@
         loop_var: __sap_hana_install_loop_instance
         label: "{{ __sap_hana_install_loop_instance.split('-')[0] | trim }}"
 
-    - name: SAP HANA Checks - Trying to install HANA with identical SID and other instance number
+    - name: SAP HANA Checks - Trying to install HANA with existing SID and other instance number
       ansible.builtin.fail:
-        msg: "HANA {{ sap_hana_install_sid }} already exists with different instance number
+        msg: "HANA system {{ sap_hana_install_sid }} already exists with different instance number
               {{ __sap_hana_install_loop_instance.split('-')[1] | trim }}!"
       when:
         - __sap_hana_install_loop_instance.split('-')[0] | trim  == sap_hana_install_sid
@@ -63,7 +63,7 @@
   when: not __sap_hana_install_register_stat_saphostctrl.stat.exists
   block:
 
-    - name: SAP HANA Checks - Get status of '{{ "/hana/shared/" + sap_hana_install_sid }}'
+    - name: SAP HANA Checks - Get status of '/hana/shared/{{ sap_hana_install_sid }}'
       ansible.builtin.stat:
         path: "/hana/shared/{{ sap_hana_install_sid }}"
       check_mode: no
@@ -84,7 +84,7 @@
         - __sap_hana_install_register_stat_hana_shared_sid_assert.stat.exists
         - __sap_hana_install_register_files_in_hana_shared_sid_assert.matched | int != 0
 
-    - name: SAP HANA Checks - Get status of '{{ "/usr/sap/" + sap_hana_install_sid }}'
+    - name: SAP HANA Checks - Get status of '/usr/sap/{{ sap_hana_install_sid }}'
       ansible.builtin.stat:
         path: "/usr/sap/{{ sap_hana_install_sid }}"
       check_mode: no
