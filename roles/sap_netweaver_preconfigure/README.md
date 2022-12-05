@@ -17,7 +17,7 @@ On RHEL, as per SAP notes 2002167 and 2772999, the role will switch to tuned pro
 (e.g. virtual-guest) had been active before or not.
 
 On SLES, this role will switch the saptune solution to the one specified by the configuration and will override any previously set solution.
-The default solution is 
+The default solution is `NETWEAVER`.
 
 The role can check if enough swap space - as per the prerequisite checker in sapinst - has been configured on the managed node.
 Please check the SAP NetWeaver installation guide for swap space requirements.
