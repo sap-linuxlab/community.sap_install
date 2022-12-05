@@ -102,6 +102,7 @@
   failed_when: not sap_swpm_swpm_sar_file_name_stat.stat.exists
 
 - name: SAP SWPM Pre Install - Full SAP System
+  when: not sap_swpm_generic | bool
   block:
 
   # 3. IGS
@@ -188,10 +189,8 @@
       register: sap_swpm_kernel_independent_file_name_stat
       failed_when: not sap_swpm_kernel_independent_file_name_stat.stat.exists
 
-  when:
-    - not sap_swpm_generic | bool
-
 - name: SAP SWPM Pre Install - Webdispatcher
+  when: "'Webdispatcher' in sap_swpm_product_catalog_id"
   block:
 
   # 7. Web Dispatcher
@@ -214,6 +213,3 @@
         path: "{{ sap_swpm_web_dispatcher_path }}/{{ sap_swpm_web_dispatcher_file_name }}"
       register: sap_swpm_web_dispatcher_file_name_stat
       failed_when: not sap_swpm_web_dispatcher_file_name_stat.stat.exists
-
-  when:
-    - "'Webdispatcher' in sap_swpm_product_catalog_id"
