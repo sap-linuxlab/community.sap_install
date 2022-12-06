@@ -1,6 +1,7 @@
 ---
 
 - name: SAP SWPM Pre Install - Firewall Setup
+  when: ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   block:
 
   - name: SAP SWPM Pre Install - Gathering Firewall Facts
@@ -8,6 +9,7 @@
       manager: auto
 
   - name: SAP SWPM Pre Install - Setup Firewall if included in packages
+    when: '"firewalld" in ansible_facts.packages'
     block:
 
       - name: SAP SWPM Pre Install - Enable and start the firewalld service
@@ -58,8 +60,3 @@
       - name: SAP SWPM Pre Install - Reload Firewall # noqa no-changed-when
         ansible.builtin.shell: |
           firewall-cmd --reload
-
-    when:
-      - '"firewalld" in ansible_facts.packages'
-
-  when: ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
