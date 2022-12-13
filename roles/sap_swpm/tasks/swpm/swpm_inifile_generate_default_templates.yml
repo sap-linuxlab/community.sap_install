@@ -5,25 +5,35 @@
   ansible.builtin.set_fact:
     sap_swpm_product_catalog_id: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_product_catalog_id'] }}"
     sap_swpm_inifile_list: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_list'] }}"
+  tags: sap_swpm_generate_inifile
 
 - name: SAP SWPM default_templates mode - Set product_catalog_id and inifile_list
   ansible.builtin.set_fact:
     sap_swpm_java_template_id_selected_list: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_java_template_id_selected_list'] }}"
   when: "'java' in sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_product_catalog_id'] | lower"
+  tags: sap_swpm_generate_inifile
 
 - name: SAP SWPM default_templates mode - If not already defined, use the default variable for the template
   ansible.builtin.set_fact:
     "{{ item.key }}": "{{ item.value }}"
   with_dict: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_dictionary'] }}"
-
+  tags: sap_swpm_generate_inifile
 
 # Determine Installation Type
 - name: SAP SWPM default_templates mode - Determine Installation Type
-  ansible.builtin.include_tasks: "../pre_install/install_type.yml"
+  ansible.builtin.include_tasks:
+    file: ../pre_install/install_type.yml
+    apply:
+      tags: sap_swpm_generate_inifile
+  tags: sap_swpm_generate_inifile
 
 # Password Facts
 - name: SAP SWPM default_templates mode - Password Facts
-  ansible.builtin.include_tasks: ../pre_install/password_facts.yml
+  ansible.builtin.include_tasks:
+    file: ../pre_install/password_facts.yml
+    apply:
+      tags: sap_swpm_generate_inifile
+  tags: sap_swpm_generate_inifile
 
 # Prepare Software
 - name: SAP SWPM default_templates mode - Prepare Software
@@ -36,3 +46,4 @@
     dest: "{{ sap_swpm_tmpdir.path }}/inifile.params"
     mode: '0640'
   register: sap_swpm_cftemplate
+  tags: sap_swpm_generate_inifile

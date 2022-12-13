@@ -6,7 +6,9 @@
 
 - name: SAP SWPM Pre Install - Run Preinstallation Steps
   ansible.builtin.include_tasks: swpm/swpm_pre_install.yml
-
+  tags:
+    - sap_swpm_generate_inifile
+    - sap_swpm_sapinst_commandline
 
 ################
 # Set sapinst command
@@ -20,6 +22,7 @@
     # IF SWPM is running a HA installation, Ansible Variable sap_swpm_swpm_command_virtual_hostname is set and contains "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }}"
     # If SWPM is running a MP Stack XML installation, Ansible Variable sap_swpm_swpm_command_mp_stack is set and contains "SAPINST_STACK_XML={{ sap_swpm_mp_stack_path }}/{{ sap_swpm_mp_stack_file_name }}"
     sap_swpm_swpm_command_extra_args: "SAPINST_SKIP_DIALOGS=true SAPINST_START_GUISERVER=false {{ sap_swpm_swpm_command_virtual_hostname }} {{ sap_swpm_swpm_command_mp_stack }}"
+  tags: sap_swpm_sapinst_commandline
 
 ################
 # Pre Install Optional Tasks
@@ -28,16 +31,22 @@
 # Firewall
 
 - name: SAP SWPM Pre Install - Firewall Setup
-  ansible.builtin.include_tasks: pre_install/firewall.yml
-  when:
-    - "sap_swpm_setup_firewall | bool"
+  ansible.builtin.include_tasks:
+    file: pre_install/firewall.yml
+    apply:
+      tags: sap_swpm_setup_firewall
+  when: "sap_swpm_setup_firewall | bool"
+  tags: sap_swpm_setup_firewall
 
 # /etc/hosts
 
 - name: SAP SWPM Pre Install - Update /etc/hosts
-  ansible.builtin.include_tasks: pre_install/update_etchosts.yml
-  when:
-    - "sap_swpm_update_etchosts | bool"
+  ansible.builtin.include_tasks:
+    file: pre_install/update_etchosts.yml
+    apply:
+      tags: sap_swpm_update_etchosts
+  when: "sap_swpm_update_etchosts | bool"
+  tags: sap_swpm_update_etchosts
 
 ################
 # Display Parameters
