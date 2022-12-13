@@ -4,7 +4,7 @@
 
 - name: Assert that saptune conflicting services are stopped
   ansible.builtin.assert:
-    that: 
+    that:
       - "ansible_facts.services['{{ service }}.service'].state == 'inactive' or ansible_facts.services['{{ service }}.service'].state == 'stopped'"
       - "ansible_facts.services['{{ service }}.service'].status == 'disabled'"
     fail_msg: "FAIL: the service '{{ service }}' is not configured as expected"
@@ -15,13 +15,13 @@
 
 - name: Assert that saptune is running and enabled
   ansible.builtin.assert:
-    that: 
+    that:
       - "ansible_facts.services['saptune.service'].state == 'running'"
       - "ansible_facts.services['saptune.service'].status == 'enabled'"
     fail_msg: "FAIL: the service 'saptune' is not configured as expected"
     success_msg: "PASS: the service 'saptune' is configured as expected"
 
-- name: Run saptune_check 
+- name: Run saptune_check
   ansible.builtin.command: saptune_check
   register: __sap_netweaver_preconfigure_register_saptune_check
   changed_when: false
@@ -40,7 +40,7 @@
 
 - name: Set solution fact
   ansible.builtin.set_fact:
-    __sap_netweaver_preconfigure_saptune_configured_solution: "{{ (__sap_netweaver_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1' ))[0] | default('NONE') }}"
+    __sap_netweaver_preconfigure_saptune_configured_solution: "{{ (__sap_netweaver_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}"
 
 - name: Discover active solution
   ansible.builtin.command: saptune solution enabled

@@ -54,7 +54,7 @@
      net.ipv4.tcp_timestamps = 0
      net.ipv4.tcp_tw_reuse = 0
      net.ipv4.tcp_tw_recycle = 0
-  when: 
+  when:
     - sap_hana_preconfigure_saptune_azure
 
 - name: Check if saptune solution needs to be applied
@@ -65,7 +65,7 @@
 
 - name: Ensure no solution is currently applied
   ansible.builtin.command: "saptune solution revert {{ __sap_hana_preconfigure_fact_solution_configured }}"
-  when: 
+  when:
     - __sap_hana_preconfigure_fact_solution_configured != 'NONE'
     - __sap_hana_preconfigure_register_saptune_verify.rc != 0
 
@@ -73,8 +73,6 @@
   ansible.builtin.command: "saptune solution apply {{ sap_hana_preconfigure_saptune_solution }}"
   when: __sap_hana_preconfigure_register_saptune_verify.rc != 0
 
-- name: Ensure solution was successful 
+- name: Ensure solution was successful
   ansible.builtin.command: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
-  changed_when: no # We're only checking, not changing!    
-
-
+  changed_when: no # We're only checking, not changing!
