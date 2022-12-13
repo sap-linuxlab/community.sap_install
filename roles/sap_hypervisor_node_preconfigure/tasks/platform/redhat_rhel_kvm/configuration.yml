@@ -1,0 +1,162 @@
+---
+# tasks file for sap_hypervisor_node_preconfigure
+
+- name: Test if kernel same page merging (KSM) exists
+  ansible.builtin.shell: systemctl cat ksm
+  register: ksm
+  ignore_errors: true
+  become: true
+  become_user: root
+
+- name: Test if kernel same page merging (KSM) tuning daemon exists
+  ansible.builtin.shell: systemctl cat ksmtuned
+  register: ksmtuned
+  ignore_errors: true
+  become: true
+  become_user: root
+
+- name: Stop kernel same page merging (KSM)
+  ansible.builtin.shell: systemctl stop ksm
+  when: ksm.rc == 0
+  become: true
+  become_user: root
+
+- name: Disable kernel same page merging (KSM)
+  ansible.builtin.shell: systemctl disable ksm
+  when: ksm.rc == 0
+  become: true
+  become_user: root
+
+- name: Stop Kernel Samepage Merging (KSM) Tuning Daemon
+  ansible.builtin.shell: systemctl stop ksmtuned
+  when: ksmtuned.rc == 0
+  become: true
+  become_user: root
+
+- name: Disable Kernel Samepage Merging (KSM) Tuning Daemon
+  ansible.builtin.shell: systemctl disable ksmtuned
+  when: ksmtuned.rc == 0
+  become: true
+  become_user: root
+
+- name: Check CPU Stepping
+  ansible.builtin.shell: lscpu | awk '/Stepping/{print $2}'
+  register: cpu_stepping_output
+  become: true
+  become_user: root
+
+- set_fact:
+    cpu_stepping: "{{ cpu_stepping_output.stdout }}"
+  become: true
+  become_user: root
+
+- name: Print CPU Stepping
+  ansible.builtin.shell: echo "{{ cpu_stepping }}"
+  become: true
+  become_user: root
+
+# skylake:
+- name: Set ple_gap=0 on Intel Skylake CPU Platform
+  ansible.builtin.lineinfile:
+    path: /etc/modprobe.d/kvm.conf
+    line: options kvm_intel ple_gap=0
+  when: cpu_stepping == "4"
+  become: true
+  become_user: root
+
+# skylake
+- name: Set spectre_v2=retpoline on Intel Skylake CPU Platform
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backup: yes
+    backrefs: yes
+    state: present
+    regexp: '^(GRUB_CMDLINE_LINUX=(?!.* {{ item }}).*). *$'
+    line: "\\1 {{ item }}\""
+  with_items:
+    - "spectre_v2=retpoline"
+  notify: __sap_hypervisor_node_preconfigure_regenerate_grub2_conf_handler
+  tags: grubconfig
+  when: cpu_stepping == "4"
+  become: true
+  become_user: root
+
+- name: "Set kvm.nx_huge_pages to {{ sap_hypervisor_node_preconfigure_kvm_nx_huge_pages }}"
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backup: yes
+    backrefs: yes
+    state: present
+    regexp: '^(GRUB_CMDLINE_LINUX=(?!.* {{ item }}).*). *$'
+    line: "\\1 {{ item }}\""
+  with_items:
+    - "kvm.nx_huge_pages={{ sap_hypervisor_node_preconfigure_kvm_nx_huge_pages }}"
+  notify: __sap_hypervisor_node_preconfigure_regenerate_grub2_conf_handler
+  tags: grubconfig
+  when: sap_hypervisor_node_preconfigure_kvm_nx_huge_pages is defined
+  become: true
+  become_user: root
+
+- name: Set seccomp_sanbox=0
+  ansible.builtin.lineinfile:
+    path: /etc/libvirt/qemu.conf
+    backup: yes
+    backrefs: yes
+    state: present
+    regexp: 'seccomp_sandbox'
+    line: "seccomp_sandbox = 0"
+  become: true
+  become_user: root
+
+- name: Trigger tuned profile sap-hana-kvm activation
+  ansible.builtin.include_tasks: allocate-hugepages-at-runtime.yml
+  when: sap_hypervisor_node_preconfigure_reserve_hugepages == "runtime"
+
+- name: Reserve Hugepages statically
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backup: yes
+    backrefs: yes
+    state: present
+    regexp: '^(GRUB_CMDLINE_LINUX=(?!.* {{ item }}).*). *$'
+    line: "\\1 {{ item }}\""
+  with_items:
+    - default_hugepagesz=1GB
+    - hugepagesz=1GB
+    - hugepages={{ ( ansible_memtotal_mb / 1024 )|int - sap_hypervisor_node_preconfigure_reserved_ram }}
+  notify: __sap_hypervisor_node_preconfigure_regenerate_grub2_conf_handler
+  tags: grubconfig
+  when: sap_hypervisor_node_preconfigure_reserve_hugepages == "static"
+  become: true
+  become_user: root
+
+- name: Enable IOMMU PT
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backup: yes
+    backrefs: yes
+    state: present
+    regexp: '^(GRUB_CMDLINE_LINUX=(?!.* {{ item }}).*). *$'
+    line: "\\1 {{ item }}\""
+  with_items:
+    - intel_iommu=on
+    - iommu=pt
+  notify: __sap_hypervisor_node_preconfigure_regenerate_grub2_conf_handler
+  tags: grubconfig
+  become: true
+  become_user: root
+
+- name: Enable TSX
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    backup: yes
+    backrefs: yes
+    state: present
+    regexp: '^(GRUB_CMDLINE_LINUX=(?!.* {{ item }}).*). *$'
+    line: "\\1 {{ item }}\""
+  with_items:
+    - "tsx={{ sap_hypervisor_node_preconfigure_tsx }}"
+  notify: __sap_hypervisor_node_preconfigure_regenerate_grub2_conf_handler
+  tags: grubconfig
+  become: true
+  become_user: root

@@ -1,6 +1,7 @@
 ---
 
 - name: Tasks for new HANA Systems
+  when: sap_hana_install_new_system | d(true)
   block:
 
     - name: SAP HANA Post Install - Store connection information
@@ -26,7 +27,7 @@
 
     - name: SAP HANA Post Install - Recreate the initial tenant database
       ansible.builtin.include_tasks: post_install/recreate_tenant_database.yml
-      when: sap_hana_install_recreate_tenant_database|d(true)
+      when: sap_hana_install_recreate_tenant_database | d(true)
 
 # Optional Post Install Tasks
 
@@ -49,13 +50,15 @@
         mode: '0600'
       become: false
       delegate_to: 127.0.0.1
+      vars:
+        ansible_become: false
       tags: sap_hana_install_generate_input_file
-
-  when: sap_hana_install_new_system|d(true)
 
 ################
 
 - name: Perform an hdblcm installation check
+  when: sap_hana_install_check_installation | d(false)
+  tags: sap_hana_install_check_installation
   block:
 
     - name: SAP HANA hdblcm installation check - Create a Jinja2 template from the hdblcm xml configfile template
@@ -64,7 +67,7 @@
         awk '
           !/^ /&&!/^<!-- /{print}
           !/^ /&&/^<!-- /{printf ("<!-- Ansible managed -->\n")}
-          /^ /{split ($0, b, "[\*\*\*]"); gsub (">", ""); split ($0, a, "<"); printf ("%s\{\{ sap_hana_install_%s|d(sap_hana_install_master_password) \}\}%s\n", b[1], a[2], b[4])}' {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg.xml > {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.xml.j2
+          /^ /{split ($0, b, "[\*\*\*]"); gsub (">", ""); split ($0, a, "<"); printf ("%s\{\{ sap_hana_install_%s | d(sap_hana_install_master_password) \}\}%s\n", b[1], a[2], b[4])}' {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg.xml > {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.xml.j2
       register: __sap_hana_install_create_jinja2_template
       changed_when: no
 
@@ -98,47 +101,44 @@
           --remote_execution=ssh
           --scope=system
           -b < {{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg.xml"
-      when: sap_hana_install_use_hdbcheck|d(true)
+      when: sap_hana_install_use_hdbcheck | d(true)
 
     - name: SAP HANA hdblcm installation check - Construct an hdblcm command line
       ansible.builtin.set_fact:
         __sap_hana_install_fact_installation_check_command: "set -o pipefail && ./hdblcm --action=check_installation
           --read_password_from_stdin=xml
           -b < {{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg.xml"
-      when: not sap_hana_install_use_hdbcheck|d(true)
+      when: not sap_hana_install_use_hdbcheck | d(true)
 
     - name: SAP HANA hdblcm installation check - Display the command line
       ansible.builtin.debug:
         var: __sap_hana_install_fact_installation_check_command
 
 # Reason for noqa: The command to be executed contains input redirection
-    - name: SAP HANA hdblcm installation check - Perform the check # noqa command-instead-of-shell
+    - name: SAP HANA hdblcm installation check with hdbcheck - Perform the check # noqa command-instead-of-shell
       ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
       args:
         chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/global/hdb/install/bin"
       register: __sap_hana_install_register_installation_check
-      when: sap_hana_install_use_hdbcheck|d(true)
+      when: sap_hana_install_use_hdbcheck | d(true)
 
-    - name: SAP HANA hdblcm installation check - Display the result
+    - name: SAP HANA hdblcm installation check with hdbcheck - Display the result
       ansible.builtin.debug:
         var: __sap_hana_install_register_installation_check.stdout_lines
-      when: sap_hana_install_use_hdbcheck|d(true)
+      when: sap_hana_install_use_hdbcheck | d(true)
 
 # Reason for noqa: The command to be executed contains input redirection
-    - name: SAP HANA hdblcm installation check - Perform the check # noqa command-instead-of-shell
+    - name: SAP HANA hdblcm installation check with hdblcm - Perform the check # noqa command-instead-of-shell
       ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
       args:
         chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
       register: __sap_hana_install_register_installation_check
-      when: not sap_hana_install_use_hdbcheck|d(true)
+      when: not sap_hana_install_use_hdbcheck | d(true)
 
-    - name: SAP HANA hdblcm installation check - Display the result
+    - name: SAP HANA hdblcm installation check with hdblcm - Display the result
       ansible.builtin.debug:
         var: __sap_hana_install_register_installation_check.stdout_lines
-      when: not sap_hana_install_use_hdbcheck|d(true)
-
-  when: sap_hana_install_check_installation|d(false)
-  tags: sap_hana_install_check_installation
+      when: not sap_hana_install_use_hdbcheck | d(true)
 
 - name: SAP HANA Install - Run 'hdblcm --list_systems' after the installation
   ansible.builtin.shell: |
@@ -155,10 +155,32 @@
   changed_when: no
   when: not ansible_check_mode
 
+- name: Configure '/usr/sap' SELinux file contexts
+  ansible.builtin.include_role:
+    name: '{{ sap_hana_install_system_roles_collection }}.selinux'
+  vars:
+    selinux_fcontexts:
+      - { target: '/usr/sap(/.*)?', setype: 'usr_t' }
+    selinux_restore_dirs:
+      - /usr/sap
+  when: sap_hana_install_modify_selinux_labels
+
 - name: Set fact - HANA version
   ansible.builtin.set_fact:
     __sap_hana_install_fact_hana_version: "{{ __sap_hana_install_register_install_result.stdout.split(';')[0] }}"
   when: not ansible_check_mode
+
+- name: SAP HANA Post Install - Deleting software extract directory '{{ sap_hana_install_software_extract_directory }}'
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_software_extract_directory }}"
+    state: absent
+  when: sap_hana_install_cleanup_extract_directory
+
+- name: SAP HANA Post Install - Deleting Configfile Directory '{{ sap_hana_install_configfile_directory }}'
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_configfile_directory }}"
+    state: absent
+  when: sap_hana_install_cleanup_configfile_directory
 
 - name: Set fact - HANA hosts
   ansible.builtin.set_fact:
@@ -175,7 +197,7 @@
       - '  SID              -       {{ sap_hana_install_sid }}'
       - '  NR               -       {{ sap_hana_install_number }}'
 #      - '  Master Password  -       {{ sap_hana_install_master_password }}'
-#      - '  IP               -       {{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}'
+#      - '  IP               -       {{ ansible_default_ipv4.address | default(ansible_all_ipv4_addresses[0]) }}'
 #      - '  Host             -       {{ ansible_hostname }}'
 #      - '  FQDN             -       {{ ansible_fqdn }}'
   when: not ansible_check_mode

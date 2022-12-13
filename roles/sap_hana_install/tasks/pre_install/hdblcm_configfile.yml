@@ -28,6 +28,7 @@
   when: __sap_hana_install_register_stat_hdblcm_configfile.stat.exists
 
 - name: Create the hdblcm configfile dynamically
+  when: not __sap_hana_install_register_stat_hdblcm_configfile.stat.exists
   block:
 
     - name: SAP HANA Pre Install - Create the hdblcm configfile template '{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg'
@@ -44,7 +45,7 @@
         set -o pipefail &&
         awk 'BEGIN{FS="="; printf ("\{\{ ansible_managed | comment \}\}\n# File created on: \{\{ template_host \}\}\n# Template file:   \{\{ template_path \}\}\n#\n")}
           !/^[a-z]/{print}
-          /^[a-z]/{printf ("%s=\{\{ sap_hana_install_%s|d(\047%s\047) \}\}\n", $1, $1, $2)}' {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg > {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.j2
+          /^[a-z]/{printf ("%s=\{\{ sap_hana_install_%s | d(\047%s\047) \}\}\n", $1, $1, $2)}' {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg > {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.j2
       register: __sap_hana_install_create_jinja2_template
       changed_when: no
 
@@ -70,8 +71,6 @@
         mode: '0644'
       register: __sap_hana_install_register_cftemplate
       when: not ansible_check_mode
-
-  when: not __sap_hana_install_register_stat_hdblcm_configfile.stat.exists
 
 - name: SAP HANA Pre Install - Display the path name of the hdblcm configfile
   ansible.builtin.debug:

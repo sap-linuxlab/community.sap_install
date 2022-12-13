@@ -1,5 +1,5 @@
 ---
-# This playbook will 
+# This playbook will
 # - prepare and install SAP HANA on 2 target nodes
 # - set up SAP HANA System Replication (HSR)
 # - install and configure a basic pacemaker cluster
@@ -11,7 +11,7 @@
 # and infrastructure (e.g. IP definitions matching your network).
 
 # Prerequisite:
-# - target nodes are registered with subscription-manager and 
+# - target nodes are registered with subscription-manager and
 #   subscribed to "RHEL for SAP Solutions"
 
 - name: "Install SAP HANA and configure it in a 2-node pacemaker cluster"
@@ -28,15 +28,13 @@
     sap_hana_preconfigure_reboot_ok: yes
     sap_hana_preconfigure_fail_if_reboot_required: no
 
-    sap_hana_update_etchosts: yes
-
     sap_hana_sid: "DB1"
     sap_hana_instance_number: "00"
     sap_hana_install_master_password: "my-hana-password"
 
     ### Cluster Definition
-    sap_hana_cluster_name: cluster1
-    sap_hana_hacluster_password: "my_hacluster-password"
+    ha_cluster_cluster_name: cluster1
+    ha_cluster_hacluster_password: "my_hacluster-password"
 
     sap_hana_cluster_nodes:
       - node_name: node1
@@ -49,18 +47,25 @@
         node_role: secondary
         hana_site: DC02
 
-    sap_hana_vip1: 192.168.1.100
+    sap_hana_vip:
+      primary: 192.168.1.100
 
-    sap_pacemaker_stonith_devices:
-      - name: "rhevm_fence1"
-        agent: "fence_rhevm"
-        parameters: >
-          ip=rhevm-manager.example.com
-          username=rhevm-user@internal
-          password=rhevm-secret
-          pcmk_host_list='node1,node2'
-          power_wait=3
-          ssl=1 ssl_insecure=1 disable_http_filter=1
+    ha_cluster_fence_agent_packages:
+      - fence-agents-rhevm
+
+    sap_ha_pacemaker_cluster_stonith_custom:
+      - name: rhevm-fencing
+        agent: 'stonith:fence_rhevm'
+        options:
+          ip: rhevm-manager.example.com
+          username: rhevm-user@internal
+          password: rhevm-secret
+          pcmk_host_list: "{{ ansible_play_hosts_all | join(',') }}"
+          power_wait: 3
+          ssl: 1
+          ssl_insecure: 1
+          disable_http_filter: 1
+
 
   roles:
     # SAP Hana preparation and installation
@@ -71,9 +76,5 @@
     # SAP Hana System Replication setup between 2 nodes
     - name: sap_ha_install_hana_hsr
 
-    # 2-node Pacemaker Cluster Configuration
-    - name: sap_ha_prepare_pacemaker
-    - name: sap_ha_install_pacemaker
-
-    # SAP Hana Cluster Resources Configuration
-    - name: sap_ha_set_hana
+    # Pacemaker cluster installation and configuration for SAP HANA nodes
+    - name: sap_ha_pacemaker_cluster

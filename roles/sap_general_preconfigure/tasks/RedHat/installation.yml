@@ -1,6 +1,7 @@
 ---
 
 - name: Perform steps for enabling required repos
+  when: sap_general_preconfigure_enable_repos
   block:
 
     - name: Unset list of RHEL repos, SAP NetWeaver
@@ -21,10 +22,10 @@
     - name: Set final list of repos, non-s390x, auto
       ansible.builtin.set_fact:
         __sap_general_preconfigure_req_repos:
-          "{{ __sap_general_preconfigure_req_os_repos | list }} +
-           {{ __sap_general_preconfigure_req_netweaver_repos | list }} +
-           {{ __sap_general_preconfigure_req_hana_repos | list }} +
-           {{ __sap_general_preconfigure_req_ha_repos | list }}"
+          "{{ __sap_general_preconfigure_req_os_repos | list +
+           __sap_general_preconfigure_req_netweaver_repos | list +
+           __sap_general_preconfigure_req_hana_repos | list +
+           __sap_general_preconfigure_req_ha_repos | list }}"
       when:
         - sap_general_preconfigure_req_repos is undefined
         - ansible_architecture != 's390x'
@@ -32,9 +33,9 @@
     - name: Set final list of repos, s390x, auto
       ansible.builtin.set_fact:
         __sap_general_preconfigure_req_repos:
-          "{{ __sap_general_preconfigure_req_os_repos | list }} +
-           {{ __sap_general_preconfigure_req_netweaver_repos | list }} +
-           {{ __sap_general_preconfigure_req_ha_repos | list }}"
+          "{{ __sap_general_preconfigure_req_os_repos | list +
+           __sap_general_preconfigure_req_netweaver_repos | list +
+           __sap_general_preconfigure_req_ha_repos | list }}"
       when:
         - sap_general_preconfigure_req_repos is undefined
         - ansible_architecture == 's390x'
@@ -77,15 +78,11 @@
     - name: Get list of enabled repositories
       ansible.builtin.command: "yum repolist" # noqa command-instead-of-module
       register: __sap_general_preconfigure_register_yum_repolist
-      args:
-        warn: false
       changed_when: false
 
     - name: Display the list of enabled repositories
       ansible.builtin.debug:
         var: __sap_general_preconfigure_register_yum_repolist.stdout_lines
-
-  when: sap_general_preconfigure_enable_repos
 
 - name: Detect if the RHEL minor release lock is set
   ansible.builtin.shell: set -o pipefail && subscription-manager release --show | awk '{print $NF}'
@@ -107,37 +104,32 @@
     - __sap_general_preconfigure_register_subscription_manager_release.stdout != ansible_distribution_version
 
 - name: Ensure that the required package groups are installed, RHEL 7
-  ansible.builtin.command: "yum install {{ sap_general_preconfigure_packagegroups|join(' ') }} -y"
-  args:
-    warn: false
-  register: __sap_general_preconfigure_register_yum_group_install
+  ansible.builtin.package:
+    name: "{{ sap_general_preconfigure_packagegroups }}"
+    state: present
   when: ansible_distribution_major_version == '7'
 
-- name: Display the output of the yum install command
-  ansible.builtin.debug:
-    var: __sap_general_preconfigure_register_yum_group_install
-  when: ansible_distribution_major_version == '7'
-
+# Note: We do not want package updates, see Red Hat bug 1983749.
 - name: Ensure that the required package groups are installed, RHEL 8 and RHEL 9
-# Note: We want to avoid unwanted package upgrades, see bug 1983749.
-  ansible.builtin.command: "yum install {{ sap_general_preconfigure_packagegroups|join(' ') }} --nobest --exclude=kernel* -y"
-  args:
-    warn: false
+  ansible.builtin.dnf:
+    name: "{{ sap_general_preconfigure_packagegroups }}"
+    state: present
+    exclude: kernel*
+    nobest: true
   register: __sap_general_preconfigure_register_yum_group_install
-  when: ansible_distribution_major_version == '8' or ansible_distribution_major_version == '9'
-
-- name: Display the output of the yum install command
-  ansible.builtin.debug:
-    var: __sap_general_preconfigure_register_yum_group_install
   when: ansible_distribution_major_version == '8' or ansible_distribution_major_version == '9'
 
 - name: Ensure that the required packages are installed
   ansible.builtin.package:
-    state: present
     name: "{{ sap_general_preconfigure_packages }}"
+    state: present
 
 - name: Ensure that the minimum required package versions are installed
+  when:
+    - sap_general_preconfigure_min_package_check|bool
+    - __sap_general_preconfigure_min_pkgs|d([])
   block:
+
     - name: Create a list of minimum required package versions to be installed
 # How does it work?
 # 1 - Print the required package name and version with a prefix "1" followed by a space.
@@ -183,16 +175,12 @@
         var: __sap_general_preconfigure_register_minpkglist
 
     - name: Install minimum packages if required
-      ansible.builtin.yum:
+      ansible.builtin.package:
         name: "{{ line_item.stdout }}"
         state: present
       with_items: "{{ __sap_general_preconfigure_register_minpkglist.results }}"
       loop_control:
         loop_var: line_item
-
-  when:
-    - sap_general_preconfigure_min_package_check|bool
-    - __sap_general_preconfigure_min_pkgs|d([])
 
 # Reason for noqa: Both yum and dnf support "state: latest"
 - name: Ensure that the system is updated to the latest patchlevel # noqa package-latest
@@ -231,8 +219,6 @@
   register: __sap_general_preconfigure_register_needs_restarting
   ignore_errors: true
   changed_when: false
-  args:
-    warn: false
   check_mode: false
 
 - name: Display the output of the reboot requirement check
@@ -243,12 +229,12 @@
   ansible.builtin.set_fact:
     sap_general_preconfigure_fact_reboot_required: false
 
-- name: needs-restarting - Set the flag that reboot is needed to apply changes
+- name: For needs-restarting - Set the flag that reboot is needed to apply changes
   ansible.builtin.set_fact:
     sap_general_preconfigure_fact_reboot_required: true
   when: __sap_general_preconfigure_register_needs_restarting is failed
 
-- name: needs-restarting - Display the content of sap_general_preconfigure_fact_reboot_required
+- name: For needs-restarting - Display the content of sap_general_preconfigure_fact_reboot_required
   ansible.builtin.debug:
     var: sap_general_preconfigure_fact_reboot_required
 

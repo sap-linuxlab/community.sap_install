@@ -11,6 +11,7 @@
 #    Network_Configuration_for_HANA_Workloads_on_IBM_Power_Servers_V4.pdf
 
 - name: Perform configuration changes for ppc64le
+  when: ansible_architecture == 'ppc64le'
   block:
 
     - name: Configure - Display SAP note number 2055470 and its version
@@ -31,11 +32,9 @@
       changed_when: __sap_hana_preconfigure_register_ibm_mtusize is success
       failed_when: __sap_hana_preconfigure_register_ibm_mtusize.rc > 0 and __sap_hana_preconfigure_register_ibm_mtusize.rc != 90
       with_items: "{{ sap_hana_preconfigure_ppcle_mtu9000_if }}"
-      when: not(
-              (sap_hana_preconfigure_ppcle_mtu9000_if is undefined) or
-              (sap_hana_preconfigure_ppcle_mtu9000_if is none) or
-              (sap_hana_preconfigure_ppcle_mtu9000_if | trim | length == 0)
-            )
+      when: not ((sap_hana_preconfigure_ppcle_mtu9000_if is undefined) or
+                 (sap_hana_preconfigure_ppcle_mtu9000_if is none) or
+                 (sap_hana_preconfigure_ppcle_mtu9000_if | trim | length == 0))
       loop_control:
         loop_var: line_item
 
@@ -46,11 +45,9 @@
         regexp: '^ETHTOOL_OPTIONS_tso='
         line: ETHTOOL_OPTIONS_tso='-K iface tso on'
       with_items: "{{ sap_hana_preconfigure_ppcle_tso_if }}"
-      when: not(
-              (sap_hana_preconfigure_ppcle_tso_if is undefined) or
-              (sap_hana_preconfigure_ppcle_tso_if is none) or
-              (sap_hana_preconfigure_ppcle_tso_if | trim | length == 0)
-            )
+      when: not ((sap_hana_preconfigure_ppcle_tso_if is undefined) or
+                 (sap_hana_preconfigure_ppcle_tso_if is none) or
+                 (sap_hana_preconfigure_ppcle_tso_if | trim | length == 0))
       loop_control:
         loop_var: line_item
       ignore_errors: true
@@ -75,5 +72,3 @@
     - name: Display largesend kernel parameters
       ansible.builtin.debug:
         var: __sap_hana_preconfigure_register_ibm_largesend_sysctl_p_output.stdout_lines
-
-  when: ansible_architecture == 'ppc64le'

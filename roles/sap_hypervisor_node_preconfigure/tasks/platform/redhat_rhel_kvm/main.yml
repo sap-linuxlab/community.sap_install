@@ -1,0 +1,25 @@
+---
+- name: Display the role path
+  ansible.builtin.debug:
+    var: role_path
+
+- name: Set filename prefix to empty string if role is run in normal mode
+  ansible.builtin.set_fact:
+    assert_prefix: ""
+  when: not sap_hypervisor_node_preconfigure_assert|d(false)
+
+- name: Prepend filename with assert string if role is run in assert mode
+  ansible.builtin.set_fact:
+    assert_prefix: "assert-"
+  when: sap_hypervisor_node_preconfigure_assert|d(false)
+
+- include_tasks: '{{ assert_prefix }}installation.yml'
+
+- include_tasks: '{{ assert_prefix }}configuration.yml'
+
+- include_tasks: '{{ assert_prefix }}set-tuned-profile.yml'
+
+- include_tasks: "{{ assert_prefix }}rhv-hooks.yml"
+  loop:
+    - "{{ role_path }}/tasks/platform/{{ sap_hypervisor_node_platform }}/50_hana"
+    - "{{ role_path }}/tasks/platform/{{ sap_hypervisor_node_platform }}/50_iothread_pinning"

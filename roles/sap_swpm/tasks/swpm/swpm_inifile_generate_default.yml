@@ -2,19 +2,29 @@
 
 # Determine Installation Type
 - name: SAP SWPM default mode - Determine Installation Type
-  include_tasks: "../pre_install/install_type.yml"
+  ansible.builtin.include_tasks:
+    file: ../pre_install/install_type.yml
+    apply:
+      tags: sap_swpm_generate_inifile
+  tags: sap_swpm_generate_inifile
 
 # Password Facts
 - name: SAP SWPM default mode - Password Facts
-  include_tasks: ../pre_install/password_facts.yml
+  ansible.builtin.include_tasks:
+    file: ../pre_install/password_facts.yml
+    apply:
+      tags: sap_swpm_generate_inifile
+  tags: sap_swpm_generate_inifile
 
 # Prepare Software
 - name: SAP SWPM default mode - Prepare Software
-  include_tasks: prepare_software.yml
+  ansible.builtin.include_tasks: prepare_software.yml
 
 # Process SWPM Configfile Template
 - name: SAP SWPM default mode - Process SWPM Configfile Template
-  template:
+  ansible.builtin.template:
     src: "{{ role_path }}/templates/configfile.j2"
     dest: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+    mode: '0640'
   register: sap_swpm_cftemplate
+  tags: sap_swpm_generate_inifile

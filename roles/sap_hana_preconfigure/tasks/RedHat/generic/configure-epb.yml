@@ -4,7 +4,11 @@
 #   in included tuned profile throughput-performance
 # More details on EPB are in: https://github.com/torvalds/linux/blob/be1fcde604e429691771ce70230668af8097e29b/arch/x86/kernel/cpu/intel_epb.c
 - name: Perform steps for configuring EPB
+  when:
+    - ansible_architecture == 'x86_64'
+    - not sap_hana_preconfigure_use_tuned
   block:
+
     - name: Check if system supports Intel's performance bias setting
       ansible.builtin.shell: set -o pipefail && LC_ALL=C cpupower info | head -1 | awk '{print $2, $3, $4}'
       check_mode: no
@@ -18,7 +22,9 @@
              __sap_hana_preconfigure_register_cpupower_info_epb_supported.stderr_lines
 
     - name: Change EPB if possible
+      when: __sap_hana_preconfigure_register_cpupower_info_epb_supported.stdout != 'does not support'
       block:
+
         - name: Create file /etc/init.d/boot.local if it does not exist
           ansible.builtin.file:
             path: /etc/init.d/boot.local
@@ -50,10 +56,3 @@
         - name: Display the output of the cpupower info -b command
           ansible.builtin.debug:
             var: __sap_hana_preconfigure_register_cpupower_info.stdout_lines, __sap_hana_preconfigure_register_cpupower_info.stderr_lines
-
-      when:
-        - __sap_hana_preconfigure_register_cpupower_info_epb_supported.stdout != 'does not support'
-
-  when:
-    - ansible_architecture == 'x86_64'
-    - not sap_hana_preconfigure_use_tuned

@@ -1,0 +1,26 @@
+---
+
+- name: SAP HANA Pre Install - Set __sap_hana_install_fact_tmp_dirname
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_tmp_dirname: "{{ (__sap_hana_install_fact_tmp_dirname + '/' + __sap_hana_install_fact_software_directory.split(\"/\")[line_item | int]) | string }}"
+
+- name: SAP HANA Pre Install - Get directory info
+  ansible.builtin.stat:
+    path: "{{ __sap_hana_install_fact_tmp_dirname }}"
+  register: __sap_hana_install_register_stat_dirname
+
+- name: SAP HANA Pre Install - Display all users permissions for the directory
+  ansible.builtin.debug:
+    msg: "'{{ __sap_hana_install_fact_tmp_dirname }}' has all users permissions '{{ __sap_hana_install_register_stat_dirname.stat.mode[-1] }}'."
+
+- name: SAP HANA Pre Install - Assert that the directory is world executable
+  ansible.builtin.assert:
+    that: __sap_hana_install_register_stat_dirname.stat.mode[-1] == '1' or
+          __sap_hana_install_register_stat_dirname.stat.mode[-1] == '5' or
+          __sap_hana_install_register_stat_dirname.stat.mode[-1] == '7'
+    fail_msg: "FAIL: The directory {{ __sap_hana_install_fact_tmp_dirname }} has all users permission '{{ __sap_hana_install_register_stat_dirname.stat.mode[-1] }}' but needs to be world executable! Either change the all users execute permissions or use a separate directory for 'sap_hana_install_software_extract_directory'."
+    success_msg: "PASS: The directory {{ __sap_hana_install_fact_tmp_dirname }} is world executable."
+
+#- name: SAP HANA Pre Install - Set __sap_hana_install_fact_software_directories
+#  ansible.builtin.set_fact:
+#    __sap_hana_install_fact_software_directories: "{{ __sap_hana_install_fact_software_directories | d([]) + [__sap_hana_install_fact_tmp_dirname] }}"

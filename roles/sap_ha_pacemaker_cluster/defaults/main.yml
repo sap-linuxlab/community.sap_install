@@ -1,0 +1,81 @@
+---
+# Set which Ansible Collection to use for the Linux System Roles.
+# For community/upstream, use 'fedora.linux_system_roles'
+# For the RHEL System Roles for SAP, or for Red Hat Automation Hub, use 'redhat.rhel_system_roles'
+sap_ha_pacemaker_cluster_system_roles_collection: 'fedora.linux_system_roles'
+
+# Variables for the cluster setup must be constructed by dedicated tasks!
+# The included 'ha_cluster' role will not work with the role variables set
+# in this role.
+
+# Do NOT USE ANSIBLE FACTS for defaults to be compatible with
+# playbooks that disable generic fact gathering!
+
+sap_ha_pacemaker_cluster_cluster_name: "{{ ha_cluster_cluster_name | default('my-cluster') }}"
+
+sap_ha_pacemaker_cluster_create_config_varfile: false
+sap_ha_pacemaker_cluster_create_config_dest: "{{ sap_ha_pacemaker_cluster_cluster_name }}_resource_config.yml"
+
+# Inherit SAP common parameters
+sap_ha_pacemaker_cluster_cluster_nodes: "{{ sap_hana_cluster_nodes }}"
+sap_ha_pacemaker_cluster_hana_sid: "{{ sap_hana_sid }}"
+sap_ha_pacemaker_cluster_hana_instance_number: "{{ sap_hana_instance_number }}"
+
+# Make sure that there is always the default fed into the included role
+sap_ha_pacemaker_cluster_fence_agent_packages:
+  - fence-agents-all
+
+sap_ha_pacemaker_cluster_extra_packages: "{{ ha_cluster_extra_packages | default([]) }}"
+
+# Adjusting resource defaults
+sap_ha_pacemaker_cluster_resource_defaults:
+  resource-stickiness: 1000
+  migration-threshold: 5000
+
+# The type of SAP landscape and multi-node replication
+# TODO: Type definitions and feature support
+sap_ha_pacemaker_cluster_sap_type: scaleup
+sap_ha_pacemaker_cluster_replication_type: none
+
+# Optional parameters to customize HANA resources
+# AUTOMATED_REGISTER
+sap_ha_pacemaker_cluster_hana_automated_register: true
+# DUPLICATE_PRIMARY_TIMEOUT
+sap_ha_pacemaker_cluster_hana_duplicate_primary_timeout: 900
+# PREFER_SITE_TAKEOVER
+sap_ha_pacemaker_cluster_hana_prefer_site_takeover: true
+
+### stonith resource parameter defaults
+sap_ha_pacemaker_cluster_fence_options:
+  pcmk_reboot_retries: 4
+  pcmk_reboot_timeout: 400
+  power_timeout: 240
+
+### Resource default patterns
+sap_ha_pacemaker_cluster_vip_address: "{{ sap_hana_vip }}"
+sap_ha_pacemaker_cluster_vip_resource_agent: "ocf:heartbeat:IPaddr2"
+sap_ha_pacemaker_cluster_vip_resource_name: "vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_number }}"
+
+# Resource IDs (names) as convenience parameters.
+sap_ha_pacemaker_cluster_hana_resource_name: "SAPHana_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_number }}"
+sap_ha_pacemaker_cluster_hana_resource_clone_name: "{{ sap_ha_pacemaker_cluster_hana_resource_name }}-clone"
+sap_ha_pacemaker_cluster_hana_topology_resource_name: "SAPHanaTopology_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_number }}"
+sap_ha_pacemaker_cluster_hana_topology_resource_clone_name: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_name }}-clone"
+
+# TODO: network interface name used for client access
+sap_ha_pacemaker_cluster_vip_client_interface: eth0
+sap_ha_pacemaker_cluster_vip_update_rt: []
+
+## A custom stonith definition that takes precedence over platform defaults.
+# sap_ha_pacemaker_cluster_stonith_custom:
+#   - name: ""
+#     agent: "stonith:"
+#     options:
+#       pcmk_host_list: ""
+
+# Simpler format translated into 'ha_cluster_cluster_properties' format of
+# 'ha_cluster' LSR.
+sap_ha_pacemaker_cluster_cluster_properties:
+  stonith-enabled: true
+  stonith-timeout: 900
+  concurrent-fencing: true

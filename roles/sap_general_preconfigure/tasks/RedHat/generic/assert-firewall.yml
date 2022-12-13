@@ -10,6 +10,7 @@
 #          - "'disabled' in ansible_facts.packages['firewalld'].status"
 
 - name: Check firewalld
+  when: "'firewalld' in ansible_facts.packages"
   block:
 
 # Reason for noqa: We need to get the current status only
@@ -25,16 +26,14 @@
         that: "'/usr/lib/systemd/system/firewalld.service; disabled' in __sap_general_preconfigure_register_firewalld_status_assert.stdout"
         fail_msg: "FAIL: Service 'firewalld' is not disabled!"
         success_msg: "PASS: Service 'firewalld' is disabled."
-      ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
+      ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
     - name: Assert that firewalld is inactive
       ansible.builtin.assert:
         that: "'inactive (dead)' in __sap_general_preconfigure_register_firewalld_status_assert.stdout"
         fail_msg: "FAIL: Service 'firewalld' is active!"
         success_msg: "PASS: Service 'firewalld' is inactive."
-      ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors|d(false) }}"
-
-  when: "'firewalld' in ansible_facts.packages"
+      ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Report firewall install status
   ansible.builtin.debug:

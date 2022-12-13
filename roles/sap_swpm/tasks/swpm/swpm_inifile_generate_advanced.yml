@@ -1,25 +1,31 @@
 ---
 
 # Remove Existing inifile.params
-- name: SAP SWPM advanced mode - Create inifile.params
-  file:
+- name: SAP SWPM advanced mode - Ensure 'inifile.params' exists
+  ansible.builtin.file:
     path: "{{ sap_swpm_tmpdir.path }}/inifile.params"
     state: touch
+    mode: '0640'
+  tags: sap_swpm_generate_inifile
 
 - name: SAP SWPM advanced mode - Loop over the dictionary and output to file
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ sap_swpm_tmpdir.path }}/inifile.params"
     state: present
     line: "{{ item.key }} = {{ item.value }}"
   with_dict: "{{ sap_swpm_inifile_custom_values_dictionary }}"
+  tags: sap_swpm_generate_inifile
 
 # NOTE: Values in Dictionary Keys for instance numbers must be string using '01' single quote, otherwise SAP SWPM will crash
 
-
 # Detect variables from generated inifile
 - name: SAP SWPM advanced mode - Detect Variables
-  include_tasks: detect_variables.yml
+  ansible.builtin.include_tasks:
+    file: detect_variables.yml
+    apply:
+      tags: sap_swpm_generate_inifile
+  tags: sap_swpm_generate_inifile
 
 # Prepare Software
 - name: SAP SWPM advanced mode - Prepare Software
-  include_tasks: prepare_software.yml
+  ansible.builtin.include_tasks: prepare_software.yml

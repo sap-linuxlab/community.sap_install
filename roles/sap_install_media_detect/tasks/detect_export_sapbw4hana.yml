@@ -1,0 +1,26 @@
+---
+
+- name: SAP Install Media Detect - SAP BW/4HANA EXPORT - Create Directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  with_items:
+    - "{{ sap_install_media_detect_directory }}/sapbw4hana_export/"
+
+- name: SAP Install Media Detect - SAP BW/4HANA EXPORT - Identify SAP BW/4HANA EXPORT files
+  ansible.builtin.find:
+    paths: "{{ sap_install_media_detect_directory }}"
+    recurse: yes
+    file_type: file
+    patterns: '.*BW4.*EXPORT.*'
+    use_regex: yes
+  register: bw4hana_export_files
+
+- name: SAP Install Media Detect - SAP BW/4HANA EXPORT - Local Directory source - move SAP BW/4HANA EXPORT files
+  command: mv "{{ item.path }}" "{{ sap_install_media_detect_directory }}/sapbw4hana_export/{{ item.path | basename }}"
+  with_items: "{{ bw4hana_export_files.files }}"
+  when:
+    - sap_install_media_detect_source == "local_dir"

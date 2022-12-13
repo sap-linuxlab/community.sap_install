@@ -1,0 +1,13 @@
+---
+
+- name: SAP HANA Pre Install - Configure SELinux file contexts
+  ansible.builtin.include_role:
+    name: '{{ sap_hana_preconfigure_system_roles_collection }}.selinux'
+  vars:
+    selinux_booleans:
+      - { name: 'selinuxuser_execmod', state: 'on' }
+    selinux_fcontexts:
+      - "{{ sap_hana_preconfigure_fact_targets_setypes }}"
+    selinux_restore_dirs:
+      - "{{ sap_hana_preconfigure_hana_directories }}"
+  when: sap_hana_preconfigure_modify_selinux_labels

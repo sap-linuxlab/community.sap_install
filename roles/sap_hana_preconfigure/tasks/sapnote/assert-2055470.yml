@@ -11,6 +11,7 @@
 #    Network_Configuration_for_HANA_Workloads_on_IBM_Power_Servers_V4.pdf
 
 - name: Assert ppc64le specific settings
+  when: ansible_architecture == 'ppc64le'
   block:
 
     - name: Assert - Display SAP note number 2055470 and its version
@@ -58,7 +59,9 @@
 #    loop_var: line_item
 
     - name: Check /etc/sysctl.d/ibm_largesend.conf
+      when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_2055470 | d(false)
       block:
+
         - name: Get info about file /etc/sysctl.d/ibm_largesend.conf
           ansible.builtin.stat:
             path: /etc/sysctl.d/ibm_largesend.conf
@@ -69,23 +72,19 @@
             that: __sap_hana_preconfigure_register_stat_sysctl_ibm_largesend_conf_assert.stat.exists
             fail_msg: "FAIL: File /etc/sysctl.d/ibm_largesend.conf does not exist!"
             success_msg: "PASS: File /etc/sysctl.d/ibm_largesend.conf exists."
-          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
         - name: Assert that file /etc/sysctl.d/ibm_largesend.conf is a regular file
           ansible.builtin.assert:
             that: __sap_hana_preconfigure_register_stat_sysctl_ibm_largesend_conf_assert.stat.isreg
             fail_msg: "FAIL: File /etc/sysctl.d/ibm_largesend.conf is not a regular file!"
             success_msg: "PASS: File /etc/sysctl.d/ibm_largesend.conf is a regular file."
-          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+          ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
           when: __sap_hana_preconfigure_register_stat_sysctl_ibm_largesend_conf_assert.stat.exists
-
-      when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2055470|d(false)
 
     - name: Get and assert kernel tunables for ppc64le
       ansible.builtin.include_tasks: ../RedHat/generic/assert-2055470-loop-block.yml
       loop: "{{ sap_hana_preconfigure_kernel_parameters_ppc64le }}"
       loop_control:
         loop_var: line_item
-      when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2055470|d(false)
-
-  when: ansible_architecture == 'ppc64le'
+      when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_2055470 | d(false)

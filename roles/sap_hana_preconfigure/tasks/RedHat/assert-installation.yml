@@ -5,7 +5,7 @@
     that: ansible_distribution_version in "{{ sap_hana_preconfigure_supported_rhel_minor_releases }}"
     fail_msg: "FAIL: The RHEL release {{ ansible_distribution_version }} is not supported for SAP HANA!"
     success_msg: "PASS: The RHEL release {{ ansible_distribution_version }} is supported for SAP HANA."
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
   when: sap_hana_preconfigure_min_rhel_release_check
 
 - name: Report if the RHEL release is supported for SAP HANA
@@ -19,8 +19,8 @@
 # repos required for SAP HANA on RHEL 7 and RHEL 8:
 - name: Fill the variable for the generic list of required repos
   ansible.builtin.set_fact:
-    __sap_hana_preconfigure_required_repos: "{{ lookup('vars','__sap_hana_preconfigure_req_repos_redhat_' +
-    ansible_distribution_version|string|replace (\".\", \"_\") + '_' + ansible_architecture|string) }}"
+    __sap_hana_preconfigure_required_repos: "{{ lookup('vars', '__sap_hana_preconfigure_req_repos_redhat_' +
+    ansible_distribution_version | string | replace(\".\", \"_\") + '_' + ansible_architecture | string) }}"
 
 - name: Get info about enabled repos
   ansible.builtin.shell: set -o pipefail && subscription-manager repos --list-enabled | awk '/Repo ID:/{print $NF}'
@@ -36,7 +36,7 @@
     - "{{ __sap_hana_preconfigure_required_repos }}"
   loop_control:
     loop_var: line_item
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Detect if and how the minor RHEL release is set
   ansible.builtin.shell: set -o pipefail && subscription-manager release | awk 'NF==2{printf $NF}NF!=2{print}'
@@ -54,7 +54,7 @@
     fail_msg: "FAIL: The RHEL release lock status is '{{ __sap_hana_preconfigure_register_subscription_manager_release_assert.stdout }}'
                but the expected value is '{{ ansible_distribution_version }}'!"
     success_msg: "PASS: The RHEL release is correctly locked to '{{ ansible_distribution_version }}'."
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
   when: "ansible_distribution_version != '7.9'"
 
 - name: Report that checking the release lock is not necessary if the system is on RHEL 7.9
@@ -72,7 +72,7 @@
     - "{{ sap_hana_preconfigure_packages }}"
   loop_control:
     loop_var: line_item
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
 ### If this task fails, you need to enable the IBM PowerTools repository
 ### see https://www14.software.ibm.com/support/customercare/sas/f/lopdiags/home.html for details
@@ -85,8 +85,6 @@
   ansible.builtin.shell: set -o pipefail && yum info installed {{ __sap_hana_preconfigure_required_ppc64le | map('quote') | join(' ') }} | awk '/Name/{n=$NF}/Version/{v=$NF}/Release/{r=$NF}/Description/{printf ("%s\n", n)}'
   register: __sap_hana_preconfigure_register_required_ppc64le_packages_assert
   changed_when: no
-  args:
-    warn: false
 
 - name: Assert that all required IBM packages are installed
   ansible.builtin.assert:
@@ -98,10 +96,15 @@
   loop_control:
     loop_var: line_item
   when: ansible_architecture == "ppc64le"
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Minimum required package version check
+  when:
+    - sap_hana_preconfigure_min_package_check | bool
+    - __sap_hana_preconfigure_min_pkgs | d([])
+    - sap_hana_preconfigure_assert_ignore_errors | d(false)
   block:
+
     - name: Assert - Create a list of minimum required package versions to be installed
 # How does it work?
 # 1 - Print the required package name and version with a prefix "1" followed by a space.
@@ -157,23 +160,18 @@
         label: ""
       ignore_errors: yes
 
-  when:
-    - sap_hana_preconfigure_min_package_check|bool
-    - __sap_hana_preconfigure_min_pkgs|d([])
-    - sap_hana_preconfigure_assert_ignore_errors|d(false)
-
 - name: Report if no minimum required package version is defined for this RHEL release
   ansible.builtin.debug:
     msg: "INFO: No minimum required package version defined (variable __sap_hana_preconfigure_min_pkgs)."
-  when: not __sap_hana_preconfigure_min_pkgs|d([])
+  when: not __sap_hana_preconfigure_min_pkgs | d([])
 
-- name: Get info about possible package updates
+# Reason for noqa: The yum module appears to not support the check-update option
+- name: Get info about possible package updates # noqa command-instead-of-module
   ansible.builtin.command: yum check-update
   register: __sap_hana_preconfigure_register_yum_check_update_assert
-  args:
-    warn: false
   changed_when: false
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  no_log: true
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
   when: sap_hana_preconfigure_update
 
 - name: Assert that there are no more possible package updates
@@ -181,7 +179,7 @@
     that: __sap_hana_preconfigure_register_yum_check_update_assert is success
     fail_msg: "FAIL: System needs to be updated!"
     success_msg: "PASS: There are no more outstanding package updates."
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
   when: sap_hana_preconfigure_update
 
 - name: Report if checking for possible package updates is not requested
@@ -223,14 +221,12 @@
   ansible.builtin.shell: "{{ __sap_hana_preconfigure_fact_needs_restarting_command_assert }}"
   register: __sap_hana_preconfigure_register_needs_restarting_assert
   changed_when: false
-  args:
-    warn: false
   check_mode: false
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Assert that system needs no restart
   ansible.builtin.assert:
     that: __sap_hana_preconfigure_register_needs_restarting_assert is success
     fail_msg: "FAIL: System needs to be restarted!"
     success_msg: "PASS: System needs no restart."
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"

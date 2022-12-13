@@ -6,12 +6,16 @@ and then role sap_hana_preconfigure.  However, if we wish to run SLES for HANA, 
 
 ## Requirements
 
-To use this role, your system needs to be configured with the basic requirements for SAP NetWeaver or SAP HANA. For RHEL, this typically done by running
-role sap_general_preconfigure (for RHEL managed nodes before RHEL 7.6, community maintained role sap-base-settings can be used).
-It is also strongly recommended to run role linux-system-roles.timesync for all systems running SAP HANA, to maintain an identical system time,
-before or after running role sap_hana_preconfigure.
+The role requires additional collections which are specified in `meta/collection-requirements.yml`. Before using this role,
+make sure that the required collections are installed, for example by using the following command:
 
-Managed nodes need to be properly registered to a repository source and have at least the following repositories accessible (see also example playbook):
+`ansible-galaxy install -vv -r meta/collection-requirements.yml`
+
+To use this role, your system needs to be configured with the basic requirements for SAP NetWeaver or SAP HANA. This is typically done by running role sap_general_preconfigure (for RHEL managed nodes before RHEL 7.6, community maintained role sap-base-settings can be used).
+
+It is also strongly recommended to run role linux-system-roles.timesync for all systems running SAP HANA, to maintain an identical system time, before or after running role sap_hana_preconfigure.
+
+Managed nodes need to be properly registered to a repository source and have at least the following Red Hat repositories accessible (see also example playbook):
 
 for RHEL 7.x:
 - rhel-7-[server|for-power-le]-e4s-rpms
@@ -79,11 +83,10 @@ The current version modifies this behavior:
   If sap_hana_preconfigure_use_tuned is set to `no`, the role will perform a static configuration, including the modification of the linux command line in grub.
 - The role can use tuned, or configure the kernel command line, or both.
 
-2) Previous versions of this role used variable sap_hana_preconfigure_selinux_state to set the SELinux state to disabled, which is mentioned in
-SAP notes 2292690 (RHEL 7) and 2777782 (RHEL 8). As role sap_general_preconfigure already allows to specify the desired SELinux state, and as
-sap_general_preconfigure is run before sap_hana_preconfigure, there is no need any more to let sap_hana_preconfigure configure the SELinux state.
-Same applies to the assertion of the SELinux state. Because of this, variable sap_hana_preconfigure_selinux_state has been removed from this role and
-tasks 2292690/08-disable-selinux.yml and 2777782/01-assert-selinux.yml have been commented out.
+2) Previous versions of this role used variable sap_hana_preconfigure_selinux_state to set the SELinux state to disabled, which is
+mentioned in SAP notes 2292690 (RHEL 7) and 2777782 (RHEL 8). As role sap_general_preconfigure already allows to specify the desired
+SELinux state, and as sap_general_preconfigure is run before sap_hana_preconfigure, there is no need any more to let
+sap_hana_preconfigure configure the SELinux state. Same applies to the assertion of the SELinux state.
 
 3) SLES systems are now configured using saptune rather than the ansible implementation of the notes.
 

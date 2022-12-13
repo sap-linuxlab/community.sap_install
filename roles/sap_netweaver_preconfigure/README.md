@@ -7,9 +7,9 @@ For SLES, running the `sap_general_preconfigure` role is not necessary.
 ## Requirements
 
 To use this role, your system needs to be configured with the basic requirements for SAP NetWeaver or SAP HANA. This is typically done by
-running role `sap_general_preconfigure` (for RHEL managed nodes before RHEL 7.6, community maintained role sap-base-settings can be used).
-It is also strongly recommended to run role linux-system-roles.timesync for all systems running SAP NetWeaver, to maintain an identical system time,
-before or after running role sap_netweaver_preconfigure.
+running role sap_general_preconfigure (for RHEL managed nodes before RHEL 7.6, community maintained role sap-base-settings can be used).
+It is also strongly recommended to run role linux-system-roles.timesync for all systems running SAP NetWeaver, to maintain an identical
+system time, before or after running role sap_netweaver_preconfigure.
 
 Note 
 ----

@@ -6,7 +6,11 @@
     name: "{{ sap_general_preconfigure_packages }}"
 
 - name: Ensure that the minimum required package versions are installed
+  when:
+    - sap_general_preconfigure_min_package_check|bool
+    - __sap_general_preconfigure_min_pkgs|d([])
   block:
+
     - name: Create a list of minimum required package versions to be installed
 # How does it work?
 # 1 - Print the required package name and version with a prefix "1" followed by a space.
@@ -59,10 +63,6 @@
       loop_control:
         loop_var: line_item
 
-  when:
-    - sap_general_preconfigure_min_package_check|bool
-    - __sap_general_preconfigure_min_pkgs|d([])
-
 # Reason for noqa: Both yum and dnf support "state: latest"
 - name: Ensure that the system is updated to the latest patchlevel # noqa package-latest
   ansible.builtin.package:
@@ -76,8 +76,6 @@
   register: __sap_general_preconfigure_register_needs_restarting
   ignore_errors: true
   changed_when: false
-  args:
-    warn: false
   check_mode: false
 
 - name: Display the output of the reboot requirement check
@@ -88,12 +86,12 @@
   ansible.builtin.set_fact:
     sap_general_preconfigure_fact_reboot_required: false
 
-- name: needs-restarting - Set the flag that reboot is needed to apply changes
+- name: For needs-restarting - Set the flag that reboot is needed to apply changes
   ansible.builtin.set_fact:
     sap_general_preconfigure_fact_reboot_required: true
   when: __sap_general_preconfigure_register_needs_restarting is failed
 
-- name: needs-restarting - Display the content of sap_general_preconfigure_fact_reboot_required
+- name: For needs-restarting - Display the content of sap_general_preconfigure_fact_reboot_required
   ansible.builtin.debug:
     var: sap_general_preconfigure_fact_reboot_required
 
