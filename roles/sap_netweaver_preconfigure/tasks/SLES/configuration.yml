@@ -1,27 +1,56 @@
 ---
-
-- name: Configure - List required SAP Notes
-  ansible.builtin.debug:
-    var: __sap_netweaver_preconfigure_sapnotes | difference([''])
-
-- name: Include installation actions for required sapnotes
-  ansible.builtin.include_tasks: "../tasks/sapnote/{{ sap_note_line_item }}/installation.yml"
-  with_items: "{{ __sap_netweaver_preconfigure_sapnotes | difference(['']) }}"
+- name: Ensure conflicting services are stopped and disabled
+  ansible.builtin.systemd:
+    name: "{{ service }}"
+    state: stopped
+    enabled: no
+  loop: "{{ __sap_netweaver_preconfigure_saptune_conflicting_services }}"
   loop_control:
-    loop_var: sap_note_line_item
-  when: __sap_netweaver_preconfigure_sapnotes is defined
+    loop_var: service
 
-- name: Include configuration actions for required sapnotes
-  ansible.builtin.include_tasks: "../tasks/sapnote/{{ sap_note_line_item }}/configuration.yml"
-  with_items: "{{ __sap_netweaver_preconfigure_sapnotes | difference(['']) }}"
-  loop_control:
-    loop_var: sap_note_line_item
-  when: __sap_netweaver_preconfigure_sapnotes is defined
+- name: Ensure saptune is running and enabled
+  ansible.builtin.systemd:
+    name: saptune
+    state: started
+    enabled: yes
+
+- name: Ensure saptune_check executes correctly
+  ansible.builtin.command: saptune_check
+  changed_when: no
+
+- name: Discover active solution
+  ansible.builtin.command: saptune solution enabled
+  register: __sap_netweaver_preconfigure_register_saptune_status
+  changed_when: no
+
+- name: Set fact for active solution
+  ansible.builtin.set_fact:
+    __sap_netweaver_preconfigure_fact_solution_configured: "{{ (__sap_netweaver_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}" # Capture the first block on none whitespace
+
+- name: Check if saptune solution needs to be applied
+  ansible.builtin.command: "saptune solution verify {{ sap_netweaver_preconfigure_saptune_solution }}"
+  register: __sap_netweaver_preconfigure_register_saptune_verify
+  changed_when: no # We're only checking, not changing!
+  failed_when: no # We expect this to fail if it has not previously been applied
+
+- name: Ensure no solution is currently applied
+  ansible.builtin.command: "saptune solution revert {{ __sap_netweaver_preconfigure_fact_solution_configured }}"
+  when:
+    - __sap_netweaver_preconfigure_fact_solution_configured != 'NONE'
+    - __sap_netweaver_preconfigure_register_saptune_verify.rc != 0
+
+- name: Ensure saptune solution is applied
+  ansible.builtin.command: "saptune solution apply {{ sap_netweaver_preconfigure_saptune_solution }}"
+  when: __sap_netweaver_preconfigure_register_saptune_verify.rc != 0
+
+- name: Ensure solution was successful
+  ansible.builtin.command: "saptune solution verify {{ sap_netweaver_preconfigure_saptune_solution }}"
+  changed_when: no # We're only checking, not changing!
 
 - name: Warn if not enough swap space is configured
   ansible.builtin.fail:
     msg: "The system has only {{ ansible_swaptotal_mb }} MB of swap space configured,
-    which is less than the minimum required amount of {{ sap_netweaver_preconfigure_min_swap_space_mb }} MB for SAP NetWeaver!"
+      which is less than the minimum required amount of {{ sap_netweaver_preconfigure_min_swap_space_mb }} MB for SAP NetWeaver!"
   ignore_errors: yes
   when:
     - ansible_swaptotal_mb < sap_netweaver_preconfigure_min_swap_space_mb|int
@@ -30,7 +59,7 @@
 - name: Fail if not enough swap space is configured
   ansible.builtin.fail:
     msg: "The system has only {{ ansible_swaptotal_mb }} MB of swap space configured,
-    which is less than the minimum required amount of {{ sap_netweaver_preconfigure_min_swap_space_mb }} MB for SAP NetWeaver!"
+      which is less than the minimum required amount of {{ sap_netweaver_preconfigure_min_swap_space_mb }} MB for SAP NetWeaver!"
   when:
     - ansible_swaptotal_mb < sap_netweaver_preconfigure_min_swap_space_mb|int
     - sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured|d(true)

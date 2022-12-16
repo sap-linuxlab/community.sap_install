@@ -1,0 +1,75 @@
+---
+#- name: Enable Debugging
+#  debug:
+#    verbosity: "{{ debuglevel }}"
+#
+
+- name: Populate service facts
+  ansible.builtin.service_facts:
+
+- name: Assert that saptune conflicting services are stopped
+  ansible.builtin.assert:
+    that:
+      - "ansible_facts.services['{{ service }}.service'].state == 'inactive' or ansible_facts.services['{{ service }}.service'].state == 'stopped'"
+      - "ansible_facts.services['{{ service }}.service'].status == 'disabled'"
+    fail_msg: "FAIL: the service '{{ service }}' is not configured as expected"
+    success_msg: "PASS: the service '{{ service }}' is configured as expected"
+  loop: "{{ __sap_hana_preconfigure_saptune_conflicting_services }}"
+  loop_control:
+    loop_var: service
+
+- name: Assert that saptune is running and enabled
+  ansible.builtin.assert:
+    that:
+      - "ansible_facts.services['saptune.service'].state == 'running'"
+      - "ansible_facts.services['saptune.service'].status == 'enabled'"
+    fail_msg: "FAIL: the service 'saptune' is not configured as expected"
+    success_msg: "PASS: the service 'saptune' is configured as expected"
+
+- name: Run saptune_check
+  ansible.builtin.command: saptune_check
+  register: __sap_hana_preconfigure_register_saptune_check
+  changed_when: false
+  failed_when: false
+
+- name: Assert that saptune_check executed correctly
+  ansible.builtin.assert:
+    that: "__sap_hana_preconfigure_register_saptune_check.rc == 0"
+    fail_msg: "FAIL: the command saptune_check fails"
+    success_msg: "PASS: the command saptune_check executes as expected"
+
+- name: Discover active solution
+  ansible.builtin.command: saptune solution enabled
+  register: __sap_hana_preconfigure_register_saptune_status
+  changed_when: no
+
+- name: Set solution fact
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_saptune_configured_solution: "{{ (__sap_hana_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}"
+
+- name: Assert that active solution is the expected solution
+  ansible.builtin.assert:
+    that: __sap_hana_preconfigure_saptune_configured_solution == sap_hana_preconfigure_saptune_solution
+    fail_msg: "FAIL: the configured saptune solution is '{{ __sap_hana_preconfigure_saptune_configured_solution }}'' and does not match the expected solution '{{ sap_hana_preconfigure_saptune_solution }}'"
+    success_msg: "PASS: the configured saptune solution matches the expected solution '{{ sap_hana_preconfigure_saptune_solution }}'"
+
+# If this is a cluster node on Azure, we need to override to disable tcp timestamps, reuse and recycle.
+# This can be done by copying the sapnote file 2382421 from /usr/share/saptune/notes to /etc/saptune/override
+# The value can then override in the in the new file
+
+#- name: Disable TCP timestamps, recycle & reuse
+#  ansible.builtin.blockinfile:
+#    path: /etc/saptune/override/2382421
+#    create: yes
+#    backup: yes
+#    owner: root
+#    group: root
+#    mode: '0640'
+#    marker: "<!-- {mark} ANSIBLE MANAGED BLOCK -->"
+#    block: |
+#     [sysctl]
+#     net.ipv4.tcp_timestamps = 0
+#     net.ipv4.tcp_tw_reuse = 0
+#     net.ipv4.tcp_tw_recycle = 0
+#  when:
+#    - sap_hana_preconfigure_saptune_azure

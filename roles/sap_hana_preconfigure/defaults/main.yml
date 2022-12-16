@@ -91,7 +91,7 @@ sap_hana_sps: "0"
 sap_hana_preconfigure_packages: "{{ __sap_hana_preconfigure_packages }}"
 #sap_hana_preconfigure_packages: "{{ __sap_hana_preconfigure_packages_min_install }}"
 
-# SAP HANA requires certain minimum package versions to be supported. These mininum levels are listed in SAP Note 2235581.
+# SAP HANA requires certain minimum package versions to be supported. These minimum levels are listed in SAP Note 2235581.
 # Set to no if you want to ignore these requirements.
 sap_hana_preconfigure_min_package_check: yes
 
@@ -118,7 +118,7 @@ sap_hana_preconfigure_fail_if_reboot_required: yes
 
 ##  HANA kernel parameters
 # [SAP Note 2382421](https://launchpad.support.sap.com/#/notes/2382421) defines kernel parameters that all Linux systems need to set.
-# The default parameter recomendations are dependent on the OS release. Hence the OS dependant default setting is defined in
+# The default parameter recommendations are dependent on the OS release. Hence the OS dependant default setting is defined in
 # ./vars/{{ansible_os_release}}.yml. If you need to add or change parameters for your system, copy these parameters from the vars file
 # into the variable sap_hana_preconfigure_kernel_parameters and add or change your settings:
 
@@ -159,3 +159,20 @@ sap_hana_preconfigure_run_grub2_mkconfig: "{{ __sap_hana_preconfigure_run_grub2_
 # (if it exists, it will be used to configure process limits as per step
 #  "Configuring Process Resource Limits" of SAP note 2772999):
 # sap_hana_preconfigure_db_group_name: dba
+
+## The following variables control aspects of saptune and are only relevant for SLES for SAP Application
+
+# Version of saptune to install this will replace the current installed version if present, downgrading if necessary
+sap_hana_preconfigure_saptune_version: 3.0.2
+
+# The saptune solution to apply.  For HANA, the only appropriate options are:
+# * HANA
+# * NETWEAVER+HANA
+# * S4HANA-APP+DB
+# * S4HANA-DBSERVER
+# * The default option is HANA
+sap_hana_preconfigure_saptune_solution: HANA
+
+# When running on Azure, TCP timestamps, reuse and recycle should be disabled
+# set to yes when running on Azure
+sap_hana_preconfigure_saptune_azure: false
