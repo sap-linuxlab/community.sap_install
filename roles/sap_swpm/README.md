@@ -2,6 +2,15 @@
 
 Ansible role for SAP software installation using SWPM
 
+## Requirements
+
+The role requires additional collections which are specified in `meta/collection-requirements.yml`. Before using this role,
+make sure that the required collections are installed, for example by using the following command:
+
+`ansible-galaxy install -vv -r meta/collection-requirements.yml`
+
+## Scope
+
 This role has been tested and working for the following scenarios
 -   One Host Installation
 -   Dual Host Installation
@@ -143,7 +152,7 @@ Every SAP Software installation via SAP Software Provisioning Manager (SWPM) is 
 
 ### Default Templates mode variables
 
-Example using all inifile list parameters with the Default Templates mode to install SAP ECC EhP8 on IBM Db2:
+Example using all inifile list parameters with the Default Templates mode to install SAP ECC EHP8 on IBM DB2:
 
 ```
 sap_swpm_ansible_role_mode: default_templates
@@ -179,10 +188,19 @@ sap_swpm_templates_install_dictionary:
     - sap_os_linux_user
 ```
 
+## Tags
+
+With the following tags, the role can be called to perform certain activities only:
+- tag `sap_swpm_generate_inifile`: Only create the sapinst inifile. This can be useful for checking if the inifile is created as desired.
+- tag `sap_swpm_sapinst_commandline`: Only show the sapinst command line.
+- tag `sap_swpm_pre_install`: Perform all preinstallation steps, then exit.
+- tag `sap_swpm_setup_firewall`: Only perform the firewall preinstallation settings (but only if variable `sap_swpm_setup_firewall` is set to `true`).
+- tag `sap_swpm_update_etchosts`: Only update file `/etc/hosts` (but only if variable `sap_swpm_update_etchosts` is set to `true`).
+
 ## License
 
 Apache license 2.0
 
 ## Author Information
 
-IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice, Jason Masipiquena, Sean Freeman
+IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice, Jason Masipiquena, Sean Freeman, Bernd Finger, Markus Koch
