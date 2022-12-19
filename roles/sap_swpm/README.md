@@ -152,7 +152,7 @@ Every SAP Software installation via SAP Software Provisioning Manager (SWPM) is 
 
 ### Default Templates mode variables
 
-Example using all inifile list parameters with the Default Templates mode to install SAP ECC EHP8 on IBM DB2:
+Example using all inifile list parameters with the Default Templates mode to install SAP ECC EhP8 on IBM Db2:
 
 ```
 sap_swpm_ansible_role_mode: default_templates
