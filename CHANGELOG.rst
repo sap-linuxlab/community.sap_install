@@ -15,7 +15,7 @@ Release Summary
 | Release Date: 2022-12-20
 | Consolidate sap_ha_install_pacemaker, sap_ha_prepare_pacemaker, and sap_ha_set_hana into new sap_ha_pacemaker_cluster role
 | Use the ha_cluster Linux System Role and its enhanced features in the new role sap_ha_pacemaker_cluster
-| Modify SELinux file labels for SAP directories to support SELinux enforcing mode
+| Enable modifying SELinux file labels for SAP directories
 | Upgrade SAP SWPM handling for compatibility with more scenarios when generating inifile.params
 | Add Ansible Role for basic Oracle DB installations for SAP
 | Various minor enhancements
