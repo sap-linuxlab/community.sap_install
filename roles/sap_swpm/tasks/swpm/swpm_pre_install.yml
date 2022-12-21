@@ -2,34 +2,52 @@
 
 # Create temporary directory
 - name: SAP SWPM Pre Install - Create temporary directory
-  tempfile:
+  ansible.builtin.tempfile:
     state: directory
     suffix: swpmconfig
   register: sap_swpm_tmpdir
+  tags:
+    - sap_swpm_generate_inifile
+    - sap_swpm_sapinst_commandline
 
 # Copy password file to the same location as inifile.params
 - name: SAP SWPM Pre Install - Copy password file to the same location as inifile.params
-  copy:
+  ansible.builtin.copy:
     src: "{{ sap_swpm_password_file_path }}/instkey.pkey"
     dest: "{{ sap_swpm_tmpdir.path }}/instkey.pkey"
     remote_src: yes
+    mode: '0640'
   when: sap_swpm_use_password_file == "y"
+  tags: sap_swpm_generate_inifile
 
 # Run SWPM inifile generation based on ansible role mode
-- include_tasks: "swpm_inifile_generate_{{ sap_swpm_ansible_role_mode }}.yml"
+- name: SAP SWPM Pre Install - generate swpm inifile
+  ansible.builtin.include_tasks: "swpm_inifile_generate_{{ sap_swpm_ansible_role_mode }}.yml"
+  tags: sap_swpm_generate_inifile
+
+- name: SAP SWPM Pre Install - Display the location of file 'inifile.params'
+  ansible.builtin.debug:
+    msg: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+  tags: sap_swpm_generate_inifile
 
 # Set fact for SWPM path
 - name: SAP SWPM Pre Install - Set fact for SWPM path
-  set_fact:
-    sap_swpm_sapinst_path: "{{ sap_swpm_sapcar_path }}"
+  ansible.builtin.set_fact:
+    sap_swpm_sapinst_path: "{{ sap_swpm_swpm_path }}/sap_swpm_extracted"
+
+- name: SAP SWPM Pre Install - Ensure directory '{{ sap_swpm_sapinst_path }}' exists
+  ansible.builtin.file:
+    path: "{{ sap_swpm_sapinst_path }}"
+    state: directory
+    mode: '0755'
 
 # Extract SWPM
 - name: SAP SWPM Pre Install - Extract SWPM
-  command: >-
+  ansible.builtin.command: >-
     {{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }} \
     -xvf {{ sap_swpm_swpm_path }}/{{ sap_swpm_swpm_sar_file_name }} \
     -manifest SIGNATURE.SMF
   register: sap_swpm_extractswpm
   args:
-    chdir: "{{ sap_swpm_sapcar_path }}"
+    chdir: "{{ sap_swpm_sapinst_path }}"
   changed_when: "'SAPCAR: processing archive' in sap_swpm_extractswpm.stdout"

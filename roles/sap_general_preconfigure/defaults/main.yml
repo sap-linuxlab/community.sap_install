@@ -21,6 +21,11 @@ sap_general_preconfigure_assert: no
 
 sap_general_preconfigure_assert_ignore_errors: no
 
+# Set which Ansible Collection to use for the Linux System Roles.
+# For community/upstream, use 'fedora.linux_system_roles'
+# For the RHEL System Roles for SAP, or for Red Hat Automation Hub, use 'redhat.rhel_system_roles'
+sap_general_preconfigure_system_roles_collection: 'fedora.linux_system_roles'
+
 # Set to `yes` if you want the role to enable the repos as configured below. The default is `no`.
 sap_general_preconfigure_enable_repos: no
 
@@ -67,9 +72,14 @@ sap_general_preconfigure_reboot_ok: no
 
 sap_general_preconfigure_fail_if_reboot_required: yes
 
-sap_general_preconfigure_selinux_state: disabled
+sap_general_preconfigure_selinux_state: permissive
 
-sap_general_preconfigure_size_of_tmpfs_gb: "{{ ((0.75 * ( ansible_memtotal_mb + ansible_swaptotal_mb )) / 1024) | round | int }}"
+# For compatibility of SAP software with SELinux in enforcing mode, the role will recursively add
+# the 'usr_t' label to directories and files in `/usr/sap`.
+# If relabeling not desired, set the following variable to `no`.
+sap_general_preconfigure_modify_selinux_labels: yes
+
+sap_general_preconfigure_size_of_tmpfs_gb: "{{ ((0.75 * (ansible_memtotal_mb + ansible_swaptotal_mb)) / 1024) | round | int }}"
 
 sap_general_preconfigure_locale: en_US.UTF-8
 

@@ -3,6 +3,11 @@
 ################
 # Main role parameters:
 ################
+# Set which Ansible Collection to use for the Linux System Roles.
+# For community/upstream, use 'fedora.linux_system_roles'
+# For the RHEL System Roles for SAP, or for Red Hat Automation Hub, use 'redhat.rhel_system_roles'
+sap_hana_install_system_roles_collection: 'fedora.linux_system_roles'
+
 # Directory containing the IMDB SAR files and all components
 sap_hana_install_software_directory: '/software/hana'
 
@@ -10,6 +15,10 @@ sap_hana_install_software_directory: '/software/hana'
 # Note: In case the directory SAP_HANA_DATABASE does not exist in this directory, the directory will be removed and
 # created again before the extraction starts.
 sap_hana_install_software_extract_directory: "{{ sap_hana_install_software_directory }}/extracted"
+
+# If there is a requirement to cleanup "sap_hana_install_software_extract_directory" after SAP HANA Installation, then
+# set the value to true. By default, this directory will not be removed
+sap_hana_install_cleanup_extract_directory: false
 
 # Set this variabe to `yes` if you want to copy the SAR files from `sap_hana_install_software_directory`
 # to `sap_hana_install_software_extract_directory/sarfiles` before extracting.
@@ -49,6 +58,11 @@ sap_hana_install_verify_signature: no
 # Directory where to store the hdblcm configfile template and the Jinja2 template:
 sap_hana_install_configfile_directory: "{{ sap_hana_install_software_extract_directory }}/configfiles"
 
+# If a custom path for sap_hana_install_configfile_directory was defined and if there is a requirement to cleanup this directory,
+# then set "sap_hana_install_cleanup_configfile_directory" as true. Incase if a custom path was not defined and
+# "sap_hana_install_cleanup_extract_directory" was set as true, then the configfiles will be removed.
+sap_hana_install_cleanup_configfile_directory: false
+
 # File name prefix for the hdblcm configfile template and the Jinja2 template:
 sap_hana_install_configfile_template_prefix: "hdblcm_configfile_template"
 
@@ -65,6 +79,9 @@ sap_hana_install_check_installation: no
 # no: use the command `hdblcm --action=check_installation`
 sap_hana_install_use_hdbcheck: yes
 
+# If the following variable is set to yes, the HANA installation check will be skipped
+sap_hana_install_force: no
+
 # If the following variable is set to `no`, the role will attempt to install SAP HANA even if there is already a sidadm user.
 # Default is `yes`.
 sap_hana_install_check_sidadm_user: yes
@@ -77,6 +94,11 @@ sap_hana_install_new_system: yes
 # The first tenant database is using a port range not within the range of the ports of additional tenant databases.
 # In case this is not desired, you can set the following parameter to `yes` to recreate the initial tenant database.
 sap_hana_install_recreate_tenant_database: no
+
+# For compatibility of SAP HANA with SELinux in enforcing mode, the role will recursively relabel directories and files
+# in `/hana` before the installation starts and in `/usr/sap` after the installation has finished.
+# If relabeling not desired, set the following variable to `no`.
+sap_hana_install_modify_selinux_labels: yes
 
 ################
 # Parameters for hdblcm:
@@ -100,7 +122,7 @@ sap_hana_install_restrict_max_mem: 'n'
 sap_hana_install_max_mem:
 
 # hdblcm will use default ids if blank
-sap_hana_install_userid: 
+sap_hana_install_userid:
 sap_hana_install_groupid:
 
 # Passwords

@@ -1,6 +1,11 @@
 # sap_ha_install_hana_hsr Ansible Role
 
-Ansible role for SAP HANA System Replication Setup on 2 nodes with the same OS and SAP HANA release.
+Ansible role for SAP HANA System Replication Setup on 2 nodes.
+
+## Prerequisites
+
+- target nodes are on the same OS level
+- target nodes are using the same SAP HANA release
 
 ## Overview
 
@@ -11,10 +16,8 @@ The **sap_ha_install_hana_hsr** role is part of this system role sequence:
 |    1.    | sap_general_preconfigure | System Preparation for SAP                                   |
 |    2.    | sap_hana_preconfigure    | System Preparation for SAP HANA                              |
 |    3.    | sap_hana_install         | Installation of SAP HANA Database                            |
-|    4.    | sap_ha_install_hana_hsr  | Configuration of SAP HANA System Replication                 |
-|    5.    | sap_ha_prepare_pacemaker | Authentication and Preparation of Nodes for Cluster Creation |
-|    6.    | sap_ha_install_pacemaker | Initialization of the Pacemaker Cluster                      |
-|    7.    | sap_ha_set_hana          | Configuration of SAP HANA Resources for SAP Solutions        |
+|  _4._    | _sap_ha_install_hana_hsr_ | _Configuration of SAP HANA System Replication_              |
+|    5.    | sap_ha_pacemaker_cluster | Linux Pacemaker cluster setup and SAP resources configuration |
 
 The **sap_ha_install_hana_hsr** roles configures a HANA system replication relationship which is used by the pacemaker cluster to automate SAP HANA System Replication (HSR). Prerequisite is the SAP HANA installation on the nodes.
 
@@ -22,8 +25,8 @@ The **sap_ha_install_hana_hsr** roles configures a HANA system replication relat
 
 | Task                   | Description                                                                         |
 | ---------------------- | ----------------------------------------------------------------------------------- |
-| update_etchosts.yml    | all nodes of the cluster will be entered into the /etc/hosts, if not already exists |
-| configure_firewall.yml | this will configure the firewall für HANA system replication (opional)              |
+| update_etchosts.yml    | ensures that all nodes of the cluster are configured in all nodes' /etc/hosts       |
+| configure_firewall.yml | this will configure the firewall für HANA system replication (disabled)        |
 | hdbuserstore.yml       | create a user in the hdbuserstore                                                   |
 | log_mode.yml           | check/set database logmode                                                          |
 | pki_files.yml          | copy pki file from primary to secondary database                                    |
@@ -32,11 +35,11 @@ The **sap_ha_install_hana_hsr** roles configures a HANA system replication relat
 
 ## Common Variables/Parameters Used
 
-| Name                             | Description                     | Value            |
-| -------------------------------- | ------------------------------- | ---------------- |
-| sap_domain                       | Domain Name                     | e.g. example.com |
-| sap_hana_sid                     | SAP ID                          | e.g. RH1         |
-| sap_hana_instance_number         | Instance Number                 | e.g. 00          |
+| Name                             | Description                     | Value                  |
+| -------------------------------- | ------------------------------- | ---------------------- |
+| sap_domain                       | Domain Name                     | example: `example.com` |
+| sap_hana_sid                     | SAP ID                          | example: `RH1`         |
+| sap_hana_instance_number         | Instance Number                 | example: `"00"`        |
 | sap_hana_install_master_password | DB System Password              |
 | sap_hana_cluster_nodes           | Parameter list of cluster nodes |
 | sap_hana_hacluster_password      | Pacemaker hacluster Password    |
@@ -47,8 +50,6 @@ The **sap_ha_install_hana_hsr** roles configures a HANA system replication relat
 | --------------------------------- | ---------------- | -------------------- |
 | sap_ha_install_hana_hsr_rep_mode  | replication mode | default is sync      |
 | sap_ha_install_hana_hsr_oper_mode | operation mode   | default is logreplay |
-
-In most cases you need to specify these variables only, if you want to use different values than the default values.
 
 ## Example Parameter File
 

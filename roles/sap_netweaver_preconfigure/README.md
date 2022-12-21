@@ -1,20 +1,23 @@
 # sap_netweaver_preconfigure Ansible Role
 
 This role installs additional required packages and performs additional configuration steps for installing and running SAP NetWeaver.
-If you want to configure a RHEL system for the installation and later usage of SAP NetWeaver, you have to first run role sap_general_preconfigure
-and then role sap_netweaver_preconfigure.
+If you want to configure a RHEL system for the installation and later usage of SAP NetWeaver, you have to first run role `sap_general_preconfigure` and then role sap_netweaver_preconfigure.  
+For SLES, running the `sap_general_preconfigure` role is not necessary.
 
 ## Requirements
 
 To use this role, your system needs to be configured with the basic requirements for SAP NetWeaver or SAP HANA. This is typically done by
 running role sap_general_preconfigure (for RHEL managed nodes before RHEL 7.6, community maintained role sap-base-settings can be used).
-It is also strongly recommended to run role linux-system-roles.timesync for all systems running SAP NetWeaver, to maintain an identical system time,
-before or after running role sap_netweaver_preconfigure.
+It is also strongly recommended to run role linux-system-roles.timesync for all systems running SAP NetWeaver, to maintain an identical
+system time, before or after running role sap_netweaver_preconfigure.
 
-Note
+Note 
 ----
-As per SAP notes 2002167 and 2772999, the role will switch to tuned profile sap-netweaver no matter if another tuned profile
+On RHEL, as per SAP notes 2002167 and 2772999, the role will switch to tuned profile sap-netweaver no matter if another tuned profile
 (e.g. virtual-guest) had been active before or not.
+
+On SLES, this role will switch the saptune solution to the one specified by the configuration and will override any previously set solution.
+The default solution is `NETWEAVER`.
 
 The role can check if enough swap space - as per the prerequisite checker in sapinst - has been configured on the managed node.
 Please check the SAP NetWeaver installation guide for swap space requirements.
@@ -24,7 +27,7 @@ node(s), which might not be intended.
 
 ## Role Variables
 
-### Execute only certain steps of SAP notes
+### Execute only certain steps of SAP notes (RHEL only)
 If the following variable is set to `no`, only the installation or configuration steps of SAP notes will be executed or checked. If this variable is undefined or set to `yes`, all installation and configuration steps of applicable SAP notes will be executed.
 ```yaml
 sap_netweaver_preconfigure_config_all
@@ -37,7 +40,7 @@ sap_netweaver_preconfigure_installation
 sap_netweaver_preconfigure_configuration
 ```
 
-### Install required packages for Adobe Document Services
+### Install required packages for Adobe Document Services (RHEL Only)
 If the following variable is set to `yes`, required packages for Adobe Document Services according to SAP note 2135057 (RHEL 7) or 2920407 (RHEL 8) will be installed. Default is `no`.
 ```yaml
 sap_netweaver_preconfigure_use_adobe_doc_services
@@ -67,6 +70,24 @@ sap_netweaver_preconfigure_min_swap_space_mb
 If the following variable is set to `no`, the role will not fail if less than 20480 MB of swap space is configured. Default is `yes`.
 ```yaml
 sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured
+```
+
+## Select saptune solution (SLES only)
+You can specify the saptune solution you want to implement.  For Netweaver, there are a number of possible solutions depending on the deployment:
+
+* NETWEAVER
+* NETWEAVER+HANA 
+* S4HANA-APP+DB  
+* S4HANA-APPSERVER
+* S4HANA-DBSERVER
+The default vaule is NETWEAVER
+
+sap_netweaver_preconfigure_saptune_solution: NETWEAVER
+
+The default is `NETWEAVER`
+
+```yaml
+sap_hana_preconfigure_saptune_solution
 ```
 
 ## Example Playbook

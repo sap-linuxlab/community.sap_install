@@ -1,0 +1,39 @@
+---
+exclude: '^$'
+fail_fast: true
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.3.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-symlinks
+        types: ["symlink"]
+        types_or: ["symlink"]
+        stages: [manual]
+      - id: check-executables-have-shebangs
+        name: "Executable text files have shebangs"
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+        files: .*\.(xml|yaml|yml|md|adoc)$
+      - id: check-xml
+      - id: check-yaml
+        args:
+          - "-m"
+            #  - repo: https://github.com/adrienverge/yamllint.git
+            #    rev: v1.26.3
+            #    hooks:
+            #    - id: yamllint
+            #      exclude: >
+            #        (?x)^(
+            #          examples/playbooks/templates/.*|
+            #          examples/other/some.j2.yaml
+            #        )$
+            #      files: \.(yaml|yml)$
+            #      types: [file, yaml]
+            #      entry: yamllint --strict
+  - repo: https://github.com/ansible-community/ansible-lint.git
+    rev: v6.8.6  # put latest release tag from https://github.com/ansible-community/ansible-lint/releases/
+    hooks:
+      - id: ansible-lint
+        files: \.(yaml|yml)$

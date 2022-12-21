@@ -1,0 +1,333 @@
+---
+# Requires: ansible 2.11
+# Argument specifications in this separate file maintain backwards compatibility.
+argument_specs:
+
+# TODO: make 'ha_cluster' role variables the primary names
+# For required variables using aliases do not work and fail the argument validation.
+
+  main:
+    short_description: SAP HA automated cluster setup requirements
+    options:
+
+# Take this template and copy it to the desired place.
+# Add content and remove placeholders that are not needed.
+# Ideally sort by key (variable name) alphabetically.
+#
+#      sap_ha_pacemaker_cluster_
+#        default:
+#        description:
+#           -
+#        example:
+#
+#        required: false
+#        type:
+#        options: # additional options for lists and dicts
+#          <param>:
+#            description:
+#            ...
+
+      ha_cluster:
+        description:
+          - Optional _**host_vars**_ parameter - if defined it must be set for each node.
+          - Dictionary that can contain various node options for the pacemaker cluster configuration.
+          - Supported options can be reviewed in the `ha_cluster` Linux System Role [https://github.com/linux-system-roles/ha_cluster/blob/master/README.md].
+        example:
+          ha_cluster:
+            corosync_addresses:
+              - 192.168.1.10
+              - 192.168.2.10
+            node_name: nodeA
+
+        required: false
+        type: dict
+
+      ha_cluster_cluster_name:
+        default: my-cluster
+        description:
+          - The name of the pacemaker cluster.
+        required: false
+        type: str
+
+      ha_cluster_hacluster_password:
+        description:
+          - The password of the `hacluster` user which is created during pacemaker installation.
+        no_log: true
+        required: true
+        type: str
+
+      sap_ha_pacemaker_cluster_aws_region:
+        description:
+          - The AWS region in which the instances to be used for the cluster setup are located.
+          - Required for cluster nodes setup on Amazon cloud.
+        required: false
+        type: str
+
+      sap_ha_pacemaker_cluster_aws_access_key_id:
+        description:
+          - AWS access key to allow control of instances (for example for fencing operations).
+          - Required for cluster nodes setup on Amazon cloud.
+        required: false
+        type: str
+
+      sap_ha_pacemaker_cluster_aws_secret_access_key:
+        description:
+          - AWS secret key, paired with the access key for instance control.
+          - Required for cluster nodes setup on Amazon cloud.
+        required: false
+        type: str
+
+      sap_ha_pacemaker_cluster_cluster_properties:
+        default: See example
+        description:
+          - Standard pacemaker cluster properties are configured with recommended settings for cluster node fencing.
+        example:
+          sap_ha_pacemaker_cluster_cluster_properties:
+            stonith-enabled: true
+            stonith-timeout: 900
+            concurrent-fencing: true
+
+        required: false
+        type: dict
+
+      sap_ha_pacemaker_cluster_create_config_dest:
+        default: <cluster-name>_resource_config.yml
+        description:
+          - The pacemaker cluster resource configuration optionally created by this role will be saved in a Yaml file in the current working directory.
+          - Requires `sap_ha_pacemaker_cluster_create_config_varfile` to be enabled for generating the output file.
+          - Specify a path/filename to save the file in a custom location.
+          - The file can be used as input vars file for an Ansible playbook running the 'ha_cluster' Linux System Role.
+        required: false
+        type: str
+
+      sap_ha_pacemaker_cluster_create_config_varfile:
+        default: false
+        description:
+          - When enabled, all cluster configuration parameters this role constructs for executing the 'ha_cluster' Linux System role will be written into a file in Yaml format.
+          - This allows using the output file later as input file for additional custom steps using the 'ha_cluster' role and covering the resource configuration in a cluster that was set up using this 'sap_ha_pacemaker_cluster' role.
+          - When enabled this parameters file is also created when the playbook is run in check_mode (`--check`) and can be used to review the configuration parameters without executing actual changes on the target nodes.
+          - WARNING! This report may include sensitive details like secrets required for certain cluster resources!
+        required: false
+        type: bool
+
+      sap_ha_pacemaker_cluster_fence_options:
+        description:
+          - STONITH resource common parameters that apply to most fencing agents.
+          - These options are applied to fencing resources this role uses automatically for pre-defined platforms (like AWS EC2, IBM Cloud VPC).
+          - The listed options are set by default.
+          - Additional options can be added by defining this parameter in dictionary format and adding the defaults plus any valid stonith resource key-value pair.
+
+        example:
+          sap_ha_pacemaker_cluster_fence_options:
+            pcmk_reboot_retries: 4
+            pcmk_reboot_timeout: 400
+            power_timeout: 240
+
+        required: false
+        type: dict
+
+        options:
+
+          pcmk_reboot_retries:
+            default: 4
+            description:
+              - STONITH resource parameter to define how often it retries to restart a node.
+            required: false
+            type: int
+
+          pcmk_reboot_timeout:
+            default: 400
+            description:
+              - STONITH resource parameter to define after which timeout a node restart is returned as failed.
+            required: false
+            type: int
+
+          power_timeout:
+            default: 240
+            description:
+              - STONITH resource parameter to test X seconds for status change after ON/OFF.
+            required: false
+            type: int
+
+      sap_ha_pacemaker_cluster_hana_automated_register:
+        default: true
+        description:
+          - Parameter for the 'SAPHana' cluster resource.
+          - Define if a former primary should be re-registered automatically as secondary.
+        required: false
+        type: bool
+
+      sap_ha_pacemaker_cluster_hana_duplicate_primary_timeout:
+        default: 900
+        description:
+          - Parameter for the 'SAPHana' cluster resource.
+          - Time difference needed between to primary time stamps, if a dual-primary situation occurs.
+          - If the time difference is less than the time gap, then the cluster holds one or both instances in a "WAITING" status.
+          - This is to give an admin a chance to react on a failover. A failed former primary will be registered after the time difference is passed.
+        required: false
+        type: int
+
+      sap_ha_pacemaker_cluster_hana_prefer_site_takeover:
+        choices:
+          - true
+          - false
+        default: true
+        description:
+          - Parameter for the 'SAPHana' cluster resource.
+          - Set to "false" if the cluster should first attempt to restart the instance on the same node.
+          - When set to "true" (default) a failover to secondary will be initiated on resource failure.
+        required: false
+        type: bool
+
+      sap_ha_pacemaker_cluster_hana_resource_name:
+        default: "SAPHana_<SID>_<Instance Number>"
+        description:
+          - Customize the cluster resource name of the SAP HANA DB resource.
+        required: false
+        type: str
+
+      sap_ha_pacemaker_cluster_hana_topology_resource_name:
+        default: "SAPHanaTopology_<SID>_<Instance Number>"
+        description:
+          - Customize the cluster resource name of the SAP HANA Topology resource.
+        required: false
+        type: str
+
+      sap_ha_pacemaker_cluster_ibmcloud_api_key:
+        description:
+          - The API key is required to allow control of instances (for example for fencing operations).
+          - Required for cluster nodes setup in IBM Cloud VPC.
+        required: false
+        type: str
+
+      sap_ha_pacemaker_cluster_ibmcloud_region:
+        description:
+          - The cloud region key in which the instances are running.
+          - Required for cluster nodes setup in IBM Cloud VPC.
+        required: false
+        type: str
+
+      sap_ha_pacemaker_cluster_replication_type:
+        choices:
+          - mtr
+          - none
+        default: none
+        description:
+          - The type of SAP HANA site replication across multiple hosts.
+          - _Not yet supported_
+        required: false
+        type: str
+
+      sap_ha_pacemaker_cluster_resource_defaults:
+        default: See example
+        description:
+          - Set default parameters that will be valid for all pacemaker resources.
+        example:
+          sap_ha_pacemaker_cluster_resource_defaults:
+            resource-stickiness: 1000
+            migration-threshold: 5000
+
+        required: false
+        type: dict
+
+      sap_ha_pacemaker_cluster_sap_type:
+        choices:
+          - scaleup
+          - scaleout
+        default: scaleup
+        description:
+          - The SAP landscape to be installed.
+          - _Currently only scale-up is supported_
+        required: false
+        type: str
+
+      sap_ha_pacemaker_cluster_vip_client_interface:
+        default: eth0
+        description:
+          - OS device name of the network interface to use for the Virtual IP configuration.
+          - This is used for VIP agents that require an interface name, for example in cloud platform environments.
+        required: false
+        type: str
+
+      sap_ha_pacemaker_cluster_vip_resource_name:
+        default: "vip_<SID>_<Instance Number>"
+        description:
+          - Customize the name of the resource managing the Virtual IP.
+        required: false
+        type: str
+
+      sap_ha_pacemaker_cluster_vip_update_rt:
+        description:
+          - List one more routing table IDs for managing Virtual IP failover through routing table changes.
+          - Required for VIP configuration in AWS EC2 environments.
+        required: false
+        type: list
+
+      sap_hana_cluster_nodes:
+        description:
+          - List of cluster nodes and associated attributes to describe the target SAP HA environment.
+          - This is required for the HANA System Replication configuration.
+
+        example:
+          sap_hana_cluster_nodes:
+            - node_name: nodeA
+              node_role: primary
+              hana_site: DC01
+              node_ip: 192.168.5.1
+            - node_name: nodeB
+              node_role: secondary
+              hana_site: DC02
+              node_ip: 192.168.5.2
+
+        elements: dict
+        required: true
+        type: list
+        options:
+          node_ip:
+            description:
+              - IP address of the node used for HANA System Replication.
+            required: true
+          node_name:
+            description:
+              - Name of the cluster node, should match the remote systems' hostnames.
+              - This is needed by the cluster members to know all their partner nodes.
+            required: true
+          node_role:
+            choices:
+              - primary
+              - secondary
+            description:
+              - Role of this node in the SAP cluster setup.
+              - There must be only **one** primary, but there can be multiple secondary nodes.
+            required: true
+          hana_site:
+            description:
+              - Site of the cluster and/or SAP HANA System Replication node (for example 'DC01').
+              - This is required for HANA System Replication configuration.
+            required: true
+
+      sap_hana_instance_number:
+        description:
+          - The instance number of the SAP HANA database which is role will configure in the cluster.
+        required: true
+        type: str
+
+      sap_hana_sid:
+        description:
+          - The SAP System ID of the instance that will be configured in the cluster.
+          - The SAP SID must follow SAP specifications - see SAP Note 1979280.
+        required: true
+        type: str
+
+      sap_hana_vip:
+        description:
+          - One floating IP is required for SAP HANA DB connection by clients.
+          - This main VIP will always run on the promoted HANA node and be moved with it during a failover.
+
+        example:
+          sap_hana_vip:
+            primary: 192.168.10.100
+
+        required: true
+        type: dict
+        required_one_of: [{ primary, main, rw, promoted }]

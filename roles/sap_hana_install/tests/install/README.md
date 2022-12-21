@@ -9,7 +9,7 @@ from the managed node via `ssh`, for which we need a user name.
 The following steps have to be performed to prepare the tests:
 - The files mentioned in the tasks `Copy ... to software directory` (e.g. `SAPCAR_1115-70006178.EXE`),
   as well as their sha256 checksum files (e.g. `SAPCAR_1115-70006178.EXE.sha256`), need to be available
-  in the directory specified by variable `sap_hana_install_software_directory` in file 
+  in the directory specified by variable `sap_hana_install_software_directory` in file
   `install-vars.yml`, e.g. `/software/sap_hana_install_test`.
 - You can either download or copy these files manually or via Ansible with yml file
   `prepare-install-tests-x86_64.yml` or `prepare-install-tests-ppc64le.yml`.

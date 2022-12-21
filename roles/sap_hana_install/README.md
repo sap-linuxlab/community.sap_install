@@ -2,12 +2,17 @@
 
 Ansible role for SAP HANA Installation
 
-## Prerequisites
+## Requirements
+
+The role requires additional collections which are specified in `meta/collection-requirements.yml`. Before using this role,
+make sure that the required collections are installed, for example by using the following command:
+
+`ansible-galaxy install -vv -r meta/collection-requirements.yml`
 
 ### Configure your system for the installation of SAP HANA
 
 - Make sure required volumes and filesystems are configured in the host.
-You can use the role `sap_storage` to configure this. More info [here](/roles/sap_storage)
+You can use the role `sap_storage_setup` to configure this. More info [here](/roles/sap_storage_setup)
 
 - Run the roles `sap_general_preconfigure` and `sap_hana_preconfigure` for installing required packages and
 for configuring system settings.
@@ -80,6 +85,14 @@ can be set to a different directory.
 If this role is executed on more than one host in parallel and the software extraction directory is shared among those hosts,
 the role will only extract the files on the first host on which the extraction has started. The role will proceed on the other hosts
 after the extraction of SAR files has completed.
+
+If NFS is used for sharing the SAP HANA installation media between the nodes, then it is required to define
+`sap_hana_install_configfile_directory`. The default for `sap_hana_install_configfile_directory` is
+"{{ sap_hana_install_software_extract_directory }}/configfiles". This variable should point to a non nfs path. After installation,
+if a cleanup of configfile is required, then set `sap_hana_install_cleanup_configfile_directory` as true. If a cleanup of
+software extract directory is required then set `sap_hana_install_cleanup_extract_directory` as true. The default value for both
+these cleanup actions are false.
+
 
 - Sample directory `sap_hana_install_software_extract_directory` containing extracted SAP HANA software installation files
     ```console
@@ -228,14 +241,19 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 
 #### Perform Initial Checks
 
+These checks are only performed if `sap_hana_install_force` is set to `true`. Its default value is `false`
 - If variable `sap_hana_install_check_sidadm_user` is undefined or set to `y`: Check if user sidadm exists. If yes,
   abort the role.
 
-- Check if directory `/hana/shared/<sid>` exists. If yes, abort the role.
+- Check if `/usr/sap/hostctrl/exe/saphostctrl` exists and get info on running HANA instances.
+  - If conflicting instances exist the role aborts with a failure
+  - If desired instance is running, the role aborts with success
 
-- Check if directory `/usr/sap/<sid>` exists. If yes, abort the role.
+- If  `/usr/sap/hostctrl/exe/saphostctrl`  does not exist
+   -  Check if directory `/hana/shared/<sid>` exists. If yes and not empty, abort the role.
+  - Check if directory `/usr/sap/<sid>` exists. If yes and not empty, abort the role.
 
-#### Pre-Install 
+#### Pre-Install
 
 - Set all passwords to follow master password if set to 'y'.
 
@@ -299,7 +317,7 @@ in a temporary directory for use by the hdblcm command in the next step.
 
 ### Add hosts to an existing SAP HANA Installation
 
-#### Pre-Install 
+#### Pre-Install
 
 - Process SAP HANA configfile based on input parameters.
 

@@ -1,7 +1,13 @@
 ---
 
 - name: Assert - Perform steps for checking TSX
+  when:
+    - ansible_architecture == 'x86_64'
+    - ansible_distribution == 'RedHat'
+    - ansible_distribution_major_version == '8'
+    - __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int >= 3
   block:
+
 # There are CPUs which are not capable of enabling the rtm flag, so we just report the status:
     - name: Get all CPU flags
       ansible.builtin.shell: lscpu | grep "^Flags:"
@@ -30,7 +36,7 @@
         that: "'tsx=on' in __sap_hana_preconfigure_register_default_grub_cmdline_tsx_assert.stdout"
         fail_msg: "FAIL: 'tsx=on' is not in GRUB_CMDLINE_LINUX in /etc/default/grub!"
         success_msg: "PASS: 'tsx=on' is in GRUB_CMDLINE_LINUX in /etc/default/grub."
-      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
       when: __sap_hana_preconfigure_register_lscpu_flags.stdout is not regex("^Flags:.*\s*rtm\s*.*")
 
     - name: Report if tsx=on is in GRUB_CMDLINE_LINUX in /etc/default/grub
@@ -57,7 +63,7 @@
         that: "'tsx=on' in __sap_hana_preconfigure_register_proc_cmdline_tsx_assert.stdout"
         fail_msg: "FAIL: 'tsx=on' is not in /proc/cmdline!"
         success_msg: "PASS: 'tsx=on' is in /proc/cmdline."
-      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
       when: __sap_hana_preconfigure_register_lscpu_flags.stdout is not regex("^Flags:.*\s*rtm\s*.*")
 
     - name: Report if tsx=on is in /proc/cmdline
@@ -73,8 +79,3 @@
       when:
         - "'tsx=on' not in __sap_hana_preconfigure_register_proc_cmdline_tsx_assert.stdout"
         - __sap_hana_preconfigure_register_lscpu_flags.stdout is regex("^Flags:.*\s*rtm\s*.*")
-
-  when: ansible_architecture == 'x86_64' and
-        ansible_distribution == 'RedHat' and
-        ansible_distribution_major_version == '8' and
-        __sap_hana_preconfigure_fact_ansible_distribution_minor_version|int >= 3

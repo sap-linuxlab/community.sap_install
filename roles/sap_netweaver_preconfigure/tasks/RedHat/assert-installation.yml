@@ -10,16 +10,15 @@
     - "{{ __sap_netweaver_preconfigure_packages }}"
   loop_control:
     loop_var: line_item
-  ignore_errors: "{{ sap_netweaver_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_netweaver_preconfigure_assert_ignore_errors | d(false) }}"
 
-- name: Check if required packages for Adobe Document Services are installed
+# Reason for noqa: We want a list of packages which are not installed
+- name: Check if required packages for Adobe Document Services are installed # noqa command-instead-of-module
   ansible.builtin.shell: rpm -q --qf "%{NAME}.%{ARCH}\n" {{ __sap_netweaver_preconfigure_adobe_doc_services_packages | map('quote') | join(' ') }}
   register: __sap_netweaver_preconfigure_register_rpm_q_ads_packages
   changed_when: no
-  args:
-    warn: false
-  when: sap_netweaver_preconfigure_use_adobe_doc_services|d(false)
-  ignore_errors: "{{ sap_netweaver_preconfigure_assert_ignore_errors|d(false) }}"
+  when: sap_netweaver_preconfigure_use_adobe_doc_services | d(false)
+  ignore_errors: "{{ sap_netweaver_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Assert that all required packages for Adobe Document Services are installed
   ansible.builtin.assert:
@@ -29,5 +28,5 @@
   with_items: "{{ __sap_netweaver_preconfigure_register_rpm_q_ads_packages.stdout_lines }}"
   loop_control:
     loop_var: line_item
-  when: sap_netweaver_preconfigure_use_adobe_doc_services|d(false)
-  ignore_errors: "{{ sap_netweaver_preconfigure_assert_ignore_errors|d(false) }}"
+  when: sap_netweaver_preconfigure_use_adobe_doc_services | d(false)
+  ignore_errors: "{{ sap_netweaver_preconfigure_assert_ignore_errors | d(false) }}"

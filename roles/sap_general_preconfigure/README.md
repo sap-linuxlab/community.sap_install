@@ -2,7 +2,14 @@
 
 This role installs required packages and performs configuration steps which are required for installing and running SAP NetWeaver or SAP HANA. Specific installation and configuration steps on top of these basic steps are performed with roles sap-netweaver-preconfigure and sap-hana-preconfigure. Future implementations may reduce the scope of this role, for example if certain installation or configuration steps are done in the more specific roles.
 
+For SLES systems, this role may not be necessary.  The majority of SAP preparation and tuning is covered by `saptune` which is configured in the `sap_hana_preconfigure` and `sap_netweaver_preconfigure` roles.
+
 ## Requirements
+
+The role requires additional collections which are specified in `meta/collection-requirements.yml`. Before using this role,
+make sure that the required collections are installed, for example by using the following command:
+
+`ansible-galaxy install -vv -r meta/collection-requirements.yml`
 
 To use this role, your system needs to be installed according to:
 - RHEL 7: SAP note 2002167, Red Hat Enterprise Linux 7.x: Installation and Upgrade, section "Installing Red Hat Enterprise Linux 7"

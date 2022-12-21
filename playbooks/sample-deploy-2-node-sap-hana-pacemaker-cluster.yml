@@ -1,0 +1,81 @@
+---
+# This playbook will
+# - prepare and install SAP HANA on 2 target nodes
+# - set up SAP HANA System Replication (HSR)
+# - install and configure a basic pacemaker cluster
+# - configure the SAP HANA DB resource with a service VIP
+
+# To use this playbook in your test environment
+# please update the "vars" parameters with values
+# corresponding to your individual naming standards
+# and infrastructure (e.g. IP definitions matching your network).
+#
+# NOTE:
+# For simplicity the sample password values are plain text. Please make sure to
+# apply security measures to any credentials, for instance using ansible-vault
+# encryption.
+
+- name: "Install SAP HANA and configure it in a 2-node pacemaker cluster"
+  hosts: node1, node2
+  become: true
+
+  vars:
+    sap_domain: example.com
+
+    ## general + hana preconfigure
+    # allow reboot handler execution after preconfigure roles
+    sap_general_preconfigure_reboot_ok: no
+    sap_general_preconfigure_fail_if_reboot_required: no
+    sap_hana_preconfigure_reboot_ok: yes
+    sap_hana_preconfigure_fail_if_reboot_required: no
+
+    sap_hana_sid: "DB1"
+    sap_hana_instance_number: "00"
+    sap_hana_install_master_password: "my-hana-password"
+
+    ### Cluster Definition
+    ha_cluster_cluster_name: cluster1
+    ha_cluster_hacluster_password: "my_hacluster-password"
+
+    sap_hana_cluster_nodes:
+      - node_name: node1
+        node_ip: 192.168.1.11
+        node_role: primary
+        hana_site: DC01
+
+      - node_name: node2
+        node_ip: 192.168.1.12
+        node_role: secondary
+        hana_site: DC02
+
+    sap_hana_vip:
+      primary: 192.168.1.100
+
+    ha_cluster_fence_agent_packages:
+      - fence-agents-rhevm
+
+    sap_ha_pacemaker_cluster_stonith_custom:
+      - name: rhevm-fencing
+        agent: 'stonith:fence_rhevm'
+        options:
+          ip: rhevm-manager.example.com
+          username: rhevm-user@internal
+          password: rhevm-secret
+          pcmk_host_list: "{{ ansible_play_hosts_all | join(',') }}"
+          power_wait: 3
+          ssl: 1
+          ssl_insecure: 1
+          disable_http_filter: 1
+
+
+  roles:
+    # SAP Hana preparation and installation
+    - name: sap_general_preconfigure
+    - name: sap_hana_preconfigure
+    - name: sap_hana_install
+
+    # SAP Hana System Replication setup between 2 nodes
+    - name: sap_ha_install_hana_hsr
+
+    # Pacemaker cluster installation and configuration for SAP HANA nodes
+    - name: sap_ha_pacemaker_cluster

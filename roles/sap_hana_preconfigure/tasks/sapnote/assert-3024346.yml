@@ -8,7 +8,11 @@
           (version {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^3024346$') | first).version }}): Linux kernel settings for NetApp NFS"
 
 - name: Check NetApp sysctl conf file for SAP HANA
+  when:
+    - sap_hana_preconfigure_use_netapp_settings_nfs | d(false)
+    - sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_3024346 | d(false)
   block:
+
     - name: Get info about file {{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}
       ansible.builtin.stat:
         path: "{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}"
@@ -19,19 +23,15 @@
         that: __sap_hana_preconfigure_register_etc_sysctl_netapp_hana_conf_assert.stat.exists
         fail_msg: "FAIL: File {{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }} does not exist!"
         success_msg: "PASS: File {{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }} exists."
-      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
     - name: Assert that file {{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }} is a regular file
       ansible.builtin.assert:
         that: __sap_hana_preconfigure_register_etc_sysctl_netapp_hana_conf_assert.stat.isreg
         fail_msg: "FAIL: File {{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }} is not a regular file!"
         success_msg: "PASS: File {{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }} is a regular file."
-      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
       when: __sap_hana_preconfigure_register_etc_sysctl_netapp_hana_conf_assert.stat.exists
-
-  when:
-    - sap_hana_preconfigure_use_netapp_settings_nfs|d(false)
-    - sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3024346|d(false)
 
 - name: Get and assert kernel tunables for NetApp NFS
   ansible.builtin.include_tasks: ../RedHat/generic/assert-3024346-loop-block.yml
@@ -39,11 +39,15 @@
   loop_control:
     loop_var: line_item
   when:
-    - sap_hana_preconfigure_use_netapp_settings_nfs|d(false)
-    - sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3024346|d(false)
+    - sap_hana_preconfigure_use_netapp_settings_nfs | d(false)
+    - sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_3024346 | d(false)
 
 - name: Check NetApp modprobe conf file for SAP HANA with NFSv3
+  when:
+    - sap_hana_preconfigure_use_netapp_settings_nfsv3 | d(false)
+    - sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_3024346 | d(false)
   block:
+
     - name: Get info about file /etc/modprobe.d/sunrpc.conf
       ansible.builtin.stat:
         path: /etc/modprobe.d/sunrpc.conf
@@ -54,19 +58,15 @@
         that: __sap_hana_preconfigure_register_etc_modprobe_sunrpc_conf_assert.stat.exists
         fail_msg: "FAIL: File /etc/modprobe.d/sunrpc.conf does not exist!"
         success_msg: "PASS: File /etc/modprobe.d/sunrpc.conf exists."
-      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
     - name: Assert that file /etc/modprobe.d/sunrpc.conf is a regular file
       ansible.builtin.assert:
         that: __sap_hana_preconfigure_register_etc_modprobe_sunrpc_conf_assert.stat.isreg
         fail_msg: "FAIL: File /etc/modprobe.d/sunrpc.conf is not a regular file!"
         success_msg: "PASS: File /etc/modprobe.d/sunrpc.conf is a regular file."
-      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
       when: __sap_hana_preconfigure_register_etc_modprobe_sunrpc_conf_assert.stat.exists
-
-  when:
-    - sap_hana_preconfigure_use_netapp_settings_nfsv3|d(false)
-    - sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3024346|d(false)
 
 - name: Get value of 'options sunrpc tcp_max_slot_table_entries' from /etc/modprobe.d/sunrpc.conf
   ansible.builtin.command: awk 'BEGIN{FS="="}/options sunrpc tcp_max_slot_table_entries/{print $NF}' /etc/modprobe.d/sunrpc.conf
@@ -74,9 +74,9 @@
   changed_when: no
   ignore_errors: yes
   when:
-    - sap_hana_preconfigure_use_netapp_settings_nfsv3|d(false)
+    - sap_hana_preconfigure_use_netapp_settings_nfsv3 | d(false)
     - __sap_hana_preconfigure_register_etc_modprobe_sunrpc_conf_assert.stat.exists
-    - sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3024346|d(false)
+    - sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_3024346 | d(false)
 
 - name: Assert that 'options sunrpc tcp_max_slot_table_entries' is set correctly in /etc/modprobe.d/sunrpc.conf
   ansible.builtin.assert:
@@ -85,8 +85,8 @@
                '{{ __sap_hana_preconfigure_register_tcp_max_slot_table_entries_assert.stdout }}' but the expected value is '128'!"
     success_msg: "PASS: The value of 'options sunrpc tcp_max_slot_table_entries' in '/etc/modprobe.d/sunrpc.conf' is
                   '{{ __sap_hana_preconfigure_register_tcp_max_slot_table_entries_assert.stdout }}'."
-  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors|d(false) }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
   when:
-    - sap_hana_preconfigure_use_netapp_settings_nfsv3|d(false)
+    - sap_hana_preconfigure_use_netapp_settings_nfsv3 | d(false)
     - __sap_hana_preconfigure_register_etc_modprobe_sunrpc_conf_assert.stat.exists
-    - sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3024346|d(false)
+    - sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_3024346 | d(false)

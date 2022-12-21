@@ -20,32 +20,38 @@
 
 ### 3.9 - Create the compatibility links for HANA
 - name: Create compatibility links
+  when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_2009879_3_9 | d(false)
   block:
+
     - name: 3.9 create compatibility links for RHEL 7.2
-      ansible.builtin.file: src=/usr/lib64/{{ line_item.src }} dest=/usr/lib64/{{ line_item.dest }} state=link
+      ansible.builtin.file:
+        src: /usr/lib64/{{ line_item.src }}
+        dest: /usr/lib64/{{ line_item.dest }}
+        state: link
       with_items:
         - { src: 'libssl.so.1.0.1e', dest: 'libssl.so.1.0.1' }
         - { src: 'libcrypto.so.1.0.1e', dest: 'libcrypto.so.1.0.1' }
       when:
-        ( ansible_distribution_version  == '7.2' )
+        (ansible_distribution_version == '7.2')
       loop_control:
         loop_var: line_item
 
     - name: 3.9 create compatibility links for RHEL 7.3+
-      ansible.builtin.file: src=/usr/lib64/{{ line_item.src }} dest=/usr/lib64/{{ line_item.dest }} state=link
+      ansible.builtin.file:
+        src: /usr/lib64/{{ line_item.src }}
+        dest: /usr/lib64/{{ line_item.dest }}
+        state: link
       with_items:
         - { src: 'libssl.so.10', dest: 'libssl.so.1.0.1' }
         - { src: 'libcrypto.so.10', dest: 'libcrypto.so.1.0.1' }
       when:
-        ( ansible_distribution_version  != '7.2' )
+        (ansible_distribution_version != '7.2')
       loop_control:
         loop_var: line_item
 
-  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_9|d(false)
-
 ### 3.10 - THP -> SAP Note 2292690
 ### 3.11 - CPU Governor for performance -> TunedProfile -> SAP Note 2292690
-### 3.12 - Processor C-States für x86_64 -> SAP Note 2292690
+### 3.12 - Processor C-States for x86_64 -> SAP Note 2292690
 
 ### Set by HANA installer
 #- name: Configure - Increase file handles to 32800 for sapsys group
@@ -77,28 +83,33 @@
 #    loop_var: line_item
 #  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_13|d(false)
 
-### 3.14 - Disable ABRT
-- include_tasks: ../RedHat/generic/disable-abrtd.yml
-  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_14_1|d(false)
+### 3.14 - Disable abrt
+- name: Step 3.14 - Disable abrt
+  ansible.builtin.include_tasks: ../RedHat/generic/disable-abrtd.yml
+  when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_2009879_3_14_1 | d(false)
 
-- include_tasks: ../RedHat/generic/disable-abrt-ccpp.yml
-  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_14_2|d(false)
+- name: Step 3.14 - Disable abrt-ccpp
+  ansible.builtin.include_tasks: ../RedHat/generic/disable-abrt-ccpp.yml
+  when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_2009879_3_14_2 | d(false)
 
-### 3.14 - Disable core Dumps
-- include_tasks: ../RedHat/generic/disable-coredumps.yml
-  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_14_3|d(false)
+### 3.14 - Disable core dumps
+- name: Step 3.14 - Disable core dumps
+  ansible.builtin.include_tasks: ../RedHat/generic/disable-coredumps.yml
+  when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_2009879_3_14_3 | d(false)
 
-### 3.14 - Disable Kdump
-- include_tasks: ../RedHat/generic/disable-kdump.yml
-  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_14_4|d(false)
+### 3.14 - Disable kdump
+- name: Step 3.14 - Disable kdump
+  ansible.builtin.include_tasks: ../RedHat/generic/disable-kdump.yml
+  when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_2009879_3_14_4 | d(false)
 
 ### 3.15 - Disable Firewalld
 ### Firewall Settings can only be done if SAP instance ID is known,
 ### otherwise disable firewall
 ### NYI: Set proper firewall rules if SID/instance number is known
 ###
-- include_tasks: ../RedHat/generic/disable-firewalld.yml
-  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_2009879_3_15|d(false)
+- name: Step 3.15 - Disable firewalld
+  ansible.builtin.include_tasks: ../RedHat/generic/disable-firewalld.yml
+  when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_2009879_3_15 | d(false)
 
 ### Firewall Calculation for SID=xx
 ##################################################################
