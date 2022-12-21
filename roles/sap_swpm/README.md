@@ -72,19 +72,49 @@ Sample input files are stored in the [inputs](/playbooks/vars) folder of this An
 
 ### Default Parameters
 
-Please check the default parameters file for more information on other parameters that can be used as an input
+### Default Parameters
+
+Please check the default parameters file for more information on other parameters that can be used as an input:
 - [**sap_swpm** default parameters](defaults/main.yml)
 
-- Template S/4HANA2020 input for installation
-    - [Template S/4HANA Install](/playbooks/vars/s4hana/template.S4H.install)
-    - [Template S/4HANA Restore](/playbooks/vars/s4hana/template.S4H.restore)
+Sample Playbooks and sample parameters are shown in the Ansible Collection `/playbooks` directory.
 
-- Sample S/4HANA2020 input for distributed / high availability installation (ASCS, ERS, DBCI, PAS)
-    - [Sample S/4HANA distributed](/playbooks/vars/s4hana/s4hana-distributed)
+The Ansible Collection `/playbooks` directory includes sample playbooks for using the `sap_swpm` Ansible Role in the following 'modes':
+- Default
+- Default Templates
+- Advanced
+- Advanced Templates
+- Inifile Reuse
 
-- Sample Solman 7.2 input installation
-    - ABAP [Solman 7.2](/playbooks/vars/solman/SHA.install)
-    - Java [Solman 7.2](/playbooks/vars/solman/SHA.install)
+The Ansible Collection `/playbooks/vars` directory includes sample variable files for:
+- `sap_swpm` 'Default mode' to generate inifile.params of...
+  - SAP BW/4HANA OneHost
+  - SAP S/4HANA Distributed - ASCS, DBCI, ERS, PAS
+  - SAP S/4HANA OneHost
+  - SAP S/4HANA System Copy OneHost
+  - SAP Solution Manager (ABAP)
+  - SAP Solution Manager (JAVA)
+  - SAP Web Dispatcher
+  - SAP System Rename
+- `sap_swpm` 'Default Templates mode' to generate inifile.params of...
+  - SAP S/4HANA OneHost
+  - SAP S/4HANA System Copy OneHost
+  - SAP System Rename
+- `sap_swpm` 'Advanced mode' to generate inifile.params of...
+  - SAP S/4HANA OneHost
+- `sap_swpm` 'Advanced Templates mode' to generate inifile.params of...
+  - SAP BW/4HANA OneHost
+  - SAP S/4HANA Distributed - ASCS, DBCI, ERS, PAS
+  - SAP S/4HANA OneHost
+  - SAP S/4HANA System Copy OneHost
+  - SAP Solution Manager (ABAP)
+  - SAP Solution Manager (JAVA)
+  - SAP Web Dispatcher
+  - SAP System Rename
+- `sap_swpm` 'Inifile Reuse mode' inifile.params file for...
+  - SAP S/4HANA OneHost
+
+NOTE: these are only sample files, they are meant to be edited by the user before execution and do not cover all scenarios possible (the Ansible Role can execute ant SAP SWPM installation)
 
 ## Execution
 
