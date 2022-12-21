@@ -1,27 +1,39 @@
-name: Ansible Lint for sap_hypervisor_node_preconfigure
+---
+
+# Workflow for ansible-lint of a role
+
+name: ansible-lint of the role sap_hypervisor_node_preconfigure
 
 on:
   push:
+    branches:
+      - main
+      - dev
     paths:
       - 'roles/sap_hypervisor_node_preconfigure/**'
   pull_request:
+    branches:
+      - main
+      - dev
     paths:
       - 'roles/sap_hypervisor_node_preconfigure/**'
+
 jobs:
   ansible-lint:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+      - name: Check out the code
+        uses: actions/checkout@v2
 
-    - name: Lint Ansible Playbook
-      uses: ansible/ansible-lint-action@main
-      with:
-        targets: |
-          ./roles/sap_hypervisor_node_preconfigure
-        override-deps: |
-          ansible==5.3.0
-          ansible-lint==5.3.2
+      - name: Set up Python 3
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
 
-# Static: use Ansible Community Edition 4.8.0, with lowest compatible Ansible Core 2.11.6 and use Ansible-lint 5.2.1
+      - name: Install test dependencies
+        run: pip3 install ansible ansible-lint==6.8.6
+
+      - name: Run ansible-lint
+        working-directory: /home/runner/work/community.sap_install/community.sap_install/roles/sap_hypervisor_node_preconfigure
+        run: ansible-lint
