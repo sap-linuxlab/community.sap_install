@@ -1,0 +1,137 @@
+---
+- name: Get the current RHEL release
+  ansible.builtin.setup:
+    gather_subset: distribution_version
+
+- name: Ensure that the system is running a RHEL release which is supported for SAP HANA
+  ansible.builtin.assert:
+    that: minor_release in "{{ sap_hana_preconfigure_supported_rhel_minor_releases }}"
+    fail_msg: "The RHEL release {{ minor_release }} is not supported for SAP HANA!"
+    success_msg: "The RHEL release {{ minor_release }} is supported for SAP HANA."
+  ignore_errors: "{{ not sap_hana_preconfigure_min_rhel_release_check }}"
+  vars:
+    minor_release: "{{ ansible_facts['distribution_version'] }}"
+
+- name: Perform steps for enabling repos for SAP HANA
+  ansible.builtin.yum_repository:
+    name: "{{ item }}"
+    enabled: true
+  loop: >
+    "{{
+    __sap_hana_preconfigure_req_repos
+    [ansible_facts['architecture']]
+    [ansible_facts['distribution_version']]
+    |
+    default(__sap_hana_preconfigure_req_repos
+    [ansible_facts['architecture']]
+    [ansible_facts['distribution_major_version']])
+    }}"
+
+
+- name: Detect if the minor RHEL release is set
+  ansible.builtin.shell: set -o pipefail && subscription-manager release --show | awk '{print $NF}'
+  register: __sap_hana_preconfigure_register_subscription_manager_release
+  changed_when: false
+  when:
+    - sap_hana_preconfigure_set_minor_release
+
+- name: Set the minor RHEL release
+  ansible.builtin.command: subscription-manager release --set="{{ ansible_distribution_version }}"
+  when:
+    - sap_hana_preconfigure_set_minor_release
+    - __sap_hana_preconfigure_register_subscription_manager_release.stdout != ansible_distribution_version
+
+- name: Ensure required packages are installed
+  ansible.builtin.package:
+    state: present
+    name: "{{ item }}"
+  loop: >
+    "{{
+    sap_hana_preconfigure_packages
+    [ansible_facts['major_release']]
+    }}"
+
+- name: Ensure that the minimum required package versions are installed
+  when:
+    - sap_hana_preconfigure_min_package_check | bool
+    - __sap_hana_preconfigure_min_pkgs | d([])
+  block:
+    - name: Install minimum packages if required
+      ansible.builtin.package:
+        name: "{{ package.name }}>={{ package.version }}"
+        state: present
+      loop: >
+        "{{
+        __sap_hana_preconfigure_min_packages
+        [ansible_facts['architecture']]
+        [ansible_facts['distribution_version']]
+        }}"
+      loop_control:
+        loop_var: package
+
+
+### If this task fails, you need to enable the IBM PowerTools repository
+### see https://www14.software.ibm.com/support/customercare/sas/f/lopdiags/home.html for details
+
+- name: Install the ibm-power-repo package
+  ansible.builtin.package:
+    name: "{{ sap_hana_preconfigure_ibm_power_repo_url }}"
+    state: present
+    disable_gpg_check: True
+  when:
+    - ansible_architecture == "ppc64le"
+    - sap_hana_preconfigure_add_ibm_power_repo | d(true)
+
+- name: Accept the license for the IBM Service and Productivity Tools
+  ansible.builtin.shell: LESS=+q /opt/ibm/lop/configure <<<'y'
+  when:
+    - ansible_architecture == "ppc64le"
+    - sap_hana_preconfigure_add_ibm_power_repo | d(true)
+
+# Reason for noqa: Both yum and dnf support "state: latest"
+- name: Install the IBM Service and Productivity Tools # noqa package-latest
+  ansible.builtin.package:
+    state: latest
+    name: "{{ __sap_hana_preconfigure_required_ppc64le }}"
+  when: ansible_architecture == "ppc64le"
+
+
+# Reason for noqa: Both yum and dnf support "state: latest"
+- name: Ensure that the system is updated to the latest patchlevel # noqa package-latest
+  ansible.builtin.package:
+    state: latest
+    name: "*"
+  when: sap_hana_preconfigure_update | bool
+
+- name: Need restarting?
+  ansible.builtin.include_tasks:
+    name: needrestart.yml
+
+
+# Role sap_general_preconfigure is typically run right before this role, in the same playbook.
+# We can avoid a second reboot by setting sap_general_preconfigure_fail_if_reboot_required
+# to 'no' and notifying the reboot handler of the current role about the reboot requirement
+# of role sap_general_preconfigure.
+- name: Call reboot handler if necessary as per role sap_general_preconfigure
+  ansible.builtin.command: /bin/true
+  notify: __sap_hana_preconfigure_reboot_handler
+  when: sap_general_preconfigure_fact_reboot_required | d(false)
+
+- name: Call reboot handler if necessary as per this role
+  ansible.builtin.command: /bin/true
+  notify: __sap_hana_preconfigure_reboot_handler
+  when: __sap_hana_preconfigure_register_needs_restarting is failed
+
+
+
+- name: Install packages for sap notes
+  ansible.builtin.include_tasks:
+    name: note_package_install.yml
+  loop: >
+    "{{
+    __sap_hana_preconfigure_sapnotes_versions
+    [ansible_facts['architecture']]
+    [ansible_facts['distribution_major_version']]
+    }}"
+  loop_control:
+    loop_var: "note"

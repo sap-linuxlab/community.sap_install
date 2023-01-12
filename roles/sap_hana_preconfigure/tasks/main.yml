@@ -1,26 +1,22 @@
 ---
 
-- name: Display the role path
-  ansible.builtin.debug:
-    var: role_path
+# - name: Include OS specific vars
+#   ansible.builtin.include_vars: '{{ item }}'
+#   with_first_found:
+#     - '{{ ansible_distribution.split("_")[0] }}_{{ ansible_distribution_major_version }}.yml'
+#     - '{{ ansible_distribution }}_{{ ansible_distribution_version }}.yml'
+#     - '{{ ansible_distribution }}_{{ ansible_distribution_major_version }}.yml'
+#     - '{{ ansible_os_family }}.yml'
 
-- name: Include OS specific vars
-  ansible.builtin.include_vars: '{{ item }}'
-  with_first_found:
-    - '{{ ansible_distribution.split("_")[0] }}_{{ ansible_distribution_major_version }}.yml'
-    - '{{ ansible_distribution }}_{{ ansible_distribution_version }}.yml'
-    - '{{ ansible_distribution }}_{{ ansible_distribution_major_version }}.yml'
-    - '{{ ansible_os_family }}.yml'
+# - name: Set filename prefix to empty string if role is run in normal mode
+#   ansible.builtin.set_fact:
+#     assert_prefix: ""
+#   when: not sap_hana_preconfigure_assert | d(false)
 
-- name: Set filename prefix to empty string if role is run in normal mode
-  ansible.builtin.set_fact:
-    assert_prefix: ""
-  when: not sap_hana_preconfigure_assert | d(false)
-
-- name: Prepend filename with assert string if role is run in assert mode
-  ansible.builtin.set_fact:
-    assert_prefix: "assert-"
-  when: sap_hana_preconfigure_assert | d(false)
+# - name: Prepend filename with assert string if role is run in assert mode
+#   ansible.builtin.set_fact:
+#     assert_prefix: "assert-"
+#   when: sap_hana_preconfigure_assert | d(false)
 
 - name: Examine the OS minor version
   ansible.builtin.set_fact:
@@ -31,22 +27,23 @@
 - name: Gather package facts
   ansible.builtin.package_facts:
 
-- name: Display the content of sap_general_preconfigure_fact_reboot_required
-  ansible.builtin.debug:
-    var: sap_general_preconfigure_fact_reboot_required
+# - name: Display the content of sap_general_preconfigure_fact_reboot_required
+#   ansible.builtin.debug:
+#     var: sap_general_preconfigure_fact_reboot_required
 
 - name: Include installation.yml
-  ansible.builtin.include_tasks: '{{ item }}/{{ assert_prefix }}installation.yml'
+  # ansible.builtin.include_tasks: '{{ item }}/{{ assert_prefix }}installation.yml'
+  ansible.builtin.include_tasks: installation.yml
   when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_installation | d(false)
-  with_first_found:
-    - '{{ ansible_distribution.split("_")[0] }}'
-    - '{{ ansible_distribution }}'
+  # with_first_found:
+  #   - '{{ ansible_distribution.split("_")[0] }}'
+  #   - '{{ ansible_distribution }}'
 
 - name: Gather package facts again after the installation phase
   ansible.builtin.package_facts:
 
 - name: Include configuration.yml
-  ansible.builtin.include_tasks: '{{ item }}/{{ assert_prefix }}configuration.yml'
+  ansible.builtin.include_tasks: '{{ item }}/{{ sap_hana_preconfigure_assert | ternary("assert-","") ) }}configuration.yml'
   when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_configuration | d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'
