@@ -9,12 +9,22 @@
   args:
     chdir: "{{ sap_swpm_mp_stack_path }}"
   register: sap_swpm_mp_stack_file_get
-  when: (sap_swpm_mp_stack_file_name is not defined) or (sap_swpm_mp_stack_file_name | default(None)) # Test if variable string is not defined or None / blank
+  # Test if variable string is not defined or None / blank
+  when:
+    (sap_swpm_mp_stack_file_name is not defined) or
+    (sap_swpm_mp_stack_file_name | type_debug == 'NoneType') or
+    (sap_swpm_mp_stack_file_name is none) or
+    (sap_swpm_mp_stack_file_name | length == 0)
 
 - name: SAP SWPM Pre Install - MP Stack XML - Set fact
   ansible.builtin.set_fact:
     sap_swpm_mp_stack_file_name: "{{ sap_swpm_mp_stack_file_get.stdout }}"
-  when: (sap_swpm_mp_stack_file_name is not defined) or (sap_swpm_mp_stack_file_name | default(None)) # Test if variable string is not defined or None / blank
+  # Test if variable string is not defined or None / blank
+  when:
+    (sap_swpm_mp_stack_file_name is not defined) or
+    (sap_swpm_mp_stack_file_name | type_debug == 'NoneType') or
+    (sap_swpm_mp_stack_file_name is none) or
+    (sap_swpm_mp_stack_file_name | length == 0)
 
 - name: SAP SWPM Pre Install - MP Stack XML - Set fact
   ansible.builtin.debug:
