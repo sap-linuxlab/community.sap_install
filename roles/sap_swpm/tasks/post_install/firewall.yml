@@ -4,45 +4,45 @@
   when: ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   block:
 
-  - name: SAP SWPM Post Install - Gathering Firewall Facts
-    ansible.builtin.package_facts:
-      manager: auto
+    - name: SAP SWPM Post Install - Gathering Firewall Facts
+      ansible.builtin.package_facts:
+        manager: auto
 
-  - name: SAP SWPM Post Install - Setup Firewall if included in packages
-    when: '"firewalld" in ansible_facts.packages'
-    block:
+    - name: SAP SWPM Post Install - Setup Firewall if included in packages
+      when: '"firewalld" in ansible_facts.packages'
+      block:
 
-      - name: SAP SWPM Post Install - Enable and start the firewalld service
-        ansible.builtin.systemd:
-          name: firewalld
-          state: started
-          enabled: yes
-        tags: sap_swpm_configure_firewall
+        - name: SAP SWPM Post Install - Enable and start the firewalld service
+          ansible.builtin.systemd:
+            name: firewalld
+            state: started
+            enabled: yes
+          tags: sap_swpm_configure_firewall
 
-      - name: SAP SWPM Post Install - Firewall Setup
-        when:
-          - sap_swpm_wd_instance_nr is defined
-          - sap_swpm_wd_instance_nr | length
-        ansible.builtin.set_fact:
-          sap_nw_firewall_ports:
-            - "3200-3399"
-            - "36{{ sap_swpm_pas_instance_nr }}"
-            - "80{{ sap_swpm_pas_instance_nr }}"
-            - "443{{ sap_swpm_pas_instance_nr }}"
-            - "36{{ sap_swpm_ascs_instance_nr }}"
-            - "80{{ sap_swpm_ascs_instance_nr }}"
-            - "443{{ sap_swpm_ascs_instance_nr }}"
-            - "8090"
-            - "44390"
-            - "443{{ sap_swpm_wd_instance_nr }}"
+        - name: SAP SWPM Post Install - Firewall Setup
+          when:
+            - sap_swpm_wd_instance_nr is defined
+            - sap_swpm_wd_instance_nr | length
+          ansible.builtin.set_fact:
+            sap_nw_firewall_ports:
+              - "3200-3399"
+              - "36{{ sap_swpm_pas_instance_nr }}"
+              - "80{{ sap_swpm_pas_instance_nr }}"
+              - "443{{ sap_swpm_pas_instance_nr }}"
+              - "36{{ sap_swpm_ascs_instance_nr }}"
+              - "80{{ sap_swpm_ascs_instance_nr }}"
+              - "443{{ sap_swpm_ascs_instance_nr }}"
+              - "8090"
+              - "44390"
+              - "443{{ sap_swpm_wd_instance_nr }}"
 
-      - name: SAP SWPM Post Install - Add Ports Based on NR - {{ sap_swpm_pas_instance_nr }}
-        ansible.builtin.include_tasks: update_firewall.yml
-        loop: "{{ sap_nw_firewall_ports }}"
-        loop_control:
-          loop_var: passed_port
+        - name: SAP SWPM Post Install - Add Ports Based on NR - {{ sap_swpm_pas_instance_nr }}
+          ansible.builtin.include_tasks: update_firewall.yml
+          loop: "{{ sap_nw_firewall_ports }}"
+          loop_control:
+            loop_var: passed_port
 
-# Reason for noqa: We currently do not determine if reloading the firewall changes anything
-      - name: SAP SWPM Post Install - Reload Firewall # noqa no-changed-when
-        ansible.builtin.shell: |
-          firewall-cmd --reload
+  # Reason for noqa: We currently do not determine if reloading the firewall changes anything
+        - name: SAP SWPM Post Install - Reload Firewall # noqa no-changed-when
+          ansible.builtin.shell: |
+            firewall-cmd --reload

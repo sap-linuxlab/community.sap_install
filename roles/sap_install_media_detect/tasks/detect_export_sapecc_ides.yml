@@ -1,0 +1,134 @@
+---
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Create Directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  with_items:
+    - "{{ sap_install_media_detect_directory }}/sapecc_ides_export/"
+    - "{{ sap_install_media_detect_directory }}/sapecc_ides_export_extracted/"
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - List files in directory
+  ansible.builtin.shell: ls -1
+  register: detect_directory_files
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Detect ZIP files (including no file extensions), ignore errors
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
+  register: detect_directory_files_zip
+#  changed_when: "item.stdout | length > 0"
+  with_items: 
+    - "{{ detect_directory_files.stdout_lines }}"
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+  ignore_errors: true
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Detect RAR files (including no file extensions), ignore errors
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then echo {{ item }}; fi
+  register: detect_directory_files_rar
+#  changed_when: "item.stdout | length > 0"
+  with_items: 
+    - "{{ detect_directory_files.stdout_lines }}"
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+  ignore_errors: true
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Identify SAP ECC IDES EXPORT files
+  ansible.builtin.shell: |
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -Eq '*EXP[0-9]' ; then echo '{{ item }}' ; fi ;
+    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if "{{ sap_install_media_detect_unrar_binary }}" lb {{ item }} | grep -Eq '*EXP[0-9]' ; then echo '{{ item }}' ; fi ; fi
+  register: detect_directory_files_ecc_export
+  changed_when: "item | length > 0"
+  with_items: 
+    - "{{ detect_directory_files_zip.results | map(attribute='stdout') | select() }}"
+    - "{{ detect_directory_files_rar.results | map(attribute='stdout') | select() }}"
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - If any ZIP, then extract the SAP ECC Installation Export file (unzip)
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./sapecc_ides_export_extracted ; fi
+  with_items: 
+    - "{{ detect_directory_files_ecc_export.results | map(attribute='stdout') | select() }}"
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - If any RAR without file extension, then add file extension (for use with unrar binary)
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR archive data')" ]; then filename="{{ item }}" && if [ "${filename##*.}" != "rar" ]; then mv {{ item }} {{ item }}.rar ; fi ; fi
+  with_items: 
+    - "{{ detect_directory_files_ecc_export.results | map(attribute='stdout') | select() }}"
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Find self-extracting RAR EXE (parent RAR file) and extract SAP ECC Installation Export files (unrar x)
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR self-extracting archive')" ]; then "{{ sap_install_media_detect_unrar_binary }}" x "{{ item }}" sapecc_ides_export_extracted/ ; fi
+  with_items: 
+    - "{{ detect_directory_files_ecc_export.results | map(attribute='stdout') | select() }}"
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Identify SAP ECC IDES EXPORT extracted
+  ansible.builtin.find:
+    paths: "{{ sap_install_media_detect_directory }}/sapecc_ides_export_extracted"
+    recurse: yes
+    file_type: directory
+#    contains: "*EXP"
+    patterns: '.*EXP.*'
+    use_regex: yes
+  register: detect_directory_export_extracted
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Local Directory source - re-list files in directory
+  ansible.builtin.shell: ls -1
+  register: detect_directory_files
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+  when:
+    - sap_install_media_detect_source == "local_dir"
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Local Directory source - re-detect ZIP files (including no file extensions), ignore errors
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
+  register: detect_directory_files_zip_repeated
+#  changed_when: "item.stdout | length > 0"
+  with_items: 
+    - "{{ detect_directory_files.stdout_lines }}"
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+  ignore_errors: true
+  when:
+    - sap_install_media_detect_source == "local_dir"
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Local Directory source - re-detect RAR files (including no file extensions), ignore errors
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then echo {{ item }}; fi
+  register: detect_directory_files_rar_repeated
+#  changed_when: "item.stdout | length > 0"
+  with_items: 
+    - "{{ detect_directory_files.stdout_lines }}"
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+  ignore_errors: true
+  when:
+    - sap_install_media_detect_source == "local_dir"
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Local Directory source - re-identify SAP ECC IDES EXPORT files
+  ansible.builtin.shell: |
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -Eq '*EXP[0-9]' ; then echo '{{ item }}' ; fi ;
+    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if "{{ sap_install_media_detect_unrar_binary }}" lb {{ item }} | grep -Eq '*EXP[0-9]' ; then echo '{{ item }}' ; fi ; fi
+  register: detect_directory_files_ecc_export_repeated
+  changed_when: "item | length > 0"
+  with_items: 
+    - "{{ detect_directory_files_zip_repeated.results | map(attribute='stdout') | select() }}"
+    - "{{ detect_directory_files_rar_repeated.results | map(attribute='stdout') | select() }}"
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+  when:
+    - sap_install_media_detect_source == "local_dir"
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Local Directory source - move SAP ECC IDES EXPORT compressed archive files
+  command: mv "{{ sap_install_media_detect_directory }}/{{ item }}" "{{ sap_install_media_detect_directory }}/sapecc_ides_export/{{ item }}"
+  with_items: 
+    - "{{ detect_directory_files_ecc_export_repeated.results | map(attribute='stdout') | select() }}"
+  when:
+    - sap_install_media_detect_source == "local_dir"

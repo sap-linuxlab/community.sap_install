@@ -4,59 +4,59 @@
   when: ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   block:
 
-  - name: SAP SWPM Pre Install - Gathering Firewall Facts
-    ansible.builtin.package_facts:
-      manager: auto
+    - name: SAP SWPM Pre Install - Gathering Firewall Facts
+      ansible.builtin.package_facts:
+        manager: auto
 
-  - name: SAP SWPM Pre Install - Setup Firewall if included in packages
-    when: '"firewalld" in ansible_facts.packages'
-    block:
+    - name: SAP SWPM Pre Install - Setup Firewall if included in packages
+      when: '"firewalld" in ansible_facts.packages'
+      block:
 
-      - name: SAP SWPM Pre Install - Enable and start the firewalld service
-        ansible.builtin.systemd:
-          name: firewalld
-          state: started
-          enabled: yes
-        tags: sap_swpm_configure_firewall
+        - name: SAP SWPM Pre Install - Enable and start the firewalld service
+          ansible.builtin.systemd:
+            name: firewalld
+            state: started
+            enabled: yes
+          tags: sap_swpm_configure_firewall
 
-      - name: SAP SWPM Pre Install - Generate SAP HANA Ports Based on NR - {{ sap_swpm_db_instance_nr }}
-        ansible.builtin.set_fact:
-          sap_hana_firewall_ports:
-            - "1128"
-            - "1129"
-            - "43{{ sap_swpm_db_instance_nr }}"
-            - "5050"
-            - "9090"
-            - "9091"
-            - "9092"
-            - "9093"
-            - "3{{ sap_swpm_db_instance_nr }}00-3{{ sap_swpm_db_instance_nr }}90"
-            - "30105"
-            - "30107"
-            - "30140"
-            - "4{{ sap_swpm_db_instance_nr }}01"
-            - "4{{ sap_swpm_db_instance_nr }}02"
-            - "4{{ sap_swpm_db_instance_nr }}06"
-            - "4{{ sap_swpm_db_instance_nr }}12"
-            - "4{{ sap_swpm_db_instance_nr }}14"
-            - "4{{ sap_swpm_db_instance_nr }}40"
-            - "5{{ sap_swpm_db_instance_nr }}00"
-            - "5{{ sap_swpm_db_instance_nr }}13"
-            - "5{{ sap_swpm_db_instance_nr }}14"
-            - "51000"
-            - "64997"
-        when:
-          - not sap_swpm_generic | bool
+        - name: SAP SWPM Pre Install - Generate SAP HANA Ports Based on NR - {{ sap_swpm_db_instance_nr }}
+          ansible.builtin.set_fact:
+            sap_hana_firewall_ports:
+              - "1128"
+              - "1129"
+              - "43{{ sap_swpm_db_instance_nr }}"
+              - "5050"
+              - "9090"
+              - "9091"
+              - "9092"
+              - "9093"
+              - "3{{ sap_swpm_db_instance_nr }}00-3{{ sap_swpm_db_instance_nr }}90"
+              - "30105"
+              - "30107"
+              - "30140"
+              - "4{{ sap_swpm_db_instance_nr }}01"
+              - "4{{ sap_swpm_db_instance_nr }}02"
+              - "4{{ sap_swpm_db_instance_nr }}06"
+              - "4{{ sap_swpm_db_instance_nr }}12"
+              - "4{{ sap_swpm_db_instance_nr }}14"
+              - "4{{ sap_swpm_db_instance_nr }}40"
+              - "5{{ sap_swpm_db_instance_nr }}00"
+              - "5{{ sap_swpm_db_instance_nr }}13"
+              - "5{{ sap_swpm_db_instance_nr }}14"
+              - "51000"
+              - "64997"
+          when:
+            - not sap_swpm_generic | bool
 
-      - name: SAP SWPM Pre Install - Add Ports Based on NR - {{ sap_swpm_db_instance_nr }}
-        ansible.builtin.include_tasks: update_firewall.yml
-        loop: "{{ sap_hana_firewall_ports }}"
-        loop_control:
-          loop_var: passed_port
-        when:
-          - not sap_swpm_generic | bool
+        - name: SAP SWPM Pre Install - Add Ports Based on NR - {{ sap_swpm_db_instance_nr }}
+          ansible.builtin.include_tasks: update_firewall.yml
+          loop: "{{ sap_hana_firewall_ports }}"
+          loop_control:
+            loop_var: passed_port
+          when:
+            - not sap_swpm_generic | bool
 
-# Reason for noqa: We currently do not determine if reloading the firewall changes anything
-      - name: SAP SWPM Pre Install - Reload Firewall # noqa no-changed-when
-        ansible.builtin.shell: |
-          firewall-cmd --reload
+  # Reason for noqa: We currently do not determine if reloading the firewall changes anything
+        - name: SAP SWPM Pre Install - Reload Firewall # noqa no-changed-when
+          ansible.builtin.shell: |
+            firewall-cmd --reload
