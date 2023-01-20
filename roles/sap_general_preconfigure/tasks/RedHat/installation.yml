@@ -110,6 +110,9 @@
   when: ansible_distribution_major_version == '7'
 
 # Note: We do not want package updates, see also Red Hat bug 1983749.
+#       Because the installation of an environment or package group is not guaranteed to avoid package updates,
+#       and because of bug 2011426 (for which the fix is not available in the RHEL 8.1 ISO image), a RHEL 8.1
+#       system might not boot after installing environment group Server.
 - name: Ensure that the required package groups are installed, RHEL 8 and RHEL 9 # noqa command-instead-of-module
   ansible.builtin.command: "yum install {{ sap_general_preconfigure_packagegroups | join(' ') }} --nobest --exclude=kernel* -y"
   register: __sap_general_preconfigure_register_yum_group_install
