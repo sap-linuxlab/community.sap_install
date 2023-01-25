@@ -5,30 +5,46 @@
     msg: "SAP note {{ (__sap_netweaver_preconfigure_sapnotes_versions | selectattr('number', 'match', '^3119751$') | first).number }}
           (version {{ (__sap_netweaver_preconfigure_sapnotes_versions | selectattr('number', 'match', '^3119751$') | first).version }}): Linux Requirements for SAP Kernel 754 and for SAP Kernel 788 and higher"
 
-- name: Get info about file "{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6"
+- name: Get info about the compat-sap-c++-10.so file
+  ansible.builtin.stat:
+    path: /opt/rh/SAP/lib64/compat-sap-c++-10.so
+  register: __sap_netweaver_preconfigure_register_stat_compat_sap_cpp
+
+- name: Report if checking for a link from libstdc++.so.6 to compat-sap-c++-10.so is skipped
+  ansible.builtin.debug:
+    msg: "INFO: Not checking for link '{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6' - file '/opt/rh/SAP/lib64/compat-sap-c++-10.so' does not exist on this system."
+  when: not __sap_netweaver_preconfigure_register_stat_compat_sap_cpp.stat.exists
+
+- name: Get info about file '{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6'
   ansible.builtin.stat:
     path: "{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6"
   register: __sap_netweaver_preconfigure_register_stat_libstdc_assert
+  when: __sap_netweaver_preconfigure_register_stat_compat_sap_cpp.stat.exists
 
-- name: Assert that file "{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6" exists
+- name: Assert that file '{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6' exists
   ansible.builtin.assert:
     that: __sap_netweaver_preconfigure_register_stat_libstdc_assert.stat.exists
-    fail_msg: "FAIL: File {{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6 does not exist!"
-    success_msg: "PASS: File {{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6 exists."
+    fail_msg: "FAIL: File '{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6' does not exist!"
+    success_msg: "PASS: File '{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6' exists."
   ignore_errors: "{{ sap_netweaver_preconfigure_assert_ignore_errors | d(false) }}"
+  when: __sap_netweaver_preconfigure_register_stat_compat_sap_cpp.stat.exists
 
-- name: Assert that file "{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6" is a link
+- name: Assert that file '{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6' is a link
   ansible.builtin.assert:
     that: __sap_netweaver_preconfigure_register_stat_libstdc_assert.stat.islnk
-    fail_msg: "FAIL: File {{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6 is not a link!"
-    success_msg: "PASS: File {{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6 is a link."
+    fail_msg: "FAIL: File '{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6' is not a link!"
+    success_msg: "PASS: File '{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6' is a link."
   ignore_errors: "{{ sap_netweaver_preconfigure_assert_ignore_errors | d(false) }}"
-  when: __sap_netweaver_preconfigure_register_stat_libstdc_assert.stat.exists
+  when:
+    - __sap_netweaver_preconfigure_register_stat_compat_sap_cpp.stat.exists
+    - __sap_netweaver_preconfigure_register_stat_libstdc_assert.stat.exists
 
-- name: Assert that file "{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6" is a link to /opt/rh/SAP/lib64/compat-sap-c++-10.so
+- name: Assert that file '{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6' is a link to '/opt/rh/SAP/lib64/compat-sap-c++-10.so'
   ansible.builtin.assert:
     that: __sap_netweaver_preconfigure_register_stat_libstdc_assert.stat.lnk_target == '/opt/rh/SAP/lib64/compat-sap-c++-10.so'
-    fail_msg: "FAIL: File {{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6 is not a link to /opt/rh/SAP/lib64/compat-sap-c++-10.so!"
-    success_msg: "PASS: File {{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6 is a link to /opt/rh/SAP/lib64/compat-sap-c++-10.so."
+    fail_msg: "FAIL: File '{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6' is not a link to '/opt/rh/SAP/lib64/compat-sap-c++-10.so!'"
+    success_msg: "PASS: File '{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6' is a link to '/opt/rh/SAP/lib64/compat-sap-c++-10.so.'"
   ignore_errors: "{{ sap_netweaver_preconfigure_assert_ignore_errors | d(false) }}"
-  when: __sap_netweaver_preconfigure_register_stat_libstdc_assert.stat.exists
+  when:
+    - __sap_netweaver_preconfigure_register_stat_compat_sap_cpp.stat.exists
+    - __sap_netweaver_preconfigure_register_stat_libstdc_assert.stat.exists

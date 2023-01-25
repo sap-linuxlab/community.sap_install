@@ -1,5 +1,22 @@
 # sap_swpm Ansible Role DEVELOPER NOTES
 
+## Errors with missing signature files for installation media
+
+After SWPM 1.0 SP22 and SAP SWPM 2.0 SP00, all SAP Software installation media requires a seperate signature file (SIGNATURE.SMF). The signature file is missing in older installation media.
+
+For example, IDES for SAP ECC 6.0 EhP8. See the following error message and SAP Note 2622019 - "EXPORT_1 is not signed" error during IDES installation.
+```shell
+INFO
+DU at '/software_path/51052029_1/EXP1' is not signed.
+
+WARNING
+Data unit '/software_path/51052029_1/EXP1' is not signed.
+DETAILS: The found data unit must not be used.
+SOLUTION: Ensure that you use the latest available version of Installation Export 1 ECC 6.0 EhP8 downloaded from the SAP Support Portal and ensure that its content is unchanged.
+Not accepted
+```
+
+
 ## SAP SWPM for SAP NWAS JAVA installations
 
 There are two deployment methods executed for SAP SWPM for SAP NWAS JAVA, which uses two sequential executions:
