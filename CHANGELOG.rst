@@ -6,6 +6,16 @@ community.sap_install Release Notes
 
 
 
+v1.2.1
+======
+
+Release Summary
+---------------
+
+| Release Date: 2022-01-26
+| A few minor fixes
+
+
 v1.2.0
 ======
 
