@@ -4,16 +4,6 @@
 #  debug:
 #    verbosity: "{{ debuglevel }}"
 #
-- name: Ensure conflicting services are stopped and disabled
-  ansible.builtin.systemd:
-    name: "{{ service }}"
-    state: stopped
-    enabled: no
-  loop: "{{ __sap_hana_preconfigure_saptune_conflicting_services }}"
-  loop_control:
-    loop_var: service
-  when: '"{{service}}.service" in services'
-
 - name: Ensure saptune is running and enabled
   ansible.builtin.systemd:
     name: saptune
@@ -76,4 +66,8 @@
 
 - name: Ensure solution was successful
   ansible.builtin.command: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
+  changed_when: no # We're only checking, not changing!
+
+- name: Ensure sapconf and tuned are stopped
+  ansible.builtin.command: "saptune service takeover"
   changed_when: no # We're only checking, not changing!
