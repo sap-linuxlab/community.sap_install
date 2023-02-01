@@ -209,11 +209,11 @@ ora.SystemPassword = {{ sap_swpm_db_system_password }}
 # credentials_anydb_sapase
 ######
 nwUsers.syb.sybsidPassword = {{ sap_swpm_sap_sidadm_password }}
-# SYB.NW_DB.encryptionMasterKeyPassword =
 SYB.NW_DB.sa_pass = {{ sap_swpm_master_password }}
 SYB.NW_DB.sapsa_pass = {{ sap_swpm_master_password }}
 SYB.NW_DB.sapsr3_pass = {{ sap_swpm_master_password }}
 SYB.NW_DB.sapsr3db_pass = {{ sap_swpm_db_system_password }}
+# SYB.NW_DB.encryptionMasterKeyPassword =
 # SYB.NW_DB.sapsso_pass =
 # SYB.NW_DB.sslPassword =
 {% endif %}
@@ -234,8 +234,20 @@ Sdb_Schema_Dialogs.dbSchemaPassword = {{ sap_swpm_db_schema_password }}
 ######
 # credentials_nwas_ssfs
 ######
+HDB_Userstore.useABAPSSFS = true
 # NW_ABAP_SSFS_CustomKey.ssfsKeyInputFile = 
-# HDB_Userstore.useABAPSSFS = false
+{% endif %}
+
+{% if 'credentials_hdbuserstore' in sap_swpm_inifile_list %}
+######
+# credentials_hdbuserstore
+######
+HDB_Userstore.useABAPSSFS = false
+# HDB_Userstore.doNotResolveHostnames =
+# HDB_Userstore.HDB_USE_IDENT =
+# HDB_Userstore.systemDBPort =
+# NW_HDB_DBClient.checkCreateUserstore = true
+# NW_HDB_DBClient.clientPathStrategy = LOCAL
 {% endif %}
 
 {% if 'db_config_hana' in sap_swpm_inifile_list %}
@@ -243,14 +255,16 @@ Sdb_Schema_Dialogs.dbSchemaPassword = {{ sap_swpm_db_schema_password }}
 # db_config_hana
 ######
 storageBasedCopy.hdb.instanceNumber = {{ sap_swpm_db_instance_nr }}
-# HDB_Schema_Check_Dialogs.dropSchema = false
 HDB_Schema_Check_Dialogs.schemaName = {{ sap_swpm_db_schema }}
+
+{% if 'nw_config_additional_application_server_instance' in sap_swpm_inifile_list %}
+HDB_Schema_Check_Dialogs.validateSchemaName = true
+{% else %}
 HDB_Schema_Check_Dialogs.validateSchemaName = false
-# HDB_Userstore.doNotResolveHostnames =
-# NW_HDB_DBClient.checkCreateUserstore = true
+{% endif %}
+
+# HDB_Schema_Check_Dialogs.dropSchema = false
 # hdb.create.dbacockpit.user = false
-# HDB_Userstore.systemDBPort =
-# HDB_Userstore.HDB_USE_IDENT =
 {% endif %}
 
 {% if 'db_config_anydb_all' in sap_swpm_inifile_list %}
@@ -297,13 +311,13 @@ storageBasedCopy.ora.listenerName = SAPORALISTENER
 # storageBasedCopy.ora.listenerPort =
 storageBasedCopy.ora.ABAPSchema = {{ sap_swpm_db_schema_abap }}
 # storageBasedCopy.ora.JavaSchema = {{ sap_swpm_db_schema_java }}
+# storageBasedCopy.ora.swowner = oracle
+ora.createStatisticsCodeABAP = SKIP
+ora.createStatisticsCodeJAVA = SKIP
 ora.multitenant.pdbsid = {{ sap_swpm_sid | upper }}
 ora.whatInstallation = isSingle
 # ora.IgnoreClientVersion = false
 # ora.maxDatafileSize = 2000
-# storageBasedCopy.ora.swowner = oracle
-ora.createStatisticsCodeABAP = SKIP
-ora.createStatisticsCodeJAVA = SKIP
 
 #### Oracle Multitenant Pluggable DB: ####
 #### a single Oracle Container Database (CDB) can host multiple Oracle Pluggable Databases (PDB) ####
@@ -413,7 +427,6 @@ NW_Recovery_Install_HDB.sidAdmPassword = {{ sap_swpm_db_sidadm_password }}
 # NW_HDB_getDBInfo.tenantOsGroup = {{ sap_swpm_db_sid | lower }}grp
 # NW_HDB_getDBInfo.tenantOsUser = {{ sap_swpm_db_sid | lower }}usr
 # NW_HDB_getDBInfo.tenantPort =
-# NW_HDB_DBClient.clientPathStrategy = LOCAL
 {% endif %}
 
 {% if 'db_connection_nw_anydb_ibmdb2' in sap_swpm_inifile_list %}
@@ -453,15 +466,15 @@ HDB_Recovery_Dialogs.sapControlWsdlUrl = http://{{ sap_swpm_db_host }}:5{{ sap_s
 HDB_Recovery_Dialogs.sidAdmName = {{ sap_swpm_db_sid | lower }}adm
 HDB_Recovery_Dialogs.sidAdmPassword = {{ sap_swpm_db_sidadm_password }}
 # HDB_Recovery_Dialogs.backupDestinationType = File
-# HDB_System_Check_Dialogs.initTopology = false
+# HDB_Recovery_Dialogs.licenseFile =
 # HDB_Recovery_Dialogs.skipExistenceCheck = false
 # HDB_Recovery_Dialogs.sourceDatabaseSid =
 # HDB_Recovery_Dialogs.useLicenseFile = false
-# HDB_Recovery_Dialogs.licenseFile =
 # NW_Recovery_Install_HDB.checkIntegrity = false
 # NW_Recovery_Install_HDB.backupLocationHANA =
 # NW_Recovery_Install_HDB.backupLocationSAP =
 # NW_Recovery_Install_HDB.loadOrMount = load
+# HDB_System_Check_Dialogs.initTopology = false
 # NW_CreateDBandLoad.movePVCforUsagePiAndDi =
 {% endif %}
 
@@ -482,16 +495,17 @@ NW_CI_Instance_ABAP_Reports.executeReportsForDepooling = false
 NW_getFQDN.FQDN = {{ sap_swpm_fqdn }}
 NW_getFQDN.setFQDN = {{ sap_swpm_set_fqdn | lower }}
 # NW_getFQDN.resolve = true
-NW_getLoadType.loadType = {{ sap_swpm_load_type }}
-# NW_getUnicode.isUnicode =
+NW_GetSidNoProfiles.sid = {{ sap_swpm_sid }}
+# NW_GetSidNoProfiles.sapmnt = /sapmnt
+# NW_GetSidNoProfiles.strictSidCheck = true
+# NW_GetSidNoProfiles.unicode = true
 NW_readProfileDir.profileDir = /sapmnt/{{ sap_swpm_sid | upper }}/profile
 # NW_readProfileDir.profilesAvailable =
+NW_getLoadType.loadType = {{ sap_swpm_load_type }}
+# NW_getUnicode.isUnicode =
 # MessageServer.configureAclInfo = false
 # NW_Exit_Before_Systemstart.exit = false
 # NW_adaptProfile.skipSecurityProfileSettings = false
-NW_GetSidNoProfiles.sid = {{ sap_swpm_sid }}
-# NW_GetSidNoProfiles.strictSidCheck = true
-# NW_GetSidNoProfiles.unicode = true
 # OS4.DestinationASP =
 {% endif %}
 
@@ -528,10 +542,10 @@ NW_JAVA_Export.keyPhrase = {{ sap_swpm_master_password }}
 ######
 NW_CI_Instance.ciVirtualHostname = {{ sap_swpm_pas_instance_hostname }}
 NW_CI_Instance.ciInstanceNumber = {{ sap_swpm_pas_instance_nr }}
-# NW_WPConfiguration.ciBtcWPNumber = 6
-# NW_WPConfiguration.ciDialogWPNumber = 10
 # NW_CI_Instance.nodesNum = 
 # NW_CI_Instance.nodesNumber = defNodes
+# NW_WPConfiguration.ciBtcWPNumber = 6
+# NW_WPConfiguration.ciDialogWPNumber = 10
 {% endif %}
 
 {% if 'nw_config_additional_application_server_instance' in sap_swpm_inifile_list %}
@@ -568,11 +582,11 @@ nw_instance_ers.ersInstanceNumber = {{ sap_swpm_ers_instance_nr }}
 NW_CI_Instance.ciMSPort = 36{{ sap_swpm_ascs_instance_nr }}
 NW_checkMsgServer.abapMSPort = 36{{ sap_swpm_ascs_instance_nr }}
 # NW_CI_Instance.ciMSPortInternal = 
-# NW_SCS_Instance.scsMSPort =
-# NW_CI_Instance.scsMSPortInternal =
 # NW_CI_Instance.createGlobalProxyInfoFile = false
-# NW_SCS_Instance.createGlobalProxyInfoFile = false
 # NW_CI_Instance.createGlobalRegInfoFile = false
+# NW_CI_Instance.scsMSPortInternal =
+# NW_SCS_Instance.scsMSPort =
+# NW_SCS_Instance.createGlobalProxyInfoFile = false
 # NW_SCS_Instance.createGlobalRegInfoFile = false
 {% endif %}
 
@@ -583,12 +597,12 @@ NW_checkMsgServer.abapMSPort = 36{{ sap_swpm_ascs_instance_nr }}
 UmeConfiguration.adminName = J2EE_ADM_{{ sap_swpm_sid }}
 UmeConfiguration.adminPassword = {{ sap_swpm_ume_j2ee_admin_password }}
 UmeConfiguration.guestName = J2EE_GST_{{ sap_swpm_sid }}
-# UmeConfiguration.sapjsfName = SAPJSF
 UmeConfiguration.sapjsfPassword = {{ sap_swpm_ume_sapjsf_password }}
 UmeConfiguration.umeClient = {{ sap_swpm_ume_client_nr }}
 UmeConfiguration.umeHost = {{ sap_swpm_pas_instance_hostname }}
 UmeConfiguration.umeInstance = {{ sap_swpm_ume_instance_nr }}
 UmeConfiguration.umeType = {{ sap_swpm_ume_type }}
+# UmeConfiguration.sapjsfName = SAPJSF
 {% endif %}
 
 {% if 'nw_config_java_feature_template_ids' in sap_swpm_inifile_list %}
@@ -727,7 +741,6 @@ NW_Language_Inst_Dialogs.languages = AR,BG,CA,CS,DA,EL,ES,ET,FI,FR,HE,HI,HR,HU,I
 nwUsers.sapadmUID = {{ sap_swpm_sapadm_uid }}
 nwUsers.sapsysGID = {{ sap_swpm_sapsys_gid }}
 nwUsers.sidAdmUID = {{ sap_swpm_sidadm_uid }}
-# NW_GetSidNoProfiles.sapmnt = /sapmnt
 {% endif %}
 
 {% if 'swpm_installation_media_download_service' in sap_swpm_inifile_list %}
@@ -752,23 +765,23 @@ nwUsers.sidAdmUID = {{ sap_swpm_sidadm_uid }}
 # Not in use by sap_swpm Ansible Role
 ######
 # DiagnosticsAgent.dasidAdmPassword = {{ sap_swpm_diagnostics_agent_password }}
+# DiagnosticsAgent.installSAPHostAgent
 # DiagnosticsAgent.InstanceNumber
 # DiagnosticsAgent.LogicalHostName
 # DiagnosticsAgent.SAPJVMVersion
+# DiagnosticsAgent.SAProuter.Password
+# DiagnosticsAgent.SAProuter.RouteString
 # DiagnosticsAgent.SID
-# DiagnosticsAgent.installSAPHostAgent
+# DiagnosticsAgent.SLD.Connection
+# DiagnosticsAgent.SLD.HostName
+# DiagnosticsAgent.SLD.Password
+# DiagnosticsAgent.SLD.PortNumber
+# DiagnosticsAgent.SLD.UseHTTPS
+# DiagnosticsAgent.SLD.UserName
+# DiagnosticsAgent.SolMan.Connection
 # DiagnosticsAgent.SolMan.HostName
+# DiagnosticsAgent.SolMan.Password
 # DiagnosticsAgent.SolMan.PortNumber
 # DiagnosticsAgent.SolMan.UserName
-# DiagnosticsAgent.SolMan.Password
 # DiagnosticsAgent.SolMan.UseSSL
-# DiagnosticsAgent.SLD.Connection
-# DiagnosticsAgent.SolMan.Connection
-# DiagnosticsAgent.SLD.HostName
-# DiagnosticsAgent.SLD.PortNumber
-# DiagnosticsAgent.SLD.UserName
-# DiagnosticsAgent.SLD.Password
-# DiagnosticsAgent.SLD.UseHTTPS
-# DiagnosticsAgent.SAProuter.RouteString
-# DiagnosticsAgent.SAProuter.Password
 {% endif %}
