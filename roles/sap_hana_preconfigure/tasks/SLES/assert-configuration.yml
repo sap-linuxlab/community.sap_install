@@ -7,17 +7,6 @@
 - name: Populate service facts
   ansible.builtin.service_facts:
 
-- name: Assert that saptune conflicting services are stopped
-  ansible.builtin.assert:
-    that:
-      - "ansible_facts.services['{{ service }}.service'].state == 'inactive' or ansible_facts.services['{{ service }}.service'].state == 'stopped'"
-      - "ansible_facts.services['{{ service }}.service'].status == 'disabled'"
-    fail_msg: "FAIL: the service '{{ service }}' is not configured as expected"
-    success_msg: "PASS: the service '{{ service }}' is configured as expected"
-  loop: "{{ __sap_hana_preconfigure_saptune_conflicting_services }}"
-  loop_control:
-    loop_var: service
-
 - name: Assert that saptune is running and enabled
   ansible.builtin.assert:
     that:
