@@ -1,0 +1,51 @@
+---
+- name: Configure - Display SAP note number 3108302 and its version
+  ansible.builtin.debug:
+    msg: "SAP note {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^3108302$') | first).number }}
+          (version {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^3108302$') | first).version }}): SAP HANA settings for RHEL 8"
+
+- name: Import tasks from '3108302/01-configure-selinux.yml'
+  ansible.builtin.import_tasks: 3108302/01-configure-selinux.yml
+  when:
+    - sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3108302_01|d(false)
+    - sap_hana_preconfigure_modify_selinux_labels
+
+- name: Import tasks from '3108302/02-configure-tuned.yml'
+  ansible.builtin.import_tasks: 3108302/02-configure-tuned.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3108302_02|d(false)
+
+- name: Import tasks from '3108302/03-disable-abrt-coredumps-kdump.yml'
+  ansible.builtin.import_tasks: 3108302/03-disable-abrt-coredumps-kdump.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3108302_03|d(false)
+
+- name: Import tasks from '3108302/04-turn-off-auto-numa-balancing.yml'
+  ansible.builtin.import_tasks: 3108302/04-turn-off-auto-numa-balancing.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3108302_04|d(false)
+
+- name: Import tasks from '3108302/05-disable-thp.yml'
+  ansible.builtin.import_tasks: 3108302/05-disable-thp.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3108302_05|d(false)
+
+- name: Import tasks from '3108302/06-configure-c-states-for-lower-latency.yml'
+  ansible.builtin.import_tasks: 3108302/06-configure-c-states-for-lower-latency.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3108302_06|d(false)
+
+- name: Import tasks from '3108302/07-configure-cpu-governor.yml'
+  ansible.builtin.import_tasks: 3108302/07-configure-cpu-governor.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3108302_07|d(false)
+
+- name: Import tasks from '3108302/08-configure-epb.yml'
+  ansible.builtin.import_tasks: 3108302/08-configure-epb.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3108302_08|d(false)
+
+- name: Import tasks from '3108302/09-disable-ksm.yml'
+  ansible.builtin.import_tasks: 3108302/09-disable-ksm.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3108302_09|d(false)
+
+- name: Import tasks from '3108302/10-increase-pidmax.yml'
+  ansible.builtin.import_tasks: 3108302/10-increase-pidmax.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3108302_10|d(false)
+
+- name: Import tasks from '3108302/11-enable-tsx.yml'
+  ansible.builtin.import_tasks: 3108302/11-enable-tsx.yml
+  when: sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3108302_11|d(false)
