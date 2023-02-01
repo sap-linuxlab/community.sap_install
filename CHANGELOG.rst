@@ -6,6 +6,16 @@ community.sap_install Release Notes
 
 
 
+v1.2.2
+======
+
+Release Summary
+---------------
+
+| Release Date: 2022-02-01
+| Fix for sap_hana_preconfigure on SLES when tuned is not installed
+
+
 v1.2.1
 ======
 
