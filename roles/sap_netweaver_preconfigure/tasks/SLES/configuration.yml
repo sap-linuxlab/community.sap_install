@@ -1,13 +1,4 @@
 ---
-- name: Ensure conflicting services are stopped and disabled
-  ansible.builtin.systemd:
-    name: "{{ service }}"
-    state: stopped
-    enabled: no
-  loop: "{{ __sap_netweaver_preconfigure_saptune_conflicting_services }}"
-  loop_control:
-    loop_var: service
-
 - name: Ensure saptune is running and enabled
   ansible.builtin.systemd:
     name: saptune
@@ -22,6 +13,11 @@
   ansible.builtin.command: saptune solution enabled
   register: __sap_netweaver_preconfigure_register_saptune_status
   changed_when: no
+
+- name: Make sure that sapconf and tuned are stopped and disabled
+  ansible.builtin.command: "saptune service takeover"
+  register: __sap_saptune_takeover
+  changed_when: __sap_saptune_takeover.rc == 0
 
 - name: Set fact for active solution
   ansible.builtin.set_fact:
