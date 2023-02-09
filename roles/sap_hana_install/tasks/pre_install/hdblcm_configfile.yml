@@ -40,6 +40,21 @@
       ansible.builtin.debug:
         msg: "Output of hdblcm command: {{ __sap_hana_install_register_hdblcm_output.stdout_lines }}"
 
+# The following task creates a Jinja2 template from the hdblcm configfile template. This Jinja2 template is later used to
+# create the final hdblcm configfile. The task below works as follows:
+# - At the beginning, some header lines are created so that it is easy to identify how the template, and later the hdblcm configfile,
+#   had been created.
+# - Each line from the hdblcm configfile template not starting with [a-z], that is each empty line and each line starting with a comment,
+#   is just put into the Jinja2 template unmodified.
+# - Each line from the hdblcm configfile template starting with [a-z], that is each line containing an hdblcm variable, is processed
+#   as follows:
+#   - The original hdblbm parameter is printed, followed by the string "={{ sap_hana_install_", followed by the hdblcm parameter again,
+#     then followed by " | d('" (meaning the Jinja2 'default' filter), followed by any default which might be present in the
+#     hdblcm configfile template, followed by "') }}". By this, we achieve the following:
+#     1) If a role variable for the hdblcm configfile is set in the playbook or inventory (e.g. "sap_hana_install_max_mem"), its value
+#        will be used to override the corresponding hdblcm configfile parameter (e.g. "max_mem").
+#     2) If a role variable for the hdblcm configfile is not set in the playbook or inventory, either the default value which is set
+#        in the hdblcm configfile template will be used, or an empty string.
     - name: SAP HANA Pre Install - Create a Jinja2 template from the hdblcm configfile template
       ansible.builtin.shell: |
         set -o pipefail &&
