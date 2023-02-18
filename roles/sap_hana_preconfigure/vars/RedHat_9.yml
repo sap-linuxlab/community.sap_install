@@ -178,43 +178,41 @@ __sap_hana_preconfigure_min_packages_9_8_ppc64le:
 __sap_hana_preconfigure_min_pkgs: "{{ lookup('vars', '__sap_hana_preconfigure_min_packages_' + ansible_distribution_version | string | replace(\".\", \"_\") + '_' + ansible_architecture) }}"
 
 __sap_hana_preconfigure_packages:
-# SAP NOTE 2772999:
-# package chkconfig: chkconfig command needed by the SAP HANA installer
-  - chkconfig
+# SAP NOTE 3108316:
   - expect
+# package gtk2: only needed if the SAP HANA installation tools hdblcmgui and hdbsetup are used
+  - gtk2
+  - krb5-workstation
+  - libatomic
+  - libcanberra-gtk2
+  - libtool-ltdl
+  - numactl
+  - PackageKit-gtk3-module
+  - xorg-x11-xauth
+  - chkconfig
+# package compat-openssl11: needed for HANA scale-out
+  - compat-openssl11
+# SAP NOTE 3108302:
+  - tuned-profiles-sap-hana
+# For support purposes:
 # package graphwiz: graph visualization toos, for supportability)
   - graphviz
 # package iptraf-ng: TCP/IP network monitor, for supportability)
   - iptraf-ng
-  - krb5-workstation
-  - libatomic
-  - libcanberra-gtk2
-  - libibverbs
-  - libicu
-# package libpng12: only needed by the SAP HANA 1 installer
-#  - libpng12
 # package lm-sensors: TCP/IP network monitor, for supportability)
   - lm_sensors
 # package nfs-utils: support utilities for NFS, for supportability)
   - nfs-utils
-  - numactl
-  - PackageKit-gtk3-module
-  - xorg-x11-xauth
-  - bind-utils
-  - cairo
-  - libaio
-  - krb5-libs
+#  - bind-utils
+#  - cairo
+#  - libaio
+#  - krb5-libs
 # package net-tools: contains deprecated command line network interface management tools
-  - net-tools
-  - openssl
-  - rsyslog
-  - sudo
-  - xfsprogs
-# package gtk2: only needed if the SAP HANA installation tools hdblcmgui and hdbsetup are used
-  - gtk2
-  - libtool-ltdl
-# SAP NOTE 2777782:
-  - tuned-profiles-sap-hana
+#  - net-tools
+#  - openssl
+#  - rsyslog
+#  - sudo
+#  - xfsprogs
 # required for SAP HANA on RHEL 9:
   - libxcrypt-compat
 
@@ -232,6 +230,8 @@ __sap_hana_preconfigure_packages_min_install:
   - libcanberra-gtk2
   - libibverbs
   - libicu
+# package compat-openssl11: needed for HANA scale-out
+  - compat-openssl11
 # package libpng12: only needed by the SAP HANA 1 installer
 #  - libpng12
 # package lm-sensors: TCP/IP network monitor, for supportability)
