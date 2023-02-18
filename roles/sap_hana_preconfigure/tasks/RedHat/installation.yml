@@ -78,12 +78,14 @@
     disable_gpg_check: True
   when:
     - ansible_architecture == "ppc64le"
+    - sap_hana_preconfigure_install_ibm_power_tools | d(true)
     - sap_hana_preconfigure_add_ibm_power_repo | d(true)
 
 - name: Accept the license for the IBM Service and Productivity Tools
   ansible.builtin.shell: LESS=+q /opt/ibm/lop/configure <<<'y'
   when:
     - ansible_architecture == "ppc64le"
+    - sap_hana_preconfigure_install_ibm_power_tools | d(true)
     - sap_hana_preconfigure_add_ibm_power_repo | d(true)
 
 # Reason for noqa: Both yum and dnf support "state: latest"
@@ -91,7 +93,9 @@
   ansible.builtin.package:
     state: latest
     name: "{{ __sap_hana_preconfigure_required_ppc64le }}"
-  when: ansible_architecture == "ppc64le"
+  when:
+    - ansible_architecture == "ppc64le"
+    - sap_hana_preconfigure_install_ibm_power_tools | d(true)
 
 # The package module is sufficient to guarantee that the required packages are installed.
 # So there is no need to display the installed packages.
