@@ -1,0 +1,48 @@
+- name: Create tuned profile directory /usr/lib/tuned/sap-hana-kvm-guest
+  ansible.builtin.file:
+    path: /usr/lib/tuned/sap-hana-kvm-guest
+    state: directory
+
+- name: Add haltpoll.sh for tuned sap-hana-kvm-guest
+  ansible.builtin.copy:
+    dest: "/usr/lib/tuned/sap-hana-kvm-guest/haltpoll.sh"
+    mode: 0744
+    content: |
+        #!/bin/bash
+
+        if [ "$1" == "start" ]; then
+            modprobe cpuidle-haltpoll force
+        fi
+
+
+- name: Create sap-hana-kvm-guest tuned profile
+  ansible.builtin.copy:
+    dest: "/usr/lib/tuned/sap-hana-kvm-guest/tuned.conf"
+    content: |
+        #
+        # tuned configuration
+        #
+        [main]
+        summary=Optimize for running SAP HANA on KVM inside a virtual guest
+        include=sap-hana
+
+        [haltpoll]
+        type=script
+        script=${i:PROFILE_DIR}/haltpoll.sh
+
+        [sysfs]
+        /sys/devices/system/clocksource/clocksource0/current_clocksource=tsc
+        /sys/module/haltpoll/parameters/guest_halt_poll_ns=2400000
+        /sys/module/haltpoll/parameters/guest_halt_poll_grow_start=2400000
+
+        [sysctl]
+        kernel.sched_latency_ns=12000000
+        kernel.sched_migration_cost_ns=500000
+        kernel.sched_min_granularity_ns=12000000
+        kernel.sched_wakeup_granularity_ns=15000000
+
+        [bootloader]
+        cmdline_saphana=skew_tick=1
+
+- name: Activate tuned profile
+  ansible.builtin.command: tuned-adm profile sap-hana-kvm-guest

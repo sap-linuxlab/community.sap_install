@@ -175,6 +175,14 @@
     name: "*"
   when: sap_hana_preconfigure_update | bool
 
+- name: Determine Hypervisor
+  ansible.builtin.shell: lscpu | awk '/Hypervisor vendor:/{print $3}'
+  register: __sap_hana_preconfigure_register_hypervisor
+
+- name: Install sap-hana-kvm-guest tuned profile if on KVM
+  ansible.builtin.include_tasks: install-tuned-profile-sap-hana-kvm-guest.yml
+  when: __sap_hana_preconfigure_register_hypervisor.stdout == "KVM"
+
 - name: "Set needs-restarting command in case of RHEL 7"
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_needs_restarting_command: "needs-restarting -r"

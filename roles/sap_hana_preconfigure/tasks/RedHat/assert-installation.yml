@@ -230,3 +230,23 @@
     fail_msg: "FAIL: System needs to be restarted!"
     success_msg: "PASS: System needs no restart."
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
+
+- name: Assert - Check tuned profile
+  ansible.builtin.block:
+
+    - name: Determine Hypervisor
+      ansible.builtin.shell: lscpu | awk '/Hypervisor vendor:/{print $3}'
+      register: __sap_hana_preconfigure_register_hypervisor
+
+    - name: Get tuned profile
+      ansible.builtin.command: tuned-adm active
+      register: __sap_hana_preconfigure_register_tuned_profile_assert
+
+    - name: Verify tuned profile
+      ansible.builtin.assert:
+        that: "'Current active profile: sap-hana-kvm-guest' in __sap_hana_preconfigure_register_tuned_profile_assert.stdout"
+        fail_msg: "FAIL: tuned profile is not sap-hana-kvm-guest"
+        success_msg: "PASS: tuned profile is sap-hana-kvm-guest"
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
+      when: __sap_hana_preconfigure_register_hypervisor.stdout == "KVM"
+
