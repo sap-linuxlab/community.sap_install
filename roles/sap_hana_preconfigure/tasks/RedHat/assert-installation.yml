@@ -232,8 +232,7 @@
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Assert - Check tuned profile
-  ansible.builtin.block:
-
+  block:
     - name: Determine Hypervisor
       ansible.builtin.shell: lscpu | awk '/Hypervisor vendor:/{print $3}'
       register: __sap_hana_preconfigure_register_hypervisor
@@ -249,4 +248,3 @@
         success_msg: "PASS: tuned profile is sap-hana-kvm-guest"
       ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
       when: __sap_hana_preconfigure_register_hypervisor.stdout == "KVM"
-
