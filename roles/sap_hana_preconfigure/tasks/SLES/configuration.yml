@@ -7,13 +7,17 @@
 - name: Get service facts
   ansible.builtin.service_facts:
 
+- name: Output information of sapconf.service
+  ansible.builtin.debug:
+    var: ansible_facts.services["sapconf.service"]
+
 - name: saptune should takeover service
-  ansible.builtin.shell: 
+  ansible.builtin.shell:
     cmd: "saptune service takeover"
-  when: 
-    - ansible_facts.services["sapconf.service"] is defined
-    - ansible_facts.services["sapconf.service"]["state"] == "active"
-    
+  when:
+    - ansible_facts.services["sapconf.service"]["status"] == "enabled"
+    - ansible_facts.services["sapconf.service"]["state"] == "stopped"
+
 - name: Ensure saptune is running and enabled
   ansible.builtin.systemd:
     name: saptune
