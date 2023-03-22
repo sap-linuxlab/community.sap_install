@@ -1,6 +1,6 @@
 ---
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Create Directories
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Create Directories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -9,15 +9,15 @@
     group: root
   with_items:
     - "{{ sap_install_media_detect_directory }}/sapnwas_abap_export/"
-    - "{{ sap_install_media_detect_directory }}/sapnwas_abap_export_extracted/"
+    - "{{ sap_install_media_detect_directory }}/sapsolman_abap_export_extracted/"
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - List files in directory
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - List files in directory
   ansible.builtin.shell: ls -1
   register: detect_directory_files
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Detect ZIP files (including no file extensions), ignore errors
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Detect ZIP files (including no file extensions), ignore errors
   ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
   register: detect_directory_files_zip
 #  changed_when: "item.stdout | length > 0"
@@ -27,7 +27,7 @@
     chdir: "{{ sap_install_media_detect_directory }}"
   ignore_errors: true
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Detect RAR files (including no file extensions), ignore errors
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Detect RAR files (including no file extensions), ignore errors
   ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then echo {{ item }}; fi
   register: detect_directory_files_rar
 #  changed_when: "item.stdout | length > 0"
@@ -37,7 +37,7 @@
     chdir: "{{ sap_install_media_detect_directory }}"
   ignore_errors: true
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Identify EXPORT files
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Identify EXPORT files
   ansible.builtin.shell: |
     if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ;
     elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if "{{ sap_install_media_detect_unrar_binary }}" lb {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
@@ -49,30 +49,16 @@
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - If any ZIP, then extract the SAP NetWeaver (ABAP) Installation Export file (unzip)
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./sapnwas_abap_export_extracted ; fi
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - If any ZIP, then extract the SAP NetWeaver (ABAP) Installation Export file (unzip)
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./sapsolman_abap_export_extracted/{{ item }} ; fi
   with_items: 
     - "{{ detect_directory_files_nwas_abap_export.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - If any RAR without file extension, then add file extension (for use with unrar binary)
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR archive data')" ]; then filename="{{ item }}" && if [ "${filename##*.}" != "rar" ]; then mv {{ item }} {{ item }}.rar ; fi ; fi
-  with_items: 
-    - "{{ detect_directory_files_nwas_abap_export.results | map(attribute='stdout') | select() }}"
-  args:
-    chdir: "{{ sap_install_media_detect_directory }}"
-
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Find self-extracting RAR EXE (parent RAR file) and extract SAP NetWeaver (ABAP) Installation Export files (unrar x)
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR self-extracting archive')" ]; then "{{ sap_install_media_detect_unrar_binary }}" x "{{ item }}" sapnwas_abap_export_extracted/ ; fi
-  with_items: 
-    - "{{ detect_directory_files_nwas_abap_export.results | map(attribute='stdout') | select() }}"
-  args:
-    chdir: "{{ sap_install_media_detect_directory }}"
-
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Identify EXPORT extracted
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Identify EXPORT extracted
   ansible.builtin.find:
-    paths: "{{ sap_install_media_detect_directory }}/sapnwas_abap_export_extracted"
+    paths: "{{ sap_install_media_detect_directory }}/sapsolman_abap_export_extracted"
     recurse: yes
     file_type: directory
 #    contains: "DATA_UNITS"
@@ -80,7 +66,7 @@
     use_regex: yes
   register: detect_directory_export_extracted
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Local Directory source - re-list files in directory
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Local Directory source - re-list files in directory
   ansible.builtin.shell: ls -1
   register: detect_directory_files
   args:
@@ -88,7 +74,7 @@
   when:
     - sap_install_media_detect_source == "local_dir"
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Local Directory source - re-detect ZIP files (including no file extensions), ignore errors
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Local Directory source - re-detect ZIP files (including no file extensions), ignore errors
   ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
   register: detect_directory_files_zip_repeated
 #  changed_when: "item.stdout | length > 0"
@@ -100,19 +86,7 @@
   when:
     - sap_install_media_detect_source == "local_dir"
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Local Directory source - re-detect RAR files (including no file extensions), ignore errors
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then echo {{ item }}; fi
-  register: detect_directory_files_rar_repeated
-#  changed_when: "item.stdout | length > 0"
-  with_items: 
-    - "{{ detect_directory_files.stdout_lines }}"
-  args:
-    chdir: "{{ sap_install_media_detect_directory }}"
-  ignore_errors: true
-  when:
-    - sap_install_media_detect_source == "local_dir"
-
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Local Directory source - re-identify EXPORT files
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Local Directory source - re-identify EXPORT files
   ansible.builtin.shell: |
     if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ;
     elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if "{{ sap_install_media_detect_unrar_binary }}" lb {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
@@ -126,7 +100,7 @@
   when:
     - sap_install_media_detect_source == "local_dir"
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Local Directory source - move EXPORT compressed archive files
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Local Directory source - move EXPORT compressed archive files
   command: mv "{{ sap_install_media_detect_directory }}/{{ item }}" "{{ sap_install_media_detect_directory }}/sapnwas_abap_export/{{ item }}"
   with_items: 
     - "{{ detect_directory_files_nwas_abap_export_repeated.results | map(attribute='stdout') | select() }}"
