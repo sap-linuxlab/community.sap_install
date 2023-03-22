@@ -27,25 +27,13 @@
     chdir: "{{ sap_install_media_detect_directory }}"
   ignore_errors: true
 
-- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Detect RAR files (including no file extensions), ignore errors
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then echo {{ item }}; fi
-  register: detect_directory_files_rar
-#  changed_when: "item.stdout | length > 0"
-  with_items: 
-    - "{{ detect_directory_files.stdout_lines }}"
-  args:
-    chdir: "{{ sap_install_media_detect_directory }}"
-  ignore_errors: true
-
 - name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Identify EXPORT files
   ansible.builtin.shell: |
-    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ;
-    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if "{{ sap_install_media_detect_unrar_binary }}" lb {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_nwas_abap_export
   changed_when: "item | length > 0"
   with_items: 
     - "{{ detect_directory_files_zip.results | map(attribute='stdout') | select() }}"
-    - "{{ detect_directory_files_rar.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
 
@@ -88,13 +76,11 @@
 
 - name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Local Directory source - re-identify EXPORT files
   ansible.builtin.shell: |
-    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ;
-    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if "{{ sap_install_media_detect_unrar_binary }}" lb {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_nwas_abap_export_repeated
   changed_when: "item | length > 0"
   with_items: 
     - "{{ detect_directory_files_zip_repeated.results | map(attribute='stdout') | select() }}"
-    - "{{ detect_directory_files_rar_repeated.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
   when:
