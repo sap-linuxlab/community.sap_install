@@ -624,7 +624,7 @@ Select_PPMS_Instances.ListOfSelectedInstances = {% set selected_ids = [] %}{%- f
 {%- endfor %}{{ selected_ids | flatten | join(',') }}
 
 ## If use PV = false [LEGACY for before NWAS JAVA 7.40]
-## Comma-separated value list containing which product instances (former usage types) are installed. Used for handling product instances in unattended mode.
+## Comma-separated value list containing which product instances (formerly known as usage types) are installed. Used for handling product instances in unattended mode.
 ## SAP_Software_Features_Select.selectedInstancesForInstallation = AS,AAS,BASIC,NW-MODEL,ESR,PI,PI-AF
 {%- endif %}
 
@@ -763,12 +763,20 @@ nwUsers.sidAdmUID = {{ sap_swpm_sidadm_uid }}
 {% endif %}
 
 
+{% if 'solman_credentials_swpm1' in sap_swpm_inifile_list %}
+######
+# solman_credentials_swpm1
+# Not in use by sap_swpm Ansible Role
+######
+NW_IcmAuth.webadmPassword = {{ sap_swpm_ume_j2ee_admin_password }}
+{% endif %}
+
+
 {% if 'solman_abap_swpm1' in sap_swpm_inifile_list %}
 ######
 # solman_abap_swpm1
 # Not in use by sap_swpm Ansible Role
 ######
-NW_IcmAuth.webadmPassword = {{ sap_swpm_ume_j2ee_admin_password }}
 InitDeclusteringForImport.decluster = false
 {% endif %}
 
