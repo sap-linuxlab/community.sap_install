@@ -13,8 +13,8 @@ Release Summary
 ---------------
 
 | Release Date: 2022-04-25
-| Some modifications for HANA on RHEL 9
-| Support for custom stonith resource definitions containing more than one element
+| sap_hana_preconfigure: Some modifications for HANA on RHEL 9
+| sap_ha_pacemaker_cluster: Support for custom stonith resource definitions containing more than one element
 | sap_hana_preconfigure: Be more flexible with IBM service and productivity tools
 
 
