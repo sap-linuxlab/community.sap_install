@@ -46,7 +46,16 @@
     sap_swpm_cd_export_path: "{{ detect_directory_export_extracted.files[0].path }}" # for sap_swpm Ansible Role
   ignore_errors: true
   when:
-    - sap_install_media_detect_export == "sapecc" or sap_install_media_detect_export == "sapecc_ides"
+    - sap_install_media_detect_export == "sapecc"
+
+- name: SAP Install Media Detection Completed - set facts for Export of SAP ECC IDES
+  ansible.builtin.set_fact:
+    sap_swpm_cd_export_path: "{{ detect_directory_export_extracted.files[0].path | dirname | dirname }}" # for sap_swpm Ansible Role
+    sap_swpm_cd_export_pt1_path: "{{ (detect_directory_export_extracted.files | map(attribute='path') | map('dirname') | list | select() | unique)[0] }}" # for sap_swpm Ansible Role
+    sap_swpm_cd_export_pt2_path: "{{ (detect_directory_export_extracted.files | map(attribute='path') | map('dirname') | list | select() | unique)[1] }}" # for sap_swpm Ansible Role
+  ignore_errors: true
+  when:
+    - sap_install_media_detect_export == "sapecc_ides"
 
 - name: SAP Install Media Detection Completed - set facts for Export of SAP S/4HANA
   ansible.builtin.set_fact:
@@ -75,6 +84,15 @@
   ignore_errors: true
   when:
     - sap_install_media_detect_export == "sapnwas_java"
+
+- name: SAP Install Media Detection Completed - set facts for Export of SAP Solution Manager (ABAP)
+  ansible.builtin.set_fact:
+    sap_swpm_cd_export_path: "{{ detect_directory_export_extracted.files[0].path | dirname | dirname }}" # for sap_swpm Ansible Role
+    sap_swpm_cd_export_pt1_path: "{{ detect_directory_export_extracted.files[0].path }}" # for sap_swpm Ansible Role
+    sap_swpm_cd_export_pt2_path: "{{ detect_directory_export_extracted.files[1].path }}" # for sap_swpm Ansible Role
+  ignore_errors: true
+  when:
+    - sap_install_media_detect_export == "sapsolman_abap"
 
 - name: SAP Install Media Detection Completed - set facts for SAP SWPM
   ansible.builtin.set_fact:

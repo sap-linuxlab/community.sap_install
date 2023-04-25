@@ -1,7 +1,20 @@
 ---
-- hosts: all
+# Ansible Playbook for executing sap_swpm Ansible in "Inifile Reuse Mode"
+
+- name: Ansible Play for executing SAP SWPM to all hosts in Ansible Inventory
+  hosts: all
+  become: true
+
   vars:
     sap_swpm_ansible_role_mode: inifile_reuse
-    sap_swpm_inifile_reuse_source: vars/custom/dummy.inifile.params
-  roles:
-    - { role: ../roles/sap_swpm }
+#    sap_swpm_inifile_reuse_source: ./sample-sap-swpm-inifile-reuse-mode-sample.inifile.params
+
+  tasks:
+
+    - name: Execute Ansible Role sap_install_media_detect
+      ansible.builtin.include_role:
+        name: { role: community.sap_install.sap_install_media_detect }
+
+    - name: Execute Ansible Role sap_swpm
+      ansible.builtin.include_role:
+        name: { role: community.sap_install.sap_swpm }

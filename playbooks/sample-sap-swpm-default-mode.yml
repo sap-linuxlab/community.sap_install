@@ -1,6 +1,33 @@
 ---
-- hosts: all
+# Ansible Playbook for executing sap_swpm Ansible in "Default Mode"
+
+- name: Ansible Play for executing SAP SWPM to all hosts in Ansible Inventory
+  hosts: all
+  become: true
+
   vars:
     sap_swpm_ansible_role_mode: default
-  roles:
-    - { role: ../roles/sap_swpm }
+
+  tasks:
+
+    - name: Import variables for sap_swpm Ansible Role (Default Mode)
+      ansible.builtin.include_vars:
+#        file: ./sample-variables-sap-swpm-default-mode-bw4hana-onehost-install.yml
+#        file: ./sample-variables-sap-swpm-default-mode-s4hana-distributed-ascs-install
+#        file: ./sample-variables-sap-swpm-default-mode-s4hana-distributed-dbload-install
+#        file: ./sample-variables-sap-swpm-default-mode-s4hana-distributed-ers-install
+#        file: ./sample-variables-sap-swpm-default-mode-s4hana-distributed-pas-install
+#        file: ./sample-variables-sap-swpm-default-mode-s4hana-onehost-install.yml
+#        file: ./sample-variables-sap-swpm-default-mode-s4hana-onehost-restore.yml
+#        file: ./sample-variables-sap-swpm-default-mode-solman-abap-onehost-install.yml
+#        file: ./sample-variables-sap-swpm-default-mode-solman-java-onehost-install.yml
+#        file: ./sample-variables-sap-swpm-default-mode-system-rename.yml
+#        file: ./sample-variables-sap-swpm-default-mode-webdisp-standalone-install.yml
+
+    - name: Execute Ansible Role sap_install_media_detect
+      ansible.builtin.include_role:
+        name: { role: community.sap_install.sap_install_media_detect }
+
+    - name: Execute Ansible Role sap_swpm
+      ansible.builtin.include_role:
+        name: { role: community.sap_install.sap_swpm }

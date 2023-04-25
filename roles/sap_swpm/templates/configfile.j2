@@ -381,15 +381,18 @@ SYB.NW_DB.initializeDefaultSystemEncryptionPassword = false
 SYB.NW_DB.maxIndexParallelDegree = 10
 SYB.NW_DB.maxQueryParallelDegree = 10
 SYB.NW_DB.numberWorkerProcesses = 50
-SYB.NW_DB.portBackupServer = 4902
-SYB.NW_DB.portDatabaseServer = 4901
-SYB.NW_DB.portJobScheduler = 4903
-SYB.NW_DB.portXPServer = 4904
 SYB.NW_DB.sqlServerConnections = 200
 SYB.NW_DB.sqlServerHostname = {{ sap_swpm_db_host }}
 SYB.NW_DB.sybmgmtdbDataDeviceFolder = /sybase/{{ sap_swpm_sid | upper }}/sybsystem
 SYB.NW_DB.sybmgmtdbLogDeviceFolder = /sybase/{{ sap_swpm_sid | upper }}/sybsystem
 SYB.NW_DB.userstore_hostname = {{ sap_swpm_ascs_instance_hostname }}
+
+# To avoid conflicts, leave all Ports blank and SAP SWPM will auto-assign
+# Ports by default are in order 4901, 4902, 4903, 4904. For each new ASE DB Server instance on the host, each port number is incremented by 4
+SYB.NW_DB.portDatabaseServer = 
+SYB.NW_DB.portBackupServer = 
+SYB.NW_DB.portJobScheduler = 
+SYB.NW_DB.portXPServer = 
 {% endif %}
 
 {% if 'db_config_anydb_sapmaxdb' in sap_swpm_inifile_list %}
@@ -411,10 +414,11 @@ SdbInstanceDialogs.saplogFolder = saplog
 ######
 NW_HDB_getDBInfo.dbhost = {{ sap_swpm_db_host }}
 NW_HDB_getDBInfo.dbsid = {{ sap_swpm_db_sid }}
-NW_HDB_getDBInfo.systemid = {{ sap_swpm_db_sid }}
 NW_HDB_getDBInfo.instanceNumber = {{ sap_swpm_db_instance_nr }}
-NW_HDB_getDBInfo.systemDbPassword = {{ sap_swpm_db_systemdb_password }}
+NW_HDB_getDBInfo.systemid = {{ sap_swpm_db_sid }}
 NW_HDB_getDBInfo.systemPassword = {{ sap_swpm_db_system_password }}
+# NW_HDB_getDBInfo.systemDbSid = SystemDB
+NW_HDB_getDBInfo.systemDbPassword = {{ sap_swpm_db_systemdb_password }}
 NW_HDB_DB.abapSchemaName = {{ sap_swpm_db_schema_abap }}
 NW_HDB_DB.abapSchemaPassword = {{ sap_swpm_db_schema_abap_password }}
 NW_HDB_DB.javaSchemaName = {{ sap_swpm_db_schema_java }}
@@ -573,6 +577,7 @@ NW_DI_Instance.virtualHostname = {{ ansible_hostname }}
 ######
 nw_instance_ers.ersVirtualHostname = {{ sap_swpm_ers_instance_hostname }}
 nw_instance_ers.ersInstanceNumber = {{ sap_swpm_ers_instance_nr }}
+# nw_instance_ers.restartSCS = true
 {% endif %}
 
 {% if 'nw_config_ports' in sap_swpm_inifile_list %}
@@ -621,7 +626,7 @@ Select_PPMS_Instances.ListOfSelectedInstances = {% set selected_ids = [] %}{%- f
 {%- endfor %}{{ selected_ids | flatten | join(',') }}
 
 ## If use PV = false [LEGACY for before NWAS JAVA 7.40]
-## Comma-separated value list containing which product instances (former usage types) are installed. Used for handling product instances in unattended mode.
+## Comma-separated value list containing which product instances (formerly known as usage types) are installed. Used for handling product instances in unattended mode.
 ## SAP_Software_Features_Select.selectedInstancesForInstallation = AS,AAS,BASIC,NW-MODEL,ESR,PI,PI-AF
 {%- endif %}
 
@@ -645,9 +650,9 @@ NW_webdispatcher_Instance.scenarioSize = {{ sap_swpm_wd_backend_scenario_size }}
 NW_webdispatcher_Instance.activateICF = {{ sap_swpm_wd_activate_icf | lower }}
 NW_webdispatcher_Instance.rfcHost = {{ sap_swpm_wd_backend_rfc_host }}
 NW_webdispatcher_Instance.rfcInstance = {{ sap_swpm_wd_backend_rfc_instance_nr }}
-NW_webdispatcher_Instance.rfcPassword = {{ sap_swpm_wd_backend_rfc_ddic_000_password }}
-# NW_webdispatcher_Instance.rfcClient = 000
-# NW_webdispatcher_Instance.rfcUser = DDIC
+NW_webdispatcher_Instance.rfcClient = {{ sap_swpm_wd_backend_rfc_client_nr }}
+NW_webdispatcher_Instance.rfcUser = {{ sap_swpm_wd_backend_rfc_user }}
+NW_webdispatcher_Instance.rfcPassword = {{ sap_swpm_wd_backend_rfc_user_password }}
 {% endif %}
 
 {% if 'nw_config_webdisp_gateway' in sap_swpm_inifile_list %}
@@ -655,10 +660,12 @@ NW_webdispatcher_Instance.rfcPassword = {{ sap_swpm_wd_backend_rfc_ddic_000_pass
 # nw_config_webdisp_gateway
 #
 # It is recommended to install gateway as part of ASCS
-# It is NOT recommended to install webdispatcher as part of ASCS. A separate Web Dispatcher instance must be installed
+# It is NOT recommended to install webdispatcher as part of ASCS. A separate Web Dispatcher instance should be installed (SAP Note 908097)
 ######
 NW_CI_Instance.ascsInstallGateway = {{ sap_swpm_ascs_install_gateway | lower }}
 # NW_SCS_Instance.ascsInstallGateway = {{ sap_swpm_ascs_install_gateway | lower }}
+
+# Embedded SAP Web Dispatcher
 # NW_CI_Instance.ascsInstallWebDispatcher = false
 # NW_SCS_Instance.ascsInstallWebDispatcher = false
 {% endif %}
@@ -758,6 +765,25 @@ nwUsers.sidAdmUID = {{ sap_swpm_sidadm_uid }}
 # DownloadService.Username =
 # DownloadService.planNumber =
 {% endif %}
+
+
+{% if 'solman_credentials_swpm1' in sap_swpm_inifile_list %}
+######
+# solman_credentials_swpm1
+# Not in use by sap_swpm Ansible Role
+######
+NW_IcmAuth.webadmPassword = {{ sap_swpm_ume_j2ee_admin_password }}
+{% endif %}
+
+
+{% if 'solman_abap_swpm1' in sap_swpm_inifile_list %}
+######
+# solman_abap_swpm1
+# Not in use by sap_swpm Ansible Role
+######
+InitDeclusteringForImport.decluster = false
+{% endif %}
+
 
 {% if 'solman_daa_swpm1' in sap_swpm_inifile_list %}
 ######
