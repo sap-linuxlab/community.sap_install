@@ -1,7 +1,7 @@
 ---
 - name: LVM - Create volume groups
   community.general.lvg:
-    vg: "{{ vg_item.vg_name }}"
+    vg: "{{ vg_item.volume_group }}"
     state: present
     pvs: "{{ vg_item.device }}"
     pesize: "{{ vg_item.pesize }}"
@@ -27,7 +27,8 @@
   loop_control:
     loop_var: lv_item
     label: "{{ lv_item.volume_name }}"
-#  when:
+  when:
+    - not ansible_check_mode
 #    - lv_item.device | length > 0
 #    - not lv_item.use_nfs
 
@@ -39,7 +40,8 @@
   loop_control:
     loop_var: fs_item
     label: "{{ fs_item.volume_name }}"
-#  when:
+  when:
+    - not ansible_check_mode
 #    - not fs_item.use_nfs
 #    - not fs_item.use_swapfile
 
