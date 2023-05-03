@@ -159,16 +159,6 @@ These options are applied to fencing resources this role uses automatically for 
 The listed options are set by default.<br>
 Additional options can be added by defining this parameter in dictionary format and adding the defaults plus any valid stonith resource key-value pair.<br>
 
-- **pcmk_reboot_retries**<br>
-    _Default:_ `4`<br>
-    STONITH resource parameter to define how often it retries to restart a node.
-- **pcmk_reboot_timeout**<br>
-    _Default:_ `400`<br>
-    STONITH resource parameter to define after which timeout a node restart is returned as failed.
-- **power_timeout**<br>
-    _Default:_ `240`<br>
-    STONITH resource parameter to test X seconds for status change after ON/OFF.
-
 Example:
 
 ```yaml
