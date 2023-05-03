@@ -101,15 +101,14 @@
   vars:
     __clone_topology:
       resource_id: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_name }}"
-      promotable: "no"
       meta_attrs:
         - attrs:
             - name: clone-max
               value: 2
             - name: clone-node-max
               value: 1
-        - name: interleave
-          value: "true"
+            - name: interleave
+              value: "true"
   when:
     - __clone_topology.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
 
@@ -119,7 +118,6 @@
   vars:
     __clone_hana:
       resource_id: "{{ sap_ha_pacemaker_cluster_hana_resource_name }}"
-      promotable: "yes"
       meta_attrs:
         - attrs:
             - name: clone-max
@@ -127,6 +125,8 @@
             - name: clone-node-max
               value: 1
             - name: interleave
+              value: "true"
+            - name: promotable
               value: "true"
   when:
     - __clone_hana.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
