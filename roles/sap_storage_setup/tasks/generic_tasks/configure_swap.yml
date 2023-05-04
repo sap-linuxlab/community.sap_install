@@ -1,0 +1,101 @@
+---
+- name: SAP Storage Setup - Block handling the swap file
+  block:
+
+    - name: SAP Storage Setup - Check if {{ swap_file.mountpoint }} exists
+      ansible.builtin.stat:
+        path: "{{ swap_file.mountpoint }}"
+      register: check_swapfile
+
+    - name: SAP Storage Setup - Allocate space for {{ swap_file.mountpoint }}
+      ansible.builtin.shell: |
+        fallocate -l {{ swap_file.disk_size | int * 1024 }}MB {{ swap_file.mountpoint }}
+      when:
+        - not check_swapfile.stat.exists
+
+    - name: SAP Storage Setup - Adjust permissions of {{ swap_file.mountpoint }}
+      ansible.builtin.file:
+        path: "{{ swap_file.mountpoint }}"
+        mode: 0600
+
+    - name: SAP Storage Setup - Create and activate swap as {{ swap_file.mountpoint }}
+      ansible.builtin.shell: |
+        mkswap {{ swap_file.mountpoint }}
+        swapon {{ swap_file.mountpoint }}
+      when:
+        - not check_swapfile.stat.exists
+
+    - name: SAP Storage Setup - Add fstab entry for {{ swap_file.mountpoint }}
+      ansible.posix.mount:
+        path: swap
+        src: "{{ swap_file.mountpoint }}"
+        fstype: swap
+        opts: defaults
+        state: present
+
+  # Block parameters
+  vars:
+    # Select the swap_file entry from the storage definition
+    swap_file: |
+      {{- sap_storage_definition
+      | selectattr("filesystem_type", "defined")
+      | selectattr("filesystem_type", "==", "swap")
+      | selectattr("mountpoint", "defined")
+      | map('dict2items')
+      | flatten
+      | items2dict
+      -}}
+
+  # Block conditional
+  when: |
+    sap_storage_definition
+    | selectattr("mountpoint", "defined")
+    | selectattr("filesystem_type", "defined")
+    | selectattr("filesystem_type", "==", "swap")
+
+### End of swapfile block
+
+- name: SAP Storage Setup - Block handling a swap partition filesystem
+  block:
+
+    - name: SAP Storage Setup - Check if swap partition exists (static set to expected path /dev/vg_swap/lv_swap)
+      ansible.builtin.shell: |
+        lsblk | grep SWAP || echo "no active swap"
+      register: check_swap_partition
+
+    - name: SAP Storage Setup - Add fstab entry for swap
+      ansible.posix.mount:
+        path: swap
+        src: "/dev/{{ swap_volume.lvm_vg_name | default('vg_swap') }}/{{ swap_volume.lvm_lv_name | default('lv_swap') }}"
+        fstype: swap
+        opts: defaults
+        state: present
+
+    - name: SAP Storage Setup - Enable swap
+      ansible.builtin.shell: |
+        swapon /dev/{{ swap_volume.lvm_vg_name | default('vg_swap') }}/{{ swap_volume.lvm_lv_name | default('lv_swap') }}
+      when:
+        - not ansible_check_mode
+        - swap_volume.lvm_lv_name | default("lv_swap") not in check_swap_partition.stdout
+
+  # Block parameters
+  vars:
+    # Select the swap volume entry from the storage definition.
+    # Difference to swapfile logic is the absence of a mountpoint definition in that entry.
+    swap_volume: |
+      {{- sap_storage_definition
+      | selectattr("filesystem_type", "defined")
+      | selectattr("filesystem_type", "==", "swap")
+      | selectattr("mountpoint", "undefined")
+      | map('dict2items')
+      | flatten
+      | items2dict
+      -}}
+
+  # Block conditional
+  when: |
+    sap_storage_definition
+    | selectattr("mountpoint", "undefined")
+    | selectattr("filesystem_type", "defined")
+    | selectattr("filesystem_type", "==", "swap")
+### End of block: swap filesystem

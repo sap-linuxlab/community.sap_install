@@ -8,6 +8,8 @@
 #  include_tasks: "{{ sap_storage_cloud_type }}_main.yml"
 
 
+# TODO: verify that the number of disks matches the fs definition
+# TODO: add functionality to work with existing LVM volumes and skip disk assignment
 
 ##########
 # Creating a list of unused devices that match the requested filesystem sizes, using
@@ -24,7 +26,7 @@
         {%- for fs in sap_storage_definition %}
           {%- if disk.value.links.uuids | length == 0
               and disk.value.partitions | length == 0
-              and (fs.disk_size | upper) in (disk.value.size | regex_replace('(\.\d+\s*)', '')) %}
+              and (fs.disk_size | string + 'GB') in (disk.value.size | regex_replace('(\.\d+\s*)', '')) %}
             {%- set add_to_list = av_disks.append(disk) %}
           {%- endif %}
         {%- endfor %}
@@ -46,15 +48,16 @@
       {% set device_map = [] %}
       {% set av_dev = (available_devices | dict2items) %}
       {% set assigned_dev = [] %}
-      {% for fs in sap_storage_definition %}
-      {% set matching_dev = [] %}
+      {% for fs in sap_storage_definition -%}
+        {% set matching_dev = [] -%}
 
-        {%- if (fs.disk_size is defined
+        {%- if fs.disk_size is defined
           and ('nfs' not in fs.filesystem_type | default('xfs'))
-          and ('swapfile' not in fs.filesystem_type | default('xfs'))) -%}
+          and ('swap' not in fs.filesystem_type | default('xfs')
+              or fs.mountpoint is not defined) -%}
 
           {%- for dev in av_dev -%}
-            {%- if (fs.disk_size | upper) in (dev.value.size | regex_replace('(\.\d+\s*)', ''))
+            {%- if (fs.disk_size | string + 'GB') in (dev.value.size | regex_replace('(\.\d+\s*)', ''))
                 and dev.key not in assigned_dev
                 and matching_dev | length < (fs.lvm_lv_stripes | d('1') | int) %}
 
@@ -64,25 +67,23 @@
             {%- endif %}
           {%- endfor %}
 
-        {%- endif %}
 
-        {%- set extend = device_map.extend([
-          {
-            'device': matching_dev | join(','),
-            'fstype': fs.filesystem_type | default('xfs'),
-            'mountpoint': fs.mountpoint,
-            'name': fs.name,
-            'size': fs.disk_size,
-          }
+          {%- set extend = device_map.extend([
+            {
+              'device': matching_dev | join(','),
+              'fstype': fs.filesystem_type | default('xfs'),
+              'mountpoint': fs.mountpoint | default(''),
+              'name': fs.name,
+              'size': fs.disk_size,
+            }
           ]) %}
+        {%- endif %}
       {%- endfor %}
       {{ device_map }}
-
 
 - debug:
     var: filesystem_device_map
 #- fail:
-
 
 # This task combines information to create a mapping list of devices to filesystems.
 # Sources:
@@ -94,15 +95,10 @@
   vars:
     volume_map: []
     volume_element:
-      - filesystem_type: |-
-          {% if map_item.name == 'swap' -%}
-            swap
-          {%- else -%}
-            {{ map_item.filesystem_type | default('xfs') }}
-          {%- endif %}
-        mountpoint: "{{ map_item.mountpoint }}"
-        volume_group: "vg_{{ map_item.name }}"
-        volume_name: "lv_{{ map_item.name }}"
+      - filesystem_type: "{{ map_item.filesystem_type | default('xfs') }}"
+        mountpoint: "{{ map_item.mountpoint | default('') }}"
+        volume_group: "{{ map_item.lvm_vg_name | default('vg_' + map_item.name) }}"
+        volume_name: "{{ map_item.lvm_lv_name | default('lv_' + map_item.name) }}"
         device: |-
           {% for entry in filesystem_device_map %}
             {%- if map_item.name == entry.name -%}
@@ -127,9 +123,16 @@
   loop_control:
     label: "{{ map_item.name }}"
     loop_var: map_item
+  when:
+ #   - map_item.mountpoint is defined
+ #   - map_item.mountpoint | length > 0
+ #   - '"swap" not in (map_item.filesystem_type | default("xfs"))'
+    - '"nfs" not in (map_item.filesystem_type | default("xfs"))'
 
-#- debug:
-#    var: volume_map
+- debug:
+    var: volume_map
+
+#- fail:
 
 ################
 # Main Run - call cloud specific tasks thru {{ sap_storage_cloud_type }}_tasks/prep_storage.yml
@@ -137,3 +140,11 @@
 
 - name: SAP Storage Setup - Configure Volume Groups and Logical Volumes
   include_tasks: "{{ sap_storage_cloud_type }}_tasks/configure_filesystems.yml"
+
+
+# NOTE: The conditional of this task requires Jinja2 version >= 2.11.0 (released January 2020)
+# Reference: https://jinja.palletsprojects.com/en/3.1.x/templates/#jinja-filters.map
+- name: SAP Storage Setup - Configure swap
+  include_tasks: "{{ sap_storage_cloud_type }}_tasks/configure_swap.yml"
+  when:
+    - '"swap" in sap_storage_definition | map(attribute="filesystem_type", default="xfs")'
