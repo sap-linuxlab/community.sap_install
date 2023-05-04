@@ -1,0 +1,37 @@
+---
+# Put temporary tasks inside a block which only runs once and will make sure
+# that even in case of failure the temporary mountpoint will be removed
+- name: SAP Storage Setup - Temporary steps that only run once
+  block:
+
+  - name: SAP Storage Setup - Create directory as temporary mountpoint
+    ansible.builtin.tempfile:
+      state: directory
+      prefix: sap_storage_setup_nfs
+    register: sap_storage_setup_tmpnfs_register
+
+  - name: SAP Storage Setup - Attach NFS host and prepare to create subdirectories on the share
+    ansible.posix.mount:
+      path: "{{ sap_storage_setup_tmpnfs_register.path }}"
+      src: "{{ nfs_item.nfs_server | default(sap_storage_setup_nfs_server) }}"
+      fstype: "{{ nfs_item.nfs_filesystem | default(sap_storage_setup_nfs_filesystem) }}"
+      opts: "{{ nfs_item.nfs_mount_options | default(sap_storage_setup_nfs_options) }}"
+      state: mounted
+    loop: "{{ sap_storage_definition }}"
+    loop_control:
+      loop_var: nfs_item
+      label: "{{ nfs_item.name }}"
+    when:
+      - nfs_item.nfs_path is defined
+
+
+  # Block task that is even run when something failed
+  always:
+
+  - name: SAP Storage Setup - Remove temporary NFS mount and directory
+    ansible.posix.mount:
+      path: "{{ sap_storage_setup_tmpnfs_register.path }}"
+      state: absent
+
+  # Block global parameters
+  run_once: true
