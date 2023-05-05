@@ -1,0 +1,62 @@
+---
+
+# High Availability installation
+
+# See virtual hostname information in SAP Note 2279110 and 962955
+# Avoid "host with the name <host> is not a valid virtual host on the local host" by using SAP SWPM property IS_HOST_LOCAL_USING_STRING_COMPARE=true
+- name: SAP SWPM Pre Install - HA Installation - Add virtual hostname in sapinst command
+  ansible.builtin.set_fact:
+    sap_swpm_swpm_command_virtual_hostname: "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }} IS_HOST_LOCAL_USING_STRING_COMPARE=true"
+
+# Create sidadm and sapsys when HA setup
+- name: SAP SWPM Pre Install - HA Installation - Create User when ASCS (initial HA setup)
+  ansible.builtin.include_tasks: ../create_os_user.yml
+  when:
+    - "'_ASCS' in sap_swpm_product_catalog_id"
+
+
+# Install using SAP Maintenance Planner Stack XML
+
+# Check for MP Stack XML if filename not given
+- name: SAP SWPM Pre Install - MP Stack XML - Get from {{ sap_swpm_mp_stack_path }}
+  ansible.builtin.shell: |
+    ls MP*.xml
+  args:
+    chdir: "{{ sap_swpm_mp_stack_path }}"
+  register: sap_swpm_mp_stack_file_get
+  # Test if variable string is not defined or None / blank
+  when:
+    (sap_swpm_mp_stack_file_name is not defined) or
+    (sap_swpm_mp_stack_file_name | type_debug == 'NoneType') or
+    (sap_swpm_mp_stack_file_name is none) or
+    (sap_swpm_mp_stack_file_name | length == 0)
+
+- name: SAP SWPM Pre Install - MP Stack XML - Set fact
+  ansible.builtin.set_fact:
+    sap_swpm_mp_stack_file_name: "{{ sap_swpm_mp_stack_file_get.stdout }}"
+  # Test if variable string is not defined or None / blank
+  when:
+    (sap_swpm_mp_stack_file_name is not defined) or
+    (sap_swpm_mp_stack_file_name | type_debug == 'NoneType') or
+    (sap_swpm_mp_stack_file_name is none) or
+    (sap_swpm_mp_stack_file_name | length == 0)
+
+- name: SAP SWPM Pre Install - MP Stack XML - Set fact
+  ansible.builtin.debug:
+    msg: "SAP Maintenance Planner Stack XML is {{ sap_swpm_mp_stack_path }}/{{ sap_swpm_mp_stack_file_name }}"
+
+- name: SAP SWPM Pre Install - MP Stack XML - Set fact for SWPM injection
+  ansible.builtin.set_fact:
+    sap_swpm_swpm_command_mp_stack: "SAPINST_STACK_XML={{ sap_swpm_mp_stack_path }}/{{ sap_swpm_mp_stack_file_name }}"
+
+- name: SAP SWPM Pre Install - MP Stack XML - Ensure (1 of 2) SAP System ID is correct inside SAP Maintenance Plan Stack XML
+  ansible.builtin.replace:
+    path: "{{ sap_swpm_mp_stack_path }}/{{ sap_swpm_mp_stack_file_name }}"
+    regexp: '<constraint name="sid" value="([A-Z][0-9])\w"'
+    replace: '<constraint name="sid" value="{{ sap_swpm_sid | upper }}"'
+
+- name: SAP SWPM Pre Install - MP Stack XML - Ensure (2 of 2) SAP System ID is correct inside SAP Maintenance Plan Stack XML
+  ansible.builtin.replace:
+    path: "{{ sap_swpm_mp_stack_path }}/{{ sap_swpm_mp_stack_file_name }}"
+    regexp: '<sid>([A-Z][0-9])\w'
+    replace: '<sid>{{ sap_swpm_sid | upper }}'
