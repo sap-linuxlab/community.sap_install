@@ -3,8 +3,11 @@
 ### Deprecated standard method, can fail to detect process exit (e.g. hang errors with SAP SWPM 2.0 SP11)
 ### Detect changed when using 'SAPinst build information' from beginning of stdout
 ### Or detect changed when using instslana.xml at end of stdout (this is the Process XML file aka. SAPInst Software Logistics Toolset Analytics XML file, which records the installation information)
+### Execute SAP SWPM, instead of command module use the shell module to allow use of umask according to SAP SWPM recommendations
+### Use of umask will enforce permissions 755 in /usr/sap etc (thereby resolving any shared NFS mount points initially attached with permissions 777)
 #- name:  SAP SWPM - {{ sap_swpm_swpm_installation_header }}
-#  command: >-
+#  ansible.builtin.shell: >-
+#    umask {{ sap_swpm_umask | default('022') }}; 
 #    ./sapinst \
 #    {{ sap_swpm_swpm_command_inifile }} \
 #    {{ sap_swpm_swpm_command_product_id }} \
@@ -36,7 +39,7 @@
 
 - name: Set fact for the sapinst command line
   ansible.builtin.set_fact:
-    __sap_swpm_sapinst_command: "./sapinst {{ sap_swpm_swpm_command_inifile }}
+    __sap_swpm_sapinst_command: "umask {{ sap_swpm_umask | default('022') }} ; ./sapinst {{ sap_swpm_swpm_command_inifile }}
     {{ sap_swpm_swpm_command_product_id }}
     {{ sap_swpm_swpm_command_extra_args }}"
   tags: sap_swpm_sapinst_commandline
@@ -54,10 +57,11 @@
 #   args:
 #     chdir: "{{ sap_swpm_sapinst_path }}"
 
-# Execute SAP SWPM
+# Execute SAP SWPM, instead of command module use the shell module to allow use of umask according to SAP SWPM recommendations
+# Use of umask will enforce permissions 755 in /usr/sap etc (thereby resolving any shared NFS mount points initially attached with permissions 777)
 # Reason for noqa: This command installs software, so it will change things
 - name: SAP SWPM - {{ sap_swpm_swpm_installation_header }} # noqa no-changed-when
-  ansible.builtin.command: "{{ __sap_swpm_sapinst_command }}"
+  ansible.builtin.shell: "{{ __sap_swpm_sapinst_command }}"
   register: __sap_swpm_register_sapinst_async_job
   args:
     chdir: "{{ sap_swpm_sapinst_path }}"
