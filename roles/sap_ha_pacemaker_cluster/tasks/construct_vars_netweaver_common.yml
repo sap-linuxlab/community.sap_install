@@ -1,0 +1,136 @@
+---
+# Variables containing variables must be constructed with values
+# to be fed into the included ha_cluster role
+
+# - put here all scale-up and scale-out common resources
+# - certain differences like ra agent names are provided through
+#   type specific variables
+
+# TODO: add conditionals to verify that the same resource agent is not already
+#       defined in user input variables. Conflicting user input should take precedence.
+
+
+- name: "SAP HA Prepare Pacemaker - Add resource: Filesystem /sapmnt"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_filesystem] }}"
+  vars:
+    __resource_filesystem:
+      id: "{{ sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_resource_name }}"
+      agent: "ocf:heartbeat:Filesystem"
+      instance_attrs:
+        - attrs:
+            - name: device
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_host_mount_path }}"
+            - name: directory
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_local_mount_path }}"
+            - name: fstype
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_fstype }}"
+            - name: options
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_options_string }}"
+            - name: force_unmount
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_force_unmount }}"
+      operations:
+        - action: start
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 60
+        - action: stop
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 120
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 200
+            - name: timeout
+              value: 40
+  when:
+    - __resource_filesystem.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
+
+
+- name: "SAP HA Prepare Pacemaker - Add resource: Filesystem /usr/sap/trans"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_filesystem] }}"
+  vars:
+    __resource_filesystem:
+      id: "{{ sap_ha_pacemaker_cluster_netweaver_transports_filesystem_resource_name }}"
+      agent: "ocf:heartbeat:Filesystem"
+      instance_attrs:
+        - attrs:
+            - name: device
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_transports_filesystem_host_mount_path }}"
+            - name: directory
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_transports_filesystem_local_mount_path }}"
+            - name: fstype
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_transports_filesystem_fstype }}"
+            - name: options
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_transports_filesystem_options_string }}"
+            - name: force_unmount
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_transports_filesystem_force_unmount }}"
+      operations:
+        - action: start
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 60
+        - action: stop
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 120
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 200
+            - name: timeout
+              value: 40
+  when:
+    - __resource_filesystem.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
+
+
+- name: "SAP HA Prepare Pacemaker - Add resource: Filesystem /usr/sap/<<SID>>/SYS"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_filesystem] }}"
+  vars:
+    __resource_filesystem:
+      id: "{{ sap_ha_pacemaker_cluster_netweaver_sys_filesystem_resource_name }}"
+      agent: "ocf:heartbeat:Filesystem"
+      instance_attrs:
+        - attrs:
+            - name: device
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_sys_filesystem_host_mount_path }}"
+            - name: directory
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_sys_filesystem_local_mount_path }}"
+            - name: fstype
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_sys_filesystem_fstype }}"
+            - name: options
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_sys_filesystem_options_string }}"
+            - name: force_unmount
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_sys_filesystem_force_unmount }}"
+      operations:
+        - action: start
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 60
+        - action: stop
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 120
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 200
+            - name: timeout
+              value: 40
+  when:
+    - __resource_filesystem.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
