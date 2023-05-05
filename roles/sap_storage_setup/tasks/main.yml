@@ -13,7 +13,7 @@
 
 ##########
 # Creating a list of unused devices that match the requested filesystem sizes, using
-# - custom definition: sap_storage_definition
+# - custom definition: sap_storage_setup_definition
 # - ansible facts: ansible_devices
 #
 #########
@@ -23,7 +23,7 @@
       {% set av_disks = [] %}
       {% set all_disks = (ansible_devices | dict2items) %}
       {% for disk in all_disks %}
-        {%- for fs in sap_storage_definition %}
+        {%- for fs in sap_storage_setup_definition %}
           {%- if disk.value.links.uuids | length == 0
               and disk.value.partitions | length == 0
               and fs.disk_size is defined
@@ -40,7 +40,7 @@
 # !!
 
 # This task assigns device names for each volume to be created.
-# - custom definition: sap_storage_definition
+# - custom definition: sap_storage_setup_definition
 # - ansible facts: ansible-devices
 
 - name: SAP Storage Setup - Set fact for target filesystem device mapping
@@ -49,12 +49,12 @@
       {% set device_map = [] %}
       {% set av_dev = (available_devices | dict2items) %}
       {% set assigned_dev = [] %}
-      {% for fs in sap_storage_definition -%}
+      {% for fs in sap_storage_setup_definition -%}
         {% set matching_dev = [] -%}
 
         {%- if fs.disk_size is defined
-          and ('nfs' not in fs.filesystem_type | default('xfs'))
-          and ('swap' not in fs.filesystem_type | default('xfs')
+          and ('nfs' not in fs.filesystem_type | default(sap_storage_setup_local_filesystem_type))
+          and ('swap' not in fs.filesystem_type | default(sap_storage_setup_local_filesystem_type)
               or fs.mountpoint is not defined) -%}
 
           {%- for dev in av_dev -%}
@@ -72,7 +72,7 @@
           {%- set extend = device_map.extend([
             {
               'device': matching_dev | join(','),
-              'fstype': fs.filesystem_type | default('xfs'),
+              'fstype': fs.filesystem_type | default(sap_storage_setup_local_filesystem_type),
               'mountpoint': fs.mountpoint | default(''),
               'name': fs.name,
               'size': fs.disk_size,
@@ -85,7 +85,7 @@
 
 # This task combines information to create a mapping list of devices to filesystems.
 # Sources:
-# - Extravars definition: sap_storage_definition
+# - Extravars definition: sap_storage_setup_definition
 # - Ansible host facts: hostvars[host_node].ansible_devices
 - name: SAP Storage Setup - Set fact for device to filesystem mapping
   ansible.builtin.set_fact:
@@ -93,7 +93,7 @@
   vars:
     volume_map: []
     volume_element:
-      - filesystem_type: "{{ map_item.filesystem_type | default('xfs') }}"
+      - filesystem_type: "{{ map_item.filesystem_type | default(sap_storage_setup_local_filesystem_type) }}"
         mountpoint: "{{ map_item.mountpoint | default('') }}"
         volume_group: "{{ map_item.lvm_vg_name | default('vg_' + map_item.name) }}"
         volume_name: "{{ map_item.lvm_lv_name | default('lv_' + map_item.name) }}"
@@ -117,7 +117,7 @@
             {% set addopt = lvopts.append('--stripesize ' + map_item.lvm_lv_stripe_size) %}
           {%- endif %}
           {{ lvopts | join(' ') }}
-  loop: "{{ sap_storage_definition }}"
+  loop: "{{ sap_storage_setup_definition }}"
   loop_control:
     label: "{{ map_item.name }}"
     loop_var: map_item
@@ -128,11 +128,9 @@
 #    var: volume_map
 
 ################
-# Main Run - call cloud specific tasks thru {{ sap_storage_cloud_type }}_tasks/prep_storage.yml
-################
 
 - name: SAP Storage Setup - Configure Volume Groups and Logical Volumes
-  include_tasks: "{{ sap_storage_cloud_type }}_tasks/configure_local_filesystems.yml"
+  include_tasks: "{{ sap_storage_setup_cloud_type }}_tasks/configure_local_filesystems.yml"
   when:
     - volume_map is defined
     - volume_map | length > 0
@@ -141,11 +139,15 @@
 # NOTE: The conditional of this task requires Jinja2 version >= 2.11.0 (released January 2020)
 # Reference: https://jinja.palletsprojects.com/en/3.1.x/templates/#jinja-filters.map
 - name: SAP Storage Setup - Configure swap
-  include_tasks: "{{ sap_storage_cloud_type }}_tasks/configure_swap.yml"
+  include_tasks: "{{ sap_storage_setup_cloud_type }}_tasks/configure_swap.yml"
   when:
-    - '"swap" in sap_storage_definition | map(attribute="filesystem_type", default="xfs")'
+    - '"swap" in sap_storage_setup_definition | map(attribute="filesystem_type", default=sap_storage_setup_local_filesystem_type)'
 
 - name: SAP Storage Setup - Configure NFS filesystems
-  include_tasks: "{{ sap_storage_cloud_type }}_tasks/configure_nfs_filesystems.yml"
+  include_tasks: "{{ sap_storage_setup_cloud_type }}_tasks/configure_nfs_filesystems.yml"
+  loop: "{{ sap_storage_setup_definition }}"
+  loop_control:
+    loop_var: nfs_item
+    label: "{{ nfs_item.name }}"
   when:
-    - sap_storage_definition | selectattr("nfs_path", "defined")
+    - nfs_item.nfs_path is defined

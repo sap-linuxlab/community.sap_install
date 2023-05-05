@@ -11,8 +11,6 @@
   loop_control:
     loop_var: vg_item
     label: "{{ vg_item.volume_group }}"
-#  when:
-#    - not vg_item.use_nfs
 
 - name: SAP Storage Setup - Create LVM volumes
   community.general.lvol:
@@ -28,7 +26,6 @@
     label: "{{ lv_item.volume_name }}"
   when:
     - not ansible_check_mode
-#    - not lv_item.use_nfs
 
 - name: SAP Storage Setup - Create filesystems
   community.general.filesystem:
@@ -40,7 +37,6 @@
     label: "{{ fs_item.volume_name }}"
   when:
     - not ansible_check_mode
-#    - not fs_item.use_nfs
 
 - name: SAP Storage Setup - Create mountpoints, add fstab entries and mount
   ansible.posix.mount:
@@ -53,5 +49,6 @@
     loop_var: mnt_item
     label: "{{ mnt_item.volume_name }}"
   when:
-#    - not mnt_item.use_nfs
     - not mnt_item.filesystem_type == "swap"
+
+# TODO: target permissions and ownership on the filesystems
