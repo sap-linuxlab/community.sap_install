@@ -80,8 +80,7 @@
 
         {%- if fs.disk_size is defined
           and ('nfs' not in fs.filesystem_type | default(sap_storage_setup_local_filesystem_type))
-          and ('swap' not in fs.filesystem_type | default(sap_storage_setup_local_filesystem_type)
-              or fs.mountpoint is not defined) -%}
+          and fs.swap_path is not defined) -%}
 
           {%- for dev in av_dev -%}
             {%- if (fs.disk_size | string + 'GB') in (dev.value.size | regex_replace('(\.\d+\s*)', ''))
@@ -151,6 +150,7 @@
   when:
     - map_item.nfs_path is not defined
     - '"nfs" not in map_item.filesystem_type'
+    - map_item.swap_path is not defined
 
 #- debug:
 #    var: volume_map

@@ -4,31 +4,31 @@
 
     - name: SAP Storage Setup - (swap file) Check if file exists
       ansible.builtin.stat:
-        path: "{{ swap_file.mountpoint }}"
+        path: "{{ swap_file.swap_path }}"
       register: check_swapfile
 
     - name: SAP Storage Setup - (swap file) Allocate space
       ansible.builtin.shell: |
-        fallocate -l {{ swap_file.disk_size | int * 1024 }}MB {{ swap_file.mountpoint }}
+        fallocate -l {{ swap_file.disk_size | int * 1024 }}MB {{ swap_file.swap_path }}
       when:
         - not check_swapfile.stat.exists
 
     - name: SAP Storage Setup - (swap file) Adjust file permissions
       ansible.builtin.file:
-        path: "{{ swap_file.mountpoint }}"
+        path: "{{ swap_file.swap_path }}"
         mode: 0600
 
     - name: SAP Storage Setup - (swap file) Create and activate swap
       ansible.builtin.shell: |
-        mkswap {{ swap_file.mountpoint }}
-        swapon {{ swap_file.mountpoint }}
+        mkswap {{ swap_file.swap_path }}
+        swapon {{ swap_file.swap_path }}
       when:
         - not check_swapfile.stat.exists
 
     - name: SAP Storage Setup - (swap file) Add fstab entry
       ansible.posix.mount:
         path: swap
-        src: "{{ swap_file.mountpoint }}"
+        src: "{{ swap_file.swap_path }}"
         fstype: swap
         opts: defaults
         state: present
@@ -40,7 +40,7 @@
       {{- sap_storage_setup_definition
       | selectattr("filesystem_type", "defined")
       | selectattr("filesystem_type", "==", "swap")
-      | selectattr("mountpoint", "defined")
+      | selectattr("swap_path", "defined")
       | map('dict2items')
       | flatten
       | items2dict
@@ -49,7 +49,7 @@
   # Block conditional
   when: |
     sap_storage_setup_definition
-    | selectattr("mountpoint", "defined")
+    | selectattr("swap_path", "defined")
     | selectattr("filesystem_type", "defined")
     | selectattr("filesystem_type", "==", "swap")
 
@@ -81,12 +81,12 @@
   # Block parameters
   vars:
     # Select the swap volume entry from the storage definition.
-    # Difference to swapfile logic is the absence of a mountpoint definition in that entry.
+    # Difference to swapfile logic is the absence of the "swap_path" parameter in that entry.
     swap_volume: |
       {{- sap_storage_setup_definition
       | selectattr("filesystem_type", "defined")
       | selectattr("filesystem_type", "==", "swap")
-      | selectattr("mountpoint", "undefined")
+      | selectattr("swap_path", "undefined")
       | map('dict2items')
       | flatten
       | items2dict
@@ -95,7 +95,7 @@
   # Block conditional
   when: |
     sap_storage_setup_definition
-    | selectattr("mountpoint", "undefined")
+    | selectattr("swap_path", "undefined")
     | selectattr("filesystem_type", "defined")
     | selectattr("filesystem_type", "==", "swap")
 ### End of block: swap filesystem
