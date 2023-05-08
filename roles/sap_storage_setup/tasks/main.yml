@@ -26,7 +26,6 @@
     loop_var: service_item
 
 
-
 ################
 # Cloud Specific Pre-Tasks - call cloud specific pre tasks thru {{ sap_storage_cloud_type }}_main.yml
 ################
@@ -144,12 +143,15 @@
             {% set addopt = lvopts.append('--stripesize ' + map_item.lvm_lv_stripe_size) %}
           {%- endif %}
           {{ lvopts | join(' ') }}
+
   loop: "{{ sap_storage_setup_definition }}"
   loop_control:
     label: "{{ map_item.name }}"
     loop_var: map_item
   when:
     - map_item.nfs_path is not defined
+    - '"swap" not in map_item.filesystem_type'
+    - '"nfs" not in map_item.filesystem_type'
 
 #- debug:
 #    var: volume_map
