@@ -1,0 +1,54 @@
+---
+- name: SAP Storage Setup - Create LVM volume groups
+  community.general.lvg:
+    vg: "{{ vg_item.volume_group }}"
+    state: present
+    pvs: "{{ vg_item.device }}"
+    pesize: "{{ vg_item.pesize }}"
+    vg_options: "{{ vg_item.vg_opts }}"
+    pv_options: "{{ vg_item.pv_opts }}"
+  loop: "{{ volume_map }}"
+  loop_control:
+    loop_var: vg_item
+    label: "{{ vg_item.volume_group }}"
+
+- name: SAP Storage Setup - Create LVM volumes
+  community.general.lvol:
+    lv: "{{ lv_item.volume_name }}"
+    vg: "{{ lv_item.volume_group }}"
+    shrink: false
+    size: 100%VG
+    state: present
+    opts: "{{ lv_item.lv_opts }}"
+  loop: "{{ volume_map }}"
+  loop_control:
+    loop_var: lv_item
+    label: "{{ lv_item.volume_name }}"
+  when:
+    - not ansible_check_mode
+
+- name: SAP Storage Setup - Create filesystems
+  community.general.filesystem:
+    fstype: "{{ fs_item.filesystem_type }}"
+    dev: "/dev/{{ fs_item.volume_group }}/{{ fs_item.volume_name }}"
+  loop: "{{ volume_map }}"
+  loop_control:
+    loop_var: fs_item
+    label: "{{ fs_item.volume_name }}"
+  when:
+    - not ansible_check_mode
+
+- name: SAP Storage Setup - Create mountpoints, add fstab entries and mount
+  ansible.posix.mount:
+    path: "{{ mnt_item.mountpoint }}"
+    src: "/dev/{{ mnt_item.volume_group }}/{{ mnt_item.volume_name }}"
+    fstype: "{{ mnt_item.filesystem_type }}"
+    state: mounted # performs fstab entry and mount
+  loop: "{{ volume_map }}"
+  loop_control:
+    loop_var: mnt_item
+    label: "{{ mnt_item.volume_name }}"
+  when:
+    - not mnt_item.filesystem_type == "swap"
+
+# TODO: target permissions and ownership on the filesystems

@@ -1,15 +1,59 @@
 ---
 
-# Important variables
+### not defaults, keeping these here for reference for now
 
-sap_storage_cloud_type: 'generic'
+#sap_storage_setup_sid:
+#
+# The instance_nr parameters are required for references at the bottom.
+sap_storage_setup_nwas_abap_ascs_instance_nr: '00'
+sap_storage_setup_nwas_abap_ers_instance_nr: '10'
+sap_storage_setup_nwas_abap_pas_instance_nr: '01'
+sap_storage_setup_nwas_abap_aas_instance_nr: '11'
+sap_storage_setup_nwas_java_scs_instance_nr: '20'
+sap_storage_setup_nwas_java_ers_instance_nr: '30'
+sap_storage_setup_nwas_java_ci_instance_nr: '21'
+
+# Directories use static prefixes /SYS, /ASCS, /ERS, /D, /SCS, /J
+# Required File Systems and Directories - SAP Directories
+# https://help.sap.com/docs/SLTOOLSET/39c32e9783f6439e871410848f61544c/d8d6abf3dceb45b9aa7b5f4e44b0d4b4.html?version=CURRENT_VERSION_SWPM20
+#
+# Predefined prefixes during SAP SWPM installation:
+# - NWAS ABAP ASCS uses ASCS<Instance_Number>
+# - NWAS ABAP ERS uses ERS<Instance_Number>
+# - NWAS ABAP PAS/AAS uses D<Instance_Number>
+# - NWAS JAVA SCS uses SCS<Instance_Number>
+# - NWAS JAVA ERS uses ERS<Instance_Number>
+# - NWAS JAVA AS uses J<Instance_Number>
+# - NWAS WebDispatcher uses W<Instance_Number>
+
+#----------------------------------------------------------#
+
+sap_storage_setup_cloud_type: 'generic'
 # generic | az | aws
 
-sap_storage_sap_type: 'sap_onehost'
-# sap_onehost | sap_hana | sap_nw
+sap_storage_setup_nfs_filesystem_type: nfs4
+sap_storage_setup_nfs_mount_options: 'hard,acl'
+sap_storage_setup_local_filesystem_type: xfs
 
-sap_storage_action: 'prepare'
-# prepare | remove
+# subdirectories as per SAP requirements
+
+sap_storage_setup_nfs_dirs_usr_sap:
+  all:
+    - "{{ sap_storage_setup_sid }}/SYS"
+  nwas_abap_aas:
+    - "{{ sap_storage_setup_sid }}/D{{ sap_storage_setup_nwas_abap_aas_instance_nr }}"
+  nwas_abap_ascs:
+    - "{{ sap_storage_setup_sid }}/ASCS{{ sap_storage_setup_nwas_abap_ascs_instance_nr }}"
+  nwas_abap_ers:
+    - "{{ sap_storage_setup_sid }}/ERS{{ sap_storage_setup_nwas_abap_ers_instance_nr }}"
+  nwas_abap_pas:
+    - "{{ sap_storage_setup_sid }}/D{{ sap_storage_setup_nwas_abap_pas_instance_nr }}"
+  nwas_java_ci:
+    - "{{ sap_storage_setup_sid }}/J{{ sap_storage_setup_nwas_java_ci_instance_nr }}"
+  nwas_java_ers:
+    - "{{ sap_storage_setup_sid }}/ERS{{ sap_storage_setup_nwas_java_ers_instance_nr }}"
+  nwas_java_scs:
+    - "{{ sap_storage_setup_sid }}/SCS{{ sap_storage_setup_nwas_java_scs_instance_nr }}"
 
 
 # Azure variables
@@ -24,8 +68,11 @@ sap_storage_az_lun: '/dev/disk/azure/scsi1/lun'
 
 # AWS variables
 
-sap_storage_aws_imds_url: 
-sap_storage_aws_vmsize_url: 
+# should probably put into a platform specific vars file, to be included and overwriting the default
+#sap_storage_setup_aws_nfs_options: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,acl'
+
+sap_storage_aws_imds_url:
+sap_storage_aws_vmsize_url:
 
 sap_storage_aws_vmsize:
 

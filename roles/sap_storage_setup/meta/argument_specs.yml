@@ -1,0 +1,149 @@
+---
+# Requires: ansible 2.11
+# Argument specifications in this separate file maintain backwards compatibility.
+argument_specs:
+
+  main:
+    short_description: SAP system storage setup
+    options:
+
+# Take this template and copy it to the desired place.
+# Add content and remove placeholders that are not needed.
+# Ideally sort by key (variable name) alphabetically.
+#
+#      sap_storage_setup_
+#        default:
+#        description:
+#           -
+#        example:
+#
+#        required: false
+#        type:
+#        options: # additional options for lists and dicts
+#          <param>:
+#            description:
+#            ...
+
+      sap_storage_setup_definition:
+        description:
+          - Describes the filesystems to be configured.
+
+        example:
+          sap_storage_setup_definition:
+            - name: hanadata
+              mountpoint: /hana/data
+              disk_size: 100G
+              filesystem_type: xfs
+
+            - name: hanalog
+              mountpoint: /hana/log
+              disk_size: 100G
+              filesystem_type: xfs
+
+        elements: dict
+        required: true
+        type: list
+        options:
+          name:
+            description:
+              - A name of the filesystem definition entry.
+              - This name is used to generate volume group name and logical volume name.
+            required: true
+            type: str
+
+          mountpoint:
+            description:
+              - The path to where the filesystem will be mounted.
+              - This can be left out for the definition of a swap volume.
+            required: false
+            type: str
+
+          disk_size:
+            description:
+              - Size of the disk device that is used for the filesystem.
+              - For filesystems with no LVM logical volume striping, this is the end size of the filesystem.
+              - For filesystems with LVM lv striping defined, this the size of each disk. Filesystem size will result in disk_size multiplied by amount of stripes (=disks).
+            required: false
+            type: str
+
+          filesystem_type:
+            default: xfs
+            description:
+              - The type of filesystem that will be created on the logical volume.
+            required: false
+            type: str
+
+          lvm_lv_name:
+            default: lv_<definition_name>
+            description:
+              - The name of the LVM volume.
+              - The default name is derived from the name value of the filesystem definition entry.
+            required: false
+            type: str
+
+          lvm_lv_stripes:
+            default: 1
+            description:
+              - Number of disks that will be configured in a striped volume.
+            required: false
+            type: int
+
+          lvm_lv_stripe_size:
+            description:
+              - When setting up a striped volume, the stripe size can be defined.
+              - Example format - "128K".
+            required: false
+            type: str
+
+          lvm_vg_name:
+            default: vg_<definition_name>
+            description:
+              - The name of the LVM volume group.
+              - The default name is derived from the name value of the filesystem definition entry.
+            required: false
+            type: str
+
+          lvm_vg_physical_extent_size:
+            default: 4
+            description:
+              - Adjustable size of the physical extents of the volume group in LVM.
+            required: false
+            type: str
+
+          nfs_path:
+            description:
+              - When defining an NFS filesystem, this is the directory path of the filesystem to be mounted.
+            required: false
+            type: str
+
+          nfs_server:
+            description:
+              - When defining an NFS filesystem, this is the address of the NFS server.
+              - The address must contain the root path, in which the mount directories exist or will be created.
+              - For example, `192.168.1.100:/`.
+            required: false
+            type: str
+
+          nfs_filesystem_type:
+            default: nfs4
+            description:
+              - The type of the NFS filesystem, for example `nfs`, `nfs4`.
+            required: false
+            type: str
+
+          nfs_mount_options:
+            description:
+              - Mount options to use for the NFS mount.
+              - Generic default is `hard,acl`.
+              - Defaults depend on the specific platform detected by the role or defined explicitly.
+            required: false
+            type: str
+
+          swap_path:
+            description:
+              - The path to the swap file.
+              - When this option is defined for a swap filesystem definition, it will create a swap file on an existing filesytem.
+            required: false
+            type: str
+
+# TODO: adding all possible options, otherwise they will fail the argument validation when used
