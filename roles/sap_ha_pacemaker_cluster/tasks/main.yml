@@ -44,28 +44,35 @@
 - name: "SAP HA Prepare Pacemaker - Include variable construction for VIP resources"
   ansible.builtin.import_tasks: include_construct_vip_resources.yml
 
+# Include construction task files for different scenarios.
+
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP HANA common"
-  when: sap_ha_pacemaker_cluster_sap_type == 'saphana_scaleup' or sap_ha_pacemaker_cluster_sap_type == 'saphana_scaleout'
-  ansible.builtin.import_tasks: construct_vars_hana_common.yml
+  ansible.builtin.include_tasks:
+    file: construct_vars_hana_common.yml
+  when:
+    - "'hana' in sap_ha_pacemaker_cluster_sap_host_type[0]"
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP HANA Scale-up"
-  when: sap_ha_pacemaker_cluster_sap_type == 'saphana_scaleup'
   ansible.builtin.include_tasks:
     file: construct_vars_hana_scaleup.yml
-
-#- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP HANA Scale-out"
-#  when: sap_ha_pacemaker_cluster_sap_type == 'saphana_scaleout'
-#  ansible.builtin.include_tasks:
-#    file: construct_vars_hana_scaleout.yml
+  when:
+    - "'hana_scaleup' in sap_ha_pacemaker_cluster_sap_host_type[0]"
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver common"
-  when: sap_ha_pacemaker_cluster_sap_type == 'sapnetweaver_abap_ascs_ers' or sap_ha_pacemaker_cluster_sap_type == 'sapnetweaver_abap_pas_aas' or sap_ha_pacemaker_cluster_sap_type == 'sapnetweaver_abap_all'
-  ansible.builtin.import_tasks: construct_vars_netweaver_common.yml
+  ansible.builtin.include_tasks:
+    file: construct_vars_netweaver_common.yml
+  when:
+    - "'nwas_abap' in sap_ha_pacemaker_cluster_sap_host_type[0]"
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ABAP ASCS/ERS"
-  when: sap_ha_pacemaker_cluster_sap_type == 'sapnetweaver_abap_ascs_ers' or sap_ha_pacemaker_cluster_sap_type == 'sapnetweaver_abap_all'
   ansible.builtin.include_tasks:
     file: construct_vars_netweaver_abap_ascs_ers.yml
+  loop: "{{ sap_ha_pacemaker_cluster_sap_host_type }}"
+  loop_control:
+    loop_var: nwas_constr_item
+  when:
+    - "'nwas_abap_ascs' in nwas_constr_item"
+
 
 #- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ABAP PAS/AAS"
 #  when: sap_ha_pacemaker_cluster_sap_type == 'sapnetweaver_abap_pas_aas' or sap_ha_pacemaker_cluster_sap_type == 'sapnetweaver_abap_all'
