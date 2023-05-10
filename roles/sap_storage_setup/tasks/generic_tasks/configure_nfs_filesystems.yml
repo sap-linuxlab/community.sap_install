@@ -3,14 +3,14 @@
 # defined in sap_storage_setup_definition.
 
 
-# First, build a list of target mountpoints, based on the defined node purpose
+# First, build a list of target mountpoints, based on the defined host type
 # and filesystems.
 #
 # Required parameters:
 #
 # Custom filesystem definition: sap_storage_setup_definition
 # /usr/sap subdir list: sap_storage_setup_nfs_dirs_usr_sap  (default/main.yml)
-# Host purpose: sap_storage_setup_host_purpose
+# Host type: sap_storage_setup_host_type
 
 # Make sure paths and mountpoints are stripped from trailing '/'.
 # The '/' is added explicitly to the constructed paths.
@@ -18,7 +18,7 @@
 # Parameter: sap_storage_setup_related_directories
 # Param Type: list of dictionaries
 #
-# Debug sample for a node of purpose 'nwas_abap_ascs':
+# Debug sample for a node of host type 'nwas_abap_ascs':
 #
 # sap_storage_setup_related_directories:
 #		- dir_only: /DB1
@@ -65,8 +65,8 @@
           ]) %}
         {%- endfor %}
 
-        {%- for purpose in host_purpose %}
-          {%- for dir in sap_storage_setup_nfs_dirs_usr_sap[purpose] %}
+        {%- for type in host_type %}
+          {%- for dir in sap_storage_setup_nfs_dirs_usr_sap[type] %}
             {%- set dirs = mount_list.extend([
               {
                 'mount_src': nfs_item.nfs_path | regex_replace('/$', '') + '/' + dir,
@@ -83,11 +83,11 @@
     # Convert the parameter to a list, if it is not one already.
     # Careful with the whitespace control, spaces in front of a list variable
     # convert it to a string.
-    host_purpose: |
-      {% if sap_storage_setup_host_purpose | type_debug != 'list' -%}
-        {{ sap_storage_setup_host_purpose | split(' ') }}
+    host_type: |
+      {% if sap_storage_setup_host_type | type_debug != 'list' -%}
+        {{ sap_storage_setup_host_type | split(' ') }}
       {%- else -%}
-        {{ sap_storage_setup_host_purpose }}
+        {{ sap_storage_setup_host_type }}
       {%- endif %}
 
 
