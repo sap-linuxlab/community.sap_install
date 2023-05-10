@@ -11,9 +11,9 @@
 
 - name: "SAP HA Prepare Pacemaker - Add resource: SAP HANA Topology"
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_topology] }}"
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_saphana_topology] }}"
   vars:
-    __resource_topology:
+    __resource_saphana_topology:
       id: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_name }}"
       agent: "ocf:heartbeat:SAPHanaTopology"
       instance_attrs:
@@ -38,13 +38,13 @@
             - name: timeout
               value: 600
   when:
-    - __resource_topology.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
+    - __resource_saphana_topology.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
 
 - name: "SAP HA Prepare Pacemaker - Add resource: SAP HANA DB"
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_hana] }}"
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_saphana] }}"
   vars:
-    __resource_hana:
+    __resource_saphana:
       id: "{{ sap_ha_pacemaker_cluster_hana_resource_name }}"
       agent: "ocf:heartbeat:{{ sap_ha_pacemaker_cluster_ra_hana }}"
       instance_attrs:
@@ -93,13 +93,13 @@
             - name: timeout
               value: 3600
   when:
-    - __resource_hana.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
+    - __resource_saphana.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
 
 - name: "SAP HA Prepare Pacemaker - Add resource clone: SAP HANA Topology"
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_topology] }}"
+    __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_saphana_topology] }}"
   vars:
-    __clone_topology:
+    __clone_saphana_topology:
       resource_id: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_name }}"
       meta_attrs:
         - attrs:
@@ -110,13 +110,13 @@
             - name: interleave
               value: "true"
   when:
-    - __clone_topology.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
+    - __clone_saphana_topology.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
 
 - name: "SAP HA Prepare Pacemaker - Add resource clone: SAP HANA DB"
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_hana] }}"
+    __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_saphana] }}"
   vars:
-    __clone_hana:
+    __clone_saphana:
       resource_id: "{{ sap_ha_pacemaker_cluster_hana_resource_name }}"
       meta_attrs:
         - attrs:
@@ -129,14 +129,14 @@
             - name: promotable
               value: "true"
   when:
-    - __clone_hana.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
+    - __clone_saphana.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
 
 # First start Topology, then HANA (automatically stops in reverse order)
 - name: "SAP HA Prepare Pacemaker - Add order constraint: Topology starts before DB"
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_topology] }}"
+    __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_saphana_topology] }}"
   vars:
-    __constraint_order_topology:
+    __constraint_order_saphana_topology:
       resource_first:
         id: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_clone_name }}"
         action: start
@@ -147,4 +147,4 @@
         - name: symmetrical
           value: "false"
   when:
-    - __constraint_order_topology.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))
+    - __constraint_order_saphana_topology.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))

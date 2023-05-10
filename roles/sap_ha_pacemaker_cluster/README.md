@@ -249,10 +249,10 @@ sap_ha_pacemaker_cluster_resource_defaults:
 ### sap_ha_pacemaker_cluster_sap_type
 
 - _Type:_ `str`
-- _Default:_ `scaleup`
+- _Default:_ `saphana_scaleup`
 
 The SAP landscape to be installed.<br>
-_Currently only scale-up is supported_<br>
+_Currently only SAP HANA scale-up is supported_<br>
 
 ### sap_ha_pacemaker_cluster_vip_client_interface
 
