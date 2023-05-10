@@ -10,12 +10,33 @@
 # 2 nodes are also valid for other scenarios.
 # TODO: collect possible rules for target landscapes
 
-# Currently only SAP HANA 2-node scale-up is supported.
-- name: "SAP HA Prepare Pacemaker - Set landscape to scale-up if target is 2 nodes"
-  when:
-    - ansible_play_hosts|length == 2
-  ansible.builtin.set_fact:
-    sap_ha_pacemaker_cluster_sap_type: saphana_scaleup
+- name: SAP HA Prepare Pacemaker - Fail if there is only 1 target host
+  ansible.builtin.assert:
+    that:
+      - ansible_play_hosts | length > 1
 
-- name: "SAP HA Prepare Pacemaker - Include HANA specific variables"
-  ansible.builtin.import_tasks: include_vars_saphana.yml
+- name: SAP HA Prepare Pacemaker - Make sure the 'type' parameter is a list
+  ansible.builtin.set_fact:
+    sap_ha_pacemaker_cluster_sap_host_type: |
+      {% if sap_ha_pacemaker_cluster_sap_host_type | type_debug != 'list' -%}
+        {{ sap_ha_pacemaker_cluster_sap_host_type | split(' ') }}
+      {%- else -%}
+        {{ sap_ha_pacemaker_cluster_sap_host_type }}
+      {%- endif %}
+
+- name: SAP HA Prepare Pacemaker - Verify that for 'hana_scaleup' types 2 nodes are used
+  ansible.builtin.assert:
+    that:
+      - ansible_play_hosts | length == 2
+  when:
+    - "'hana_scaleup' in sap_ha_pacemaker_cluster_sap_host_type[0]"
+
+- name: SAP HA Prepare Pacemaker - Include HANA specific variables
+  ansible.builtin.include_tasks: include_vars_saphana.yml
+  when:
+    - "'hana' in sap_ha_pacemaker_cluster_sap_host_type[0]"
+
+- name: SAP HA Prepare Pacemaker - Include NETWEAVER specific variables
+  ansible.builtin.include_tasks: include_vars_netweaver.yml
+  when:
+    - "'nwas' in sap_ha_pacemaker_cluster_sap_host_type[0]"

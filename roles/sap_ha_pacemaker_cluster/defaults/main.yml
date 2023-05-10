@@ -18,9 +18,9 @@ sap_ha_pacemaker_cluster_create_config_dest: "{{ sap_ha_pacemaker_cluster_cluste
 
 # Inherit SAP common parameters
 sap_ha_pacemaker_cluster_cluster_nodes: "{{ sap_hana_cluster_nodes }}"
-sap_ha_pacemaker_cluster_hana_sid: "{{ sap_hana_sid }}"
-sap_ha_pacemaker_cluster_hana_instance_number: "{{ sap_hana_instance_number }}"
-sap_ha_pacemaker_cluster_netweaver_sid: "{{ sap_swpm_sid }}"
+sap_ha_pacemaker_cluster_hana_sid: "{{ sap_hana_sid | default('') }}"
+sap_ha_pacemaker_cluster_hana_instance_number: "{{ sap_hana_instance_number | default('00') }}"
+sap_ha_pacemaker_cluster_netweaver_sid: "{{ sap_swpm_sid | default('') }}"
 sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number: "{{ sap_swpm_ascs_instance_nr }}"
 sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number: "{{ sap_swpm_ers_instance_nr }}"
 sap_ha_pacemaker_cluster_netweaver_abap_pas_instance_number: "{{ sap_swpm_pas_instance_nr }}"
@@ -41,8 +41,15 @@ sap_ha_pacemaker_cluster_resource_defaults:
 
 # The type of SAP landscape and multi-node replication
 # TODO: Type definitions and feature support
-# TODO: Implement all types - # saphana_scaleup, saphana_scaleout, sapnetweaver_abap_ascs_ers, sapnetweaver_abap_pas_aas, sapnetweaver_java_scs_ers
-sap_ha_pacemaker_cluster_sap_type: saphana_scaleup
+# TODO: Implement all types
+# hana_scaleup_costopt  (not yet)
+# hana_scaleup_perf     (default)
+# hana_scaleup_per_dr   (not yet)
+# hana_scaleout         (not yet)
+# nwas_abap_ascs_ers
+# nwas_abap_pas_aas
+# nwas_java_scs_ers     (maybe)
+sap_ha_pacemaker_cluster_sap_host_type: "{{ sap_host_type | default('hana_scaleup_perf') }}"
 sap_ha_pacemaker_cluster_replication_type: none
 
 # Optional parameters to customize HANA resources
