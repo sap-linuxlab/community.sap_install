@@ -7,7 +7,7 @@
 ### Use of umask will enforce permissions 755 in /usr/sap etc (thereby resolving any shared NFS mount points initially attached with permissions 777)
 #- name:  SAP SWPM - {{ sap_swpm_swpm_installation_header }}
 #  ansible.builtin.shell: >-
-#    umask {{ sap_swpm_umask | default('022') }}; 
+#    umask {{ sap_swpm_umask | default('022') }};
 #    ./sapinst \
 #    {{ sap_swpm_swpm_command_inifile }} \
 #    {{ sap_swpm_swpm_command_product_id }} \
@@ -61,7 +61,8 @@
 # Use of umask will enforce permissions 755 in /usr/sap etc (thereby resolving any shared NFS mount points initially attached with permissions 777)
 # Reason for noqa: This command installs software, so it will change things
 - name: SAP SWPM - {{ sap_swpm_swpm_installation_header }} # noqa no-changed-when
-  ansible.builtin.shell: "{{ __sap_swpm_sapinst_command }}"
+  ansible.builtin.shell: |
+    {{ __sap_swpm_sapinst_command }}
   register: __sap_swpm_register_sapinst_async_job
   args:
     chdir: "{{ sap_swpm_sapinst_path }}"
