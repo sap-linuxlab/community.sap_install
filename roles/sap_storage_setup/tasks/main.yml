@@ -124,9 +124,9 @@
         volume_name: "{{ map_item.lvm_lv_name | default('lv_' + map_item.name) }}"
         device: |-
           {% for entry in filesystem_device_map %}
-            {%- if map_item.name == entry.name -%}
+          {%- if map_item.name == entry.name -%}
               {{ entry.device }}
-            {%- endif %}
+          {%- endif %}
           {%- endfor %}
         pesize: "{{ map_item.lvm_vg_physical_extent_size | default('4') }}"
         pv_opts: "{{ map_item.lvm_pv_options | default('') }}"
@@ -158,7 +158,8 @@
 ################
 
 - name: SAP Storage Setup - Configure Volume Groups and Logical Volumes
-  include_tasks: "{{ sap_storage_setup_cloud_type }}_tasks/configure_local_filesystems.yml"
+  ansible.builtin.include_tasks:
+    file: "{{ sap_storage_setup_cloud_type }}_tasks/configure_local_filesystems.yml"
   when:
     - volume_map is defined
     - volume_map | length > 0
@@ -167,12 +168,15 @@
 # NOTE: The conditional of this task requires Jinja2 version >= 2.11.0 (released January 2020)
 # Reference: https://jinja.palletsprojects.com/en/3.1.x/templates/#jinja-filters.map
 - name: SAP Storage Setup - Configure swap
-  include_tasks: "{{ sap_storage_setup_cloud_type }}_tasks/configure_swap.yml"
+  ansible.builtin.include_tasks:
+    file: "{{ sap_storage_setup_cloud_type }}_tasks/configure_swap.yml"
   when:
-    - '"swap" in sap_storage_setup_definition | map(attribute="filesystem_type", default=sap_storage_setup_local_filesystem_type)'
+    - '"swap" in sap_storage_setup_definition
+      | map(attribute="filesystem_type", default=sap_storage_setup_local_filesystem_type)'
 
 - name: SAP Storage Setup - Configure NFS filesystems
-  include_tasks: "{{ sap_storage_setup_cloud_type }}_tasks/configure_nfs_filesystems.yml"
+  ansible.builtin.include_tasks:
+    file: "{{ sap_storage_setup_cloud_type }}_tasks/configure_nfs_filesystems.yml"
   loop: "{{ sap_storage_setup_definition }}"
   loop_control:
     loop_var: nfs_item
