@@ -3,14 +3,13 @@
   # Block parameters
   vars:
     # Select the swap_file entry from the storage definition
+    # and convert the single element list to a dict
     swap_file: |
       {{- sap_storage_setup_definition
       | selectattr("filesystem_type", "defined")
       | selectattr("filesystem_type", "==", "swap")
       | selectattr("swap_path", "defined")
-      | map('dict2items')
-      | flatten
-      | items2dict
+      | join('')
       -}}
 
   # Block conditional
@@ -59,16 +58,15 @@
 - name: SAP Storage Setup - Block handling a swap partition filesystem
   # Block parameters
   vars:
-    # Select the swap volume entry from the storage definition.
+    # Select the swap volume entry from the storage definition
+    # and convert the single element list to a dict.
     # Difference to swapfile logic is the absence of the "swap_path" parameter in that entry.
     swap_volume: |
       {{- sap_storage_setup_definition
       | selectattr("filesystem_type", "defined")
       | selectattr("filesystem_type", "==", "swap")
       | selectattr("swap_path", "undefined")
-      | map('dict2items')
-      | flatten
-      | items2dict
+      | join('')
       -}}
 
   # Block conditional
