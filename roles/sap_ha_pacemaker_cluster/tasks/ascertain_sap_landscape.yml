@@ -17,11 +17,11 @@
 
 - name: SAP HA Prepare Pacemaker - Make sure the 'type' parameter is a list
   ansible.builtin.set_fact:
-    sap_ha_pacemaker_cluster_sap_host_type: |
-      {% if sap_ha_pacemaker_cluster_sap_host_type | type_debug != 'list' -%}
-        {{ sap_ha_pacemaker_cluster_sap_host_type | split(' ') }}
+    sap_ha_pacemaker_cluster_host_type: |
+      {% if sap_ha_pacemaker_cluster_host_type | type_debug != 'list' -%}
+        {{ sap_ha_pacemaker_cluster_host_type | split(' ') }}
       {%- else -%}
-        {{ sap_ha_pacemaker_cluster_sap_host_type }}
+        {{ sap_ha_pacemaker_cluster_host_type }}
       {%- endif %}
 
 - name: SAP HA Prepare Pacemaker - Verify that for 'hana_scaleup' types 2 nodes are used
@@ -29,16 +29,16 @@
     that:
       - ansible_play_hosts | length == 2
   when:
-    - "'hana_scaleup' in sap_ha_pacemaker_cluster_sap_host_type[0]"
+    - "'hana_scaleup' in sap_ha_pacemaker_cluster_host_type[0]"
 
 - name: SAP HA Prepare Pacemaker - Include HANA specific variables
   ansible.builtin.include_tasks:
     file: include_vars_hana.yml
   when:
-    - "'hana' in sap_ha_pacemaker_cluster_sap_host_type[0]"
+    - "'hana' in sap_ha_pacemaker_cluster_host_type[0]"
 
 - name: SAP HA Prepare Pacemaker - Include NETWEAVER specific variables
   ansible.builtin.include_tasks:
     file: include_vars_netweaver.yml
   when:
-    - "'nwas' in sap_ha_pacemaker_cluster_sap_host_type[0]"
+    - "'nwas' in sap_ha_pacemaker_cluster_host_type[0]"
