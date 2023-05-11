@@ -73,16 +73,23 @@
   when:
     - "'nwas_abap_ascs' in nwas_build_item"
 
+- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ABAP PAS/AAS"
+  ansible.builtin.include_tasks:
+    file: construct_vars_netweaver_abap_pas_aas.yml
+  loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
+  loop_control:
+    loop_var: nwas_build_item
+  when:
+    - "'nwas_abap_pas' in nwas_build_item"
 
-#- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ABAP PAS/AAS"
-#  when: sap_ha_pacemaker_cluster_sap_type == 'sapnetweaver_abap_pas_aas' or sap_ha_pacemaker_cluster_sap_type == 'sapnetweaver_abap_all'
-#  ansible.builtin.include_tasks:
-#    file: construct_vars_netweaver_abap_pas_aas.yml
-
-#- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver JAVA SCS/ERS"
-#  when: sap_ha_pacemaker_cluster_sap_type == 'sapnetweaver_java_scs_ers'
-#  ansible.builtin.include_tasks:
-#    file: construct_vars_netweaver_java_scs_ers.yml
+- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver Java SCS/ERS"
+  ansible.builtin.include_tasks:
+    file: construct_vars_netweaver_java_scs_ers.yml
+  loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
+  loop_control:
+    loop_var: nwas_build_item
+  when:
+    - "'nwas_java' in nwas_build_item"
 
 - name: "SAP HA Install Pacemaker - Block with actual changes"
   block:
