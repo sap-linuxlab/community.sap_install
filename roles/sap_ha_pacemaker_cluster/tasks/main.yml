@@ -185,12 +185,13 @@
       run_once: true
 
     - name: "SAP HA Install Pacemaker - Include srHook configuration"
-      when: sap_ha_pacemaker_cluster_sap_type == 'saphana_scaleup' or sap_ha_pacemaker_cluster_sap_type == 'saphana_scaleout'
       ansible.builtin.include_tasks:
         file: configure_srhook.yml
         apply:
           tags: srhook
       tags: srhook
+      when:
+        - sap_ha_pacemaker_cluster_sap_type | select('search', 'hana') | length > 0
 
 ### END OF BLOCK: prerequisite changes and cluster setup
 
