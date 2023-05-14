@@ -85,3 +85,42 @@
     - "'/usr/sap' in commonfs_item.mountpoint
       or '/sapmnt' in commonfs_item.mountpoint"
     - __resource_filesystem.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+
+# The shared/common filesystems are clones.
+- name: "SAP HA Prepare Pacemaker - Add resource clones for common shared filesystems"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_common_filesystem] }}"
+  vars:
+    __clone_common_filesystem:
+      resource_id: |-
+        {%- if '/sapmnt' in __mountpoint -%}
+          {% set idname = sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_resource_name %}
+        {% elif '/usr/sap/trans' in __mountpoint -%}
+          {% set idname = sap_ha_pacemaker_cluster_netweaver_transports_filesystem_resource_name %}
+        {% elif '/usr/sap/' + sap_ha_pacemaker_cluster_netweaver_sid + '/SYS' in __mountpoint -%}
+          {% set idname = sap_ha_pacemaker_cluster_netweaver_sys_filesystem_resource_name %}
+        {% endif %}
+        {{ idname }}
+      meta_attrs:
+        - attrs:
+            - name: interleave
+              value: "true"
+
+    __mountpoint: |-
+      {%- if commonfsclone_item.mountpoint | regex_replace('/$', '') == '/usr/sap' -%}
+        {{ commonfsclone_item.mountpoint | regex_replace('/$', '') }}/{{ sap_ha_pacemaker_cluster_netweaver_sid }}/SYS
+      {%- else -%}
+        {{ commonfsclone_item.mountpoint | regex_replace('/$', '') }}
+      {%- endif %}
+
+  loop: "{{ sap_ha_pacemaker_cluster_storage_definition }}"
+  loop_control:
+    loop_var: commonfsclone_item
+    label: "{{ commonfsclone_item.name }}"
+  when:
+    - commonfsclone_item.mountpoint is defined
+    - commonfsclone_item.nfs_path is defined
+    - "'/usr/sap' in commonfsclone_item.mountpoint
+      or '/sapmnt' in commonfsclone_item.mountpoint"
+    - __clone_common_filesystem.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
