@@ -158,6 +158,22 @@
   when:
     - __resource_sapinstance.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
 
+# Order Constraint: ASCS filesystem should start before instance
+- name: "SAP HA Prepare Pacemaker - Add order constraint: first start ASCS filesystem, then ASCS instance"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_ascs_fs] }}"
+  vars:
+    __constraint_order_ascs_fs:
+      resource_first:
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_filesystem_resource_name }}"
+        role: started
+      resource_then:
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ASCS{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}_group"
+      options:
+        - name: symmetrical
+          value: "false"
+  when:
+    - __constraint_order_ascs_fs.resource_first not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_first'))
 
 # ERS instance resource definition
 - name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for Enqueue Replication Service (ABAP ERS)"
@@ -206,6 +222,23 @@
               value: 60
   when:
     - __resource_sapinstance_ers.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+# Order Constraint: ERS filesystem should start before instance
+- name: "SAP HA Prepare Pacemaker - Add order constraint: first start ERS filesystem, then ERS instance"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_ers_fs] }}"
+  vars:
+    __constraint_order_ers_fs:
+      resource_first:
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_filesystem_resource_name }}"
+        role: started
+      resource_then:
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ERS{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}_group"
+      options:
+        - name: symmetrical
+          value: "false"
+  when:
+    - __constraint_order_ers_fs.resource_first not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_first'))
 
 #################################################
 # Group resources that belong together
