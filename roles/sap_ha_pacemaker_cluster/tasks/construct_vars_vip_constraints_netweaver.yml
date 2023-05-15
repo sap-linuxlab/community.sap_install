@@ -1,0 +1,78 @@
+---
+# Reminder: This file is included in a loop over a dictionary.
+
+##################################################
+# NetWeaver ASCS
+##################################################
+
+# Start the VIP only after the ASCS resource has been started
+- name: "SAP HA Prepare Pacemaker - Add order constraint: ASCS VIP starts after NetWeaver ASCS is started"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_vip] }}"
+  vars:
+    __constraint_order_vip:
+      resource_first:
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name }}"
+        action: start
+      resource_then:
+        id: "{{ __sap_ha_pacemaker_cluster_vip_resource_id }}"
+        action: start
+  when:
+    - __constraint_order_vip.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_nwas_ascs_synonyms
+
+# The VIP only runs where the ASCS resource is running -- the VIP in the the group
+#- name: "SAP HA Prepare Pacemaker - Add colocation constraint: VIP runs where NetWeaver ASCS is running"
+#  ansible.builtin.set_fact:
+#    __sap_ha_pacemaker_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation + [__constraint_colo_vip] }}"
+#  vars:
+#    __constraint_colo_vip:
+#      resource_leader:
+#        id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name }}"
+#        role: started
+#      resource_follower:
+#        id: "{{ __sap_ha_pacemaker_cluster_vip_resource_id }}"
+#      options:
+#        - name: score
+#          value: 2000
+#  when:
+#    - __constraint_colo_vip.resource_follower not in (__sap_ha_pacemaker_cluster_constraints_colocation | map(attribute='resource_follower'))
+#    - vip_list_item.key in __sap_ha_pacemaker_cluster_nwas_ascs_synonyms
+
+##################################################
+# NetWeaver ERS
+##################################################
+
+# Start the VIP only after the ERS resource has been started
+- name: "SAP HA Prepare Pacemaker - Add order constraint: ERS VIP starts after NetWeaver ERS is started"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_vip] }}"
+  vars:
+    __constraint_order_vip:
+      resource_first:
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name }}"
+        action: start
+      resource_then:
+        id: "{{ __sap_ha_pacemaker_cluster_vip_resource_id }}"
+        action: start
+  when:
+    - __constraint_order_vip.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_nwas_ers_synonyms
+
+# The VIP only runs where the ERS resource is running
+#- name: "SAP HA Prepare Pacemaker - Add colocation constraint: VIP runs where NetWeaver ERS is running"
+#  ansible.builtin.set_fact:
+#    __sap_ha_pacemaker_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation + [__constraint_colo_vip] }}"
+#  vars:
+#    __constraint_colo_vip:
+#      resource_leader:
+#        id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name }}"
+#        role: started
+#      resource_follower:
+#        id: "{{ __sap_ha_pacemaker_cluster_vip_resource_id }}"
+#      options:
+#        - name: score
+#          value: 2000
+#  when:
+#    - __constraint_colo_vip.resource_follower not in (__sap_ha_pacemaker_cluster_constraints_colocation | map(attribute='resource_follower'))
+#    - vip_list_item.key in __sap_ha_pacemaker_cluster_nwas_ers_synonyms

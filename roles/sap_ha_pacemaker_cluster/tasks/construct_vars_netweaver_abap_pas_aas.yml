@@ -49,7 +49,7 @@
             - name: timeout
               value: 40
   when:
-    - __resource_filesystem.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
+    - __resource_filesystem.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
 
 - name: "SAP HA Prepare Pacemaker - Add resource: Filesystem /usr/sap/<<SID>>/D<<Instance_AAS>>"
   ansible.builtin.set_fact:
@@ -90,7 +90,7 @@
             - name: timeout
               value: 40
   when:
-    - __resource_filesystem.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
+    - __resource_filesystem.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
 
 - name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for Primary Application Server (ABAP PAS)"
   ansible.builtin.set_fact:
@@ -107,8 +107,8 @@
               value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_sapinstance_start_profile_string }}"
             - name: AUTOMATIC_RECOVER
               value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_sapinstance_automatic_recover_bool | string }}"
-            - name: meta
-              value: ""
+      meta_attrs:
+        - attrs:
             - name: resource-stickiness
               value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_sapinstance_resource_stickiness }}"
             - name: migration-threshold
@@ -137,7 +137,7 @@
             - name: timeout
               value: 60
   when:
-    - __resource_sapinstance.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
+    - __resource_sapinstance.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
 
 - name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for Additional Application Server (ABAP AAS)"
   ansible.builtin.set_fact:
@@ -154,8 +154,8 @@
               value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_sapinstance_start_profile_string }}"
             - name: AUTOMATIC_RECOVER
               value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_sapinstance_automatic_recover_bool | string }}"
-            - name: meta
-              value: ""
+      meta_attrs:
+        - attrs:
             - name: resource-stickiness
               value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_sapinstance_resource_stickiness }}"
             - name: migration-threshold
@@ -184,4 +184,4 @@
             - name: timeout
               value: 60
   when:
-    - __resource_sapinstance_ers.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
+    - __resource_sapinstance_ers.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))

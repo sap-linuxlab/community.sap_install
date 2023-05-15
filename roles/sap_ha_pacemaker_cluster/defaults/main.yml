@@ -16,17 +16,35 @@ sap_ha_pacemaker_cluster_cluster_name: "{{ ha_cluster_cluster_name | default('my
 sap_ha_pacemaker_cluster_create_config_varfile: false
 sap_ha_pacemaker_cluster_create_config_dest: "{{ sap_ha_pacemaker_cluster_cluster_name }}_resource_config.yml"
 
-# Inherit SAP common parameters
-sap_ha_pacemaker_cluster_cluster_nodes: "{{ sap_hana_cluster_nodes }}"
-sap_ha_pacemaker_cluster_hana_sid: "{{ sap_hana_sid }}"
-sap_ha_pacemaker_cluster_hana_instance_number: "{{ sap_hana_instance_number }}"
-sap_ha_pacemaker_cluster_netweaver_sid: "{{ sap_swpm_sid }}"
+# Inherit SAP common (global synonyms) parameters
+sap_ha_pacemaker_cluster_cluster_nodes: "{{ sap_ha_cluster_nodes | default(sap_hana_cluster_nodes) }}"
+sap_ha_pacemaker_cluster_hana_sid: "{{ sap_hana_sid | default('') }}"
+sap_ha_pacemaker_cluster_hana_instance_number: "{{ sap_hana_instance_number | default('00') }}"
+
+sap_ha_pacemaker_cluster_storage_definition: "{{ sap_storage_definition | default([]) }}"
+sap_ha_pacemaker_cluster_storage_nfs_filesytem_type: nfs4
+sap_ha_pacemaker_cluster_storage_nfs_mount_options: hard,acl
+sap_ha_pacemaker_cluster_storage_nfs_server: "{{ sap_storage_nfs_server | default('') }}"
+
+sap_ha_pacemaker_cluster_netweaver_sid: "{{ sap_swpm_sid | default('') }}"
 sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number: "{{ sap_swpm_ascs_instance_nr }}"
 sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number: "{{ sap_swpm_ers_instance_nr }}"
 sap_ha_pacemaker_cluster_netweaver_abap_pas_instance_number: "{{ sap_swpm_pas_instance_nr }}"
 sap_ha_pacemaker_cluster_netweaver_abap_aas_instance_number: "{{ sap_swpm_aas_instance_nr }}"
 sap_ha_pacemaker_cluster_netweaver_java_scs_instance_number: "{{ sap_swpm_java_scs_instance_nr }}"
 sap_ha_pacemaker_cluster_netweaver_java_ers_instance_number: "{{ sap_swpm_java_ers_instance_nr }}"
+
+#sap_ha_pacemaker_cluster_netweaver_common_filesystems:
+#  - /sapmnt
+#  - /usr/sap/trans
+#  - "/usr/sap/{{ sap_ha_pacemaker_cluster_netweaver_sid }}/SYS"
+
+# The following directories are appended to the 'nfs_path' of the '/usr/sap' storage
+# definition.
+# Therefore, the /usr/sap prefix must be left out of the listed path items.
+sap_ha_pacemaker_cluster_netweaver_abap_ascs_ers_filesystems:
+  - "{{ sap_ha_pacemaker_cluster_netweaver_sid }}/ASCS{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}"
+  - "{{ sap_ha_pacemaker_cluster_netweaver_sid }}/ERS{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}"
 
 # Make sure that there is always the default fed into the included role
 sap_ha_pacemaker_cluster_fence_agent_packages:
@@ -41,8 +59,15 @@ sap_ha_pacemaker_cluster_resource_defaults:
 
 # The type of SAP landscape and multi-node replication
 # TODO: Type definitions and feature support
-# TODO: Implement all types - # saphana_scaleup, saphana_scaleout, sapnetweaver_abap_ascs_ers, sapnetweaver_abap_pas_aas, sapnetweaver_java_scs_ers
-sap_ha_pacemaker_cluster_sap_type: saphana_scaleup
+# TODO: Implement all types
+# hana_scaleup_costopt  (not yet)
+# hana_scaleup_perf     (default)
+# hana_scaleup_per_dr   (not yet)
+# hana_scaleout         (not yet)
+# nwas_abap_ascs_ers
+# nwas_abap_pas_aas
+# nwas_java_scs_ers     (maybe)
+sap_ha_pacemaker_cluster_host_type: "{{ sap_host_type | default('hana_scaleup_perf') }}"
 sap_ha_pacemaker_cluster_replication_type: none
 
 # Optional parameters to customize HANA resources
@@ -60,7 +85,7 @@ sap_ha_pacemaker_cluster_fence_options:
   power_timeout: 240
 
 ### Resource default patterns
-sap_ha_pacemaker_cluster_vip_address: "{{ sap_hana_vip }}"
+sap_ha_pacemaker_cluster_vip_address: "{{ sap_hana_vip | default(sap_cluster_vip) }}"
 sap_ha_pacemaker_cluster_vip_resource_agent: "ocf:heartbeat:IPaddr2"
 sap_ha_pacemaker_cluster_vip_resource_name: "vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_number }}"
 
@@ -71,39 +96,42 @@ sap_ha_pacemaker_cluster_hana_topology_resource_name: "SAPHanaTopology_{{ sap_ha
 sap_ha_pacemaker_cluster_hana_topology_resource_clone_name: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_name }}-clone"
 
 
+sap_ha_pacemaker_cluster_resource_filesystem_force_unmount: safe
+
+
 # SAP NetWeaver common - Resource IDs (names) as convenience parameters.
 # - /sapmnt
 # - /usr/sap/trans
 # - /usr/sap/<<SID>>/SYS
-sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_resource_name: "Filesytem_NWAS_SAPMNT_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
-sap_ha_pacemaker_cluster_netweaver_transports_filesystem_resource_name: "Filesytem_NWAS_TRANS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
-sap_ha_pacemaker_cluster_netweaver_sys_filesystem_resource_name: "Filesytem_NWAS_SYS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
+sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_resource_name: "Filesystem_NWAS_SAPMNT_{{ sap_ha_pacemaker_cluster_netweaver_sid }}"
+sap_ha_pacemaker_cluster_netweaver_transports_filesystem_resource_name: "Filesystem_NWAS_TRANS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}"
+sap_ha_pacemaker_cluster_netweaver_sys_filesystem_resource_name: "Filesystem_NWAS_SYS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}"
 
 # SAP NetWeaver ABAP ASCS/ERS - Resource IDs (names) as convenience parameters.
 # - /usr/sap/<<SID>>/ASCS<<Instance>>
 # - /usr/sap/<<SID>>/ERS<<Instance>>
-sap_ha_pacemaker_cluster_netweaver_abap_ascs_filesystem_resource_name: "Filesytem_NWAS_ABAP_ASCS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
-sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_ASCS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
+sap_ha_pacemaker_cluster_netweaver_abap_ascs_filesystem_resource_name: "Filesystem_NWAS_ABAP_ASCS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}"
+sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_ASCS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}"
 sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name }}-clone"
-sap_ha_pacemaker_cluster_netweaver_abap_ers_filesystem_resource_name: "Filesytem_NWAS_ABAP_ERS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
-sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_ERS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
+sap_ha_pacemaker_cluster_netweaver_abap_ers_filesystem_resource_name: "Filesystem_NWAS_ABAP_ERS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}"
+sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_ERS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}"
 sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name }}-clone"
 
 # SAP NetWeaver ABAP PAS/AAS - Resource IDs (names) as convenience parameters.
 # - /usr/sap/<<SID>>/D<<Instance>>
-#sap_ha_pacemaker_cluster_netweaver_abap_pas_filesystem_resource_name: "Filesytem_NWAS_ABAP_PAS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_abap_pas_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_PAS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_abap_aas_filesystem_resource_name: "Filesytem_NWAS_ABAP_AAS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_abap_aas_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_AAS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
+#sap_ha_pacemaker_cluster_netweaver_abap_pas_filesystem_resource_name: "Filesystem_NWAS_ABAP_PAS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_instance_number }}"
+#sap_ha_pacemaker_cluster_netweaver_abap_pas_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_PAS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_instance_number }}"
+#sap_ha_pacemaker_cluster_netweaver_abap_aas_filesystem_resource_name: "Filesystem_NWAS_ABAP_AAS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_instance_number }}"
+#sap_ha_pacemaker_cluster_netweaver_abap_aas_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_AAS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_instance_number }}"
 
 # SAP NetWeaver JAVA SCS/ERS - Resource IDs (names) as convenience parameters.
 # - /usr/sap/<<SID>>/SCS<<Instance>>
 # - /usr/sap/<<SID>>/ERS<<Instance>>
-#sap_ha_pacemaker_cluster_netweaver_java_scs_filesystem_resource_name: "Filesytem_NWAS_JAVA_SCS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_resource_name: "SAPInstance_NWAS_JAVA_SCS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
+#sap_ha_pacemaker_cluster_netweaver_java_scs_filesystem_resource_name: "Filesytem_NWAS_JAVA_SCS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_java_scs_instance_number }}"
+#sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_resource_name: "SAPInstance_NWAS_JAVA_SCS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_java_scs_instance_number }}"
 #sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name }}-clone"
-#sap_ha_pacemaker_cluster_netweaver_java_ers_filesystem_resource_name: "Filesytem_NWAS_JAVA_ERS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_resource_name: "SAPInstance_NWAS_JAVA_ERS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}"
+#sap_ha_pacemaker_cluster_netweaver_java_ers_filesystem_resource_name: "Filesytem_NWAS_JAVA_ERS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_java_ers_instance_number }}"
+#sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_resource_name: "SAPInstance_NWAS_JAVA_ERS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_java_ers_instance_number }}"
 #sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name }}-clone"
 
 
