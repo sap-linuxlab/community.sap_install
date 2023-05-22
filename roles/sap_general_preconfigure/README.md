@@ -145,9 +145,10 @@ If you set the RHEL minor release, then you must also use the `eus` or `e4s` rep
 
 ### sap_general_preconfigure_packagegroups
 - _Type:_ `str`
-- _Default:_ `"{{ __sap_general_preconfigure_packagegroups }}"`
+- _Default:_ (set in vars file)
 
 The name of the software package group to install.<br>
+The default for this parameter is set in the vars file which corresponds to the detected OS version.<br>
 
 Example:
 
@@ -157,9 +158,10 @@ Example:
 
 ### sap_general_preconfigure_envgroups
 - _Type:_ `str`
-- _Default:_ `"{{ __sap_general_preconfigure_envgroups }}"`
+- _Default:_ (set in vars file)
 
 The name of the software environment group to check.<br>
+The default for this parameter is set in the vars file which corresponds to the detected OS version.<br>
 
 Example:
 
@@ -169,9 +171,10 @@ Example:
 
 ### sap_general_preconfigure_packages
 - _Type:_ `list` with elements of type `str`
-- _Default:_ `"{{ __sap_general_preconfigure_packages }}"`
+- _Default:_ (set in vars file)
 
 The list of packages to install.<br>
+The default for this variable is set in the vars file which corresponds to the detected OS version.<br>
 
 ### sap_general_preconfigure_min_package_check
 - _Type:_ `bool`
@@ -239,9 +242,10 @@ The file name of the sysctl config file to be used<br>
 
 ### sap_general_preconfigure_kernel_parameters
 - _Type:_ `list` with elements of type `dict`
-- _Default:_ `"{{ __sap_general_preconfigure_kernel_parameters_default }}"`
+- _Default:_ (set in vars file)
 
 The Linux kernel parameters to use. By default, these are taken from the vars file.<br>
+The default for this parameter is set in the vars file which corresponds to the detected OS version.<br>
 
 Example:
 
