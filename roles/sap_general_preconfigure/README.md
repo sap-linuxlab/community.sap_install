@@ -140,7 +140,7 @@ sap_general_preconfigure_req_repos:
 - _Type:_ `bool`
 - _Default:_ `false`
 
-Set to `yes` if you want the role to set the RHEL minor release, which is required for SAP HANA. Default is `no`.<br>
+Set to `true` if you want the role to set the RHEL minor release, which is required for SAP HANA. Default is `false`.<br>
 If you set the RHEL minor release, then you must also use the `eus` or `e4s` repos.<br>
 
 ### sap_general_preconfigure_packagegroups
@@ -232,7 +232,7 @@ The size of the tmpfs in GB. The formula used here is mentioned in SAP note 9417
 - _Type:_ `bool`
 - _Default:_ `true`
 
-Set to `no` if you do not want the role to modify the `/etc/hosts` file.<br>
+Set to `false` if you do not want the role to modify the `/etc/hosts` file.<br>
 
 ### sap_general_preconfigure_etc_sysctl_sap_conf
 - _Type:_ `str`
