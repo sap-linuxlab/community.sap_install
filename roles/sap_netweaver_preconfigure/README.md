@@ -25,70 +25,97 @@ Please check the SAP NetWeaver installation guide for swap space requirements.
 Do not run this role against an SAP NetWeaver or other production system. The role will enforce a certain configuration on the managed
 node(s), which might not be intended.
 
-## Role Variables
+<!-- BEGIN: Role Input Parameters -->
+## Role Input Parameters
 
-### Execute only certain steps of SAP notes (RHEL only)
-If the following variable is set to `no`, only the installation or configuration steps of SAP notes will be executed or checked. If this variable is undefined or set to `yes`, all installation and configuration steps of applicable SAP notes will be executed.
-```yaml
-sap_netweaver_preconfigure_config_all
-```
+Minimum required parameters:
+This role does not require any parameter to be set in the playbook or inventory.
 
-### Perform installation or configuration steps, or both
-If you have set `sap_netweaver_preconfigure_config_all` (see above) to `no`, you can limit the scope of the role to only execute the installation or the configuration steps. For this purpose, set one of the following variables, or both, to `yes`. The default for both is `no`.
-```yaml
-sap_netweaver_preconfigure_installation
-sap_netweaver_preconfigure_configuration
-```
 
-### Install required packages for Adobe Document Services (RHEL Only)
-If the following variable is set to `yes`, required packages for Adobe Document Services according to SAP note 2135057 (RHEL 7) or 2920407 (RHEL 8) will be installed. Default is `no`.
-```yaml
-sap_netweaver_preconfigure_use_adobe_doc_services
-```
+### sap_netweaver_preconfigure_config_all
+- _Type:_ `bool`
+- _Default:_ `true`
 
-### Run the role in assert mode
-If the following variable is set to `yes`, the role will only check if the configuration of the managed node(s) is according to the applicable SAP notes. Default is `no`.
-```yaml
-sap_netweaver_preconfigure_assert
-```
+If set to `false`, the role will only execute or verify the installation or configuration steps of SAP notes.<br>
+Default is to perform installation and configuration steps.<br>
 
-### Behavior of the role in assert mode
-If the role is run in assert mode (see above) and the following variable is set to `yes`, assertion errors will not cause the role to fail. This can be useful for creating reports.
-Default is `no`, meaning that the role will fail for any assertion error which is discovered. This variable has no meaning if the role is not run in assert mode.
-```yaml
-sap_netweaver_preconfigure_assert_ignore_errors
-```
+### sap_netweaver_preconfigure_installation
+- _Type:_ `bool`
+- _Default:_ `false`
 
-### Swap space for SAP NetWeaver
-When installing SAP NetWeaver, the prerequisite checker verifies if enough swap space is configured. By default, the role checks is there is at least 20480 MB of swap space available.
-This variable can be used set to the swap space limit to any other value.
-```yaml
-sap_netweaver_preconfigure_min_swap_space_mb
-```
+If `sap_netweaver_preconfigure_config_all` is set to `false`, set this variable to `true` to perform only the<br>
+installation steps of SAP notes.<br>
 
-### Fail if there is less than 20480 MB of swap space configured
-If the following variable is set to `no`, the role will not fail if less than 20480 MB of swap space is configured. Default is `yes`.
-```yaml
-sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured
-```
+### sap_netweaver_preconfigure_configuration
+- _Type:_ `bool`
+- _Default:_ `false`
 
-## Select saptune solution (SLES only)
-You can specify the saptune solution you want to implement.  For Netweaver, there are a number of possible solutions depending on the deployment:
+If `sap_netweaver_preconfigure_config_all` is set to `false`, set this variable to `true` to perform only the<br>
+configuration steps of SAP notes.<br>
 
-* NETWEAVER
-* NETWEAVER+HANA 
-* S4HANA-APP+DB  
-* S4HANA-APPSERVER
-* S4HANA-DBSERVER
-The default vaule is NETWEAVER
+### sap_netweaver_preconfigure_assert
+- _Type:_ `bool`
+- _Default:_ `false`
 
-sap_netweaver_preconfigure_saptune_solution: NETWEAVER
+If set to `true`, the role will run in assertion mode instead of the default configuration mode.<br>
 
-The default is `NETWEAVER`
+### sap_netweaver_preconfigure_assert_ignore_errors
+- _Type:_ `bool`
+- _Default:_ `false`
 
-```yaml
-sap_hana_preconfigure_saptune_solution
-```
+In assertion mode, the role will abort when encountering any assertion error.<br>
+If this parameter is set to `false`, the role will *not* abort when encountering an assertion error.<br>
+This is useful if the role is used for reporting a system's SAP notes compliance.<br>
+
+### sap_netweaver_preconfigure_min_swap_space_mb
+- _Type:_ `str`
+- _Default:_ `20480`
+
+Specifies the minimum amount of swap space on the system required by SAP NetWeaver.<br>
+If this requirement is not met, the role will abort.<br>
+Set your own value to override the default of `20480`.<br>
+
+### sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured
+- _Type:_ `bool`
+- _Default:_ `true`
+
+If the system does not have the minimum amount of swap space configured as defined<br>
+in parameter `sap_netweaver_preconfigure_min_swap_space_mb`, the role will abort.<br>
+By setting this parameter to `false`, the role will not abort in such cases.<br>
+
+### sap_netweaver_preconfigure_rpath
+- _Type:_ `str`
+- _Default:_ `/usr/sap/lib`
+
+Specifies the SAP kernel's `RPATH`. This is where the SAP kernel is searching for libraries, and where the role<br>
+is creating a link named `libstdc++.so.6` pointing to `/opt/rh/SAP/lib64/compat-sap-c++-10.so`,<br>
+so that newer SAP kernels which are built with GCC10 can find the required symbols.<br>
+
+### sap_netweaver_preconfigure_use_adobe_doc_services
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Set this parameter to `true` when using Adobe Document Services, to ensure all required packages are installed.<br>
+
+### sap_netweaver_preconfigure_saptune_version
+- _Type:_ `str`
+- _Default:_ `3.0.2`
+
+On SLES systems, specifies the saptune version<br>
+
+### sap_netweaver_preconfigure_saptune_solution
+- _Type:_ `str`
+- _Default:_ `NETWEAVER`
+- _Possible Values:_<br>
+  - `NETWEAVER`
+  - `NETWEAVER+HANA`
+  - `S4HANA-APP+DB`
+  - `S4HANA-APPSERVER`
+  - `S4HANA-DBSERVER`
+
+On SLES systems, specifies the saptune solution to apply.<br>
+
+<!-- END: Role Input Parameters -->
 
 ## Example Playbook
 

@@ -1,7 +1,32 @@
 ---
-- hosts: all
+# Ansible Playbook for executing sap_swpm Ansible in "Advanced Templates Mode"
+
+- name: Ansible Play for executing SAP SWPM to all hosts in Ansible Inventory
+  hosts: all
+  become: true
+
   vars:
     sap_swpm_ansible_role_mode: advanced_templates
-    sap_swpm_templates_product_input: sap_s4hana_2020_onehost_install
-  roles:
-    - { role: ../roles/sap_swpm }
+#    sap_swpm_templates_product_input: sap_system_rename
+#    sap_swpm_templates_product_input: sap_s4hana_2021_onehost_install
+#    sap_swpm_templates_product_input: sap_s4hana_2021_onehost_system_restore
+#    sap_swpm_templates_product_input: sap_s4hana_2020_onehost_install
+#    sap_swpm_templates_product_input: sap_s4hana_2020_onehost_system_restore
+#    sap_swpm_templates_product_input: sap_bw4hana_2021_install
+#    sap_swpm_templates_product_input: sap_webdisp_7_50_install
+#    sap_swpm_templates_product_input: sap_solman_7_20_abap
+#    sap_swpm_templates_product_input: sap_solman_7_20_java
+
+  tasks:
+
+    - name: Import variables for sap_swpm Ansible Role (Advanced Templates Mode)
+      ansible.builtin.include_vars:
+        file: ./sample-variables-sap-swpm-advanced-templates-mode.yml
+
+    - name: Execute Ansible Role sap_install_media_detect
+      ansible.builtin.include_role:
+        name: { role: community.sap_install.sap_install_media_detect }
+
+    - name: Execute Ansible Role sap_swpm
+      ansible.builtin.include_role:
+        name: { role: community.sap_install.sap_swpm }

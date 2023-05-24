@@ -1,0 +1,187 @@
+---
+# Variables containing variables must be constructed with values
+# to be fed into the included ha_cluster role
+
+# - put here all scale-up and scale-out common resources
+# - certain differences like ra agent names are provided through
+#   type specific variables
+
+# TODO: add conditionals to verify that the same resource agent is not already
+#       defined in user input variables. Conflicting user input should take precedence.
+
+
+- name: "SAP HA Prepare Pacemaker - Add resource: Filesystem /usr/sap/<<SID>>/D<<Instance_PAS>>"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_filesystem] }}"
+  vars:
+    __resource_filesystem:
+      id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_filesystem_resource_name }}"
+      agent: "ocf:heartbeat:Filesystem"
+      instance_attrs:
+        - attrs:
+            - name: device
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_filesystem_host_mount_path }}"
+            - name: directory
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_filesystem_local_mount_path }}"
+            - name: fstype
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_filesystem_fstype }}"
+            - name: options
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_filesystem_options_string }}"
+            - name: force_unmount
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_filesystem_force_unmount }}"
+      operations:
+        - action: start
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 60
+        - action: stop
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 120
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 200
+            - name: timeout
+              value: 40
+  when:
+    - __resource_filesystem.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+- name: "SAP HA Prepare Pacemaker - Add resource: Filesystem /usr/sap/<<SID>>/D<<Instance_AAS>>"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_filesystem] }}"
+  vars:
+    __resource_filesystem:
+      id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_filesystem_resource_name }}"
+      agent: "ocf:heartbeat:Filesystem"
+      instance_attrs:
+        - attrs:
+            - name: device
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_filesystem_host_mount_path }}"
+            - name: directory
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_filesystem_local_mount_path }}"
+            - name: fstype
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_filesystem_fstype }}"
+            - name: options
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_filesystem_options_string }}"
+            - name: force_unmount
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_filesystem_force_unmount }}"
+      operations:
+        - action: start
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 60
+        - action: stop
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 120
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 200
+            - name: timeout
+              value: 40
+  when:
+    - __resource_filesystem.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+- name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for Primary Application Server (ABAP PAS)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapinstance] }}"
+  vars:
+    __resource_sapinstance:
+      id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_sapinstance_resource_name }}"
+      agent: "ocf:heartbeat:SAPInstance"
+      instance_attrs:
+        - attrs:
+            - name: InstanceName
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_sapinstance_instance_name }}"
+            - name: START_PROFILE
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_sapinstance_start_profile_string }}"
+            - name: AUTOMATIC_RECOVER
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_sapinstance_automatic_recover_bool | string }}"
+      meta_attrs:
+        - attrs:
+            - name: resource-stickiness
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_sapinstance_resource_stickiness }}"
+            - name: migration-threshold
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_sapinstance_migration_threshold }}"
+            - name: failure-timeout
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_sapinstance_failure_timeout }}"
+      operations:
+        - action: start
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 600
+        - action: stop
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 600
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 20
+            - name: on-fail
+              value: restart
+            - name: timeout
+              value: 60
+  when:
+    - __resource_sapinstance.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+- name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for Additional Application Server (ABAP AAS)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapinstance_ers] }}"
+  vars:
+    __resource_sapinstance_ers:
+      id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_sapinstance_resource_name }}"
+      agent: "ocf:heartbeat:SAPInstance"
+      instance_attrs:
+        - attrs:
+            - name: InstanceName
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_sapinstance_instance_name }}"
+            - name: START_PROFILE
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_sapinstance_start_profile_string }}"
+            - name: AUTOMATIC_RECOVER
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_sapinstance_automatic_recover_bool | string }}"
+      meta_attrs:
+        - attrs:
+            - name: resource-stickiness
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_sapinstance_resource_stickiness }}"
+            - name: migration-threshold
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_sapinstance_migration_threshold }}"
+            - name: failure-timeout
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_sapinstance_failure_timeout }}"
+      operations:
+        - action: start
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 600
+        - action: stop
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 600
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 20
+            - name: on-fail
+              value: restart
+            - name: timeout
+              value: 60
+  when:
+    - __resource_sapinstance_ers.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))

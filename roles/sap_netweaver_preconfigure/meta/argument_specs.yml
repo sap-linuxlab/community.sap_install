@@ -1,0 +1,115 @@
+---
+# Requires: ansible 2.11
+# Argument specifications in this separate file maintain backwards compatibility.
+argument_specs:
+
+  main:
+    short_description: Variables for SAP NetWeaver preconfiguration
+    options:
+
+#      sap_netweaver_preconfigure_...
+#        default:
+#        description:
+#           -
+#        example:
+#
+#        required: false
+#        type:
+#        options: # additional options for lists and dicts
+#          <param>:
+#            description:
+#            ...
+
+      sap_netweaver_preconfigure_config_all:
+        default: true
+        description:
+          - If set to `false`, the role will only execute or verify the installation or configuration steps of SAP notes.
+          - Default is to perform installation and configuration steps.
+        required: false
+        type: bool
+
+      sap_netweaver_preconfigure_installation:
+        default: false
+        description:
+          - If `sap_netweaver_preconfigure_config_all` is set to `false`, set this variable to `true` to perform only the
+          - installation steps of SAP notes.
+        required: false
+        type: bool
+
+      sap_netweaver_preconfigure_configuration:
+        default: false
+        description:
+          - If `sap_netweaver_preconfigure_config_all` is set to `false`, set this variable to `true` to perform only the
+          - configuration steps of SAP notes.
+        required: false
+        type: bool
+
+      sap_netweaver_preconfigure_assert:
+        default: false
+        description:
+          - If set to `true`, the role will run in assertion mode instead of the default configuration mode.
+        required: false
+        type: bool
+
+      sap_netweaver_preconfigure_assert_ignore_errors:
+        default: false
+        description:
+          - In assertion mode, the role will abort when encountering any assertion error.
+          - If this parameter is set to `false`, the role will *not* abort when encountering an assertion error.
+          - This is useful if the role is used for reporting a system's SAP notes compliance.
+        required: false
+        type: bool
+
+      sap_netweaver_preconfigure_min_swap_space_mb:
+        default: '20480'
+        description:
+          - Specifies the minimum amount of swap space on the system required by SAP NetWeaver.
+          - If this requirement is not met, the role will abort.
+          - Set your own value to override the default of `20480`.
+        required: false
+        type: str
+
+      sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured:
+        default: true
+        description:
+          - If the system does not have the minimum amount of swap space configured as defined
+          - in parameter `sap_netweaver_preconfigure_min_swap_space_mb`, the role will abort.
+          - By setting this parameter to `false`, the role will not abort in such cases.
+        required: false
+        type: bool
+
+      sap_netweaver_preconfigure_rpath:
+        default: '/usr/sap/lib'
+        description:
+          - Specifies the SAP kernel's `RPATH`. This is where the SAP kernel is searching for libraries, and where the role
+          - is creating a link named `libstdc++.so.6` pointing to `/opt/rh/SAP/lib64/compat-sap-c++-10.so`,
+          - so that newer SAP kernels which are built with GCC10 can find the required symbols.
+        required: false
+        type: str
+
+      sap_netweaver_preconfigure_use_adobe_doc_services:
+        default: false
+        description:
+          - Set this parameter to `true` when using Adobe Document Services, to ensure all required packages are installed.
+        required: false
+        type: bool
+
+      sap_netweaver_preconfigure_saptune_version:
+        default: '3.0.2'
+        description:
+          - On SLES systems, specifies the saptune version
+        required: false
+        type: str
+
+      sap_netweaver_preconfigure_saptune_solution:
+        default: 'NETWEAVER'
+        description:
+          - On SLES systems, specifies the saptune solution to apply.
+        choices:
+          - 'NETWEAVER'
+          - 'NETWEAVER+HANA'
+          - 'S4HANA-APP+DB'
+          - 'S4HANA-APPSERVER'
+          - 'S4HANA-DBSERVER'
+        required: false
+        type: str

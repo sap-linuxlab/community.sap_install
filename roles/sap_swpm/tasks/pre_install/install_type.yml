@@ -30,7 +30,6 @@
   ansible.builtin.set_fact:
     sap_swpm_swpm_installation_type: "ha"
     sap_swpm_swpm_installation_header: "High Availability Installation using virtual hostname"
-    sap_swpm_swpm_command_virtual_hostname: "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }}"
   when:
     - "'.ABAPHA' in sap_swpm_product_catalog_id"
 
@@ -38,8 +37,15 @@
   ansible.builtin.set_fact:
     sap_swpm_swpm_installation_type: "maint_plan_stack"
     sap_swpm_swpm_installation_header: "Installing using SAP Maintenance Planner Stack XML"
-    sap_swpm_swpm_command_mp_stack: "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }}"
   when:
+    - sap_swpm_mp_stack_path is defined and not sap_swpm_mp_stack_path is none
+
+- name: SAP SWPM Pre Install - Check if SAP High Availability installation and using SAP Maintenance Planner
+  ansible.builtin.set_fact:
+    sap_swpm_swpm_installation_type: "ha_maint_plan_stack"
+    sap_swpm_swpm_installation_header: "High Availability Installation using virtual hostname and SAP Maintenance Planner Stack XML"
+  when:
+    - "'.ABAPHA' in sap_swpm_product_catalog_id"
     - sap_swpm_mp_stack_path is defined and not sap_swpm_mp_stack_path is none
 
 ################

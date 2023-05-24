@@ -38,8 +38,8 @@ _All of the following functionality is provided as **Technology Preview**._
 | -------- | --------- |
 | :heavy_check_mark: physical server | expected to work with any fencing method that is supported by the `ha_cluster` Linux System Role |
 | :heavy_check_mark: OVirt VM | tested and working |
-| :heavy_check_mark: AWS EC2 | platform detection and awscli setup included, tested and expected to work |
-| IBM Cloud VPC | platform detection included, tested and working (unsupported at this point in time) |
+| :heavy_check_mark: AWS EC2 VS | platform detection and awscli setup included, tested and expected to work |
+| IBM Cloud VS | platform detection included, tested and working (unsupported at this point in time) |
 
 <!-- END: Role Introduction -->
 
@@ -58,7 +58,7 @@ On cloud platforms additional parameters are required:
 
 - AWS: `sap_ha_pacemaker_cluster_aws_*` variables
 - AWS: `sap_ha_pacemaker_cluster_vip_update_rt`
-- IBM Cloud VPC: `sap_ha_pacemaker_cluster_ibmcloud_*` variables
+- IBM Cloud: `sap_ha_pacemaker_cluster_ibmcloud_*` variables
 
 ---
 
@@ -155,19 +155,9 @@ WARNING! This report may include sensitive details like secrets required for cer
 - _Type:_ `dict`
 
 STONITH resource common parameters that apply to most fencing agents.<br>
-These options are applied to fencing resources this role uses automatically for pre-defined platforms (like AWS EC2, IBM Cloud VPC).<br>
+These options are applied to fencing resources this role uses automatically for pre-defined platforms (like AWS EC2 VS, IBM Cloud VS).<br>
 The listed options are set by default.<br>
 Additional options can be added by defining this parameter in dictionary format and adding the defaults plus any valid stonith resource key-value pair.<br>
-
-- **pcmk_reboot_retries**<br>
-    _Default:_ `4`<br>
-    STONITH resource parameter to define how often it retries to restart a node.
-- **pcmk_reboot_timeout**<br>
-    _Default:_ `400`<br>
-    STONITH resource parameter to define after which timeout a node restart is returned as failed.
-- **power_timeout**<br>
-    _Default:_ `240`<br>
-    STONITH resource parameter to test X seconds for status change after ON/OFF.
 
 Example:
 
@@ -224,14 +214,14 @@ Customize the cluster resource name of the SAP HANA Topology resource.<br>
 - _Type:_ `str`
 
 The API key is required to allow control of instances (for example for fencing operations).<br>
-Required for cluster nodes setup in IBM Cloud VPC.<br>
+Required for cluster nodes setup in IBM Cloud.<br>
 
 ### sap_ha_pacemaker_cluster_ibmcloud_region
 
 - _Type:_ `str`
 
 The cloud region key in which the instances are running.<br>
-Required for cluster nodes setup in IBM Cloud VPC.<br>
+Required for cluster nodes setup in IBM Cloud.<br>
 
 ### sap_ha_pacemaker_cluster_replication_type
 
@@ -259,10 +249,10 @@ sap_ha_pacemaker_cluster_resource_defaults:
 ### sap_ha_pacemaker_cluster_sap_type
 
 - _Type:_ `str`
-- _Default:_ `scaleup`
+- _Default:_ `saphana_scaleup`
 
 The SAP landscape to be installed.<br>
-_Currently only scale-up is supported_<br>
+_Currently only SAP HANA scale-up is supported_<br>
 
 ### sap_ha_pacemaker_cluster_vip_client_interface
 

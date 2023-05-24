@@ -1,33 +1,81 @@
 ---
 # Platform detection for cloud and other infrastructure platforms.
 
-### AWS facts already available in Ansible
+### Facts already available to Ansible
 #
-# ansible_bios_vendor: "Amazon EC2"
-# ansible_bios_version: "1.0"
-# ansible_board_asset_tag: "i-043d3c1a889ed9016"
-# ansible_board_name: "NA"
-# ansible_board_serial: "NA"
-# ansible_board_vendor: "Amazon EC2"
-# ansible_board_version: "NA"
-# ansible_chassis_asset_tag: "Amazon EC2"
-# ansible_chassis_serial: "NA"
+### Amazon Web Services EC2 Virtual Server. Not applicable for AWS Classic.
+# ansible_chassis_asset_tag: "Amazon EC2" # SMBIOS Chassis Asset Tag
+# ansible_board_asset_tag: "i-043d3c1a889ed9016" # SMBIOS Baseboard Asset Tag, ID of virtual machine on platform
 # ansible_chassis_vendor: "Amazon EC2"
-# ansible_chassis_version: "NA"
-# ansible_product_name: "r5.8xlarge"
+# ansible_product_name: "r5.8xlarge" # IaaS profile name
 # ansible_system_vendor: "Amazon EC2"
+#
+### Google Cloud Compute Engine Virtual Machine.
+# ansible_chassis_asset_tag: "NA" # SMBIOS Chassis Asset Tag
+# ansible_board_asset_tag: "9EAF3038-7EF5-3F1E-6620-FB3BDA7A3709" # SMBIOS Baseboard Asset Tag, ID of virtual machine on platform
+# ansible_chassis_vendor: "Google"
+# ansible_product_name: "Google Compute Engine"
+# ansible_system_vendor: "Google"
+#
+### IBM Cloud Virtual Server. Not applicable for IBM Cloud Classic Infrastructure.
+# ansible_chassis_asset_tag: "ibmcloud" # SMBIOS Chassis Asset Tag
+# ansible_board_asset_tag: "0c7d4459-xxxx-yyyy-zzzz-abcdefghijkl" # SMBIOS Baseboard Asset Tag, ID of virtual machine on platform
+# ansible_chassis_vendor: "IBM:Cloud Compute Server 1.0:mx2-16x128" # IaaS profile name
+# ansible_product_name: "Standard PC (i440FX + PIIX, 1996)"
+# ansible_system_vendor: "QEMU"
+#
+### Microsoft Azure Virtual Machine. Not applicable for MS Azure Classic/ASM.
+# ansible_chassis_asset_tag: "7783-xxxx-yyyy-zzzz-aaaa-bbbb-cc" # SMBIOS Chassis Asset Tag
+# ansible_board_asset_tag: "None" # SMBIOS Baseboard Asset Tag
+# ansible_chassis_vendor: "Virtual Machine"
+# ansible_product_name: "Microsoft Corporation"
+# ansible_system_vendor: "70f4a858-1eea-4c35-b9e1-e179c32fc6b5" # ID of virtual machine on platform
+#
+### VMware vSphere
+# ansible_product_name: "VMware7,1",
+# ansible_system_vendor: "VMware, Inc.",
+# ansible_virtualization_type: "VMware"
+#
+### End of comment
+
 
 # TODO: detection based on multiple facts and providing one standard
 # name for use as platform type in related include files
+# cloud_aliyun_ecs_vm, cloud_aws_ec2_vs, cloud_gcp_ce_vm, cloud_ibmcloud_powervs, cloud_ibmcloud_vs, cloud_msazure_vm, hyp_ibmpower_lpar, hyp_redhat_ocp_virt_vm, hyp_redhat_rhel_kvm_vm, hyp_vmware_vsphere_vm
+
+- name: "SAP VM Preconfigure - Check if platform is Amazon Web Services EC2 Virtual Server"
+  when:
+    - ansible_system_vendor == 'Amazon EC2'
+  ansible.builtin.set_fact:
+    sap_vm_platform: cloud_aws_ec2_vs
+
+#- name: "SAP VM Preconfigure - Check if platform is Google Cloud Compute Engine Virtual Machine"
+#  when:
+#    - ansible_product_name == 'Google Compute Engine'
+#  ansible.builtin.set_fact:
+#    sap_vm_platform: cloud_gcp_ce_vm
+
+- name: "SAP VM Preconfigure - Check if platform is IBM Cloud Virtual Server"
+  when:
+    - ansible_chassis_asset_tag == 'ibmcloud'
+  ansible.builtin.set_fact:
+    sap_vm_platform: cloud_ibmcloud_vs
+
+#- name: "SAP VM Preconfigure - Check if platform is Microsoft Azure Virtual Machine"
+#  when:
+#    - ansible_chassis_vendor == 'Virtual Machine'
+#    - ansible_product_name == 'Microsoft Corporation'
+#  ansible.builtin.set_fact:
+#    sap_vm_platform: cloud_msazure_vm
+
+#- name: "SAP VM Preconfigure - Check if platform is VMware vSphere"
+#  when:
+#    - ansible_virtualization_type == 'VMware'
+#  ansible.builtin.set_fact:
+#    sap_vm_platform: hyp_vmware_vsphere_vm
 
 
-- name: SAP virtual machine detect platform - decision set fact
-  set_fact:
-    sap_vm_platform: "{{ sap_vm_platform_detection_decision }}"
-    # cloud_aliyun_ecs_vm, cloud_aws_ec2_vs, cloud_gcp_ce_vm, cloud_ibmcloud_powervs, cloud_ibmcloud_vs, cloud_msazure_vm, ibmpower_lpar, redhat_ocp_virt_vm, redhat_rhel_kvm_vm, vmware_vsphere_vm
-
-
-- name: SAP virtual machine detect platform - confirm AWS EC2 Virtual Server
+- name: SAP VM Preconfigure - confirm AWS EC2 Virtual Server
   when: sap_vm_platform == cloud_aws_ec2_vs
   block:
 
@@ -53,14 +101,14 @@
     changed_when: false
     ignore_errors: true
 
-  - name: (AWS) Set detect_cloud_provider_cloud_provider
-    ansible.builtin.set_fact:
-      sap_detect_cloud_provider_cloud_provider: "aws"
+  - name: (AWS) Fail if cannot reach Instance Metadata Service
+    ansible.builtin.fail:
+      msg: Detected MS Azure, but could not confirm with the Instance Metadata Service
     when:
-      - not detect_cloud_provider_aws_ami_id.failed
+      - detect_cloud_provider_aws_ami_id.failed
 
 
-- name: SAP virtual machine detect platform - confirm MicrosofT Azure Virtual Machine
+- name: SAP VM Preconfigure - confirm Microsoft Azure Virtual Machine
   when: sap_vm_platform == cloud_msazure_vm
   block:
 
@@ -74,9 +122,10 @@
     changed_when: false
     ignore_errors: true
 
-  - name: (Azure) Set detect_cloud_provider_cloud_provider
-    ansible.builtin.set_fact:
-      sap_detect_cloud_provider_cloud_provider: "azure"
+  - name: (Azure) Fail if cannot reach Instance Metadata Service
+    ansible.builtin.fail:
+      msg: Detected MS Azure, but could not confirm with the Instance Metadata Service
     when:
-      - detect_cloud_provider_azure_instance_metadata.json.azEnvironment is defined
-      - detect_cloud_provider_azure_instance_metadata.json.azEnvironment == "AzurePublicCloud"
+      - detect_cloud_provider_azure_instance_metadata.json.azEnvironment is not defined
+      - detect_cloud_provider_azure_instance_metadata.json.azEnvironment != "AzurePublicCloud"
+

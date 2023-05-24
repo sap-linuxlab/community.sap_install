@@ -113,7 +113,7 @@ argument_specs:
       sap_ha_pacemaker_cluster_fence_options:
         description:
           - STONITH resource common parameters that apply to most fencing agents.
-          - These options are applied to fencing resources this role uses automatically for pre-defined platforms (like AWS EC2, IBM Cloud VPC).
+          - These options are applied to fencing resources this role uses automatically for pre-defined platforms (like AWS EC2 VS, IBM Cloud VS).
           - The listed options are set by default.
           - Additional options can be added by defining this parameter in dictionary format and adding the defaults plus any valid stonith resource key-value pair.
 
@@ -125,29 +125,6 @@ argument_specs:
 
         required: false
         type: dict
-
-        options:
-
-          pcmk_reboot_retries:
-            default: 4
-            description:
-              - STONITH resource parameter to define how often it retries to restart a node.
-            required: false
-            type: int
-
-          pcmk_reboot_timeout:
-            default: 400
-            description:
-              - STONITH resource parameter to define after which timeout a node restart is returned as failed.
-            required: false
-            type: int
-
-          power_timeout:
-            default: 240
-            description:
-              - STONITH resource parameter to test X seconds for status change after ON/OFF.
-            required: false
-            type: int
 
       sap_ha_pacemaker_cluster_hana_automated_register:
         default: true
@@ -196,14 +173,14 @@ argument_specs:
       sap_ha_pacemaker_cluster_ibmcloud_api_key:
         description:
           - The API key is required to allow control of instances (for example for fencing operations).
-          - Required for cluster nodes setup in IBM Cloud VPC.
+          - Required for cluster nodes setup in IBM Cloud.
         required: false
         type: str
 
       sap_ha_pacemaker_cluster_ibmcloud_region:
         description:
           - The cloud region key in which the instances are running.
-          - Required for cluster nodes setup in IBM Cloud VPC.
+          - Required for cluster nodes setup in IBM Cloud.
         required: false
         type: str
 
@@ -230,16 +207,20 @@ argument_specs:
         required: false
         type: dict
 
-      sap_ha_pacemaker_cluster_sap_type:
-        choices:
-          - scaleup
-          - scaleout
-        default: scaleup
-        description:
-          - The SAP landscape to be installed.
-          - _Currently only scale-up is supported_
-        required: false
-        type: str
+#      sap_ha_pacemaker_cluster_host_type:
+#        choices:
+##          - hana_scaleup_costopt
+#          - hana_scaleup_perf
+##          - hana_scaleup_perf_dr
+##          - hana_scaleout
+#          - nwas_abap_ascs_ers
+#          - nwas_abap_pas_aas
+##          - nwas_java_scs_ers
+#        default: hana_scaleup_perf
+#        description:
+#          - The SAP landscape to be installed.
+#        required: false
+#        type: str
 
       sap_ha_pacemaker_cluster_vip_client_interface:
         default: eth0
@@ -280,7 +261,7 @@ argument_specs:
               node_ip: 192.168.5.2
 
         elements: dict
-        required: true
+        required: false
         type: list
         options:
           node_ip:
@@ -314,9 +295,9 @@ argument_specs:
 
       sap_hana_sid:
         description:
-          - The SAP System ID of the instance that will be configured in the cluster.
-          - The SAP SID must follow SAP specifications - see SAP Note 1979280.
-        required: true
+          - The SAP HANA SID of the instance that will be configured in the cluster.
+          - The SID must follow SAP specifications - see SAP Note 1979280.
+        required: false
         type: str
 
       sap_hana_vip:
@@ -328,6 +309,14 @@ argument_specs:
           sap_hana_vip:
             primary: 192.168.10.100
 
-        required: true
+        required: false
         type: dict
         required_one_of: [{ primary, main, rw, promoted }]
+
+# TODO: review the global parameter vs. role parameter logic and compatibility of combination of HANA + NW
+#      sap_system_sid:
+#        description:
+#          - The SID of the SAP Netweaver system that will be configured in the cluster.
+#          - The SID must follow SAP specifications - see SAP Note 1979280.
+#        required: false
+#        type: str

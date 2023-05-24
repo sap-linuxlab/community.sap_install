@@ -6,6 +6,18 @@ community.sap_install Release Notes
 
 
 
+v1.2.3
+======
+
+Release Summary
+---------------
+
+| Release Date: 2022-04-25
+| sap_hana_preconfigure: Some modifications for HANA on RHEL 9
+| sap_ha_pacemaker_cluster: Support for custom stonith resource definitions containing more than one element
+| sap_hana_preconfigure: Be more flexible with IBM service and productivity tools
+
+
 v1.2.2
 ======
 
