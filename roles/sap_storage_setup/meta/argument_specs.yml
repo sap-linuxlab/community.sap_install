@@ -44,25 +44,12 @@ argument_specs:
         required: true
         type: list
         options:
-          name:
-            description:
-              - A name of the filesystem definition entry.
-              - This name is used to generate volume group name and logical volume name.
-            required: true
-            type: str
-
-          mountpoint:
-            description:
-              - The path to where the filesystem will be mounted.
-              - This can be left out for the definition of a swap volume.
-            required: false
-            type: str
 
           disk_size:
             description:
               - Size of the disk device that is used for the filesystem.
               - For filesystems with no LVM logical volume striping, this is the end size of the filesystem.
-              - For filesystems with LVM lv striping defined, this the size of each disk. Filesystem size will result in disk_size multiplied by amount of stripes (=disks).
+              - For filesystems with LVM lv striping defined, this the size of each disk. Filesystem size will result in disk_size multiplied by amount of `lvm_lv_stripes` (=disks).
             required: false
             type: str
 
@@ -110,18 +97,18 @@ argument_specs:
             required: false
             type: str
 
-          nfs_path:
+          mountpoint:
             description:
-              - When defining an NFS filesystem, this is the directory path of the filesystem to be mounted.
+              - The path to where the filesystem will be mounted.
+              - This can be left out for the definition of a swap volume.
             required: false
             type: str
 
-          nfs_server:
+          name:
             description:
-              - When defining an NFS filesystem, this is the address of the NFS server.
-              - The address must contain the root path, in which the mount directories exist or will be created.
-              - For example, `192.168.1.100:/`.
-            required: false
+              - A name of the filesystem definition entry.
+              - This name is used to generate volume group name and logical volume name.
+            required: true
             type: str
 
           nfs_filesystem_type:
@@ -139,6 +126,20 @@ argument_specs:
             required: false
             type: str
 
+          nfs_path:
+            description:
+              - When defining an NFS filesystem, this is the directory path of the filesystem to be mounted.
+            required: false
+            type: str
+
+          nfs_server:
+            description:
+              - When defining an NFS filesystem, this is the address of the NFS server.
+              - The address must contain the root path, in which the mount directories exist or will be created.
+              - For example, `192.168.1.100:/`.
+            required: false
+            type: str
+
           swap_path:
             description:
               - The path to the swap file.
@@ -152,7 +153,7 @@ argument_specs:
           - The type of service the target system is going to be configured for.
           - This can be a list of multiple types which apply to a single host.
           - If not defined, the default will be inherited from the global parameter `sap_host_type`.
-        required: true
+        required: false
         # type can be list or string, the code will convert it to a list
 
       sap_storage_setup_sid:
