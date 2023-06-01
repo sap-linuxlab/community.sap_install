@@ -48,8 +48,8 @@ argument_specs:
           disk_size:
             description:
               - Size of the disk device that is used for the filesystem.
-              - For filesystems with no LVM logical volume striping, this is the end size of the filesystem.
-              - For filesystems with LVM lv striping defined, this the size of each disk. Filesystem size will result in disk_size multiplied by amount of `lvm_lv_stripes` (=disks).
+              - For filesystems with no LVM logical volume striping, this is the total size of the filesystem.
+              - For filesystems with LVM LV striping defined (`lvm_lv_stripes`), this is the size of each disk. The resulting filesystem size will be `disk_size` multiplied by `lvm_lv_stripes` (=disks).
             required: false
             type: str
 
@@ -61,10 +61,9 @@ argument_specs:
             type: str
 
           lvm_lv_name:
-            default: lv_<definition_name>
             description:
               - The name of the LVM volume.
-              - The default name is derived from the name value of the filesystem definition entry.
+              - The default name is derived from the name value of the filesystem definition entry, for example 'lv_hanalog'.
             required: false
             type: str
 
@@ -72,6 +71,7 @@ argument_specs:
             default: 1
             description:
               - Number of disks that will be configured in a striped volume.
+              - This requires the availability of the same amount of unused disks, which must be of the size defined in `disk_size`.
             required: false
             type: int
 
@@ -83,10 +83,9 @@ argument_specs:
             type: str
 
           lvm_vg_name:
-            default: vg_<definition_name>
             description:
               - The name of the LVM volume group.
-              - The default name is derived from the name value of the filesystem definition entry.
+              - The default name is derived from the name value of the filesystem definition entry, for example 'vg_hanalog'.
             required: false
             type: str
 
