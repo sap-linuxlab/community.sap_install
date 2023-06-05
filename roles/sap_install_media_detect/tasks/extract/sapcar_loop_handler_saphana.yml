@@ -1,12 +1,12 @@
 ---
 
 - name: SAP Install Media Detect - SAP HANA - SAPCAR Extract Loop - Create temp dir - {{ sap_hana_install_directory }}/tmp
-  file:
+  ansible.builtin.file:
     path: "{{ sap_hana_install_directory }}/tmp"
     state: directory
 
 - name: SAP Install Media Detect - SAP HANA - SAPCAR Extract Loop - Extracting {{ passed_sap_hana_install_components_sar }}
-  command: >-
+  ansible.builtin.command: >-
     {{ sap_hana_install_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }} \
     -R {{ sap_hana_install_directory }}/tmp
     -xvf {{ sap_hana_install_directory }}/{{ passed_sap_hana_install_components_sar }} \
@@ -17,7 +17,7 @@
   changed_when: "'SAPCAR: processing archive' in sap_hana_install_extract.stdout"
 
 - name: SAP Install Media Detect - SAP HANA - SAPCAR Extract Loop - Create directory if SAP Host Agent
-  file:
+  ansible.builtin.file:
     path: "{{ sap_hana_install_directory }}/tmp/SAP_HOST_AGENT"
     state: directory
     mode: '0755'
@@ -34,6 +34,6 @@
     chdir: "{{ sap_hana_install_directory }}/tmp"
 
 - name: SAP Install Media Detect - SAP HANA - SAPCAR Extract Loop - Remove temp dir - {{ sap_hana_install_directory }}/tmp
-  file:
+  ansible.builtin.file:
     path: "{{ sap_hana_install_directory }}/tmp"
     state: absent
