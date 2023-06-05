@@ -21,7 +21,7 @@
   ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
   register: detect_directory_files_zip
 #  changed_when: "item.stdout | length > 0"
-  with_items: 
+  with_items:
     - "{{ detect_directory_files.stdout_lines }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
@@ -32,14 +32,14 @@
     if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_nwas_abap_export
   changed_when: "item | length > 0"
-  with_items: 
+  with_items:
     - "{{ detect_directory_files_zip.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
 
 - name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - If any ZIP, then extract the SAP NetWeaver (ABAP) Installation Export file (unzip)
   ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./sapsolman_abap_export_extracted/{{ item }} ; fi
-  with_items: 
+  with_items:
     - "{{ detect_directory_files_nwas_abap_export.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
@@ -66,7 +66,7 @@
   ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
   register: detect_directory_files_zip_repeated
 #  changed_when: "item.stdout | length > 0"
-  with_items: 
+  with_items:
     - "{{ detect_directory_files.stdout_lines }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
@@ -79,7 +79,7 @@
     if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_nwas_abap_export_repeated
   changed_when: "item | length > 0"
-  with_items: 
+  with_items:
     - "{{ detect_directory_files_zip_repeated.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
@@ -88,7 +88,7 @@
 
 - name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Local Directory source - move EXPORT compressed archive files
   command: mv "{{ sap_install_media_detect_directory }}/{{ item }}" "{{ sap_install_media_detect_directory }}/sapnwas_abap_export/{{ item }}"
-  with_items: 
+  with_items:
     - "{{ detect_directory_files_nwas_abap_export_repeated.results | map(attribute='stdout') | select() }}"
   when:
     - sap_install_media_detect_source == "local_dir"

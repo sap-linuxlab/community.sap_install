@@ -21,7 +21,7 @@
   ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
   register: detect_directory_files_zip
 #  changed_when: "item.stdout | length > 0"
-  with_items: 
+  with_items:
     - "{{ detect_directory_files.stdout_lines }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
@@ -32,14 +32,14 @@
     if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'MaxDB_7.9' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_sapmaxdb
   changed_when: "item | length > 0"
-  with_items: 
+  with_items:
     - "{{ detect_directory_files_zip.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
 
 - name: SAP Install Media Detect - SAP MaxDB - Extract ZIP files of SAP MaxDB installation media
   ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/sapmaxdb_extracted/{{ item }}_extracted; fi
-  with_items: 
+  with_items:
     - "{{ detect_directory_files_sapmaxdb.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
@@ -55,7 +55,7 @@
 
 - name: SAP Install Media Detect - SAP MaxDB - Local Directory source - move SAP MaxDB compressed archive files
   command: mv "{{ sap_install_media_detect_directory }}/{{ item }}" "{{ sap_install_media_detect_directory }}/sapmaxdb/{{ item }}"
-  with_items: 
+  with_items:
     - "{{ detect_directory_files_sapmaxdb.results | map(attribute='stdout') | select() }}"
   when:
     - sap_install_media_detect_source == "local_dir"
