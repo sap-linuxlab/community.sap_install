@@ -17,19 +17,20 @@
 - name: SAP Install Media Detect - SAP SWPM - Copy SAPCAR file
   ansible.builtin.shell: |
     cp {{ sap_install_media_detect_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }} {{ sap_swpm_install_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }}
-
+  changed_when: true
 
 # SWPM
 - name: SAP Install Media Detect - SAP SWPM - Get SWPM from {{ sap_install_media_detect_directory }}
-  ansible.builtin.shell: |
-    ls SWPM*.SAR
+  ansible.builtin.shell: ls SWPM*.SAR
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
   register: sap_swpm_swpm_sar_file_name_get
+  changed_when: false
 
 - name: SAP Install Media Detect - SAP SWPM - Copy SWPM file
   ansible.builtin.shell: |
     cp {{ sap_install_media_detect_directory }}/{{ sap_swpm_swpm_sar_file_name_get.stdout }} {{ sap_install_media_detect_directory }}/sap_swpm/{{ sap_swpm_swpm_sar_file_name_get.stdout }}
+  changed_when: true
 
 
 - name: SAP Install Media Detect - SAP SWPM - Check availability of software path - {{ sap_swpm_software_path }}
@@ -105,11 +106,11 @@
 # 2. SWPM
 
 - name: SAP Install Media Detect - SAP SWPM - Get SWPM from {{ sap_swpm_swpm_path }}
-  ansible.builtin.shell: |
-    ls SWPM*.SAR
+  ansible.builtin.shell: ls SWPM*.SAR
   args:
     chdir: "{{ sap_swpm_swpm_path }}"
   register: sap_swpm_swpm_sar_file_name_get
+  changed_when: false
 
 - name: SAP Install Media Detect - SAP SWPM - Set fact for SWPM
   ansible.builtin.set_fact:

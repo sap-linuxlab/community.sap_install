@@ -17,16 +17,17 @@
   register: detect_directory_files
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
+  changed_when: false
 
 - name: SAP Install Media Detect - SAP ASE - Detect ZIP files (including no file extensions), ignore errors
   ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
   register: detect_directory_files_zip
-#  changed_when: "item.stdout | length > 0"
   with_items:
     - "{{ detect_directory_files.stdout_lines }}"
   args:
     chdir: "{{ sap_install_media_detect_directory }}"
   ignore_errors: true
+  changed_when: false
 
 - name: SAP Install Media Detect - SAP ASE - Identify SAP ASE installation media
   ansible.builtin.shell: |
@@ -47,7 +48,8 @@
     use_regex: yes
   register: detect_directory_files_sapase_client
 
-- name: SAP Install Media Detect - SAP ASE - Extract ZIP files of SAP ASE installation media
+# Reason for noqa: Difficult to determine the change status in the shell command sequence
+- name: SAP Install Media Detect - SAP ASE - Extract ZIP files of SAP ASE installation media # noqa no-changed-when
   ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/sapase_extracted/{{ item }}_extracted; fi
   with_items:
     - "{{ detect_directory_files_sapase.results | map(attribute='stdout') | select() }}"
@@ -64,6 +66,7 @@
     chdir: "{{ sap_install_media_detect_directory }}"
   with_items:
     - "{{ detect_directory_files_sapase_client.files[0].path }}"
+  changed_when: true
 
 - name: SAP Install Media Detect - SAP ASE - Identify SAP ASE extracted
   ansible.builtin.find:
