@@ -41,7 +41,7 @@
 - name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Identify EXPORT files
   ansible.builtin.shell: |
     if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ;
-    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if "{{ sap_install_media_detect_unrar_binary }}" lb {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
+    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_nwas_abap_export
   changed_when: "item | length > 0"
   with_items:
@@ -59,7 +59,7 @@
     chdir: "{{ sap_install_media_detect_directory }}"
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - If any RAR without file extension, then add file extension (for use with unrar binary) # noqa no-changed-when
+- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - If any RAR without file extension, then add file extension # noqa no-changed-when
   ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR archive data')" ]; then filename="{{ item }}" && if [ "${filename##*.}" != "rar" ]; then mv {{ item }} {{ item }}.rar ; fi ; fi
   with_items:
     - "{{ detect_directory_files_nwas_abap_export.results | map(attribute='stdout') | select() }}"
@@ -67,8 +67,8 @@
     chdir: "{{ sap_install_media_detect_directory }}"
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Find self-extracting RAR EXE (parent RAR file) and extract SAP NetWeaver (ABAP) Installation Export files (unrar x) # noqa no-changed-when
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR self-extracting archive')" ]; then "{{ sap_install_media_detect_unrar_binary }}" x "{{ item }}" sapnwas_abap_export_extracted/ ; fi
+- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Find self-extracting RAR EXE (parent RAR file) and extract SAP NetWeaver (ABAP) Installation Export files # noqa no-changed-when
+  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR self-extracting archive')" ]; then eval "{{ sap_install_media_detect_rar_extract }}" "{{ item }}" sapnwas_abap_export_extracted/ ; fi
   with_items:
     - "{{ detect_directory_files_nwas_abap_export.results | map(attribute='stdout') | select() }}"
   args:
@@ -120,7 +120,7 @@
 - name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Local Directory source - re-identify EXPORT files
   ansible.builtin.shell: |
     if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ;
-    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if "{{ sap_install_media_detect_unrar_binary }}" lb {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
+    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_nwas_abap_export_repeated
   changed_when: "item | length > 0"
   with_items:

@@ -1,0 +1,51 @@
+---
+
+- name: SAP Install Media Detect - Prepare - Install the unar package from EPEL
+  when: sap_install_media_detect_rar_package == 'EPEL'
+  block:
+
+    - name: SAP Install Media Detect - Prepare - EPEL - Set fact for the correct EPEL GPG key
+      ansible.builtin.set_fact:
+        sap_install_media_detect_epel_gpg_key: "http://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}"
+
+    - name: SAP Install Media Detect - Prepare - EPEL - Import the EPEL GPG key
+      ansible.builtin.command: "rpm --import {{ sap_install_media_detect_epel_gpg_key }}"
+
+    - name: SAP Install Media Detect - Prepare - EPEL - Set fact for the EPEL URL
+      ansible.builtin.set_fact:
+        sap_install_media_detect_epel_url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+
+    - name: SAP Install Media Detect - Prepare - EPEL - Enable the EPEL repo
+      ansible.builtin.package:
+        name: "{{ sap_install_media_detect_epel_url }}"
+        state: present
+
+    - name: SAP Install Media Detect - Prepare - EPEL - Install the unar package
+      ansible.builtin.package:
+        name: unar
+        state: present
+
+    - name: SAP Install Media Detect - Prepare - EPEL - Set fact for listing the content of a RAR file
+      ansible.builtin.set_fact:
+        sap_install_media_detect_rar_list: '/usr/bin/lsar'
+
+    - name: SAP Install Media Detect - Prepare - EPEL - Set fact for extracting a RAR file
+      ansible.builtin.set_fact:
+        sap_install_media_detect_rar_extract: '/usr/bin/unar'
+
+- name: SAP Install Media Detect - Prepare - Install an unrar package
+  when: sap_install_media_detect_rar_package != 'EPEL'
+  block:
+
+    - name: SAP Install Media Detect - Prepare - unrar - Install the unrar package
+      ansible.builtin.package:
+        name: "{{ sap_install_media_detect_rar_package }}"
+        state: present
+
+    - name: SAP Install Media Detect - Prepare - unrar - Set fact for listing the content of a RAR file
+      ansible.builtin.set_fact:
+        sap_install_media_detect_rar_list: '/usr/bin/unrar lb'
+
+    - name: SAP Install Media Detect - Prepare - unrar - Set fact for extracting a RAR file
+      ansible.builtin.set_fact:
+        sap_install_media_detect_rar_extract: '/usr/bin/unrar x'
