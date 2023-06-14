@@ -32,7 +32,7 @@
 
 - name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 installation media
   ansible.builtin.shell: |
-    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db2setup' ; then echo '{{ item }}' ; fi ; fi
+    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db2setup' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_ibmdb2
   changed_when: "item | length > 0"
   with_items:
@@ -42,7 +42,7 @@
 
 - name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 Client installation media
   ansible.builtin.shell: |
-    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db6_update_client.sh' ; then echo '{{ item }}' ; fi ; fi
+    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db6_update_client.sh' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_ibmdb2_client
   changed_when: "item | length > 0"
   with_items:
@@ -52,7 +52,7 @@
 
 - name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 OEM license file
   ansible.builtin.shell: |
-    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db2aese_c.lic' ; then echo '{{ item }}' ; fi ; fi
+    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db2aese_c.lic' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_ibmdb2_license
   changed_when: "item | length > 0"
   with_items:
@@ -62,7 +62,7 @@
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - IBM Db2 - Extract ZIP files of IBM DB2 installation media # noqa no-changed-when
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/ibmdb2_extracted/{{ item }}_extracted; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/ibmdb2_extracted/{{ item }}_extracted; fi
   with_items:
     - "{{ detect_directory_files_ibmdb2.results | map(attribute='stdout') | select() }}"
   args:
@@ -70,7 +70,7 @@
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - IBM Db2 - Extract ZIP files of IBM DB2 Client installation media # noqa no-changed-when
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/ibmdb2_client_extracted/{{ item }}_extracted; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/ibmdb2_client_extracted/{{ item }}_extracted; fi
   with_items:
     - "{{ detect_directory_files_ibmdb2_client.results | map(attribute='stdout') | select() }}"
   args:
@@ -78,7 +78,7 @@
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - IBM Db2 - Extract ZIP files of IBM DB2 OEM license file # noqa no-changed-when
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/ibmdb2_license_extracted/{{ item }}_extracted; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/ibmdb2_license_extracted/{{ item }}_extracted; fi
   with_items:
     - "{{ detect_directory_files_ibmdb2_license.results | map(attribute='stdout') | select() }}"
   args:

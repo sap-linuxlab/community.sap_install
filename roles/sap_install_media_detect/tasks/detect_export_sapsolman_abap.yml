@@ -19,7 +19,7 @@
   changed_when: false
 
 - name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Detect ZIP files (including no file extensions), ignore errors
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
   register: detect_directory_files_zip
   with_items:
     - "{{ detect_directory_files.stdout_lines }}"
@@ -30,7 +30,7 @@
 
 - name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Identify EXPORT files
   ansible.builtin.shell: |
-    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
+    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_nwas_abap_export
   changed_when: "item | length > 0"
   with_items:
@@ -40,7 +40,7 @@
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - If any ZIP, then extract the SAP NetWeaver (ABAP) Installation Export file (unzip) # noqa no-changed-when
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./sapsolman_abap_export_extracted/{{ item }} ; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./sapsolman_abap_export_extracted/{{ item }} ; fi
   with_items:
     - "{{ detect_directory_files_nwas_abap_export.results | map(attribute='stdout') | select() }}"
   args:
@@ -66,7 +66,7 @@
     - sap_install_media_detect_source == "local_dir"
 
 - name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Local Directory source - re-detect ZIP files (including no file extensions), ignore errors
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
   register: detect_directory_files_zip_repeated
 #  changed_when: "item.stdout | length > 0"
   with_items:
@@ -79,7 +79,7 @@
 
 - name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Local Directory source - re-identify EXPORT files
   ansible.builtin.shell: |
-    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
+    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_nwas_abap_export_repeated
   changed_when: "item | length > 0"
   with_items:

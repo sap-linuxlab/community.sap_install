@@ -31,7 +31,7 @@
 
 - name: SAP Install Media Detect - SAP ASE - Identify SAP ASE installation media
   ansible.builtin.shell: |
-    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'BD_SYBASE_ASE' ; then echo '{{ item }}' ; fi ; fi
+    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'BD_SYBASE_ASE' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_sapase
   changed_when: "item | length > 0"
   with_items:
@@ -50,7 +50,7 @@
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - SAP ASE - Extract ZIP files of SAP ASE installation media # noqa no-changed-when
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/sapase_extracted/{{ item }}_extracted; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/sapase_extracted/{{ item }}_extracted; fi
   with_items:
     - "{{ detect_directory_files_sapase.results | map(attribute='stdout') | select() }}"
   args:

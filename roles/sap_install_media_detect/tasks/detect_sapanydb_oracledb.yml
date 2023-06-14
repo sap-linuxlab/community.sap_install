@@ -20,7 +20,7 @@
   changed_when: false
 
 - name: SAP Install Media Detect - Oracle DB - Detect ZIP files (including no file extensions), ignore errors
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
   register: detect_directory_files_zip
   with_items:
     - "{{ detect_directory_files.stdout_lines }}"
@@ -31,7 +31,7 @@
 
 - name: SAP Install Media Detect - Oracle DB - Identify Oracle DB installation media
   ansible.builtin.shell: |
-    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q '19cinstall.sh' ; then echo '{{ item }}' ; fi ; fi
+    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q '19cinstall.sh' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_oracledb
   changed_when: "item | length > 0"
   with_items:
@@ -41,7 +41,7 @@
 
 - name: SAP Install Media Detect - Oracle DB - Identify Oracle DB Client installation media
   ansible.builtin.shell: |
-    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'OCL_LINUX_X86_64' ; then echo '{{ item }}' ; fi ; fi
+    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'OCL_LINUX_X86_64' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_oracledb_client
   changed_when: "item | length > 0"
   with_items:
@@ -51,7 +51,7 @@
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - Oracle DB - Extract ZIP files of Oracle DB installation media # noqa no-changed-when
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/oracledb_extracted/{{ item }}_extracted; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/oracledb_extracted/{{ item }}_extracted; fi
   with_items:
     - "{{ detect_directory_files_oracledb.results | map(attribute='stdout') | select() }}"
   args:
@@ -59,7 +59,7 @@
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - Oracle DB - Extract ZIP files of Oracle DB Client installation media # noqa no-changed-when
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/oracledb_client_extracted/{{ item }}_extracted; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/oracledb_client_extracted/{{ item }}_extracted; fi
   with_items:
     - "{{ detect_directory_files_oracledb_client.results | map(attribute='stdout') | select() }}"
   args:

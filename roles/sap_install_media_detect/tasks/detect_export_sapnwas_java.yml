@@ -19,7 +19,7 @@
   changed_when: false
 
 - name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - Detect ZIP files (including no file extensions), ignore errors
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
   register: detect_directory_files_zip
   with_items:
     - "{{ detect_directory_files.stdout_lines }}"
@@ -29,7 +29,7 @@
   changed_when: false
 
 - name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - Detect RAR files (including no file extensions), ignore errors
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then echo {{ item }}; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then echo {{ item }}; fi
   register: detect_directory_files_rar
   with_items:
     - "{{ detect_directory_files.stdout_lines }}"
@@ -40,7 +40,7 @@
 
 - name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - Identify EXPORT files
   ansible.builtin.shell: |
-    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP' ; then echo '{{ item }}' ; fi ;
+    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP' ; then echo '{{ item }}' ; fi ;
     elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_nwas_java_export
   changed_when: "item | length > 0"
@@ -52,7 +52,7 @@
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - If any ZIP, then extract the SAP NetWeaver (JAVA) Installation Export file (unzip) # noqa no-changed-when
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./sapnwas_java_export_extracted ; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d ./sapnwas_java_export_extracted ; fi
   with_items:
     - "{{ detect_directory_files_nwas_java_export.results | map(attribute='stdout') | select() }}"
   args:
@@ -60,7 +60,7 @@
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - If any RAR without file extension, then add file extension # noqa no-changed-when
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR archive data')" ]; then filename="{{ item }}" && if [ "${filename##*.}" != "rar" ]; then mv {{ item }} {{ item }}.rar ; fi ; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'RAR archive data')" ]; then filename="{{ item }}" && if [ "${filename##*.}" != "rar" ]; then mv {{ item }} {{ item }}.rar ; fi ; fi
   with_items:
     - "{{ detect_directory_files_nwas_java_export.results | map(attribute='stdout') | select() }}"
   args:
@@ -68,7 +68,7 @@
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - Find self-extracting RAR EXE (parent RAR file) and extract SAP NetWeaver (JAVA) Installation Export files # noqa no-changed-when
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR self-extracting archive')" ]; then eval "{{ sap_install_media_detect_rar_extract }}" "{{ item }}" sapnwas_java_export_extracted/ ; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'RAR self-extracting archive')" ]; then eval "{{ sap_install_media_detect_rar_extract }}" "{{ item }}" sapnwas_java_export_extracted/ ; fi
   with_items:
     - "{{ detect_directory_files_nwas_java_export.results | map(attribute='stdout') | select() }}"
   args:
@@ -94,7 +94,7 @@
     - sap_install_media_detect_source == "local_dir"
 
 - name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - Local Directory source - re-detect ZIP files (including no file extensions), ignore errors
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
   register: detect_directory_files_zip_repeated
 #  changed_when: "item.stdout | length > 0"
   with_items:
@@ -106,7 +106,7 @@
     - sap_install_media_detect_source == "local_dir"
 
 - name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - Local Directory source - re-detect RAR files (including no file extensions), ignore errors
-  ansible.builtin.shell: if [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then echo {{ item }}; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then echo {{ item }}; fi
   register: detect_directory_files_rar_repeated
 #  changed_when: "item.stdout | length > 0"
   with_items:
@@ -119,7 +119,7 @@
 
 - name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - Local Directory source - re-identify EXPORT files
   ansible.builtin.shell: |
-    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP' ; then echo '{{ item }}' ; fi ;
+    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP' ; then echo '{{ item }}' ; fi ;
     elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_nwas_java_export_repeated
   changed_when: "item | length > 0"
