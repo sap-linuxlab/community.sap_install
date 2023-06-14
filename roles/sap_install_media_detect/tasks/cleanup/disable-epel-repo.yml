@@ -1,5 +1,7 @@
 ---
 
+# Note: This file is only included from tasks/main.yml if the epel-release package had not been initially detected.
+
 - name: SAP Install Media Detect - Cleanup - Get all GPG keys
   ansible.builtin.shell: set -o pipefail && rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}-%{RELEASE}\t%{SUMMARY}\n' | awk '/gpg/&&/Fedora/{gsub ("\\(epel", "EPEL "); gsub (" \\(", " "); if ($0 ~ /EPEL {{ ansible_distribution_major_version }}/)print}'
   register: __sap_install_media_detect_register_rpm_q_gpg_pubkeys
@@ -7,21 +9,24 @@
   changed_when: false
 
 - name: SAP Install Media Detect - Cleanup - Remove the EPEL GPG key for this OS version
-  ansible.builtin.command: rpm -e "{{ __sap_install_media_detect_register_rpm_q_gpg_pubkeys.stdout.strip().split()[0] }}"
-  register: __sap_install_media_detect_register_rpm_e_epel_gpg_pubkey
+  ansible.builtin.rpm_key:
+    state: absent
+    key: "{{ __sap_install_media_detect_register_rpm_q_gpg_pubkeys.stdout.strip().split()[0] }}"
+#  ansible.builtin.command: rpm -e "{{ __sap_install_media_detect_register_rpm_q_gpg_pubkeys.stdout.strip().split()[0] }}"
+#  register: __sap_install_media_detect_register_rpm_e_epel_gpg_pubkey
   when:
     - __sap_install_media_detect_register_rpm_q_gpg_pubkeys.stdout | length != 0
     - __sap_install_media_detect_register_rpm_q_gpg_pubkeys.stdout_lines | length == 1
 
-- name: SAP Install Media Detect - Cleanup - Get the GPG keys for this OS version after removal
-  ansible.builtin.shell: set -o pipefail && rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}-%{RELEASE}\t%{SUMMARY}\n' | grep 'EPEL ({{ ansible_distribution_major_version }})'
-  register: __sap_install_media_detect_register_rpm_q_gpg_pubkeys_after_removal
-  failed_when: false
+#- name: SAP Install Media Detect - Cleanup - Get the GPG keys for this OS version after removal
+#  ansible.builtin.shell: set -o pipefail && rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}-%{RELEASE}\t%{SUMMARY}\n' | grep 'EPEL ({{ ansible_distribution_major_version }})'
+#  register: __sap_install_media_detect_register_rpm_q_gpg_pubkeys_after_removal
+#  failed_when: false
 
-- name: SAP Install Media Detect - Cleanup - Report any EPEL GPG key presence for this OS version
-  ansible.builtin.fail:
-    msg: Not all EPEL GPG keys have been removed!
-  when: __sap_install_media_detect_register_rpm_q_gpg_pubkeys_after_removal.stdout_lines | length != 0
+#- name: SAP Install Media Detect - Cleanup - Report any EPEL GPG key presence for this OS version
+#  ansible.builtin.fail:
+#    msg: Not all EPEL GPG keys have been removed!
+#  when: __sap_install_media_detect_register_rpm_q_gpg_pubkeys_after_removal.stdout_lines | length != 0
 
 - name: SAP Install Media Detect - Cleanup - Remove the EPEL repo
   ansible.builtin.package:
