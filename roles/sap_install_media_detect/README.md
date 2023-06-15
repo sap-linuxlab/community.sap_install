@@ -11,6 +11,11 @@ As an example, SAP HANA Client would be detected and the SAP Kernel Part I/II wo
 
 Once detection (e.g. using `zipinfo -1` and `unrar lb`) and extraction are completed, the file paths are shown and stored as variables for subsequent use by other Ansible Tasks.
 
+RAR files can be either handled by the unar package from EPEL or by another package which can list the contents of, and extract files from,
+RAR files. See the comments and examples for the RAR file handling in `defaults/main.yml`. If the EPEL repo had been enabled at the time
+when the role was run, it will remain enabled. If the EPEL repo was not present, the associated GPG key will be removed and the EPEL repo
+will be disabled as the last task.
+
 ## Dependencies
 
 This role does not depend on any other Ansible Role.
@@ -21,4 +26,4 @@ Apache license 2.0
 
 ## Author Information
 
-IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice
+IBM Lab for SAP Solutions, Red Hat for SAP Community of Practice, Bernd Finger
