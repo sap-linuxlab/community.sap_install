@@ -20,6 +20,12 @@ will be disabled as the last task.
 
 This role does not depend on any other Ansible Role.
 
+## Tags
+
+With the following tags, the role can be called to perform certain activities only:
+- tag `sap_install_media_detect_rar_handling`: Only perform the tasks for enabling the listing and extracting of files of type `RAR`. This
+  includes enabling and disabling the EPEL repo for RHEL systems, if desired.
+
 ## License
 
 Apache license 2.0
