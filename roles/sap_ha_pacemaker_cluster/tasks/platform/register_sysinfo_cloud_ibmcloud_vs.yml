@@ -1,17 +1,9 @@
 ---
 # There is no ansible fact with the fully qualified VM instance ID.
 # We get this information from the SMBIOS/DMI.
-- name: "SAP HA Prepare Pacemaker - Register instance ID"
+- name: "SAP HA Prepare Pacemaker - IBM Cloud VS - Register instance ID"
   ansible.builtin.shell: |
     dmidecode -s system-family
-  register: __sap_ha_pacemaker_cluster_register_ibmcloud_instance
+  register: __sap_ha_pacemaker_cluster_register_ibmcloud_vs_host
   changed_when: false
   check_mode: false
-
-- name: "SAP HA Prepare Pacemaker - Assemble host mapping"
-  ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_pcmk_host_map: >-
-      {% for node in ansible_play_hosts_all -%}
-        {{ hostvars[node].ansible_hostname }}:{{ hostvars[node].__sap_ha_pacemaker_cluster_register_ibmcloud_instance.stdout }}
-      {%-  if not loop.last %};{%- endif -%}
-      {%- endfor %}
