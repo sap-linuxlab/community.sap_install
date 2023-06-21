@@ -1,0 +1,47 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  labels:
+    machineconfiguration.openshift.io/mco-built-in: ""
+  name: {{ __sap_hypervisor_node_preconfigure_register_worker.name }}
+spec:
+  configuration:
+    source:
+    - apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfig
+      name: 00-worker
+    - apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfig
+      name: 01-worker-container-runtime
+    - apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfig
+      name: 01-worker-kubelet
+    - apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfig
+      name: 99-worker-generated-crio-capabilities
+    - apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfig
+      name: 99-worker-generated-crio-seccomp-use-default
+    - apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfig
+      name: 99-worker-generated-kubelet
+    - apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfig
+      name: 99-worker-generated-registries
+    - apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfig
+      name: 99-worker-ssh
+    - apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfig
+      name: 99-kargs-{{ __sap_hypervisor_node_preconfigure_register_worker.name }}
+  machineConfigSelector:
+    matchExpressions:
+    - key: machineconfiguration.openshift.io/role
+      operator: In
+      values:
+      - worker
+      - {{ __sap_hypervisor_node_preconfigure_register_worker.name }}
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: "{{ __sap_hypervisor_node_preconfigure_register_worker.name }}"
+  paused: false

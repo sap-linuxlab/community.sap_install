@@ -1,0 +1,61 @@
+---
+- name: Get a list of all nodes from any namespace
+  kubernetes.core.k8s_info:
+    kind: Node
+  register: __sap_hypervisor_node_preconfigure_register_node_list
+
+- name: Generate list with worker node names
+  ansible.builtin.set_fact:
+    __sap_hypervisor_node_preconfigure_register_worker_node_name_list:
+      "{{ __sap_hypervisor_node_preconfigure_register_worker_node_name_list | \
+       d([]) + [__sap_hypervisor_node_preconfigure_register_worker_node.name] }}"
+  with_items: "{{ sap_hypervisor_node_preconfigure_cluster_config.workers }}"
+  loop_control:
+    loop_var: __sap_hypervisor_node_preconfigure_register_worker_node
+
+- name: Filter hosts
+  ansible.builtin.set_fact:
+    __sap_hypervisor_node_preconfigure_register_nodes:
+      "{{ __sap_hypervisor_node_preconfigure_register_nodes | \
+       d([]) + [__sap_hypervisor_node_preconfigure_register_host] }}"
+  with_items: "{{ __sap_hypervisor_node_preconfigure_register_node_list['resources'] }}"
+  loop_control:
+    loop_var: __sap_hypervisor_node_preconfigure_register_host
+  when: __sap_hypervisor_node_preconfigure_register_host.metadata.name in __sap_hypervisor_node_preconfigure_register_worker_node_name_list
+
+- name: Assert that configured nodes are found
+  ansible.builtin.assert:
+    that: __sap_hypervisor_node_preconfigure_register_nodes is defined
+    fail_msg: No nodes found that match configuration provided in sap_hypervisor_node_preconfigure_cluster
+    success_msg: Configured nodes found
+
+# - meta: end_play
+
+- name: Include prepare
+  ansible.builtin.include_tasks: prepare.yml
+- name: Include tuned virtual host
+  ansible.builtin.include_tasks: tuned-virtual-host.yml
+- name: Include install CNV operator
+  ansible.builtin.include_tasks: install-cnv-operator.yml
+- name: Include install sriov operator
+  ansible.builtin.include_tasks: install-sriov-operator.yml
+- name: Include install nmstate operator
+  ansible.builtin.include_tasks: install-nmstate-operator.yml
+- name: Include install virtctl
+  ansible.builtin.include_tasks: install-virtctl.yml
+- name: Include setup worker node
+  ansible.builtin.include_tasks: setup-worker-node.yml
+
+# How to wait for node to be scheduleable? (NodeSchedulable)
+- name: Wait for all k8s nodes to be ready
+  ansible.builtin.command: oc wait --for=condition=Ready nodes --all --timeout=3600s
+  register: __sap_hypervisor_node_preconfigure_register_nodes_ready
+  changed_when: __sap_hypervisor_node_preconfigure_register_nodes_ready.rc != 0
+
+- name: Print nodes
+  ansible.builtin.debug:
+    var: __sap_hypervisor_node_preconfigure_register_nodes_ready.stdout_lines
+
+- name: Include Trident installation
+  ansible.builtin.include_tasks: install-trident.yml
+  when: sap_hypervisor_node_preconfigure_install_trident

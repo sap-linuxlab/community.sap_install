@@ -1,0 +1,21 @@
+---
+- name: "Download rhel 8.6 image"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        namespace: openshift-virtualization-os-images
+        name: rhel-86
+        annotations:
+          cdi.kubevirt.io/storage.bind.immediate.requested: 'true'
+      spec:
+        source:
+          registry:
+            url: 'docker://registry.redhat.io/rhel8/rhel-guest-image:8.6.0'
+            pullMethod: node
+        storage:
+          resources:
+            requests:
+              storage: 10Gi

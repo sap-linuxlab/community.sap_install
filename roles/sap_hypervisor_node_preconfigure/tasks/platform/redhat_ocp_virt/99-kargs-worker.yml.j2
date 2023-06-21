@@ -1,0 +1,18 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    kubernetes.io/hostname: {{ __sap_hypervisor_node_preconfigure_register_worker_name }}
+    machineconfiguration.openshift.io/role: {{ __sap_hypervisor_node_preconfigure_register_worker_name }}
+  name: 99-kargs-{{ __sap_hypervisor_node_preconfigure_register_worker_name }}
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+  kernelArguments:
+  - intel_iommu=on
+  - iommu=pt
+  - default_hugepagesz=1GB
+  - hugepagesz=1GB
+  - hugepages={{ __sap_hypervisor_node_preconfigure_register_worker_reserved_hugepages }}
+  - tsx=on

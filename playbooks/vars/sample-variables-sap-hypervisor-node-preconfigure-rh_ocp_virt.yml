@@ -1,0 +1,89 @@
+sap_hypervisor_node_preconfigure_cluster_config:
+
+  # URL under which the OCP cluster is reachable
+  cluster_url: ocpcluster.domain.org
+
+  # namespace under which the VMs are created, note this has to be
+  # openshift-sriov-network-operator in case of using SRIOV network
+  # devices 
+  vm_namespace: sap
+
+  # Optional, configuration for trident driver for Netapp NFS filer
+  trident:
+    management: management.domain.org
+    data: datalif.netapp.domain.org
+    svm: sap_svm
+    backend: nas_backend
+    aggregate: aggregate_Name
+    username: admin
+    password: xxxxx
+    storage_driver: ontap-nas
+    storage_prefix: ocpv_sap_
+
+  # detailed configuration for every worker that should be configured
+  # 
+  workers:
+      - kubernetes_reserved_cpus: "0,1"   # CPU cores reserved for
+                                          # kubernetes
+      
+      - name: worker-0                   # name must match the node name
+        networks:                        # Example network config
+          - name: sapbridge              # using a bridge
+            description: SAP bridge
+            state: up
+            type: linux-bridge
+            ipv4:
+              enabled: false
+              auto-gateway: false
+              auto-dns: false
+            bridge:
+              options:
+                stp:
+                  enabled: false
+              port:
+                - name: ens1f0           # network IF name
+          - name: storage                # an SRIOV device        
+            interface: ens2f0            # network IF name
+            type: sriov
+
+          - bridge:                      # another bridge
+              options:
+                stp:
+                  enabled: false
+              port:
+              - name: ens2f0             # network IF name
+            description: storage
+            mtu: 9000
+            ipv4:
+              address:
+              - ip: 192.168.1.51         # IP config
+                prefix-length: 24
+              auto-dns: false
+              auto-gateway: false
+            enabled: true
+            name: storagebridge
+            state: up
+            type: linux-bridge
+          - name: multi                  # another SRIOV device
+            interface: ens2f1            # network IF name
+            type: sriov
+
+      - name: worker-1                   # second worker configuration
+        networks:                        # Example network config
+          - name: sapbridge              # using a bridge
+            description: SAP bridge
+            state: up
+            type: linux-bridge
+            ipv4:
+              enabled: false
+              auto-gateway: false
+              auto-dns: false
+            bridge:
+              options:
+                stp:
+                  enabled: false
+              port:
+                - name: ens1f0           # network IF name
+          - name: storage                # an SRIOV device        
+            interface: ens2f0            # network IF name
+            type: sriov
