@@ -12,6 +12,11 @@
         path: "{{ sap_install_media_detect_target_directory }}"
       register: __sap_install_media_detect_target_directory_stat
 
+    - name: SAP Install Media Detect - Prepare - Check if 'sap_install_media_detect_target_directory' exists
+      ansible.builtin.fail:
+        msg: "FAIL: Directory {{ sap_install_media_detect_target_directory }} does not exist!"
+      when: not __sap_install_media_detect_target_directory_stat.stat.exists
+
     - name: SAP Install Media Detect - Prepare - Check if 'sap_install_media_detect_target_directory' is writable
       ansible.builtin.assert:
         that: __sap_install_media_detect_target_directory_stat.stat.writeable
@@ -33,12 +38,18 @@
         path: "{{ sap_install_media_detect_source_directory }}"
       register: __sap_install_media_detect_source_directory_stat
 
+    - name: SAP Install Media Detect - Prepare - Check if 'sap_install_media_detect_source_directory' exists
+      ansible.builtin.fail:
+        msg: "FAIL: Directory {{ sap_install_media_detect_source_directory }} does not exist!"
+      when: not __sap_install_media_detect_source_directory_stat.stat.exists
+
     - name: SAP Install Media Detect - Prepare - Check if 'sap_install_media_detect_source_directory' is writable
       ansible.builtin.assert:
         that: __sap_install_media_detect_source_directory_stat.stat.writeable
         fail_msg: "FAIL: Directory {{ sap_install_media_detect_source_directory }} is not writable!"
         success_msg: "PASS: Directory {{ sap_install_media_detect_source_directory }} is writable."
 
-    - name: SAP Install Media Detect - Prepare - Set the variable sap_install_media_detect_source in case of writable local file system
+    - name: SAP Install Media Detect - Prepare - Set some variables in case of writable local file system
       ansible.builtin.set_fact:
         sap_install_media_detect_source: 'local_dir'
+        sap_install_media_detect_directory: "{{ sap_install_media_detect_source_directory }}"
