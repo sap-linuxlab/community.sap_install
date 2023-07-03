@@ -17,7 +17,8 @@
     - __sap_install_media_detect_register_rpm_q_gpg_pubkeys.stdout | length != 0
     - __sap_install_media_detect_register_rpm_q_gpg_pubkeys.stdout_lines | length == 1
 
-- name: SAP Install Media Detect - Cleanup - Remove the EPEL GPG key for this OS version, using the rpm -e command
+# Reason for noqa: The module rpm_key might fail in certain cases, and the use of the 'rpm -e' command is more reliable in these cases.
+- name: SAP Install Media Detect - Cleanup - Remove the EPEL GPG key for this OS version, using the rpm -e command # noqa command-instead-of-module
   ansible.builtin.command: rpm -e "{{ __sap_install_media_detect_register_rpm_q_gpg_pubkeys.stdout.strip().split()[0] }}"
   register: __sap_install_media_detect_register_rpm_e_epel_gpg_pubkey
   when:
