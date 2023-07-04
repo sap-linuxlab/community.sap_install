@@ -8,16 +8,16 @@
     owner: root
     group: root
   with_items:
-    - "{{ sap_install_media_detect_directory }}/ibmdb2/"
-    - "{{ sap_install_media_detect_directory }}/ibmdb2_extracted/"
-    - "{{ sap_install_media_detect_directory }}/ibmdb2_client_extracted/"
-    - "{{ sap_install_media_detect_directory }}/ibmdb2_license_extracted/"
+    - "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2/"
+    - "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2_extracted/"
+    - "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2_client_extracted/"
+    - "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2_license_extracted/"
 
 - name: SAP Install Media Detect - IBM Db2 - List files in directory
   ansible.builtin.command: ls -1
   register: detect_directory_files
   args:
-    chdir: "{{ sap_install_media_detect_directory }}"
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   changed_when: false
 
 - name: SAP Install Media Detect - IBM Db2 - Detect ZIP files (including no file extensions), ignore errors
@@ -26,7 +26,7 @@
   with_items:
     - "{{ detect_directory_files.stdout_lines }}"
   args:
-    chdir: "{{ sap_install_media_detect_directory }}"
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   ignore_errors: true
   changed_when: false
 
@@ -38,7 +38,7 @@
   with_items:
     - "{{ detect_directory_files_zip.results | map(attribute='stdout') | select() }}"
   args:
-    chdir: "{{ sap_install_media_detect_directory }}"
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
 
 - name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 Client installation media
   ansible.builtin.shell: |
@@ -48,7 +48,7 @@
   with_items:
     - "{{ detect_directory_files_zip.results | map(attribute='stdout') | select() }}"
   args:
-    chdir: "{{ sap_install_media_detect_directory }}"
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
 
 - name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 OEM license file
   ansible.builtin.shell: |
@@ -58,35 +58,35 @@
   with_items:
     - "{{ detect_directory_files_zip.results | map(attribute='stdout') | select() }}"
   args:
-    chdir: "{{ sap_install_media_detect_directory }}"
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - IBM Db2 - Extract ZIP files of IBM DB2 installation media # noqa no-changed-when
-  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/ibmdb2_extracted/{{ item }}_extracted; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ __sap_install_media_detect_software_main_directory }}/ibmdb2_extracted/{{ item }}_extracted; fi
   with_items:
     - "{{ detect_directory_files_ibmdb2.results | map(attribute='stdout') | select() }}"
   args:
-    chdir: "{{ sap_install_media_detect_directory }}"
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - IBM Db2 - Extract ZIP files of IBM DB2 Client installation media # noqa no-changed-when
-  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/ibmdb2_client_extracted/{{ item }}_extracted; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ __sap_install_media_detect_software_main_directory }}/ibmdb2_client_extracted/{{ item }}_extracted; fi
   with_items:
     - "{{ detect_directory_files_ibmdb2_client.results | map(attribute='stdout') | select() }}"
   args:
-    chdir: "{{ sap_install_media_detect_directory }}"
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - IBM Db2 - Extract ZIP files of IBM DB2 OEM license file # noqa no-changed-when
-  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ sap_install_media_detect_directory }}/ibmdb2_license_extracted/{{ item }}_extracted; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then unzip {{ item }} -d {{ __sap_install_media_detect_software_main_directory }}/ibmdb2_license_extracted/{{ item }}_extracted; fi
   with_items:
     - "{{ detect_directory_files_ibmdb2_license.results | map(attribute='stdout') | select() }}"
   args:
-    chdir: "{{ sap_install_media_detect_directory }}"
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
 
 - name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 extracted
   ansible.builtin.find:
-    paths: "{{ sap_install_media_detect_directory }}/ibmdb2_extracted"
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2_extracted"
     recurse: yes
     file_type: directory
     contains: "LINUXX86_64"
@@ -94,14 +94,14 @@
 
 - name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 Client extracted
   ansible.builtin.find:
-    paths: "{{ sap_install_media_detect_directory }}/ibmdb2_client_extracted"
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2_client_extracted"
     recurse: yes
     file_type: directory
     contains: "DATA_UNITS"
   register: detect_directory_ibmdb2_client_extracted
 
 - name: SAP Install Media Detect - IBM Db2 - Local Directory source - move IBM Db2 compressed archive files
-  ansible.builtin.command: mv "{{ sap_install_media_detect_directory }}/{{ item }}" "{{ sap_install_media_detect_directory }}/ibmdb2/{{ item }}"
+  ansible.builtin.command: mv "{{ __sap_install_media_detect_software_main_directory }}/{{ item }}" "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2/{{ item }}"
   with_items:
     - "{{ detect_directory_files_ibmdb2.results | map(attribute='stdout') | select() }}"
     - "{{ detect_directory_files_ibmdb2_client.results | map(attribute='stdout') | select() }}"
