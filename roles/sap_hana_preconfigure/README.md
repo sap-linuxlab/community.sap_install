@@ -131,6 +131,13 @@ sap_hana_preconfigure_2382421: true
 
 If set to `true`, the role will run in assertion mode instead of the default configuration mode.<br>
 
+### sap_hana_preconfigure_assert_all_config
+- _Type:_ `bool`
+- _Default:_ `false`
+
+In assertion mode, the role will check either tuned or static settings.<br>
+If this parameter is set to to `true`, the role will check both tuned and static settings.<br>
+
 ### sap_hana_preconfigure_assert_ignore_errors
 - _Type:_ `bool`
 - _Default:_ `false`
