@@ -1,11 +1,32 @@
 ---
 
-- name: SAP Install Media Detect - Prepare - enable rar handling
+- name: SAP Install Media Detect - Prepare - Enable rar handling
   ansible.builtin.include_tasks:
     file: prepare/enable_rar_handling.yml
     apply:
       tags: sap_install_media_detect_rar_handling
   tags: sap_install_media_detect_rar_handling
+
+- name: SAP Install Media Detect - Prepare - Check directories
+  ansible.builtin.include_tasks:
+    file: prepare/check_directories.yml
+    apply:
+      tags: sap_install_media_detect_check_directories
+  tags: sap_install_media_detect_check_directories
+
+- name: SAP Install Media Detect - Create a list of all files
+  ansible.builtin.include_tasks:
+    file: prepare/create_file_list.yml
+    apply:
+      tags: sap_install_media_detect_create_file_list
+  tags: sap_install_media_detect_create_file_list
+
+- name: SAP Install Media Detect - Detect and if necessary rename rar files without extension
+  ansible.builtin.include_tasks:
+    file: rename/add_rar_extension.yml
+    apply:
+      tags: sap_install_media_detect_add_rar_extension
+  tags: sap_install_media_detect_add_rar_extension
 
 - name: SAP Install Media Detect - Organize SAPCAR
   ansible.builtin.include_tasks: detect_sapcar.yml
@@ -70,13 +91,11 @@
 
 - name: SAP Install Media Detect - EXPORT files for SAP ECC
   ansible.builtin.include_tasks: detect_export_sapecc.yml
-  when:
-    - sap_install_media_detect_export == "sapecc"
+  when: sap_install_media_detect_export == "sapecc"
 
 - name: SAP Install Media Detect - EXPORT files for SAP ECC IDES
   ansible.builtin.include_tasks: detect_export_sapecc_ides.yml
-  when:
-    - sap_install_media_detect_export == "sapecc_ides"
+  when: sap_install_media_detect_export == "sapecc_ides"
 
 - name: SAP Install Media Detect - EXPORT files for SAP S/4HANA
   ansible.builtin.include_tasks: detect_export_saps4hana.yml
@@ -90,13 +109,11 @@
 
 - name: SAP Install Media Detect - EXPORT files for SAP NetWeaver AS (ABAP) platform only
   ansible.builtin.include_tasks: detect_export_sapnwas_abap.yml
-  when:
-    - sap_install_media_detect_export == "sapnwas_abap"
+  when: sap_install_media_detect_export == "sapnwas_abap"
 
 - name: SAP Install Media Detect - EXPORT files for SAP NetWeaver AS (JAVA) platform only
   ansible.builtin.include_tasks: detect_export_sapnwas_java.yml
-  when:
-    - sap_install_media_detect_export == "sapnwas_java"
+  when: sap_install_media_detect_export == "sapnwas_java"
 
 - name: SAP Install Media Detect - EXPORT files for SAP Solution Manager (ABAP)
   ansible.builtin.include_tasks: detect_export_sapsolman_abap.yml

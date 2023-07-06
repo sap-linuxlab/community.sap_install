@@ -2,7 +2,7 @@
 
 - name: SAP Install Media Detect - SAP HANA - Set fact for install media directory
   ansible.builtin.set_fact:
-    sap_hana_install_directory: "{{ sap_install_media_detect_directory }}/sap_hana"
+    sap_hana_install_directory: "{{ __sap_install_media_detect_software_main_directory }}/sap_hana"
 
 - name: SAP Install Media Detect - SAP HANA - Create Directory - {{ sap_hana_install_directory }}
   ansible.builtin.file:
@@ -14,14 +14,14 @@
 
 - name: SAP Install Media Detect - SAP HANA - Copy SAPCAR file
   ansible.builtin.shell: |
-    cp {{ sap_install_media_detect_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }} {{ sap_hana_install_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }}
+    cp {{ __sap_install_media_detect_software_main_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }} {{ sap_hana_install_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }}
   changed_when: true
 
 # IMDB SAR Files
-- name: SAP Install Media Detect - SAP HANA - Get all IMDB SAR files in folder - {{ sap_install_media_detect_directory }}
+- name: SAP Install Media Detect - SAP HANA - Get all IMDB SAR files in folder - {{ __sap_install_media_detect_software_main_directory }}
   ansible.builtin.shell: ls IMDB*.SAR
   args:
-    chdir: "{{ sap_install_media_detect_directory }}"
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   register: imdb_sarfiles_list
   changed_when: false
 
@@ -33,7 +33,7 @@
 
 - name: SAP Install Media Detect - SAP HANA - Copy SAP HANA files
   ansible.builtin.shell: |
-    cp {{ sap_install_media_detect_directory }}/{{ item }} {{ sap_install_media_detect_directory }}/sap_hana/{{ item }}
+    cp {{ __sap_install_media_detect_software_main_directory }}/{{ item }} {{ __sap_install_media_detect_software_main_directory }}/sap_hana/{{ item }}
   loop: "{{ sap_hana_install_imdb_sar }}"
   when:
     - not( imdb_sarfiles_list.stdout == '' )
