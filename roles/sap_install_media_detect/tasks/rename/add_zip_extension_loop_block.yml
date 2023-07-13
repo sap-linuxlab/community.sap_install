@@ -1,0 +1,15 @@
+---
+
+- name: SAP Install Media Detect - Rename - Loop Block - Get info about target zip file '{{ line_item.file }}.zip'
+  ansible.builtin.stat:
+    path: "{{ line_item.dir }}/{{ line_item.file }}.zip"
+  register: __sap_install_media_detect_register_zip_file_stat
+
+- name: SAP Install Media Detect - Rename - Loop Block - Fail if '{{ line_item.file }}.zip' already exists
+  ansible.builtin.fail:
+    msg: "File {{ line_item.dir }}/{{ line_item.file }}.zip already exists!"
+  when: __sap_install_media_detect_register_zip_file_stat.stat.exists
+
+- name: SAP Install Media Detect - Rename - Loop Block - Rename '{{ line_item.file }}' to '{{ line_item.file }}.zip'
+  ansible.builtin.command: mv {{ line_item.dir }}/{{ line_item.file }} {{ line_item.dir }}/{{ line_item.file }}.zip
+  changed_when: true

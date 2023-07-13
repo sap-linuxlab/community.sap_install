@@ -1,15 +1,15 @@
 ---
 
-- name: SAP Install Media Detect - Rename - Loop Block - Get info about target file
+- name: SAP Install Media Detect - Rename - Loop Block - Get info about target rar file '{{ line_item.file }}.rar'
   ansible.builtin.stat:
-    path: "{{ line_item.dir }}/{{ line_item.file }}.{{ __sap_install_media_detect_fact_rar_extension }}"
-  register: __sap_install_media_detect_register_file_stat
+    path: "{{ line_item.dir }}/{{ line_item.file }}.rar"
+  register: __sap_install_media_detect_register_rar_file_stat
 
-- name: SAP Install Media Detect - Rename - Loop Block - Fail if the target file already exists
+- name: SAP Install Media Detect - Rename - Loop Block - Fail if '{{ line_item.file }}.rar' already exists
   ansible.builtin.fail:
-    msg: "File {{ line_item.dir }}/{{ line_item.file }}.{{ __sap_install_media_detect_fact_rar_extension }} already exists!"
-  when: __sap_install_media_detect_register_file_stat.stat.exists
+    msg: "File {{ line_item.dir }}/{{ line_item.file }}.rar already exists!"
+  when: __sap_install_media_detect_register_rar_file_stat.stat.exists
 
-- name: SAP Install Media Detect - Rename - Loop Block - Rename the file
-  ansible.builtin.command: mv {{ line_item.dir }}/{{ line_item.file }} {{ line_item.dir }}/{{ line_item.file }}.{{ __sap_install_media_detect_fact_rar_extension }}
+- name: SAP Install Media Detect - Rename - Loop Block - Rename '{{ line_item.file }}' to '{{ line_item.file }}.rar'
+  ansible.builtin.command: mv {{ line_item.dir }}/{{ line_item.file }} {{ line_item.dir }}/{{ line_item.file }}.rar
   changed_when: true

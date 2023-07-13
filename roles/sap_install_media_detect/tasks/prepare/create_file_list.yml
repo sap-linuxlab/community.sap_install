@@ -10,6 +10,7 @@
     __sap_install_media_detect_fact_files_without_extension: []
     __sap_install_media_detect_fact_files_without_extension_file_results: []
     __sap_install_media_detect_fact_zip_files_without_extension: []
+    __sap_install_media_detect_fact_exe_files_without_extension: []
     __sap_install_media_detect_fact_rar_files_without_extension: []
 
 - name: SAP Install Media Detect - Prepare - Create list of all files on the top level of 'sap_install_media_detect_source_directory'
@@ -59,16 +60,14 @@
   when: item.file_type is search 'Zip archive data'
   loop: "{{ __sap_install_media_detect_fact_files_without_extension_file_results }}"
 
-- name: SAP Install Media Detect - Prepare - Display list of zip files to be renamed
-  ansible.builtin.debug:
-    var: __sap_install_media_detect_fact_zip_files_without_extension
+- name: SAP Install Media Detect - Prepare - Set fact with file names without extension and of type 'RAR self-extracting archive'
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_exe_files_without_extension: "{{ __sap_install_media_detect_fact_exe_files_without_extension + [item] }}"
+  when: item.file_type is search 'RAR self-extracting archive'
+  loop: "{{ __sap_install_media_detect_fact_files_without_extension_file_results }}"
 
 - name: SAP Install Media Detect - Prepare - Set fact with file names without extension and of type 'RAR archive data'
   ansible.builtin.set_fact:
     __sap_install_media_detect_fact_rar_files_without_extension: "{{ __sap_install_media_detect_fact_rar_files_without_extension + [item] }}"
   when: item.file_type is search 'RAR archive data'
   loop: "{{ __sap_install_media_detect_fact_files_without_extension_file_results }}"
-
-- name: SAP Install Media Detect - Prepare - Display list of rar files to be renamed
-  ansible.builtin.debug:
-    var: __sap_install_media_detect_fact_rar_files_without_extension

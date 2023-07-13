@@ -1,0 +1,15 @@
+---
+
+- name: SAP Install Media Detect - Rename - Loop Block - Get info about target self-extracting rar file '{{ line_item.file }}.exe'
+  ansible.builtin.stat:
+    path: "{{ line_item.dir }}/{{ line_item.file }}.exe"
+  register: __sap_install_media_detect_register_exe_file_stat
+
+- name: SAP Install Media Detect - Rename - Loop Block - Fail if '{{ line_item.file }}.exe' already exists
+  ansible.builtin.fail:
+    msg: "File {{ line_item.dir }}/{{ line_item.file }}.exe already exists!"
+  when: __sap_install_media_detect_register_exe_file_stat.stat.exists
+
+- name: SAP Install Media Detect - Rename - Loop Block - Rename '{{ line_item.file }}' to '{{ line_item.file }}.exe'
+  ansible.builtin.command: mv {{ line_item.dir }}/{{ line_item.file }} {{ line_item.dir }}/{{ line_item.file }}.exe
+  changed_when: true
