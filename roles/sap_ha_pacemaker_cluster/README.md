@@ -82,20 +82,20 @@ All SAP Software must be installed, and all remote/file storage mounts must be a
 
 In addition, the following network ports must be available:
 
-| **SAP Technical Application** | **Component** | **Port** |
-| --- | --- | --- |
-| SAP HANA Sytem Replication | | |
-| | hdbnameserver, used for log and data shipping from a primary site to a secondary site.<br/>System DB port number plus 10,000 | 4`<sap_hana_instance_no>`01 |
-| | hdbnameserver, unencrypted metadata communication between sites.<br/>System DB port number plus 10,000 | 4`<sap_hana_instance_no>`02 |
-| | hdbnameserver, used for encrypted metadata communication between sites.<br/>System DB port number plus 10,000 | 4`<sap_hana_instance_no>`06 |
-| | hdbindexserver, used for first MDC Tenant database schema | 4`<sap_hana_instance_no>`03 |
-| | hdbxsengine, used for SAP HANA XSC/XSA | 4`<sap_hana_instance_no>`07 |
-| | hdbscriptserver, used for log and data shipping from a primary site to a secondary site.<br/>Tenant port number plus 10,000 | 4`<sap_hana_instance_no>`40-97 |
-| | hdbxsengine, used for log and data shipping from a primary site to a secondary site.<br/>Tenant port number plus 10,000 | 4`<sap_hana_instance_no>`40-97 |
-| Linux Pacemaker | | |
-| | pcsd | 2224 (TCP), cluster nodes requirement for node-to-node communication  |
-| | pacemaker | 3121 (TCP), cluster nodes requirement for Pacemaker Remote service daemon |
-| | corosync | 5404-5412 (UDP), cluster nodes requirement for node-to-node communcation |
+| **SAP Technical Application and Component** | **Port** |
+| --- | --- |
+| **_SAP HANA Sytem Replication_** | |
+| hdbnameserver<br/><sub> used for log and data shipping from a primary site to a secondary site.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_no>`01 |
+| hdbnameserver<br/><sub> unencrypted metadata communication between sites.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_no>`02 |
+| hdbnameserver<br/><sub> used for encrypted metadata communication between sites.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_no>`06 |
+| hdbindexserver<br/><sub> used for first MDC Tenant database schema</sub> | 4`<sap_hana_instance_no>`03 |
+| hdbxsengine<br/><sub> used for SAP HANA XSC/XSA</sub> | 4`<sap_hana_instance_no>`07|
+| hdbscriptserver<br/><sub> used for log and data shipping from a primary site to a secondary site.<br/>Tenant port number plus 10,000</sub> | 4`<sap_hana_instance_no>`40-97 |
+| hdbxsengine<br/><sub> used for log and data shipping from a primary site to a secondary site.<br/>Tenant port number plus 10,000</sub> | 4`<sap_hana_instance_no>`40-97 |
+| **_Linux Pacemaker_** | |
+| pcsd<br/><sub> cluster nodes requirement for node-to-node communication</sub> | 2224 (TCP)|
+| pacemaker<br/><sub> cluster nodes requirement for Pacemaker Remote service daemon</sub> | 3121 (TCP) |
+| corosync<br/><sub> cluster nodes requirement for node-to-node communcation</sub> | 5404-5412 (UDP) |
 
 ## Execution Flow
 
