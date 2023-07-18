@@ -2,10 +2,6 @@
 
 Ansible Role for preparing a host with the storage requirements of an SAP System (prior to software installation)
 
-## Requirements
-
-The Ansible Role requires the `community.general` Ansible Collection (uses the `lvg`, `lvol` and `filesystem` Ansible modules). Before using this role, please make sure that the required collections are installed, for example by using the following command: `ansible-galaxy install community.general`
-
 ## Scope
 
 This Ansible Role provides:
@@ -13,13 +9,19 @@ This Ansible Role provides:
 - remote/file storage mount (and subdirectories as required)
 - swap file or swap partition
 
-This role has been tested for the following SAP software deployment types:
+This Ansible Role has been tested for the following SAP software deployment types:
 - SAP HANA Scale-up, Scale-out and Scale-up High Availability
 - SAP NetWeaver AS in Sandbox (Two-Tier/OneHost), Standard (Three-Tier/DualHost), Distributed (Multi-Tier) and Distributed High Availability
 
 This Ansible Role is agnostic, and will run on any Infrastructure Platform. Only LVM is used for local/block storage, to allow for further expansion if the SAP System requires further storage space in the future.
 
-Please note, while this Ansible Role has protection against overwrite of existing disks and filesystems - sensibile review and care is required for any automation of disk storage. Please review the documentation and samples/examples carefully. It is strongly suggested to run the Ansible Playbook calling this Ansible Role, with `ansible-playbook --check` for Check Mode.
+Please note, while this Ansible Role has protection against overwrite of existing disks and filesystems - sensibile review and care is required for any automation of disk storage. Please review the documentation and samples/examples carefully. It is strongly suggested to initially execute the Ansible Playbook calling this Ansible Role, with `ansible-playbook --check` for Check Mode - this will perform no changes to the host and show which changes would be made.
+
+## Requirements
+
+The Ansible Role requires the `community.general` Ansible Collection (uses the `lvg`, `lvol` and `filesystem` Ansible Modules).
+
+Before using this Ansible Role, please make sure that the required collections are installed; for example, by using the command `ansible-galaxy install community.general`
 
 ## Prerequisites
 
@@ -27,7 +29,7 @@ All local/block storage volumes must be attached to the host, and all remote/fil
 
 ## Variables and Parameters
 
-There are 3 critical variables are:
+The 3 critical variables are:
 - `sap_storage_setup_definition` - a list with a dictionary for each mountpoint (e.g. /hana/data) for the host
 - `sap_storage_setup_host_type` - a list which defines SAP Software on the host (e.g. list containing both hana_primary and nwas_abap_ascs values if creating a Sandbox Two-Tier/OneHost)
 - `sap_storage_setup_sid` - a string with the SAP System ID of the logical system (e.g. D01)
@@ -48,7 +50,7 @@ Please see a full sample using multiple hosts to create an SAP S/4HANA Distribut
 
 ## License
 
-Apache license 2.0
+Apache 2.0
 
 ## Author Information
 
