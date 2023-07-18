@@ -1,0 +1,47 @@
+---
+
+- name: SAP Install Media Detect - Rename - Loop Block - Get info about target self-extracting rar file '{{ line_item.file }}.exe'
+  ansible.builtin.stat:
+    path: "{{ line_item.dir }}/{{ line_item.file }}.exe"
+  register: __sap_install_media_detect_register_exe_file_target_stat
+
+- name: SAP Install Media Detect - Rename - Loop Block - Get info about source self-extracting rar file '{{ line_item.file }}'
+  ansible.builtin.stat:
+    path: "{{ line_item.dir }}/{{ line_item.file }}"
+  register: __sap_install_media_detect_register_exe_file_source_stat
+
+- name: SAP Install Media Detect - Rename - Loop Block - '{{ line_item.file }}.exe' exists
+  when: __sap_install_media_detect_register_exe_file_target_stat.stat.exists
+  block:
+
+    - name: SAP Install Media Detect - Rename - Loop Block - '{{ line_item.file }}' is identical - Remove it
+      ansible.builtin.file:
+        path: "{{ line_item.dir }}/{{ line_item.file }}"
+        state: absent
+      when: __sap_install_media_detect_register_exe_file_source_stat.stat.checksum ==
+            __sap_install_media_detect_register_exe_file_target_stat.stat.checksum
+
+    - name: SAP Install Media Detect - Rename - Loop Block - '{{ line_item.file }}' is different - Fail
+      ansible.builtin.fail:
+        msg: "File {{ line_item.dir }}/{{ line_item.file }}.exe already exists!"
+      when:
+        - __sap_install_media_detect_register_exe_file_source_stat.stat.checksum !=
+          __sap_install_media_detect_register_exe_file_target_stat.stat.checksum
+        - sap_install_media_detect_rename_target_file_exists == 'fail'
+
+    - name: SAP Install Media Detect - Rename - Loop Block - '{{ line_item.file }}' is different - Skip
+      ansible.builtin.debug:
+        msg: "File {{ line_item.dir }}/{{ line_item.file }}.exe already exists. Skipping."
+      when:
+        - __sap_install_media_detect_register_exe_file_source_stat.stat.checksum !=
+          __sap_install_media_detect_register_exe_file_target_stat.stat.checksum
+        - sap_install_media_detect_rename_target_file_exists == 'skip'
+
+- name: SAP Install Media Detect - Rename - Loop Block - Rename '{{ line_item.file }}' to '{{ line_item.file }}.exe'
+  ansible.builtin.command: mv {{ line_item.dir }}/{{ line_item.file }} {{ line_item.dir }}/{{ line_item.file }}.exe
+  changed_when: true
+  when: not __sap_install_media_detect_register_exe_file_target_stat.stat.exists or
+        (
+           __sap_install_media_detect_register_exe_file_target_stat.stat.exists and
+           sap_install_media_detect_rename_target_file_exists == 'overwrite'
+        )

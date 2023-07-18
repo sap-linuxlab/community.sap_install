@@ -2,9 +2,9 @@
 
 - name: SAP Install Media Detect - SAP SWPM - Set fact for install media directory
   ansible.builtin.set_fact:
-    sap_swpm_install_directory: "{{ sap_install_media_detect_directory }}/sap_swpm"
-    sap_swpm_software_path: "{{ sap_install_media_detect_directory }}"
-    sap_swpm_swpm_path: "{{ sap_install_media_detect_directory }}/sap_swpm"
+    sap_swpm_install_directory: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm"
+    sap_swpm_software_path: "{{ __sap_install_media_detect_software_main_directory }}"
+    sap_swpm_swpm_path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm"
 
 - name: SAP Install Media Detect - SAP SWPM - Create Directory - {{ sap_swpm_install_directory }}
   ansible.builtin.file:
@@ -16,20 +16,20 @@
 
 - name: SAP Install Media Detect - SAP SWPM - Copy SAPCAR file
   ansible.builtin.shell: |
-    cp {{ sap_install_media_detect_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }} {{ sap_swpm_install_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }}
+    cp {{ __sap_install_media_detect_software_main_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }} {{ sap_swpm_install_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }}
   changed_when: true
 
 # SWPM
-- name: SAP Install Media Detect - SAP SWPM - Get SWPM from {{ sap_install_media_detect_directory }}
+- name: SAP Install Media Detect - SAP SWPM - Get SWPM from {{ __sap_install_media_detect_software_main_directory }}
   ansible.builtin.shell: ls SWPM*.SAR
   args:
-    chdir: "{{ sap_install_media_detect_directory }}"
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   register: sap_swpm_swpm_sar_file_name_get
   changed_when: false
 
 - name: SAP Install Media Detect - SAP SWPM - Copy SWPM file
   ansible.builtin.shell: |
-    cp {{ sap_install_media_detect_directory }}/{{ sap_swpm_swpm_sar_file_name_get.stdout }} {{ sap_install_media_detect_directory }}/sap_swpm/{{ sap_swpm_swpm_sar_file_name_get.stdout }}
+    cp {{ __sap_install_media_detect_software_main_directory }}/{{ sap_swpm_swpm_sar_file_name_get.stdout }} {{ __sap_install_media_detect_software_main_directory }}/sap_swpm/{{ sap_swpm_swpm_sar_file_name_get.stdout }}
   changed_when: true
 
 
