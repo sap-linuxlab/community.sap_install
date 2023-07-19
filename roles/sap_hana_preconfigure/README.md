@@ -90,233 +90,334 @@ sap_hana_preconfigure configure the SELinux state. Same applies to the assertion
 
 3) SLES systems are now configured using saptune rather than the ansible implementation of the notes.
 
-## Role Variables
+<!-- BEGIN: Role Input Parameters for sap_hana_preconfigure -->
+## Role Input Parameters
 
-- set in `defaults/main.yml`:
+#### Minimum required parameters:
 
-### Execute only certain steps of SAP notes (RHEL only)
-If the following variable is set to `no`, only certain steps of SAP notes will be executed or checked as per setting of variable `sap_hana_preconfigure_<sap_note_number>_<step>`. If this variable is undefined or set to `yes`, all installation and configuration steps of applicable SAP notes will be executed.
-```yaml
-sap_hana_preconfigure_config_all
-```
+This role does not require any parameter to be set in the playbook or inventory.
 
-### Perform installation or configuration steps, or both (RHEL only)
-If you have set `sap_hana_preconfigure_config_all` (see above) to `no`, you can limit the scope of the role to only execute the installation or the configuration steps. For this purpose, set one of the following variables, or both, to `yes`. The default for both is `no`.
-```yaml
-sap_hana_preconfigure_installation
-sap_hana_preconfigure_configuration
-```
 
-### Define configuration steps of SAP notes (RHEL only)
-For defining one or more configuration steps of SAP notes to be executed or checked only, set variable `sap_hana_preconfigure_config_all` to `no`, `sap_hana_preconfigure_configuration` to `yes`, and one or more of the following variables to `yes`:
-```yaml
-sap_hana_preconfigure_2777782_[02...10], example: sap_hana_preconfigure_2777782_05
-sap_hana_preconfigure_2292690_[01...07,09,10], example: sap_hana_preconfigure_2292690_02
-sap_hana_preconfigure_2009879_3_9
-sap_hana_preconfigure_2009879_3_14_[1...4]
-sap_hana_preconfigure_2009879_3_15
-sap_hana_preconfigure_2382421
-sap_hana_preconfigure_3024346
-```
+### sap_hana_preconfigure_config_all
+- _Type:_ `bool`
 
-### Run the role in assert mode
-If the following variable is set to `yes`, the role will only check if the configuration of the managed node(s) is according to the applicable SAP notes. Default is `no`.
-```yaml
-sap_hana_preconfigure_assert
-```
+If set to `false`, the role will only execute or verify the installation or configuration steps of SAP notes.<br>
+Default is to perform installation and configuration steps.<br>
 
-### Behavior of the role in assert mode
-If the role is run in assert mode (see above) and the following variable is set to `yes`, assertion errors will not cause the role to fail. This can be useful for creating reports.
-Default is `no`, meaning that the role will fail for any assertion error which is discovered. This variable has no meaning if the role is not run in assert mode.
-```yaml
-sap_hana_preconfigure_assert_ignore_errors
-```
+### sap_hana_preconfigure_installation
+- _Type:_ `bool`
 
-### Perform all configuration checks in assert mode
-If the following variable is set to `yes`, if the role is configured with variable `sap_hana_preconfigure_assert` being set to `yes`, the role will check all configuration steps
-no matter of the setting of the tuned and grub variables. Default is `no`, meaning that only those configuration steps are checked which are enabled by the tuned and grub variables.
-Example: If variable `sap_hana_preconfigure_modify_grub_cmdline_linux` is set to `no`, when running the role in assert mode, the role will not check if the grub command line
-has been modified according to this role.
-```yaml
-sap_hana_preconfigure_assert_all_config
-```
+If `sap_hana_preconfigure_config_all` is set to `false`, set this variable to `true` to perform only the<br>
+installation steps of SAP notes.<br>
 
-### Perform a RHEL minor release check for SAP HANA (RHEL only)
+### sap_hana_preconfigure_configuration
+- _Type:_ `bool`
 
-If the following variable is set to `no`, the role will install packages and modify settings on the managed node even if the RHEL release is not contained in the list of
-supported RHEL releases. Default is `yes`. In assert mode (`sap_hana_preconfigure_assert` = `yes`), the role will always perform the RHEL release check but will
-display display "WARN" or "INFO" if the variable is set to `no`, instead of the default "FAIL" or "PASS".
-```yaml
-sap_hana_preconfigure_min_rhel_release_check
-```
+If `sap_hana_preconfigure_config_all` is set to `false`, set this variable to `true` to perform only the<br>
+configuration steps of SAP notes for which the corresponding SAP notes parameters have been set to `true`.<br>
 
-### Override the supported RHEL minor release list for SAP HANA (RHEL only)
-
-If you want to provide you own list of supported RHEL releases (e.g. for testing), override the variable. Otherwise, the defaults as set in vars/RedHat_*.yml will be used.
-```yaml
-sap_hana_preconfigure_supported_rhel_minor_releases
-```
-
-### Repo checking and enabling (RHEL only)
-If you want the role to check and if necessary enable SAP HANA repos, set the following variable to `yes`. Default is `no`.
-```yaml
-sap_hana_preconfigure_enable_sap_hana_repos
-```
-
-### Override default repo list(s) (RHEL only)
-If you want to provide you own list(s) of repositories for checking and enabling, override one or more of the following variables. Otherwise, the defaults as set in vars/RedHat_*.yml will be used.
-```yaml
-sap_hana_preconfigure_req_repos_RedHat_7_x86_64
-sap_hana_preconfigure_req_repos_RedHat_7_ppc64le
-sap_hana_preconfigure_req_repos_RedHat_8_x86_64
-sap_hana_preconfigure_req_repos_RedHat_8_ppc64le
-```
-
-### Set the RHEL release to a certain fixed minor release (RHEL only) 
-If you want the role to set the RHEL release to a certain fixed minor release (according to installed RHEL release), set the following variable to `yes`. Default is `no`.
-```yaml
-sap_hana_preconfigure_set_minor_release
-```
-
-### Minimum package check
-The following variable will make sure packages are installed at minimum required versions as defined in files `vars/*.yml`. Default is `yes`.
-```yaml
-sap_hana_preconfigure_min_package_check
-```
-
-### Perform a package update
-If the following variable is set to `yes`, the role will run a `yum update` for RHEL or a `zypper update` for SLES, before performing configuration changes. Default is `no`. \
-*Note*: The outcome of a `yum update` depends on the managed node's configuration for sticky OS minor version, see the description of the release option in `man subscription-manager`. For SAP HANA installations, setting a certain minor version with `subscription-manager release --set=X.Y` is a strict requirement.
-```yaml
-sap_hana_preconfigure_update
-```
-
-###  HANA kernel parameters
-[SAP Note 238241](https://launchpad.support.sap.com/#/notes/238241) defines kernel parameters that all Linux systems need to set.
-The default parameter recomendations are dependent on the OS release. Hence the OS dependant default setting is defined in
-./vars/{{ansible_os_release}}.yml. If you need to add or change parameters for your system, copy these parameters from the vars file
-into the variable sap_hana_preconfigure_kernel_parameters and add or change your settings, as in the following example:
+Example:
 
 ```yaml
-sap_hana_preconfigure_kernel_parameters:
-  - { name: net.core.somaxconn, value: 4096 }
-  - { name: net.ipv4.tcp_max_syn_backlog, value: 8192 }
-  - { name: net.ipv4.tcp_timestamps, value: 1 }
-  - { name: net.ipv4.tcp_slow_start_after_idle, value: 0 }
+sap_hana_preconfigure_config_all: false
+sap_hana_preconfigure_configuration: true
+sap_hana_preconfigure_2772999_04: true
+sap_hana_preconfigure_2382421: true
 ```
 
-Note that kernel parameters for SLES systems are automatically handled by saptune.
+### sap_hana_preconfigure_assert
+- _Type:_ `bool`
+- _Default:_ `false`
 
-###  HANA kernel parameters for IBM POWER servers
-[SAP Note 2055470](https://launchpad.support.sap.com/#/notes/2055470) contains links to IBM documents for SAP HANA on POWER.
-Among these is a document which contains certain recommended Linux kernel settings for SAP HANA on POWER:
-Network_Configuration_for_HANA_Workloads_on_IBM_Power_Servers_V7.1.pdf.
-This document is linked from SAP note 2055470 via "SAP HANA on IBM Power Systems and IBM System Storage - Guides", then via
-"SAP on Linux and IBM Storage Guides (incl. HANA)", and then via
-"SAP on Power Linux Network and Fibre Channel Guides".
-The default parameter recommendations are defined in ./vars/{{ansible_os_release}}.yml. If you need to add or change parameters
-for your system, copy these parameters from the vars file into the variable sap_hana_preconfigure_kernel_parameters_ppc64le and
-add or change your settings, similar to the previous example.
+If set to `true`, the role will run in assertion mode instead of the default configuration mode.<br>
 
-Note that kernel parameters for SLES systems are automatically handled by saptune.
+### sap_hana_preconfigure_assert_all_config
+- _Type:_ `bool`
+- _Default:_ `false`
 
-###  HANA kernel parameters for NetApp NFS (RHEL only)   
-[SAP Note 3024346](https://launchpad.support.sap.com/#/notes/3024346) defines kernel parameter settings for NetApp NFS.
-In case you want the role to set or check these parameters, set the following variable to `yes`. Default is `no`.
+In assertion mode, the role will check either tuned or static settings.<br>
+If this parameter is set to to `true`, the role will check both tuned and static settings.<br>
+
+### sap_hana_preconfigure_assert_ignore_errors
+- _Type:_ `bool`
+- _Default:_ `false`
+
+In assertion mode, the role will abort when encountering any assertion error.<br>
+If this parameter is set to `false`, the role will *not* abort when encountering an assertion error.<br>
+This is useful if the role is used for reporting a system's SAP notes compliance.<br>
+
+### sap_hana_preconfigure_system_roles_collection
+- _Type:_ `str`
+- _Default:_ `'fedora.linux_system_roles'`
+- _Possible Values:_<br>
+  - `fedora.linux_system_roles`
+  - `redhat.rhel_system_roles`
+
+Set which Ansible Collection to use for the Linux System Roles.<br>
+For community/upstream, use 'fedora.linux_system_roles'<br>
+For the RHEL System Roles for SAP, or for Red Hat Automation Hub, use 'redhat.rhel_system_roles'<br>
+
+### sap_hana_preconfigure_min_rhel_release_check
+- _Type:_ `bool`
+- _Default:_ `true`
+
+Check the RHEL release against a predefined list of known SAP HANA supported RHEL minor releases.<br>
+If this parameter is set to `false`, the role will *not* perform this check.<br>
+
+### sap_hana_preconfigure_supported_rhel_minor_releases
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+Use this parameter to set your own list of SAP HANA supported RHEL minor releases.<br>
+
+### sap_hana_preconfigure_enable_sap_hana_repos
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Set to 'true' to enable the SAP HANA required RHEL repos.<br>
+This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
+The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_use_hana_repos`.<br>
+
+### sap_hana_preconfigure_req_repos_redhat_7_x86_64
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+Use this parameter to set your own list of SAP HANA required RHEL 7 repos on x86_64'<br>
+This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
+The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.<br>
+
+### sap_hana_preconfigure_req_repos_redhat_7_ppc64le
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+Use this parameter to set your own list of SAP HANA required RHEL 7 repos on ppc64le'<br>
+This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
+The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.<br>
+
+### sap_hana_preconfigure_req_repos_redhat_8_x86_64
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+Use this parameter to set your own list of SAP HANA required RHEL 8 repos on x86_64'<br>
+This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
+The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.<br>
+
+### sap_hana_preconfigure_req_repos_redhat_8_ppc64le
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+Use this parameter to set your own list of SAP HANA required RHEL 8 repos on ppc64le'<br>
+This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
+The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.<br>
+
+### sap_hana_preconfigure_req_repos_redhat_9_x86_64
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+Use this parameter to set your own list of SAP HANA required RHEL 9 repos on x86_64'<br>
+This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
+The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.<br>
+
+### sap_hana_preconfigure_req_repos_redhat_9_ppc64le
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+Use this parameter to set your own list of SAP HANA required RHEL 9 repos on ppc64le'<br>
+This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
+The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.<br>
+
+### sap_hana_preconfigure_set_minor_release
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Use this parameter to set the RHEL minor release, which is required for SAP HANA.<br>
+The related parameter is `sap_general_preconfigure_set_minor_release`.<br>
+
+### sap_hana_preconfigure_create_directories
+- _Type:_ `bool`
+- _Default:_ `true`
+
+Set to `false` if you do not want the SAP HANA directories to be created by the role.<br>
+The SAP HANA directories will always be created if `sap_hana_preconfigure_modify_selinux_labels`<br>
+(see below) is set to `true`, no matter how `sap_hana_preconfigure_create_directories` is set.<br>
+
+### sap_hana_preconfigure_hana_directories
+- _Type:_ `list` with elements of type `str`
+- _Default:_
+  - /hana
+  - /lss/shared
+
+List of SAP HANA directories to be created.<br>
+
+### sap_hana_preconfigure_modify_selinux_labels
+- _Type:_ `bool`
+- _Default:_ `true`
+
+For compatibility of SAP HANA with SELinux in enforcing mode, the role will recursively add<br>
+the `usr_t` label to directories and files in the directories where HANA is installed.<br>
+If relabeling not desired, set this parameter `false`.<br>
+If the variable is set to `true`, the SAP HANA directories will be created no matter<br>
+how the variable `sap_hana_preconfigure_create_directories` (see above) is set.<br>
+
+### sap_hana_preconfigure_packages
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+List of RHEL packages to be installed for SAP HANA. For RHEL 8 and later, you can choose to install either the default list<br>
+or a list of the minimum required packages for SAP HANA server (parameter `__sap_hana_preconfigure_packages_min_install`).<br>
+
+### sap_hana_preconfigure_min_package_check
+- _Type:_ `bool`
+- _Default:_ `true`
+
+SAP HANA requires certain minimum package versions to be supported. These minimum levels are listed in SAP Note 2235581.<br>
+Set this parameter to `false` if you want to ignore these requirements.<br>
+
+### sap_hana_preconfigure_update
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Set this parameter to `true` to update the system to the latest package levels.<br>
+By setting the parameter `sap_general_preconfigure_set_minor_release` of the<br>
+role `sap_general_preconfigure` to `true`, you can install the most recent package updates<br>
+without updating to a more recent RHEL minor release.<br>
+
+### sap_hana_preconfigure_reboot_ok
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Set to `true` if you want to perform a reboot at the end of the role, if necessary.<br>
+
+### sap_hana_preconfigure_fail_if_reboot_required
+- _Type:_ `bool`
+- _Default:_ `true`
+
+If `sap_hana_preconfigure_reboot_ok` is set to `false`, which is the default, a reboot requirement should not<br>
+remain unnoticed. For this reason, we let the role fail. Set this parameter to `false` to override this behavior.<br>
+Can be useful if you want to implement your own reboot handling.<br>
+
+### sap_hana_preconfigure_kernel_parameters
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+Network related linux kernel parameter settings for SAP HANA on all hardware platforms.<br>
+
+### sap_hana_preconfigure_kernel_parameters_ppc64le
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+Network related linux kernel parameter settings for platform ppc64le.<br>
+
+### sap_hana_preconfigure_use_netapp_settings_nfs
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Set to `true` to also set NetApp NFS required kernel parameters.<br>
+
+### sap_hana_preconfigure_use_netapp_settings_nfsv3
+- _Type:_ `bool`
+- _Default:_ `false`
+
+If `sap_hana_preconfigure_use_netapp_settings_nfs` is set to `true` and NFS Version 3 is to be used,<br>
+this parameter must be set to `true` as well.<br>
+
+### sap_hana_preconfigure_install_ibm_power_tools
+- _Type:_ `bool`
+- _Default:_ `true`
+
+Set this parameter to `false` to not install the IBM Power Systems service and productivity tools.<br>
+
+### sap_hana_preconfigure_add_ibm_power_repo
+- _Type:_ `bool`
+- _Default:_ `true`
+
+Set this parameter to `false` if you do not want to add the IBM Power tools repository (e.g. because the packages<br>
+are already available on the local network). The IBM Power Systems service and productivity tools will only<br>
+be installed if the variable `sap_hana_preconfigure_install_ibm_power_tools` is set to `true`, which is the default.<br>
+
+### sap_hana_preconfigure_ibm_power_repo_url
+- _Type:_ `str`
+- _Default:_ (set by platform/environment specific variables)
+
+URL of the IBM Power tools repository.<br>
+
+### sap_hana_preconfigure_ppcle_mtu9000_if
+- _Type:_ `str`
+- _Default:_ `''`
+
+List of interfaces for which the MTU size will be set to `9000`.<br>
+
+### sap_hana_preconfigure_ppcle_tso_if
+- _Type:_ `list` with elements of type `str`
+- _Default:_
+  '{{ ansible_interfaces | difference([''lo'']) }}'
+
+List of interfaces for which the tso flag will be set.<br>
+
+### sap_hana_preconfigure_use_tuned
+- _Type:_ `bool`
+- _Default:_ `true`
+
+Use tuned for configuring most of the kernel settings for SAP HANA<br>
+Set this parameter to `false` to use static kernel settings<br>
+
+### sap_hana_preconfigure_tuned_profile
+- _Type:_ `str`
+- _Default:_ `'sap-hana'`
+
+Name of the SAP HANA tuned tuned profile to enable (RHEL).<br>
+
+### sap_hana_preconfigure_modify_grub_cmdline_linux
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Set this parameter to `true` to modify the Grub boot command line.<br>
+
+### sap_hana_preconfigure_run_grub2_mkconfig
+- _Type:_ `bool`
+- _Default:_ `true`
+
+By default, the role will run `grub2-mkconfig` to update the Grub configuration if necessary.<br>
+Set this parameter to `false` if this is not desired.<br>
+
+### sap_hana_preconfigure_db_group_name
+- _Type:_ `str`
+
+Use this parameter to specify the name of the RHEL group which is used for the database processes.<br>
+It will be used to configure process limits as per step "Configuring Process Resource Limits" of SAP note 2772999.<br>
+
+Example:
 
 ```yaml
-sap_hana_preconfigure_use_netapp_settings_nfs
+sap_hana_preconfigure_db_group_name: dba
 ```
 
-###  HANA kernel parameters for NetApp NFSv3 (RHEL only) 
-[SAP Note 3024346](https://launchpad.support.sap.com/#/notes/3024346) also contains an additional parameter setting for NetApp when using NFSv3.
-In case you want the role to set or check this parameter, set the following variable to `yes`. Default is `no`.
+### sap_hana_preconfigure_saptune_version
+- _Type:_ `str`
+- _Default:_ `'3.0.2'`
 
-```yaml
-sap_hana_preconfigure_use_netapp_settings_nfsv3
-```
+Version of saptune to install (SLES for SAP Applications).<br>
+This will replace the current installed version if present, even downgrade if necessary.<br>
 
-### Add the repository for IBM service and productivity tools for POWER (RHEL ppc64le only)
-In case you do *not* want to automatically add the repository for the IBM service and productivity tools, set the following variable to `no`. Default is `yes`, meaning that the role will download and install the package specified in variable sap_hana_preconfigure_ibm_power_repo_url (see below) and also run the command /opt/ibm/lop/configure to accept the license.
-```yaml
-sap_hana_preconfigure_add_ibm_power_repo
-```
+### sap_hana_preconfigure_saptune_solution
+- _Type:_ `str`
+- _Default:_ `'HANA'`
+- _Possible Values:_<br>
+  - `HANA`
+  - `NETWEAVER+HANA`
+  - `S4HANA-APP+DB`
+  - `S4HANA-DBSERVER`
 
-### URL for IBM service and productivity tools for POWER (RHEL ppc64le only)
-The following variable is set to the location of package ibm-power-repo-lastest.noarch.rpm or a package with similar contents, as defined by variable __sap_hana_preconfigure_ibm_power_repo_url in vars/RedHat_7.yml and vars/RedHat_8.yml.
-You can replace it by your own URL by setting this variable to a different URL.
-```yaml
-sap_hana_preconfigure_ibm_power_repo_url
-```
+The saptune solution to apply (SLES for SAP Applications).<br>
 
-### Reboot the system if required
-If the following variable is set to `yes`, the role will reboot the managed node if required. The default is `no`, in which case the role will only report that a reboot is required.
-```yaml
-sap_hana_preconfigure_reboot_ok
-```
+### sap_hana_preconfigure_saptune_azure
+- _Type:_ `bool`
+- _Default:_ `false`
 
-### How to behave if a reboot is required
-In case `sap_hana_preconfigure_reboot_ok` (see above) is set to `no`, we should make sure that a reboot requirement does not remain unnoticed.
-The following variable will cause the role to fail if a reboot is required, if undefined or set to `yes`, which is also the default.
-By setting the variable to `no`, the role will not fail if a reboot is required but just print a warning message.
-```yaml
-sap_hana_preconfigure_fail_if_reboot_required
-```
+On Azure, TCP timestamps, reuse and recycle should be disabled (SLES for SAP Applications).<br>
+Set this parameter to `true` on Azure.<br>
 
-### Use tuned profile sap-hana (RHEL only)
-By default, the role will activate tuned profile `sap-hana` for configuring kernel parameters (where possible). If you do not want
-to use the tuned profile sap-hana, set the following variable to `no`. In this case, the role will also modify GRUB_CMDLINE_LINUX,
-no matter how variable `sap_hana_preconfigure_modify_grub_cmdline_linux` (see below) is set.
-Note: If this variable is set to `yes`, the role may still modify GRUB_CMDLINE_LINUX in /etc/default/grub, by setting variable
-`sap_hana_preconfigure_modify_grub_cmdline_linux` to `yes`. This provides more flexibility for setting certain kernel parameters.
-```yaml
-sap_hana_preconfigure_use_tuned
-```
-
-### Specify your own tuned profile (RHEL only) 
-Use the following variable to set a tuned profile string other than the default `sap-hana`. The tuned profile must reside in directory
-`/etc/tuned/my_own_profile`, as file named `tuned.conf` (example for a tuned profile named `my_own_profile`).
-```yaml
-sap_hana_preconfigure_tuned_profile
-```
-
-### Modify grub2 line GRUB_CMDLINE_LINUX
-If you want to modify the grub2 line GRUB_CMDLINE_LINUX in /etc/default/grub, set the following variable to `yes`. The default is `no`. Setting this variable to `yes` probably only makes sense if `sap_hana_preconfigure_run_grub2_mkconfig` (see below) is also set to `yes`.
-Note: If variable sap_hana_preconfigure_use_tuned (see above) is set to `no`, GRUB_CMDLINE_LINUX will modified in any case, no matter how variable `sap_hana_preconfigure_modify_grub_cmdline_linux` is set. This is to guarantee that either the tuned settings or the static settings will be applied. If variable sap_hana_preconfigure_use_tuned (see above) is set to `yes`, `sap_hana_preconfigure_modify_grub_cmdline_linux` can still be set to `yes` for modifying GRUB_CMDLINE_LINUX, providing more flexibility for setting certain kernel parameters.
-```yaml
-sap_hana_preconfigure_modify_grub_cmdline_linux
-```
-
-For SLES users any required changes to grub for SLES are automatically handled by saptune.
-
-### Run grub2-mkconfig
-If you do not want to run grub2-mkconfig to regenerate the grub2 config file after a change to /etc/default/grub (see the desciption of the two previous parameters), set the following variable to `no`. The default is `yes`.
-```yaml
-sap_hana_preconfigure_run_grub2_mkconfig
-```
-
-For SLES users any required changes to grub for SLES are automatically handled by saptune.
-
-## Select saptune solution (SLES only)
-You can specify the saptune solution you want to implement.  For HANA, there are a number of possible solutions depending on the deployment:
-
-- HANA, for when HANA is installed with no other applications
--	NETWEAVER+HANA, for when HANA is installed on the same host as netweaver solution
--	S4HANA-APP+DB, for when HANA is installed on the same host as an S4 solution
-
-The default is `HANA`
-
-```yaml
-sap_hana_preconfigure_saptune_solution
-```
-
-### HANA Major and minor version
-These variables are used in all sap-hana roles so that they are only prefixed with `sap-hana`. If you use `sap-hana-mediacheck` role, these variables are read in automatically. The variable is used in the checks for [SAP Note 2235581](https://launchpad.support.sap.com/#/notes/2235581).
-
-```yaml
-sap_hana_version: "2"
-sap_hana_sps: "0"
-```
+<!-- END: Role Input Parameters for sap_hana_preconfigure -->
 
 ## Example Playbook
 

@@ -1,0 +1,385 @@
+---
+# Requires: ansible 2.11
+# Argument specifications in this separate file maintain backwards compatibility.
+argument_specs:
+
+  main:
+    short_description: Variables for SAP HANA preconfiguration
+    options:
+
+#      sap_hana_preconfigure_...
+#        default:
+#        description:
+#           -
+#        example:
+#
+#        required: false
+#        type:
+#        options: # additional options for lists and dicts
+#          <param>:
+#            description:
+#            ...
+
+      sap_hana_preconfigure_config_all:
+        description:
+          - If set to `false`, the role will only execute or verify the installation or configuration steps of SAP notes.
+          - Default is to perform installation and configuration steps.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_installation:
+        description:
+          - If `sap_hana_preconfigure_config_all` is set to `false`, set this variable to `true` to perform only the
+          - installation steps of SAP notes.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_configuration:
+        description:
+          - If `sap_hana_preconfigure_config_all` is set to `false`, set this variable to `true` to perform only the
+          - configuration steps of SAP notes for which the corresponding SAP notes parameters have been set to `true`.
+        example:
+          sap_hana_preconfigure_config_all: false
+          sap_hana_preconfigure_configuration: true
+          sap_hana_preconfigure_2772999_04: true
+          sap_hana_preconfigure_2382421: true
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_assert:
+        default: false
+        description:
+          - If set to `true`, the role will run in assertion mode instead of the default configuration mode.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_assert_all_config:
+        default: false
+        description:
+          - In assertion mode, the role will check either tuned or static settings.
+          - If this parameter is set to to `true`, the role will check both tuned and static settings.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_assert_ignore_errors:
+        default: false
+        description:
+          - In assertion mode, the role will abort when encountering any assertion error.
+          - If this parameter is set to `false`, the role will *not* abort when encountering an assertion error.
+          - This is useful if the role is used for reporting a system's SAP notes compliance.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_system_roles_collection:
+        default: 'fedora.linux_system_roles'
+        description:
+          - Set which Ansible Collection to use for the Linux System Roles.
+          - For community/upstream, use 'fedora.linux_system_roles'
+          - For the RHEL System Roles for SAP, or for Red Hat Automation Hub, use 'redhat.rhel_system_roles'
+        choices:
+          - 'fedora.linux_system_roles'
+          - 'redhat.rhel_system_roles'
+        required: false
+        type: str
+
+      sap_hana_preconfigure_min_rhel_release_check:
+        default: true
+        description:
+          - Check the RHEL release against a predefined list of known SAP HANA supported RHEL minor releases.
+          - If this parameter is set to `false`, the role will *not* perform this check.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_supported_rhel_minor_releases:
+        default: "{{ __sap_hana_preconfigure_supported_rhel_minor_releases }}"
+        description:
+          - Use this parameter to set your own list of SAP HANA supported RHEL minor releases.
+        required: false
+        type: list
+        elements: str
+
+      sap_hana_preconfigure_enable_sap_hana_repos:
+        default: false
+        description:
+          - Set to 'true' to enable the SAP HANA required RHEL repos.
+          - This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.
+          - The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_use_hana_repos`.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_req_repos_redhat_7_x86_64:
+        default: "{{ __sap_hana_preconfigure_req_repos_redhat_7_x86_64 }}"
+        description:
+          - Use this parameter to set your own list of SAP HANA required RHEL 7 repos on x86_64'
+          - This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.
+          - The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.
+        required: false
+        type: list
+        elements: str
+
+      sap_hana_preconfigure_req_repos_redhat_7_ppc64le:
+        default: "{{ __sap_hana_preconfigure_req_repos_redhat_7_ppc64le }}"
+        description:
+          - Use this parameter to set your own list of SAP HANA required RHEL 7 repos on ppc64le'
+          - This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.
+          - The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.
+        required: false
+        type: list
+        elements: str
+
+      sap_hana_preconfigure_req_repos_redhat_8_x86_64:
+        default: "{{ __sap_hana_preconfigure_req_repos_redhat_8_x86_64 }}"
+        description:
+          - Use this parameter to set your own list of SAP HANA required RHEL 8 repos on x86_64'
+          - This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.
+          - The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.
+        required: false
+        type: list
+        elements: str
+
+      sap_hana_preconfigure_req_repos_redhat_8_ppc64le:
+        default: "{{ __sap_hana_preconfigure_req_repos_redhat_8_ppc64le }}"
+        description:
+          - Use this parameter to set your own list of SAP HANA required RHEL 8 repos on ppc64le'
+          - This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.
+          - The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.
+        required: false
+        type: list
+        elements: str
+
+      sap_hana_preconfigure_req_repos_redhat_9_x86_64:
+        default: "{{ __sap_hana_preconfigure_req_repos_redhat_9_x86_64 }}"
+        description:
+          - Use this parameter to set your own list of SAP HANA required RHEL 9 repos on x86_64'
+          - This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.
+          - The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.
+        required: false
+        type: list
+        elements: str
+
+      sap_hana_preconfigure_req_repos_redhat_9_ppc64le:
+        default: "{{ __sap_hana_preconfigure_req_repos_redhat_9_ppc64le }}"
+        description:
+          - Use this parameter to set your own list of SAP HANA required RHEL 9 repos on ppc64le'
+          - This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.
+          - The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.
+        required: false
+        type: list
+        elements: str
+
+      sap_hana_preconfigure_set_minor_release:
+        default: false
+        description:
+          - Use this parameter to set the RHEL minor release, which is required for SAP HANA.
+          - The related parameter is `sap_general_preconfigure_set_minor_release`.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_create_directories:
+        default: true
+        description:
+          - Set to `false` if you do not want the SAP HANA directories to be created by the role.
+          - The SAP HANA directories will always be created if `sap_hana_preconfigure_modify_selinux_labels`
+          - (see below) is set to `true`, no matter how `sap_hana_preconfigure_create_directories` is set.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_hana_directories:
+        default:
+          - '/hana'
+          - '/lss/shared'
+        description:
+          - List of SAP HANA directories to be created.
+        required: false
+        type: list
+        elements: str
+
+      sap_hana_preconfigure_modify_selinux_labels:
+        default: true
+        description:
+          - For compatibility of SAP HANA with SELinux in enforcing mode, the role will recursively add
+          - the `usr_t` label to directories and files in the directories where HANA is installed.
+          - If relabeling not desired, set this parameter `false`.
+          - If the variable is set to `true`, the SAP HANA directories will be created no matter
+          - how the variable `sap_hana_preconfigure_create_directories` (see above) is set.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_packages:
+        default: "{{ __sap_hana_preconfigure_packages }}"
+        description:
+          - List of RHEL packages to be installed for SAP HANA. For RHEL 8 and later, you can choose to install either the default list
+          - or a list of the minimum required packages for SAP HANA server (parameter `__sap_hana_preconfigure_packages_min_install`).
+        required: false
+        type: list
+        elements: str
+
+      sap_hana_preconfigure_min_package_check:
+        default: 'true'
+        description:
+          - SAP HANA requires certain minimum package versions to be supported. These minimum levels are listed in SAP Note 2235581.
+          - Set this parameter to `false` if you want to ignore these requirements.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_update:
+        default: 'false'
+        description:
+          - Set this parameter to `true` to update the system to the latest package levels.
+          - By setting the parameter `sap_general_preconfigure_set_minor_release` of the
+          - role `sap_general_preconfigure` to `true`, you can install the most recent package updates
+          - without updating to a more recent RHEL minor release.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_reboot_ok:
+        default: false
+        description:
+          - Set to `true` if you want to perform a reboot at the end of the role, if necessary.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_fail_if_reboot_required:
+        default: true
+        description:
+          - If `sap_hana_preconfigure_reboot_ok` is set to `false`, which is the default, a reboot requirement should not
+          - remain unnoticed. For this reason, we let the role fail. Set this parameter to `false` to override this behavior.
+          - Can be useful if you want to implement your own reboot handling.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_kernel_parameters:
+        default: "{{ __sap_hana_preconfigure_kernel_parameters_default }}"
+        description:
+          - Network related linux kernel parameter settings for SAP HANA on all hardware platforms.
+        required: false
+        type: list
+        elements: str
+
+      sap_hana_preconfigure_kernel_parameters_ppc64le:
+        default: "{{ __sap_hana_preconfigure_kernel_parameters_default_ppc64le }}"
+        description:
+          - Network related linux kernel parameter settings for platform ppc64le.
+        required: false
+        type: list
+        elements: str
+
+      sap_hana_preconfigure_use_netapp_settings_nfs:
+        default: false
+        description:
+          - Set to `true` to also set NetApp NFS required kernel parameters.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_use_netapp_settings_nfsv3:
+        default: false
+        description:
+          - If `sap_hana_preconfigure_use_netapp_settings_nfs` is set to `true` and NFS Version 3 is to be used,
+          - this parameter must be set to `true` as well.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_install_ibm_power_tools:
+        default: true
+        description:
+          - Set this parameter to `false` to not install the IBM Power Systems service and productivity tools.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_add_ibm_power_repo:
+        default: true
+        description:
+          - Set this parameter to `false` if you do not want to add the IBM Power tools repository (e.g. because the packages
+          - are already available on the local network). The IBM Power Systems service and productivity tools will only
+          - be installed if the variable `sap_hana_preconfigure_install_ibm_power_tools` is set to `true`, which is the default.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_ibm_power_repo_url:
+        default: "{{ __sap_hana_preconfigure_ibm_power_repo_url }}"
+        description:
+          - URL of the IBM Power tools repository.
+        required: false
+        type: str
+
+      sap_hana_preconfigure_ppcle_mtu9000_if:
+        default: ''
+        description:
+          - List of interfaces for which the MTU size will be set to `9000`.
+        required: false
+        type: str
+
+      sap_hana_preconfigure_ppcle_tso_if:
+        default: "{{ ansible_interfaces | difference(['lo']) }}"
+        description:
+          - List of interfaces for which the tso flag will be set.
+        required: false
+        type: list
+        elements: str
+
+      sap_hana_preconfigure_use_tuned:
+        default: true
+        description:
+          - Use tuned for configuring most of the kernel settings for SAP HANA
+          - Set this parameter to `false` to use static kernel settings
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_tuned_profile:
+        default: 'sap-hana'
+        description:
+          - Name of the SAP HANA tuned tuned profile to enable (RHEL).
+        required: false
+        type: str
+
+      sap_hana_preconfigure_modify_grub_cmdline_linux:
+        default: false
+        description:
+          - Set this parameter to `true` to modify the Grub boot command line.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_run_grub2_mkconfig:
+        default: true
+        description:
+          - By default, the role will run `grub2-mkconfig` to update the Grub configuration if necessary.
+          - Set this parameter to `false` if this is not desired.
+        required: false
+        type: bool
+
+      sap_hana_preconfigure_db_group_name:
+        description:
+          - Use this parameter to specify the name of the RHEL group which is used for the database processes.
+          - It will be used to configure process limits as per step "Configuring Process Resource Limits" of SAP note 2772999.
+        example:
+          sap_hana_preconfigure_db_group_name: 'dba'
+        required: false
+        type: str
+
+      sap_hana_preconfigure_saptune_version:
+        default: '3.0.2'
+        description:
+          - Version of saptune to install (SLES for SAP Applications).
+          - This will replace the current installed version if present, even downgrade if necessary.
+        required: false
+        type: str
+
+      sap_hana_preconfigure_saptune_solution:
+        default: HANA
+        description:
+          - The saptune solution to apply (SLES for SAP Applications).
+        choices:
+          - 'HANA'
+          - 'NETWEAVER+HANA'
+          - 'S4HANA-APP+DB'
+          - 'S4HANA-DBSERVER'
+        required: false
+        type: str
+
+      sap_hana_preconfigure_saptune_azure:
+        default: false
+        description:
+          - On Azure, TCP timestamps, reuse and recycle should be disabled (SLES for SAP Applications).
+          - Set this parameter to `true` on Azure.
+        required: false
+        type: bool
