@@ -183,6 +183,27 @@ The default for this variable is set in the vars file which corresponds to the d
 The default is to install or check if the minimum package versions are installed as defined in the vars files.<br>
 Set to `false` if you do not install or check these minimum package versions.<br>
 
+### sap_general_preconfigure_install_ibm_power_tools
+- _Type:_ `bool`
+- _Default:_ `true`
+
+Set this parameter to `false` to not install the IBM Power Systems service and productivity tools.<br>
+See also SAP note 2679703.<br>
+
+### sap_general_preconfigure_add_ibm_power_repo
+- _Type:_ `bool`
+- _Default:_ `true`
+
+Set this parameter to `false` if you do not want to add the IBM Power tools repository (e.g. because the packages<br>
+are already available on the local network). The IBM Power Systems service and productivity tools will only<br>
+be installed if the variable `sap_general_preconfigure_install_ibm_power_tools` is set to `true`, which is the default.<br>
+
+### sap_general_preconfigure_ibm_power_repo_url
+- _Type:_ `str`
+- _Default:_ `'https://public.dhe.ibm.com/software/server/POWER/Linux/yum/download/ibm-power-repo-latest.noarch.rpm'`
+
+URL for the IBM Power Systems service and productivity tools, see https://www.ibm.com/support/pages/service-and-productivity-tools<br>
+
 ### sap_general_preconfigure_update
 - _Type:_ `bool`
 - _Default:_ `false`
