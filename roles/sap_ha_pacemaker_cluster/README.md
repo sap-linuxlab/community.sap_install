@@ -108,12 +108,10 @@ The Ansible Role is sequential:
 
 ## Tips
 
-### Disable automatic cluster start on boot
+Check out the [role variables of the `ha_cluster` Linux System Role](https://github.com/linux-system-roles/ha_cluster/blob/main/README.md) for additional possible settings that can be applied when using the `sap_ha_pacemaker_cluster` role.
 
-By default the cluster services will automatically start on system boot. This can be disabled, for instance for the purpose of troubleshooting after a node had failed.<br>
-The `ha_cluster` Linux System Role, which is used to configure the pacemaker cluster, provides a parameter to control this behavior.<br>
-
-Permanently disable the automated start by adding `ha_cluster_start_on_boot: false` to the input variables when executing the role `sap_ha_pacemaker_cluster`.
+For example:<br>
+Adding `ha_cluster_start_on_boot: false` to disable the automatic start of cluster services on boot.
 
 ## Sample
 
