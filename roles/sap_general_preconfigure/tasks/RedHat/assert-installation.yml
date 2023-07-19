@@ -157,9 +157,12 @@
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Get install status of required IBM packages
-  ansible.builtin.shell: set -o pipefail && yum info installed {{ __sap_general_preconfigure_required_ppc64le | map('quote') | join(' ') }} | awk '/Name/{n=$NF}/Version/{v=$NF}/Release/{r=$NF}/Description/{printf ("%s\n", n)}'
+  ansible.builtin.shell: |
+    set -o pipefail && yum info installed {{ __sap_general_preconfigure_required_ppc64le | map('quote') | join(' ') }} |
+    awk '/Name/{n=$NF}/Version/{v=$NF}/Release/{r=$NF}/Description/{printf ("%s\n", n)}'
   register: __sap_general_preconfigure_register_required_ppc64le_packages_assert
   changed_when: no
+  when: ansible_architecture == "ppc64le"
 
 - name: Assert that all required IBM packages are installed
   ansible.builtin.assert:
