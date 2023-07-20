@@ -6,13 +6,31 @@ community.sap_install Release Notes
 
 
 
+v1.3.0
+======
+
+Release Summary
+---------------
+
+| Release Date: 2023-04-25
+| sap_general_preconfigure: Updates for new IBM Power packages with RHEL
+| sap_hana_preconfigure: Updates for new IBM Power packages with RHEL
+| sap_hana_install: Default Log Mode to normal and not Overwrite
+| sap_ha_pacemaker_cluster: Detection of and compatibility for additional Infrastructure Platforms
+| sap_ha_pacemaker_cluster: SAP NetWeaver compatibility added
+| sap_install_media_detect: Restructure and add execution controls
+| sap_storage_setup: Overhaul/Rewrite with breaking changes
+| sap_storage_setup: SAP NetWeaver and NFS compatibility added
+| sap_swpm: Minor alterations from High Availability test scenarios
+| collection: Sample Playbooks updated
+
 v1.2.3
 ======
 
 Release Summary
 ---------------
 
-| Release Date: 2022-04-25
+| Release Date: 2023-04-25
 | sap_hana_preconfigure: Some modifications for HANA on RHEL 9
 | sap_ha_pacemaker_cluster: Support for custom stonith resource definitions containing more than one element
 | sap_hana_preconfigure: Be more flexible with IBM service and productivity tools
@@ -24,7 +42,7 @@ v1.2.2
 Release Summary
 ---------------
 
-| Release Date: 2022-02-01
+| Release Date: 2023-02-01
 | Fix for sap_hana_preconfigure on SLES when tuned is not installed
 
 
@@ -34,7 +52,7 @@ v1.2.1
 Release Summary
 ---------------
 
-| Release Date: 2022-01-26
+| Release Date: 2023-01-26
 | A few minor fixes
 
 

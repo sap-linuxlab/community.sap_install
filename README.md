@@ -91,13 +91,32 @@ The logic has been separated to support a flexible execution of the different st
 
 There are various methods to execute the Ansible Collection, dependant on the use case. For more information, see [Execution examples with code samples](./docs/getting_started) and the summary below:
 
-| Execution Scenario                                                                                                                                                       | Use Case                                                                                     | Target              |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------- |
+| Execution Scenario | Use Case | Target |
+| ---- | ---- | ---- |
 | Ansible Playbook <br/>-> source Ansible Collection <br/>-> execute Ansible Task <br/>--> run Ansible Role <br/>---> run Ansible Module for Shell (built-in)<br/>---> ... | Complex executions with various interlinked activities;<br/> run in parallel or sequentially | Localhost or Remote |
 
 ## Requirements, Dependencies and Testing
 
-### Operating System requirements
+## Testing with SAP Software Provisioning Manager (SWPM)
+
+Various SAP Software solutions have been extensively tested:
+
+- SAP HANA
+- SAP NetWeaver AS (ABAP or JAVA)
+- SAP S/4HANA AnyPremise 1809, 1909, 2020, 2021
+  - One Host installation
+  - Dual Host installation
+  - Distributed installation
+  - High Availability installation
+  - System Copy (Homogeneous with SAP HANA Backup / Recovery) installation
+  - System Rename
+- SAP BW/4HANA
+- SAP Solution Manager 7.2
+- SAP Business Suite (i.e. ECC)
+- SAP NetWeaver applications (e.g. GRC)
+- SAP Web Dispatcher
+
+### Target host - Operating System requirements
 
 Designed for Linux operating systems, e.g. RHEL (7.x and 8.x) and SLES (15.x).
 
@@ -113,41 +132,12 @@ N.B. The Ansible Collection works with SLES from version 15 SP3 and upwards, for
 - firewalld is used within the Ansible Collection. In SLES 15 SP3, firewalld became the replacement for nftables. See changelog [SLE-16300](https://www.suse.com/releasenotes/x86_64/SUSE-SLES/15-SP3/index.html#jsc-SLE-16300)
 - SELinux is used within the Ansible Collection. While introduced earlier with community support, full support for SELinux was provided as of SLES 15 SP3. See changelog [SLE-17307](https://www.suse.com/releasenotes/x86_64/SUSE-SLES/15-SP3/index.html#jsc-SLE-17307)
 
-### Python requirements
+### Execution/Controller host - Operating System requirements
 
-Python 3 from the execution/controller host.
-
-### Testing on execution/controller host
-
-**Tests with Ansible Core release versions:**
-
-- Ansible Core 2.11.5 community edition
-
-**Tests with Python release versions:**
-
-- Python 3.9.7 (i.e. CPython distribution)
-
-**Tests with Operating System release versions:**
-
-- RHEL 8.4
-- macOS 11.6 (Big Sur), with Homebrew used for Python 3.x via PyEnv
-
-### Testing with SAP Software Provisioning Manager (SWPM)
-
-SAP SWPM Catalog Products which have been tested:
-
-- SAP S/4HANA AnyPremise 1809, 1909, 2020, 2021
-  - One Host installation
-  - Dual Host installation
-  - Distributed installation
-  - High Availability installation
-  - System Copy (Homogeneous with SAP HANA Backup / Recovery) installation
-  - System Rename
-- SAP B/4HANA
-- SAP Solution Manager 7.2
-- SAP Business Suite (i.e. ECC)
-- SAP NetWeaver applications (e.g. GRC)
-- SAP Web Dispatcher
+Execution of Ansible Playbooks using this Ansible Collection have been tested with:
+- Python 3.9.7 and above (i.e. CPython distribution)
+- Ansible Core 2.11.5 and above (included with optional installation of Ansible Community Edition 4.0 and above)
+- OS: macOS with Homebrew, RHEL, SLES, and containers in Task Runners (e.g. Azure DevOps)
 
 ## License
 
