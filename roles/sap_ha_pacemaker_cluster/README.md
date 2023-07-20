@@ -106,6 +106,13 @@ The Ansible Role is sequential:
 - Execute `ha_cluster` Ansible Role with Linux Pacemaker definition
 - Instantiate Linux Pacemaker cluster
 
+## Tips
+
+Check out the [role variables of the `ha_cluster` Linux System Role](https://github.com/linux-system-roles/ha_cluster/blob/main/README.md) for additional possible settings that can be applied when using the `sap_ha_pacemaker_cluster` role.
+
+For example:<br>
+Adding `ha_cluster_start_on_boot: false` to disable the automatic start of cluster services on boot.
+
 ## Sample
 
 Please see a full sample using multiple hosts to create an SAP S/4HANA Distributed deployment in the [/playbooks](../../playbooks/) directory of the Ansible Collection `sap_install`.
@@ -127,18 +134,8 @@ Red Hat for SAP Community of Practice, Janine Fuchs, IBM Lab for SAP Solutions
 Minimum required parameters:
 
 - [ha_cluster_hacluster_password](#ha_cluster_hacluster_password)
-- [sap_hana_cluster_nodes](#sap_hana_cluster_nodes)
 - [sap_hana_instance_number](#sap_hana_instance_number)
-- [sap_hana_sid](#sap_hana_sid)
-- [sap_hana_vip](#sap_hana_vip)
 
-On cloud platforms additional parameters are required:
-
-- AWS: `sap_ha_pacemaker_cluster_aws_*` variables
-- AWS: `sap_ha_pacemaker_cluster_vip_update_rt`
-- IBM Cloud: `sap_ha_pacemaker_cluster_ibmcloud_*` variables
-
----
 
 ### ha_cluster
 
@@ -324,14 +321,6 @@ sap_ha_pacemaker_cluster_resource_defaults:
   resource-stickiness: 1000
 ```
 
-### sap_ha_pacemaker_cluster_sap_type
-
-- _Type:_ `str`
-- _Default:_ `saphana_scaleup`
-
-The SAP landscape to be installed.<br>
-_Currently only SAP HANA scale-up is supported_<br>
-
 ### sap_ha_pacemaker_cluster_vip_client_interface
 
 - _Type:_ `str`
@@ -354,7 +343,7 @@ Customize the name of the resource managing the Virtual IP.<br>
 List one more routing table IDs for managing Virtual IP failover through routing table changes.<br>
 Required for VIP configuration in AWS EC2 environments.<br>
 
-### sap_hana_cluster_nodes <sup>required</sup>
+### sap_hana_cluster_nodes
 
 - _Type:_ `list`
 
@@ -390,14 +379,14 @@ sap_hana_cluster_nodes:
 
 The instance number of the SAP HANA database which is role will configure in the cluster.<br>
 
-### sap_hana_sid <sup>required</sup>
+### sap_hana_sid
 
 - _Type:_ `str`
 
-The SAP System ID of the instance that will be configured in the cluster.<br>
-The SAP SID must follow SAP specifications - see SAP Note 1979280.<br>
+The SAP HANA SID of the instance that will be configured in the cluster.<br>
+The SID must follow SAP specifications - see SAP Note 1979280.<br>
 
-### sap_hana_vip <sup>required</sup>
+### sap_hana_vip
 
 - _Type:_ `dict`
 
