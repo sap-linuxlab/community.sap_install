@@ -12,7 +12,7 @@ v1.3.0
 Release Summary
 ---------------
 
-| Release Date: 2023-04-25
+| Release Date: 2023-07-21
 | sap_general_preconfigure: Updates for new IBM Power packages with RHEL
 | sap_hana_preconfigure: Updates for new IBM Power packages with RHEL
 | sap_hana_install: Default Log Mode to normal and not Overwrite
