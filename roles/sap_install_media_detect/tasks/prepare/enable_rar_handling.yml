@@ -1,0 +1,72 @@
+---
+
+- name: SAP Install Media Detect - Prepare - Install the unar package from EPEL
+  when: sap_install_media_detect_rar_package == 'EPEL'
+  block:
+
+# Reason for noqa: Too much effort for now to examine the output of the yum module for the presence of a package
+# If the epel-release package is installed, the yum module with the list parameter returns an array
+# with two dictionaries, one with yumstate installed and one with yumstate available.
+# If the epel-release package is not installed, the yum module with the list parameter returns an empty array.
+    - name: SAP Install Media Detect - Prepare - EPEL - Detect the presence of the epel-release package # noqa command-instead-of-module
+#      ansible.builtin.yum:
+#        list: epel-release
+      ansible.builtin.command: rpm -q epel-release --qf '%{NAME}'
+      register: __sap_install_media_detect_register_rpm_q_epel
+      failed_when: false
+      changed_when: false
+
+    - name: SAP Install Media Detect - Prepare - EPEL - enable the epel repo if necessary
+      when: __sap_install_media_detect_register_rpm_q_epel.stdout != 'epel-release'
+      block:
+
+        - name: SAP Install Media Detect - Prepare - EPEL - Import the EPEL GPG key
+          ansible.builtin.rpm_key:
+            state: present
+            key: "{{ sap_install_media_detect_epel_gpg_key_url }}"
+#          ansible.builtin.command: "rpm --import {{ eap_install_media_detect_epel_gpg_key_url }}"
+#          changed_when: true
+
+#        - name: SAP Install Media Detect - Prepare - EPEL - Set fact for the EPEL URL
+#          ansible.builtin.set_fact:
+#            sap_install_media_detect_epel_url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+
+        - name: SAP Install Media Detect - Prepare - EPEL - Enable the EPEL repo
+          ansible.builtin.package:
+#            name: "{{ sap_install_media_detect_epel_url }}"
+            name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+            state: present
+
+# Reason for noqa: We would need an extra call to /usr/bin/crb status to determine the current status
+        - name: SAP Install Media Detect - Prepare - EPEL - Enable the CRB repo # noqa no-changed-when
+          ansible.builtin.command: /usr/bin/crb enable
+
+    - name: SAP Install Media Detect - Prepare - EPEL - Install the unar package
+      ansible.builtin.package:
+        name: unar
+        state: present
+
+    - name: SAP Install Media Detect - Prepare - EPEL - Set fact for listing the content of a RAR file
+      ansible.builtin.set_fact:
+        sap_install_media_detect_rar_list: '/usr/bin/lsar'
+
+    - name: SAP Install Media Detect - Prepare - EPEL - Set fact for extracting a RAR file
+      ansible.builtin.set_fact:
+        sap_install_media_detect_rar_extract: '/usr/bin/unar'
+
+- name: SAP Install Media Detect - Prepare - Install an unrar package
+  when: sap_install_media_detect_rar_package != 'EPEL'
+  block:
+
+    - name: SAP Install Media Detect - Prepare - unrar - Install the unrar package
+      ansible.builtin.package:
+        name: "{{ sap_install_media_detect_rar_package }}"
+        state: present
+
+    - name: SAP Install Media Detect - Prepare - unrar - Set fact for listing the content of a RAR file
+      ansible.builtin.set_fact:
+        sap_install_media_detect_rar_list: '/usr/bin/unrar lb'
+
+    - name: SAP Install Media Detect - Prepare - unrar - Set fact for extracting a RAR file
+      ansible.builtin.set_fact:
+        sap_install_media_detect_rar_extract: '/usr/bin/unrar x'

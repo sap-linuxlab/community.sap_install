@@ -1,0 +1,60 @@
+---
+# Variables specific on Google Cloud platform, Compute Engine Virtual Machines
+#
+# TODO: make sure to first respect 'ha_cluster' native variables
+
+sap_ha_pacemaker_cluster_fence_agent_packages:
+  - fence-agents-gce
+
+sap_ha_pacemaker_cluster_platform_extra_packages:
+  - resource-agents-gcp
+
+__sap_ha_pacemaker_cluster_repos:
+  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
+    name: High Availability
+
+# Predefine
+__sap_ha_pacemaker_cluster_gcp_hosts: []
+
+sap_ha_pacemaker_cluster_stonith_default:
+  id: "res_fence_gce_{{ ansible_hostname }}"
+  agent: "stonith:fence_gce"
+  options:
+    project: "{{ sap_ha_pacemaker_cluster_gcp_project }}"
+    zone: "{{ sap_ha_pacemaker_cluster_gcp_region_zone }}"
+    port: "{{ ansible_hostname }}"
+
+# Platform specific VIP handling
+sap_ha_pacemaker_cluster_vip_method: gcp_nlb_reserved_ip_haproxy # gcp_vpc_move_route
+sap_ha_pacemaker_cluster_vip_resource_group_name: vipgroup
+
+__sap_ha_pacemaker_cluster_available_vip_agents:
+
+  ipaddr:
+    agent: "ocf:heartbeat:IPaddr2"
+
+  # Recommended method is to use an internal passthrough Network Load Balancer (NLB for TCP/UDP) and Reserved Static Internal IP Address, with host health check response using socat or HAProxy
+  # Alternative method is to use static route Virtual IP (outside VPC Subnet ranges) using VPC Routing Table
+  # Refer to Google Cloud Compute Engine Reserved Static Internal IP Address, https://cloud.google.com/compute/docs/ip-addresses/reserve-static-internal-ip-address
+  # Refer to Google Cloud Load Balancing - Internal passthrough Network Load Balancer overview, https://cloud.google.com/load-balancing/docs/internal
+  # Refer to SAP HANA guidance 1, https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#virtual_ip_address
+  # Refer to SAP HANA guidance 2, https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#vip_implementation
+  # Refer to SAP NetWeaver guidance, https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#virtual_ip_address
+
+  # Recommended method
+  # Use Linux Pacemaker resource class/standard (pcs resource standards) as
+  # 'service:' because this is an alias for selecting LSB/Systemd/Upstart dependent on OS
+  # https://clusterlabs.org/pacemaker/doc/2.1/Pacemaker_Explained/singlehtml/#system-services
+  gcp_nlb_reserved_ip_haproxy:
+    agent: "service:haproxy"
+    with: ipaddr
+
+  # Alternative method
+  # Move Virtual/Floating IP, must be outside of the VPC Subnet Range, by replacing
+  # (temporary route, delete, create, delete temp.)
+  # the VPC Routing Table record with next-hop as the VM Instance's ID.
+  # Execution via Python urllib to GCP Compute Engine API and GCP Metadata Server API
+  # heartbeat:gcp-vpc-move-route is the replacement of heartbeat:gcp-vpc-move-ip (which uses execution via GCloud CLI, and is itself a fork of external/gcp:route)
+  gcp_vpc_move_route:
+    agent: "ocf:heartbeat:gcp-vpc-move-route"
+    with: ipaddr

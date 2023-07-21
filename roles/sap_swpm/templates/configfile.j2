@@ -559,7 +559,7 @@ NW_CI_Instance.ciInstanceNumber = {{ sap_swpm_pas_instance_nr }}
 # Formerly called the Dialog Instance (DI).
 ######
 # Instance number of SAP NetWeaver Application Server. Leave empty for default.
-NW_AS.instanceNumber = {{ sap_swpm_pas_instance_nr }}
+NW_AS.instanceNumber = {{ sap_swpm_aas_instance_nr }}
 
 # Do not skip unpacking archives if adding the SAP NetWeaver Application Server to another operating system / host. Default is 'false'.
 # NW_AS.skipUnpacking = false
@@ -568,7 +568,7 @@ NW_AS.instanceNumber = {{ sap_swpm_pas_instance_nr }}
 # NW_AS.start = true
 
 # Virtual host name of the SAP NetWeaver Application Server instance. Leave empty to use the existing host name
-NW_DI_Instance.virtualHostname = {{ ansible_hostname }}
+NW_DI_Instance.virtualHostname = {{ sap_swpm_aas_instance_hostname }}
 {% endif %}
 
 {% if 'nw_config_ers' in sap_swpm_inifile_list %}
@@ -577,7 +577,11 @@ NW_DI_Instance.virtualHostname = {{ ansible_hostname }}
 ######
 nw_instance_ers.ersVirtualHostname = {{ sap_swpm_ers_instance_hostname }}
 nw_instance_ers.ersInstanceNumber = {{ sap_swpm_ers_instance_nr }}
-# nw_instance_ers.restartSCS = true
+
+# Disable 'Automatic Instance and Service Restart' for SAP SWPM Unattended Mode,
+# otherwise by default SAP SWPM will use sapcontrol -queryuser -function Stop and will cause error
+# "User? Password? Stop. FAIL: Invalid Credentials"
+nw_instance_ers.restartSCS = false
 {% endif %}
 
 {% if 'nw_config_ports' in sap_swpm_inifile_list %}

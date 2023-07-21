@@ -1,0 +1,192 @@
+---
+# These tasks are executed in a loop over all NFS filesystems
+# defined in sap_storage_setup_definition.
+
+
+# First, build a list of target mountpoints, based on the defined host type
+# and filesystems.
+#
+# Required parameters:
+#
+# Custom filesystem definition: sap_storage_setup_definition
+# /usr/sap subdir list: sap_storage_setup_nfs_dirs_usr_sap  (default/main.yml)
+# Host type: sap_storage_setup_host_type
+
+# Make sure paths and mountpoints are stripped from trailing '/'.
+# The '/' is added explicitly to the constructed paths.
+
+# Parameter: sap_storage_setup_related_directories
+# Param Type: list of dictionaries
+#
+# Debug sample for a node of host type 'nwas_abap_ascs':
+#
+# sap_storage_setup_related_directories:
+#		- dir_only: /DB1
+#			mount_src: /my_dir/sapmnt
+#			mountpoint: /sapmnt
+#
+# sap_storage_setup_related_directories:
+#   - mount_src: /my_dir/usr/sap/DB1/SYS
+#     mountpoint: /usr/sap/DB1/SYS
+#   - mount_src: /my_dir/usr/sap/DB1/ASCS00
+#     mountpoint: /usr/sap/DB1/ASCS00
+
+- name: SAP Storage Setup - ({{ nfs_item.name }}) Set fact for directories
+  ansible.builtin.set_fact:
+    sap_storage_setup_related_directories: |
+      {% set mount_list = [] %}
+
+      {%- if nfs_item.mountpoint | regex_replace('/$', '') == '/sapmnt' -%}
+        {%- set add_sapmnt = mount_list.extend([
+          {
+            'mount_src': nfs_item.nfs_path | regex_replace('/$', ''),
+            'mountpoint': nfs_item.mountpoint | regex_replace('/$', ''),
+            'dir_only': '/' + sap_storage_setup_sid,
+          }
+        ]) %}
+      {%- endif %}
+
+      {%- if nfs_item.mountpoint | regex_replace('/$', '') == '/usr/sap/trans' %}
+        {%- set add_trans = mount_list.extend([
+          {
+            'mount_src': nfs_item.nfs_path | regex_replace('/$', ''),
+            'mountpoint': nfs_item.mountpoint | regex_replace('/$', ''),
+          }
+        ]) %}
+      {%- endif %}
+
+      {%- if nfs_item.mountpoint | regex_replace('/$', '') == '/usr/sap' -%}
+        {%- for common in sap_storage_setup_nfs_dirs_usr_sap.all %}
+          {%- set add_all_usrsap = mount_list.extend([
+            {
+             'mount_src': nfs_item.nfs_path | regex_replace('/$', '') + '/' + common,
+             'mountpoint': nfs_item.mountpoint | regex_replace('/$', '') + '/' + common,
+            }
+          ]) %}
+        {%- endfor %}
+
+        {%- for type in host_type %}
+          {%- for dir in sap_storage_setup_nfs_dirs_usr_sap[type] %}
+            {%- set dirs = mount_list.extend([
+              {
+                'mount_src': nfs_item.nfs_path | regex_replace('/$', '') + '/' + dir,
+                'mountpoint': nfs_item.mountpoint | regex_replace('/$', '') + '/' + dir,
+              }
+            ]) %}
+          {%- endfor %}
+        {%- endfor %}
+
+      {%- endif %}
+      {{ mount_list }}
+
+  vars:
+    # Convert the parameter to a list, if it is not one already.
+    # Careful with the whitespace control, spaces in front of a list variable
+    # convert it to a string.
+    host_type: |
+      {% if sap_storage_setup_host_type | type_debug != 'list' -%}
+        {{ sap_storage_setup_host_type | split(' ') }}
+      {%- else -%}
+        {{ sap_storage_setup_host_type }}
+      {%- endif %}
+
+
+# Put temporary tasks inside a block which will make sure
+# that even in case of failure the temporary mountpoint will be removed
+- name: SAP Storage Setup - Temporary steps for NFS directory structure
+  # Block global parameters
+  vars:
+    attach_item: |
+      {{ sap_storage_setup_definition
+        | selectattr('name', 'eq', nfs_item.name)
+        | join('')
+      }} # convert this single element list to a simple dict
+  block:
+
+    - name: SAP Storage Setup - ({{ nfs_item.name }}) Create directory as temporary mountpoint
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: sap_storage_setup_nfs_
+      register: sap_storage_setup_tmpnfs_register
+
+    - name: SAP Storage Setup - ({{ nfs_item.name }}) Attach NFS host root for subdirectory verification/creation
+      ansible.posix.mount:
+        path: "{{ sap_storage_setup_tmpnfs_register.path }}"
+        src: "{{ attach_item.nfs_server | default(sap_storage_setup_nfs_server) }}"
+        fstype: "{{ attach_item.nfs_filesystem_type | default(sap_storage_setup_nfs_filesystem_type) }}"
+        opts: "{{ attach_item.nfs_mount_options | default(sap_storage_setup_nfs_mount_options) }}"
+        state: mounted
+      when:
+        - sap_storage_setup_tmpnfs_register.path is defined
+
+    - name: SAP Storage Setup - ({{ nfs_item.name }}) Check if directories exist on NFS share
+      ansible.builtin.stat:
+        path: "{{ sap_storage_setup_tmpnfs_register.path }}{{ stat_item.mountpoint }}{{ stat_item.dir_only | default('') }}"
+      register: sap_storage_setup_nfs_dir_register
+      loop: "{{ sap_storage_setup_related_directories }}"
+      loop_control:
+        loop_var: stat_item
+        label: "{{ stat_item.mountpoint }}{{ stat_item.dir_only | default('') }}"
+      when:
+        - sap_storage_setup_tmpnfs_register.path is defined
+
+
+    - name: SAP Storage Setup - ({{ nfs_item.name }}) Create directories if missing
+      ansible.builtin.file:
+        path: "{{ sap_storage_setup_tmpnfs_register.path }}{{ dir_item.stat_item.mount_src }}{{ dir_item.stat_item.dir_only | default('') }}"
+        mode: '0777'
+        recurse: true
+        state: directory
+      loop: "{{ sap_storage_setup_nfs_dir_register.results }}"
+      loop_control:
+        loop_var: dir_item
+        label: "{{ dir_item.stat_item.mount_src }}{{ stat_item.dir_only | default('') }}"
+      when:
+        - sap_storage_setup_tmpnfs_register.path is defined
+        - dir_item.stat is defined
+        - not dir_item.stat.exists
+
+
+  # Tasks that are even run when something failed
+  always:
+
+    - name: SAP Storage Setup - ({{ nfs_item.name }}) Remove temporary NFS mount
+      ansible.posix.mount:
+        path: "{{ sap_storage_setup_tmpnfs_register.path }}"
+        state: absent
+      when:
+        - sap_storage_setup_tmpnfs_register.path is defined
+
+    # If the mount failed, it will not clean up the temp directory through the mount module.
+    - name: SAP Storage Setup - ({{ nfs_item.name }}) Remove temporary NFS mount directory
+      ansible.builtin.file:
+        path: "{{ sap_storage_setup_tmpnfs_register.path }}"
+        state: absent
+      when:
+        - sap_storage_setup_tmpnfs_register.path is defined
+
+### End of block: temporary NFS mount for subdirectory creation
+
+########
+# Mount the subdirectories
+# #####
+
+- name: SAP Storage Setup - ({{ nfs_item.name }}) Mount NFS
+  ansible.posix.mount:
+    path: "{{ mount_item.mountpoint }}"
+    src: "{{ nfs_server }}/{{ mount_item.mount_src | regex_replace('^/', '') }}"
+    fstype: "{{ nfs_item.nfs_filesystem_type | default(sap_storage_setup_nfs_filesystem_type) }}"
+    opts: "{{ attach_item.nfs_mount_options | default(sap_storage_setup_nfs_mount_options) }}"
+    state: mounted
+  loop: "{{ sap_storage_setup_related_directories }}"
+  loop_control:
+    loop_var: mount_item
+    label: "{{ mount_item.mountpoint }}"
+  vars:
+    nfs_path: "{{ nfs_item.nfs_path | regex_replace('^/', '') | regex_replace('/$', '') }}"
+    nfs_server: "{{ nfs_item.nfs_server | default(sap_storage_setup_nfs_server) | regex_replace('/$', '') }}"
+    attach_item: |
+      {{ sap_storage_setup_definition
+        | selectattr('name', 'eq', nfs_item.name)
+        | join('')
+      }} # convert this single element list to a simple dict

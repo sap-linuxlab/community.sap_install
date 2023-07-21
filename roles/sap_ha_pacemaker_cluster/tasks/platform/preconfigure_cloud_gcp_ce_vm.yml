@@ -1,0 +1,39 @@
+---
+# Requirement to enable the fencing resource to function.
+
+- name: "SAP HA Prepare Pacemaker - GCP Compute VM - haproxy package install"
+  ansible.builtin.package:
+    name: "haproxy"
+    state: present
+
+- name: "SAP HA Prepare Pacemaker - GCP Compute VM - haproxy listener configuration"
+  ansible.builtin.blockinfile:
+    state: present
+    insertafter: EOF
+    dest: /etc/haproxy/haproxy.cfg
+    marker_begin: "---- haproxy health check listener for SAP HANA ----"
+    marker_end: "----"
+    content: |
+      listen healthcheck_vip_hana
+        bind *:60000
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+
+- name: "SAP HA Prepare Pacemaker - GCP Compute VM - haproxy service start and enable"
+  ansible.builtin.service:
+    name: "haproxy"
+    state: started
+
+- name: "SAP HA Prepare Pacemaker - haproxy resource agent - Verify haproxy binary path"
+  ansible.builtin.shell: |
+    which haproxy
+  register: __sap_ha_pacemaker_cluster_register_haproxy_path
+  changed_when: false
+
+- name: "SAP HA Prepare Pacemaker - haproxy resource agent - Verify haproxy config file listener (/etc/haproxy/haproxy.cfg) for SAP HANA"
+  ansible.builtin.shell: |
+    grep 'listen healthcheck_vip_hana' /etc/haproxy/haproxy.cfg
+  register: __sap_ha_pacemaker_cluster_register_haproxy_config
+  changed_when: false
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0

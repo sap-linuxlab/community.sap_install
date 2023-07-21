@@ -1,10 +1,40 @@
 ---
 
-# e.g. /software
-sap_install_media_detect_directory:
+sap_install_media_detect_rar_package: 'EPEL'
+#sap_install_media_detect_rar_package: 'linux-rar'
+
+# URL for the EPEL GPG key
+sap_install_media_detect_epel_gpg_key_url: "https://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}"
+
+# The EPEL GPG key can be removed with the rpm_key module and the URL for the key, or by using the rpm -e command.
+# For using the rpm -e command, set this variable to 'false'.
+sap_install_media_detect_use_rpm_key_module_for_removing_the_key: true
+
+# commands for handling rar files
+sap_install_media_detect_rar_list: '/usr/bin/lsar'
+sap_install_media_detect_rar_extract: '/usr/bin/unar'
+
+#sap_install_media_detect_rar_list: '/usr/bin/unrar lb'
+#sap_install_media_detect_rar_extract: '/usr/bin/unrar x'
+
+# If this role is running on a file server on which the SAP software is not to be installed, set the following to true.
+# If this role is running on a system on which the SAP software is to be installed, set the following to false.
+sap_install_media_detect_file_server_only: false
+
+# Directory where the SAP software is located
+sap_install_media_detect_source_directory: /software
+
+# If there are two files of the same RAR or ZIP type, one with and one without suffix, the following parameter will determine what
+# the role will do for such a file: skip the file renaming, fail, or overwrite the file with the suffix by the file without suffix
+sap_install_media_detect_rename_target_file_exists: 'skip'
+#sap_install_media_detect_rename_target_file_exists: 'fail'
+#sap_install_media_detect_rename_target_file_exists: 'overwrite'
+
+# Directory where the SAP software is located after the role is run, if different from sap_install_media_detect_source_directory
+#sap_install_media_detect_target_directory: /software_local
 
 # local_dir, remote_dir (e.g. NFS, s3fuse)
-sap_install_media_detect_source: local_dir
+#sap_install_media_detect_source: local_dir
 
 # saphana, sapase, sapmaxdb, oracledb, ibmdb2
 sap_install_media_detect_db: "saphana"
@@ -19,7 +49,7 @@ sap_install_media_detect_webdisp: false
 sap_install_media_detect_export:
 
 # e.g. /db_backup
-sap_install_media_detect_backup_directory: 
+sap_install_media_detect_backup_directory:
 
 # saphana
 sap_install_media_detect_backup:

@@ -1,0 +1,53 @@
+---
+# Variables specific on IBM PowerVM hypervisor, Virtual Machines (LPAR)
+# TODO: rename this file to match the actual "chassis_asset_tag" output
+# TODO: make sure to first respect 'ha_cluster' native variables
+
+sap_ha_pacemaker_cluster_fence_agent_packages:
+  - fence-agents-lpar
+
+#sap_ha_pacemaker_cluster_platform_extra_packages:
+#  -
+
+__sap_ha_pacemaker_cluster_repos:
+  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
+    name: High Availability E4S (4-Year) for Power, little endian
+#  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-eus-rpms"
+#    name: High Availability EUS (2-Year) for Power, little endian
+#  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-rpms"
+#    name: High Availability for Power, little endian
+
+# Predefine
+__sap_ha_pacemaker_cluster_ibmpower_vm_hosts: []
+
+
+sap_ha_pacemaker_cluster_stonith_default:
+  id: "res_fence_lpar"
+  agent: "stonith:fence_lpar"
+  options:
+    ipaddr: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host }}"
+    ipport: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_port }}"
+    login: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_login }}"
+    password: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_login_password }}"
+    hmc_version: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_version | default('4') }}"
+    plug: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_uuid }}"
+
+
+sap_ha_pacemaker_cluster_fence_options:
+  pcmk_reboot_retries: 4
+  pcmk_reboot_timeout: 600
+  pcmk_monitor_timeout: 600
+  pcmk_status_timeout: 60
+  power_timeout: 240
+
+
+# Platform specific VIP handling
+sap_ha_pacemaker_cluster_vip_method: ipaddr
+sap_ha_pacemaker_cluster_vip_resource_group_name: vipgroup
+
+__sap_ha_pacemaker_cluster_available_vip_agents:
+
+  # IPaddr2 requires a Virtual IP within a common Network (i.e. 1 VLAN / 1 VPC / 1 VNet), one or more Subnets may be used
+  # With this design restriction, IPaddr2 is only to be used for High Availability within a single location (i.e. 1 Availability Zone / Datacenter / Location within 1 Region)
+  ipaddr:
+    agent: "ocf:heartbeat:IPaddr2"

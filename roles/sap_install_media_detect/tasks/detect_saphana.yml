@@ -1,11 +1,11 @@
 ---
 
 - name: SAP Install Media Detect - SAP HANA - Set fact for install media directory
-  set_fact:
-    sap_hana_install_directory: "{{ sap_install_media_detect_directory }}/sap_hana"
+  ansible.builtin.set_fact:
+    sap_hana_install_directory: "{{ __sap_install_media_detect_software_main_directory }}/sap_hana"
 
 - name: SAP Install Media Detect - SAP HANA - Create Directory - {{ sap_hana_install_directory }}
-  file:
+  ansible.builtin.file:
     path: "{{ sap_hana_install_directory }}"
     state: directory
     mode: '0755'
@@ -14,33 +14,32 @@
 
 - name: SAP Install Media Detect - SAP HANA - Copy SAPCAR file
   ansible.builtin.shell: |
-    cp {{ sap_install_media_detect_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }} {{ sap_hana_install_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }}
-
+    cp {{ __sap_install_media_detect_software_main_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }} {{ sap_hana_install_directory }}/{{ sap_swpm_sapcar_file_name_get.stdout }}
+  changed_when: true
 
 # IMDB SAR Files
-- name: SAP Install Media Detect - SAP HANA - Get all IMDB SAR files in folder - {{ sap_install_media_detect_directory }}
-  ansible.builtin.shell: |
-    ls IMDB*.SAR
+- name: SAP Install Media Detect - SAP HANA - Get all IMDB SAR files in folder - {{ __sap_install_media_detect_software_main_directory }}
+  ansible.builtin.shell: ls IMDB*.SAR
   args:
-    chdir: "{{ sap_install_media_detect_directory }}"
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   register: imdb_sarfiles_list
+  changed_when: false
 
 - name: SAP Install Media Detect - SAP HANA - Set fact list of SAR files
-  set_fact:
+  ansible.builtin.set_fact:
     sap_hana_install_imdb_sar: "{{ imdb_sarfiles_list.stdout.split() }}"
   when:
     - not( imdb_sarfiles_list.stdout == '' )
 
 - name: SAP Install Media Detect - SAP HANA - Copy SAP HANA files
   ansible.builtin.shell: |
-    cp {{ sap_install_media_detect_directory }}/{{ item }} {{ sap_install_media_detect_directory }}/sap_hana/{{ item }}
+    cp {{ __sap_install_media_detect_software_main_directory }}/{{ item }} {{ __sap_install_media_detect_software_main_directory }}/sap_hana/{{ item }}
   loop: "{{ sap_hana_install_imdb_sar }}"
   when:
     - not( imdb_sarfiles_list.stdout == '' )
 
-
 - name: SAP Install Media Detect - SAP HANA - Check availability of software path - {{ sap_hana_install_directory }}
-  stat:
+  ansible.builtin.stat:
     path: "{{ sap_hana_install_directory }}"
   register: sap_hana_install_software_path_stat
   failed_when: not sap_hana_install_software_path_stat.stat.exists
@@ -54,7 +53,6 @@
     owner: root
     group: root
 
-
 # Create directory  {{ sap_hana_install_directory }}/extracted
 # This is where all extracted .SAR files will be stored
 - name: SAP Install Media Detect - SAP HANA - Remove directory - {{ sap_hana_install_directory }}/extracted
@@ -66,6 +64,7 @@
   ansible.builtin.file:
     path: "{{ sap_hana_install_directory }}/extracted"
     state: directory
+    mode: '0755'
 
 - name: SAP Install Media Detect - SAP HANA - Change ownership of deployment directory - {{ sap_hana_install_directory }}
   ansible.builtin.file:
@@ -77,20 +76,20 @@
     group: root
 
 - name: SAP Install Media Detect - SAP HANA - Get all SAR files in folder - {{ sap_hana_install_directory }}
-  ansible.builtin.shell: |
-    ls *.SAR
+  ansible.builtin.shell: ls *.SAR
   args:
     chdir: "{{ sap_hana_install_directory }}"
   register: sarfiles_list
+  changed_when: false
 
 - name: SAP Install Media Detect - SAP HANA - Set fact for list of SAR files
-  set_fact:
+  ansible.builtin.set_fact:
     sap_hana_install_components_sar: "{{ sarfiles_list.stdout.split() }}"
   when:
     - not( sarfiles_list.stdout == '' )
 
 - name: SAP Install Media Detect - SAP HANA - Extract all SAR files in folder - {{ sap_hana_install_directory }}
-  include_tasks: ./extract/sapcar_loop_handler_saphana.yml
+  ansible.builtin.include_tasks: ./extract/sapcar_loop_handler_saphana.yml
   register: extract_all_sar_files
   loop: "{{ sap_hana_install_components_sar }}"
   loop_control:
@@ -108,7 +107,7 @@
     group: root
 
 - name: SAP Install Media Detect - SAP HANA - Find SAP_HANA_DATABASE
-  find:
+  ansible.builtin.find:
     paths: "{{ sap_hana_install_directory }}"
     recurse: yes
     file_type: directory
@@ -116,7 +115,7 @@
   register: sap_hana_database
 
 - name: SAP Install Media Detect - SAP HANA - Find SAP_HANA_CLIENT for SAP SWPM
-  find:
+  ansible.builtin.find:
     paths: "{{ sap_hana_install_directory }}"
     recurse: yes
     file_type: directory

@@ -156,6 +156,26 @@
     loop_var: line_item
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
+- name: Get install status of required IBM packages
+  ansible.builtin.shell: |
+    set -o pipefail && yum info installed {{ __sap_general_preconfigure_required_ppc64le | map('quote') | join(' ') }} |
+    awk '/Name/{n=$NF}/Version/{v=$NF}/Release/{r=$NF}/Description/{printf ("%s\n", n)}'
+  register: __sap_general_preconfigure_register_required_ppc64le_packages_assert
+  changed_when: no
+  when: ansible_architecture == "ppc64le"
+
+- name: Assert that all required IBM packages are installed
+  ansible.builtin.assert:
+    that: "'{{ line_item }}' in __sap_general_preconfigure_register_required_ppc64le_packages_assert.stdout_lines"
+    fail_msg: "FAIL: Package '{{ line_item }}' is not installed!"
+    success_msg: "PASS: Package '{{ line_item }}' is installed."
+  with_items:
+    - "{{ __sap_general_preconfigure_required_ppc64le }}"
+  loop_control:
+    loop_var: line_item
+  when: ansible_architecture == "ppc64le"
+  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+
 - name: Minimum required package version check
   when:
     - sap_general_preconfigure_min_package_check|bool

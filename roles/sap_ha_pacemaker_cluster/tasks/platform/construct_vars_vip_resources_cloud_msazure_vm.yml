@@ -1,0 +1,78 @@
+---
+# Reminder: This file is included in a loop over a dictionary.
+
+- name: "SAP HA Prepare Pacemaker - ipaddr resource agent - Add resource: OS network interface Virtual IP"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
+    __sap_ha_pacemaker_cluster_vip_resource_id: "{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
+  vars:
+    __resource_vip:
+      id: "{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents['ipaddr'].agent }}"
+      instance_attrs:
+        - attrs:
+            - name: ip
+              value: "{{ vip_list_item.value }}"
+  when:
+    - sap_ha_pacemaker_cluster_vip_resource_name ~ '_' ~ vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+    - (sap_ha_pacemaker_cluster_vip_method == 'ipaddr') or
+      (__sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with is defined and
+      'ipaddr' in __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with)
+
+- name: "SAP HA Prepare Pacemaker - azure_lb resource agent - Verify socat binary path"
+  ansible.builtin.shell: |
+    which socat
+  register: __sap_ha_pacemaker_cluster_register_socat_path
+  changed_when: false
+
+
+- name: "SAP HA Prepare Pacemaker - azure_lb resource agent - Define load balancer port for health check when SAP HANA scale-up HA"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_lb_port: "626{{ sap_ha_pacemaker_cluster_hana_instance_number }}"
+  when: "'hana_scaleup' in sap_ha_pacemaker_cluster_host_type[0]" # REPLACE with substring in any of the strings contained in the list
+
+- name: "SAP HA Prepare Pacemaker - azure_lb resource agent - Add resource: Azure Load Balancer (NLB L-4) for VIP routing when SAP HANA scale-up HA"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__health_check] }}"
+    __sap_ha_pacemaker_cluster_vip_resource_id: "{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
+  vars:
+    __health_check:
+      id: "hc_{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
+      instance_attrs:
+        - attrs:
+            - name: port
+              value: "{{ __sap_ha_pacemaker_cluster_resource_lb_port | default(0) }}" # Add default to ensure skip without errors
+            - name: nc
+              value: "{{ __sap_ha_pacemaker_cluster_register_socat_path.stdout }}"
+  when:
+    - __health_check.id is not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+    - ('hc_' ~ sap_ha_pacemaker_cluster_vip_resource_name ~ '_' ~ vip_list_item.key) not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+    - sap_ha_pacemaker_cluster_vip_method == 'azure_lb'
+    - "'hana_scaleup' in sap_ha_pacemaker_cluster_host_type[0]" # REPLACE with substring in any of the strings contained in the list
+
+
+- name: "SAP HA Prepare Pacemaker - azure_lb resource agent - Add resource: Azure Load Balancer (NLB L-4) for VIP routing when SAP NetWeaver HA - ASCS and ERS"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__health_check] }}"
+    __sap_ha_pacemaker_cluster_vip_resource_id: "{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
+  vars:
+    __health_check:
+      id: "hc_{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
+      instance_attrs:
+        - attrs:
+            - name: port
+              value: "{{ lb_port_for_hc | default(0) }}" # Add default to ensure skip without errors
+            - name: nc
+              value: "{{ __sap_ha_pacemaker_cluster_register_socat_path.stdout }}"
+  loop: ["626{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}", "626{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}"]
+  loop_control:
+    loop_var: lb_port_for_hc
+    index_var: lb_port_for_hc_index
+    label: "{{ lb_port_for_hc }}"
+  when:
+    - __health_check.id is not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+    - ('hc_' ~ sap_ha_pacemaker_cluster_vip_resource_name ~ '_' ~ vip_list_item.key) not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+    - sap_ha_pacemaker_cluster_vip_method == 'azure_lb'
+    - "'nwas_abap_ascs_ers' in sap_ha_pacemaker_cluster_host_type[0]" # REPLACE with substring in any of the strings contained in the list

@@ -3,21 +3,49 @@
 # for multiple IPs to be configured in cluster resources
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for standard VIP resources"
-  when:
-    - __sap_ha_pacemaker_cluster_platform not in __sap_ha_pacemaker_cluster_supported_platforms
-    - (vip_list_item.value is defined) and (vip_list_item.value != '')
   ansible.builtin.include_tasks: construct_vars_vip_resources_default.yml
   loop: "{{ query('dict', sap_ha_pacemaker_cluster_vip_address) }}"
   loop_control:
     index_var: loop_index
     loop_var: vip_list_item
+  vars:
+    __sap_ha_pacemaker_cluster_vip_resource_id: "{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
+  when:
+    - __sap_ha_pacemaker_cluster_platform not in __sap_ha_pacemaker_cluster_supported_platforms
+    - (vip_list_item.value is defined) and (vip_list_item.value != '')
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for platform VIP resources"
-  when:
-    - __sap_ha_pacemaker_cluster_platform in __sap_ha_pacemaker_cluster_supported_platforms
-    - (vip_list_item.value is defined) and (vip_list_item.value != '')
   ansible.builtin.include_tasks: "platform/construct_vars_vip_resources_{{ __sap_ha_pacemaker_cluster_platform }}.yml"
   loop: "{{ query('dict', sap_ha_pacemaker_cluster_vip_address) }}"
   loop_control:
     index_var: loop_index
     loop_var: vip_list_item
+  when:
+    - __sap_ha_pacemaker_cluster_platform in __sap_ha_pacemaker_cluster_supported_platforms
+    - (vip_list_item.value is defined) and (vip_list_item.value != '')
+
+- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP Hana VIP constraints"
+  ansible.builtin.include_tasks:
+    file: construct_vars_vip_constraints_hana.yml
+  loop: "{{ query('dict', sap_ha_pacemaker_cluster_vip_address) }}"
+  loop_control:
+    index_var: loop_index
+    loop_var: vip_list_item
+  vars:
+    __sap_ha_pacemaker_cluster_vip_resource_id: "{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
+  when:
+    - (vip_list_item.value is defined) and (vip_list_item.value != '')
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+
+- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver VIP constraints"
+  ansible.builtin.include_tasks:
+    file: construct_vars_vip_constraints_netweaver.yml
+  loop: "{{ query('dict', sap_ha_pacemaker_cluster_vip_address) }}"
+  loop_control:
+    index_var: loop_index
+    loop_var: vip_list_item
+  vars:
+    __sap_ha_pacemaker_cluster_vip_resource_id: "{{ sap_ha_pacemaker_cluster_vip_resource_name }}_{{ vip_list_item.key }}"
+  when:
+    - (vip_list_item.value is defined) and (vip_list_item.value != '')
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas') | length > 0

@@ -1,0 +1,323 @@
+---
+# Requires: ansible 2.11
+# Argument specifications in this separate file maintain backwards compatibility.
+argument_specs:
+
+  main:
+    short_description: Variables for SAP general preconfiguration
+    options:
+
+#      sap_general_preconfigure_...
+#        default:
+#        description:
+#           -
+#        example:
+#
+#        required: false
+#        type:
+#        options: # additional options for lists and dicts
+#          <param>:
+#            description:
+#            ...
+
+      sap_general_preconfigure_config_all:
+        description:
+          - If set to `false`, the role will only execute or verify the installation or configuration steps of SAP notes.
+          - Default is to perform installation and configuration steps.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_installation:
+        description:
+          - If `sap_general_preconfigure_config_all` is set to `false`, set this variable to `true` to perform only the
+          - installation steps of SAP notes.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_configuration:
+        description:
+          - If `sap_general_preconfigure_config_all` is set to `false`, set this variable to `true` to perform only the
+          - configuration steps of SAP notes for which the corresponding SAP notes parameters have been set to `true`.
+        example:
+          sap_general_preconfigure_config_all: false
+          sap_general_preconfigure_configuration: true
+          sap_general_preconfigure_2002167_02: true
+          sap_general_preconfigure_1391070: true
+        required: false
+        type: bool
+
+      sap_general_preconfigure_assert:
+        default: false
+        description:
+          - If set to `true`, the role will run in assertion mode instead of the default configuration mode.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_assert_ignore_errors:
+        default: false
+        description:
+          - In assertion mode, the role will abort when encountering any assertion error.
+          - If this parameter is set to `false`, the role will *not* abort when encountering an assertion error.
+          - This is useful if the role is used for reporting a system's SAP notes compliance.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_system_roles_collection:
+        default: 'fedora.linux_system_roles'
+        description:
+          - Set which Ansible Collection to use for the Linux System Roles.
+          - For community/upstream, use 'fedora.linux_system_roles'
+          - For the RHEL System Roles for SAP, or for Red Hat Automation Hub, use 'redhat.rhel_system_roles'
+        choices:
+          - 'fedora.linux_system_roles'
+          - 'redhat.rhel_system_roles'
+        required: false
+        type: str
+
+      sap_general_preconfigure_enable_repos:
+        default: false
+        description:
+          - Set to `true` if you want the role to enable the repos as configured by the following repo related parameters.
+          - The default is `false`, meaning that the role will not enable repos.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_use_netweaver_repos:
+        default: true
+        description:
+          - Set to `false` if you want the role to not enable the SAP NetWeaver repo(s).
+          - The default is `true`, meaning that the role will enable the SAP NetWeaver repo(s).
+          - Only valid if `sap_general_preconfigure_enable_repos` is set to `true`.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_use_hana_repos:
+        default: true
+        description:
+          - Set to `false` if you want the role to not enable the SAP HANA repo(s).
+          - The default is `true`, meaning that the role will enable the SAP HANA repo(s).
+          - Only valid if `sap_general_preconfigure_enable_repos` is set to `true`.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_use_ha_repos:
+        default: true
+        description:
+          - Set to `false` if you want the role to not enable the high availability repo(s).
+          - The default is `true`, meaning that the role will enable the high availability repo(s).
+          - Only valid if `sap_general_preconfigure_enable_repos` is set to `true`.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_disable_all_other_repos:
+        default: true
+        description:
+          - Set to `false` if you want the role to not disable all repos before enabling the desired ones as configured above.
+          - The default is `true`, meaning that the role will disable all repos before enabling the desired ones.
+          - Only valid if `sap_general_preconfigure_enable_repos` is set to `true`.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_req_repos:
+        description:
+          - If you want to provide your own list of repos (e.g. on cloud systems), set this variable accordingly.
+          - Otherwise, the RHEL default repo names with the maximum support duration for the RHEL minor release are chosen automatically
+          - (e.g. normal repos for RHEL 8.3, e4s repos for RHEL 8.4).
+        example:
+          sap_general_preconfigure_req_repos:
+            - rhel-8-for-x86_64-baseos-eus-rpms
+            - rhel-8-for-x86_64-appstream-eus-rpms
+            - rhel-8-for-x86_64-sap-solutions-eus-rpms
+            - rhel-8-for-x86_64-sap-netweaver-eus-rpms
+            - rhel-8-for-x86_64-highavailability-eus-rpms
+        required: false
+        type: list
+        elements: str
+
+      sap_general_preconfigure_set_minor_release:
+        default: false
+        description:
+          - Set to `true` if you want the role to set the RHEL minor release, which is required for SAP HANA. Default is `false`.
+          - If you set the RHEL minor release, then you must also use the `eus` or `e4s` repos.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_packagegroups:
+        default: "{{ __sap_general_preconfigure_packagegroups }}"
+        description:
+          - The name of the software package group to install.
+          - The default for this parameter is set in the vars file which corresponds to the detected OS version.
+        example:
+          '@minimal-environment'
+        required: false
+        type: str
+
+      sap_general_preconfigure_envgroups:
+        default: "{{ __sap_general_preconfigure_envgroups }}"
+        description:
+          - The name of the software environment group to check.
+          - The default for this parameter is set in the vars file which corresponds to the detected OS version.
+        example:
+          '@minimal-environment'
+        required: false
+        type: str
+
+      sap_general_preconfigure_packages:
+        default: "{{ __sap_general_preconfigure_packages }}"
+        description:
+          - The list of packages to install.
+          - The default for this variable is set in the vars file which corresponds to the detected OS version.
+        required: false
+        type: list
+        elements: str
+
+      sap_general_preconfigure_min_package_check:
+        default: true
+        description:
+          - The default is to install or check if the minimum package versions are installed as defined in the vars files.
+          - Set to `false` if you do not install or check these minimum package versions.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_install_ibm_power_tools:
+        default: true
+        description:
+          - Set this parameter to `false` to not install the IBM Power Systems service and productivity tools.
+          - See also SAP note 2679703.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_add_ibm_power_repo:
+        default: true
+        description:
+          - Set this parameter to `false` if you do not want to add the IBM Power tools repository (e.g. because the packages
+          - are already available on the local network). The IBM Power Systems service and productivity tools will only
+          - be installed if the variable `sap_general_preconfigure_install_ibm_power_tools` is set to `true`, which is the default.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_ibm_power_repo_url:
+        default: 'https://public.dhe.ibm.com/software/server/POWER/Linux/yum/download/ibm-power-repo-latest.noarch.rpm'
+        description:
+          - URL for the IBM Power Systems service and productivity tools, see https://www.ibm.com/support/pages/service-and-productivity-tools
+        required: false
+        type: str
+
+      sap_general_preconfigure_update:
+        default: false
+        description:
+          - By default, the role will not update the system, for avoiding an unintentional minor OS release update.
+          - Set this parameter to `true` if you want to update your system to the latest package versions.
+          - When using SAP HANA, make sure to set the release lock properly so the minor OS release will be one of
+          - those for which SAP HANA is supported. See also `sap_general_preconfigure_set_minor_release`.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_reboot_ok:
+        default: false
+        description:
+          - Set to `true` if you want to perform a reboot at the end of the role, if necessary.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_fail_if_reboot_required:
+        default: true
+        description:
+          - If `sap_general_preconfigure_reboot_ok` is set to `false`, which is the default, a reboot requirement should not
+          - remain unnoticed. For this reason, we let the role fail. Set this parameter to `false` to override this behavior.
+          - Can be useful if you want to implement your own reboot handling.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_selinux_state:
+        default: 'permissive'
+        description:
+          - One of the SELinux states to be set on the system.
+        choices:
+          - 'enforcing'
+          - 'permissive'
+          - 'disabled'
+        required: false
+        type: str
+
+      sap_general_preconfigure_modify_selinux_labels:
+        default: true
+        description:
+          - Set to `false` if you do not want to modify the SELinux labels for the SAP directory `/usr/sap`.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_size_of_tmpfs_gb:
+        default: "{{ ((0.75 * (ansible_memtotal_mb + ansible_swaptotal_mb)) / 1024) | round | int }}"
+        description:
+          - The size of the tmpfs in GB. The formula used here is mentioned in SAP note 941735.
+        required: false
+        type: str
+
+      sap_general_preconfigure_modify_etc_hosts:
+        default: true
+        description:
+          - Set to `false` if you do not want the role to modify the `/etc/hosts` file.
+        required: false
+        type: bool
+
+      sap_general_preconfigure_etc_sysctl_sap_conf:
+        default: '/etc/sysctl.d/sap.conf'
+        description:
+          - The file name of the sysctl config file to be used
+        required: false
+        type: str
+
+      sap_general_preconfigure_kernel_parameters:
+        default: "{{ __sap_general_preconfigure_kernel_parameters_default }}"
+        description:
+          - The Linux kernel parameters to use. By default, these are taken from the vars file.
+          - The default for this parameter is set in the vars file which corresponds to the detected OS version.
+        example:
+          sap_general_preconfigure_kernel_parameters:
+            - name: vm.max_map_count
+              value: '2147483647'
+            - name: fs.aio-max-nr
+              value: '18446744073709551615'
+        required: false
+        type: list
+        elements: dict
+
+# see SAP note 611361 for possible restrictions for the maximum length of the hostname:
+      sap_general_preconfigure_max_hostname_length:
+        default: '13'
+        description:
+          - The maximum length of the hostname. See SAP note 611361.
+        required: false
+        type: str
+
+      sap_hostname:
+        default: "{{ ansible_hostname }}"
+        description:
+          - The hostname to be used for updating or checking `/etc/hosts` entries.
+        required: false
+        type: str
+
+      sap_domain:
+        default: "{{ ansible_domain }}"
+        description:
+          - The DNS domain name to be used for updating or checking `/etc/hosts` entries.
+        required: false
+        type: str
+
+      sap_ip:
+        default: "{{ ansible_default_ipv4.address }}"
+        description:
+          - The IPV4 address to be used for updating or checking `/etc/hosts` entries.
+        required: false
+        type: str
+
+      sap_general_preconfigure_db_group_name:
+        description:
+          - Use this variable to specify the name of the RHEL group which is used for the database processes.
+          - If defined, it will be used to configure process limits as per step
+          - "Configuring Process Resource Limits"
+        example:
+          sap_general_preconfigure_db_group_name: 'dba'
+        required: false
+        type: str

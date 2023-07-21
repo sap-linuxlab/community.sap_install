@@ -1,0 +1,43 @@
+---
+
+# Workflow for ansible-lint of a role
+
+name: ansible-lint of the role sap_storage_setup
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'roles/sap_storage_setup/**'
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'roles/sap_storage_setup/**'
+
+jobs:
+  ansible-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@main
+
+      - name: Set up Python 3
+        uses: actions/setup-python@main
+        with:
+          python-version: '3.9'
+
+      - name: Install test dependencies
+        run: |
+          pip3 install ansible==7.5.0
+          pip3 install ansible-compat==3.0.2
+          pip3 install ansible-core==2.14.5
+          pip3 install ansible-lint==6.8.6
+
+      - name: Run ansible-lint
+        working-directory: /home/runner/work/community.sap_install/community.sap_install/roles/sap_storage_setup
+        run: ansible-lint

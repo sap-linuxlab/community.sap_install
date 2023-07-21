@@ -1,0 +1,282 @@
+---
+# Variables containing variables must be constructed with values
+# to be fed into the included ha_cluster role
+
+# - put here all scale-up and scale-out common resources
+# - certain differences like ra agent names are provided through
+#   type specific variables
+
+# TODO: add conditionals to verify that the same resource agent is not already
+#       defined in user input variables. Conflicting user input should take precedence.
+
+
+- name: "SAP HA Prepare Pacemaker - Add resource: Filesystem /usr/sap/<<SID>>/SCS<<Instance>>"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_filesystem] }}"
+  vars:
+    __resource_filesystem:
+      id: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_filesystem_resource_name }}"
+      agent: "ocf:heartbeat:Filesystem"
+      instance_attrs:
+        - attrs:
+            - name: device
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_filesystem_host_mount_path }}"
+            - name: directory
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_filesystem_local_mount_path }}"
+            - name: fstype
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_filesystem_fstype }}"
+            - name: options
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_filesystem_options_string }}"
+            - name: force_unmount
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_filesystem_force_unmount }}"
+      operations:
+        - action: start
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 60
+        - action: stop
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 120
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 200
+            - name: timeout
+              value: 40
+  when:
+    - __resource_filesystem.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+- name: "SAP HA Prepare Pacemaker - Add resource: Filesystem /usr/sap/<<SID>>/ERS<<Instance>>"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_filesystem] }}"
+  vars:
+    __resource_filesystem:
+      id: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_filesystem_resource_name }}"
+      agent: "ocf:heartbeat:Filesystem"
+      instance_attrs:
+        - attrs:
+            - name: device
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_filesystem_host_mount_path }}"
+            - name: directory
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_filesystem_local_mount_path }}"
+            - name: fstype
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_filesystem_fstype }}"
+            - name: options
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_filesystem_options_string }}"
+            - name: force_unmount
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_filesystem_force_unmount }}"
+      operations:
+        - action: start
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 60
+        - action: stop
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 120
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 200
+            - name: timeout
+              value: 40
+  when:
+    - __resource_filesystem.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+
+- name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for Central Service (JAVA SCS)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapinstance] }}"
+  vars:
+    __resource_sapinstance:
+      id: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_resource_name }}"
+      agent: "ocf:heartbeat:SAPInstance"
+      instance_attrs:
+        - attrs:
+            - name: InstanceName
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_instance_name }}"
+            - name: START_PROFILE
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_start_profile_string }}"
+            - name: AUTOMATIC_RECOVER
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_automatic_recover_bool | string }}"
+      meta_attrs:
+        - attrs:
+            - name: resource-stickiness
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_resource_stickiness }}"
+            - name: migration-threshold
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_migration_threshold }}"
+            - name: failure-timeout
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_failure_timeout }}"
+      operations:
+        - action: start
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 600
+        - action: stop
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 600
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 20
+            - name: on-fail
+              value: restart
+            - name: timeout
+              value: 60
+  when:
+    - __resource_sapinstance.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+- name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for Enqueue Replication Service (JAVA ERS)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapinstance_ers] }}"
+  vars:
+    __resource_sapinstance_ers:
+      id: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_resource_name }}"
+      agent: "ocf:heartbeat:SAPInstance"
+      instance_attrs:
+        - attrs:
+            - name: InstanceName
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_instance_name }}"
+            - name: START_PROFILE
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_start_profile_string }}"
+            - name: AUTOMATIC_RECOVER
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_automatic_recover_bool | string }}"
+      meta_attrs:
+        - attrs:
+            - name: resource-stickiness
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_resource_stickiness }}"
+            - name: migration-threshold
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_migration_threshold }}"
+            - name: failure-timeout
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_failure_timeout }}"
+      operations:
+        - action: start
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 600
+        - action: stop
+          attrs:
+            - name: interval
+              value: 0
+            - name: timeout
+              value: 600
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 20
+            - name: on-fail
+              value: restart
+            - name: timeout
+              value: 60
+  when:
+    - __resource_sapinstance_ers.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+
+- name: "SAP HA Prepare Pacemaker - Add resource clone: Filesystem /usr/sap/<<SID>>/SCS<<Instance>>"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_filesystem] }}"
+  vars:
+    __clone_filesystem:
+      resource_id: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_filesystem_resource_name }}"
+      promotable: "no"
+      meta_attrs:
+        - attrs:
+            - name: clone-max
+              value: 2
+            - name: clone-node-max
+              value: 1
+        - name: interleave
+          value: "true"
+  when:
+    - __clone_filesystem.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
+
+- name: "SAP HA Prepare Pacemaker - Add resource clone: Filesystem /usr/sap/<<SID>>/ERS<<Instance>>"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_filesystem] }}"
+  vars:
+    __clone_filesystem:
+      resource_id: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_filesystem_resource_name }}"
+      promotable: "no"
+      meta_attrs:
+        - attrs:
+            - name: clone-max
+              value: 2
+            - name: clone-node-max
+              value: 1
+        - name: interleave
+          value: "true"
+  when:
+    - __clone_filesystem.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
+
+
+- name: "SAP HA Prepare Pacemaker - Add resource clone: SAPInstance for Central Service (JAVA SCS)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_sapinstance] }}"
+  vars:
+    __clone_sapinstance:
+      resource_id: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_resource_name }}"
+      promotable: "yes"
+      meta_attrs:
+        - attrs:
+            - name: clone-max
+              value: 2
+            - name: clone-node-max
+              value: 1
+            - name: interleave
+              value: "true"
+  when:
+    - __clone_sapinstance.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
+
+- name: "SAP HA Prepare Pacemaker - Add resource clone: SAPInstance for Enqueue Replication Service (JAVA ERS)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_sapinstance_ers] }}"
+  vars:
+    __clone_sapinstance_ers:
+      resource_id: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_resource_name }}"
+      promotable: "yes"
+      meta_attrs:
+        - attrs:
+            - name: clone-max
+              value: 2
+            - name: clone-node-max
+              value: 1
+            - name: interleave
+              value: "true"
+  when:
+    - __clone_sapinstance_ers.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
+
+# First start SAPInstance for Central Service, then SAPInstance for Enqueue Replication Service (automatically stops in reverse order)
+- name: "SAP HA Prepare Pacemaker - Add order constraint: Central Service starts before Enqueue Replication Service"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_sapinstance] }}"
+  vars:
+    __constraint_order_sapinstance:
+      resource_first:
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_resource_clone_name }}"
+        action: start
+      resource_then:
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_resource_clone_name }}"
+        action: start
+      options:
+        - name: symmetrical
+          value: "false"
+        - name: kind
+          value: "Optional"
+  when:
+    - __constraint_order_sapinstance.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))

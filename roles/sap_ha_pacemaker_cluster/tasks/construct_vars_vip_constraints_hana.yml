@@ -1,0 +1,54 @@
+---
+# Reminder: This file is included in a loop over a dictionary.
+
+# Start the VIP(s) only after the HANA resource has been promoted
+- name: "SAP HA Prepare Pacemaker - Add order constraint: VIP starts after DB is promoted"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_vip] }}"
+  vars:
+    __constraint_order_vip:
+      resource_first:
+        id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+        action: promote
+      resource_then:
+        id: "{{ __sap_ha_pacemaker_cluster_vip_resource_id }}"
+        action: start
+  when:
+    - __constraint_order_vip.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_hana_primary_synonyms
+
+# The primary VIP only runs where HANA is promoted
+- name: "SAP HA Prepare Pacemaker - Add colocation constraint: Primary VIP runs where HANA is promoted"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation + [__constraint_colo_vip] }}"
+  vars:
+    __constraint_colo_vip:
+      resource_leader:
+        id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+        role: promoted
+      resource_follower:
+        id: "{{ __sap_ha_pacemaker_cluster_vip_resource_id }}"
+      options:
+        - name: score
+          value: 2000
+  when:
+    - __constraint_colo_vip.resource_follower not in (__sap_ha_pacemaker_cluster_constraints_colocation | map(attribute='resource_follower'))
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_hana_primary_synonyms
+
+# The secondary VIP only runs where HANA is UNpromoted
+- name: "SAP HA Prepare Pacemaker - Add colocation constraint: Read-only VIP runs where HANA is not promoted"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation + [__constraint_colo_vip] }}"
+  vars:
+    __constraint_colo_vip:
+      resource_leader:
+        id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+        role: unpromoted
+      resource_follower:
+        id: "{{ __sap_ha_pacemaker_cluster_vip_resource_id }}"
+      options:
+        - name: score
+          value: 2000
+  when:
+    - __constraint_colo_vip.resource_follower not in (__sap_ha_pacemaker_cluster_constraints_colocation | map(attribute='resource_follower'))
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_hana_secondary_synonyms

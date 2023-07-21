@@ -1,0 +1,45 @@
+---
+# Variables specific on MS Azure platform, Virtual Machines
+#
+# TODO: make sure to first respect 'ha_cluster' native variables
+
+sap_ha_pacemaker_cluster_fence_agent_packages:
+  - fence-agents-azure-arm
+
+sap_ha_pacemaker_cluster_platform_extra_packages:
+  - socat
+
+__sap_ha_pacemaker_cluster_repos:
+  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
+    name: High Availability
+  - id: "rhui-microsoft-azure-rhel8-sap-ha"
+    name: Microsoft Azure RPMs for Red Hat Enterprise Linux 8 (rhel8-sap-ha)
+
+# Predefine
+__sap_ha_pacemaker_cluster_msazure_hosts: []
+
+# Fencing via MS Azure Managed Service Identity (MSI) per cluster node
+sap_ha_pacemaker_cluster_stonith_default:
+  id: "res_fence_azure_arm"
+  agent: "stonith:fence_azure_arm"
+  options:
+    msi: true
+    subscriptionId: "{{ sap_ha_pacemaker_cluster_msazure_subscription_id }}"
+    resourceGroup: "{{ sap_ha_pacemaker_cluster_msazure_resource_group }}"
+
+# Platform specific VIP handling
+sap_ha_pacemaker_cluster_vip_method: azure_lb
+sap_ha_pacemaker_cluster_vip_resource_group_name: vipgroup
+
+__sap_ha_pacemaker_cluster_available_vip_agents:
+
+  # IPaddr2 requires a Virtual IP within a common Network (i.e. 1 VLAN / 1 VPC / 1 VNet), one or more Subnets may be used
+  # With this design restriction, IPaddr2 is only to be used for High Availability within a single location (i.e. 1 Availability Zone / Datacenter / Location within 1 Region)
+  ipaddr:
+    agent: "ocf:heartbeat:IPaddr2"
+
+  # Use nc/socat to listen for and respond to health check probe monitoring requests from Azure Load Balancer,
+  # if failure to respond then the Load Balancer will perform failover activities
+  azure_lb:
+    agent: "ocf:heartbeat:azure-lb"
+    with: ipaddr
