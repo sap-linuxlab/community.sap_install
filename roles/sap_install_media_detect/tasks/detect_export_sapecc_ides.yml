@@ -38,10 +38,18 @@
   ignore_errors: true
   changed_when: false
 
-- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Identify SAP ECC IDES EXPORT files
+# Reason for noqa: shell output can be incorrect for complex if statements
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Identify SAP ECC IDES EXPORT files # noqa risky-shell-pipe
   ansible.builtin.shell: |
-    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -Eq '*EXP[0-9]' ; then echo '{{ item }}' ; fi ;
-    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -Eq '*EXP[0-9]' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then
+       if zipinfo -1 {{ item }} | grep -Eq '*EXP[0-9]'; then
+          echo '{{ item }}'
+       fi
+    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then
+       if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -Eq '*EXP[0-9]'; then
+          echo '{{ item }}'
+       fi
+    fi
   register: detect_directory_files_ecc_export
   changed_when: "item | length > 0"
   with_items:
@@ -117,10 +125,18 @@
   when:
     - sap_install_media_detect_source == "local_dir"
 
-- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Local Directory source - re-identify SAP ECC IDES EXPORT files
+# Reason for noqa: shell output can be incorrect for complex if statements
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Local Directory source - re-identify SAP ECC IDES EXPORT files # noqa risky-shell-pipe
   ansible.builtin.shell: |
-    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -Eq '*EXP[0-9]' ; then echo '{{ item }}' ; fi ;
-    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -Eq '*EXP[0-9]' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then
+       if zipinfo -1 {{ item }} | grep -Eq '*EXP[0-9]'; then
+          echo '{{ item }}'
+       fi
+    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then
+       if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -Eq '*EXP[0-9]'; then
+          echo '{{ item }}'
+       fi
+    fi
   register: detect_directory_files_ecc_export_repeated
   changed_when: "item | length > 0"
   with_items:

@@ -38,10 +38,18 @@
   ignore_errors: true
   changed_when: false
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - Identify EXPORT files
+# Reason for noqa: shell output can be incorrect for complex if statements
+- name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - Identify EXPORT files # noqa risky-shell-pipe
   ansible.builtin.shell: |
-    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP' ; then echo '{{ item }}' ; fi ;
-    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then
+       if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP'; then
+          echo '{{ item }}'
+       fi
+    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then
+       if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP'; then
+          echo '{{ item }}'
+       fi
+    fi
   register: detect_directory_files_nwas_java_export
   changed_when: "item | length > 0"
   with_items:
@@ -117,10 +125,18 @@
   when:
     - sap_install_media_detect_source == "local_dir"
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - Local Directory source - re-identify EXPORT files
+# Reason for noqa: shell output can be incorrect for complex if statements
+- name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - Local Directory source - re-identify EXPORT files # noqa risky-shell-pipe
   ansible.builtin.shell: |
-    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP' ; then echo '{{ item }}' ; fi ;
-    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then
+       if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP'; then
+          echo '{{ item }}'
+       fi
+    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then
+       if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -q 'DATA_UNITS/JAVA_EXPORT_JDMP'; then
+          echo '{{ item }}'
+       fi
+    fi
   register: detect_directory_files_nwas_java_export_repeated
   changed_when: "item | length > 0"
   with_items:
