@@ -1,5 +1,41 @@
 ---
 
+- name: SAP Install Media Detect - IBM Db2 - Get info of directory 'ibmdb2_extracted'
+  ansible.builtin.stat:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2_extracted/"
+  register: __sap_install_media_detect_ibmdb2_extracted_stat
+
+- name: SAP Install Media Detect - IBM Db2 - Ensure directory 'ibmdb2_extracted' is absent
+  ansible.builtin.file:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2_extracted/"
+    state: absent
+  when:
+    - not sap_install_media_detect_skip_extraction_if_destination_dir_exists
+
+- name: SAP Install Media Detect - IBM Db2 - Get info of directory 'ibmdb2_client_extracted'
+  ansible.builtin.stat:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2_client_extracted/"
+  register: __sap_install_media_detect_ibmdb2_client_extracted_stat
+
+- name: SAP Install Media Detect - IBM Db2 - Ensure directory 'ibmdb2_client_extracted' is absent
+  ansible.builtin.file:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2_client_extracted/"
+    state: absent
+  when:
+    - not sap_install_media_detect_skip_extraction_if_destination_dir_exists
+
+- name: SAP Install Media Detect - IBM Db2 - Get info of directory 'ibmdb2_license_extracted'
+  ansible.builtin.stat:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2_license_extracted/"
+  register: __sap_install_media_detect_ibmdb2_license_extracted_stat
+
+- name: SAP Install Media Detect - IBM Db2 - Ensure directory 'ibmdb2_license_extracted' is absent
+  ansible.builtin.file:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2_license_extracted/"
+    state: absent
+  when:
+    - not sap_install_media_detect_skip_extraction_if_destination_dir_exists
+
 - name: SAP Install Media Detect - IBM Db2 - Create Directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -70,6 +106,9 @@
     - "{{ detect_directory_files_ibmdb2.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
+  when: (not __sap_install_media_detect_ibmdb2_extracted_stat.stat.exists) or
+        (    __sap_install_media_detect_ibmdb2_extracted_stat.stat.exists and not
+             sap_install_media_detect_skip_extraction_if_destination_dir_exists)
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - IBM Db2 - Extract ZIP files of IBM DB2 Client installation media # noqa no-changed-when
@@ -78,6 +117,9 @@
     - "{{ detect_directory_files_ibmdb2_client.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
+  when: (not __sap_install_media_detect_ibmdb2_client_extracted_stat.stat.exists) or
+        (    __sap_install_media_detect_ibmdb2_client_extracted_stat.stat.exists and not
+             sap_install_media_detect_skip_extraction_if_destination_dir_exists)
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - IBM Db2 - Extract ZIP files of IBM DB2 OEM license file # noqa no-changed-when
@@ -86,6 +128,9 @@
     - "{{ detect_directory_files_ibmdb2_license.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
+  when: (not __sap_install_media_detect_ibmdb2_license_extracted_stat.stat.exists) or
+        (    __sap_install_media_detect_ibmdb2_license_extracted_stat.stat.exists and not
+             sap_install_media_detect_skip_extraction_if_destination_dir_exists)
 
 - name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 extracted
   ansible.builtin.find:
