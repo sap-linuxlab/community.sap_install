@@ -103,23 +103,24 @@
 
 - name: SAP Install Media Detection Completed - set fact for displaying all variables
   ansible.builtin.set_fact:
-    __msg: |
-      sap_hana_install_software_directory: '{{ sap_hana_install_software_directory | d('') }}'
-      sap_hana_install_software_extract_directory: '{{ sap_hana_install_software_extract_directory | d('') }}'
-      sap_swpm_cd_rdms_path: '{{ sap_swpm_cd_rdms_path | d('') }}'
-      sap_swpm_cd_ibmdb2_path: '{{ sap_swpm_cd_ibmdb2_path | d('') }}'
-      sap_swpm_cd_ibmdb2_client_path: '{{ sap_swpm_cd_ibmdb2_client_path | d('') }}'
-      sap_anydb_install_oracle_extract_path: '{{ sap_anydb_install_oracle_extract_path | d('') }}'
-      sap_swpm_cd_oracle_path: '{{ sap_swpm_cd_oracle_path | d('') }}'
-      sap_swpm_cd_oracle_client_path: '{{ sap_swpm_cd_oracle_client_path | d('') }}'
-      sap_swpm_cd_sapase_path: '{{ sap_swpm_cd_sapase_path | d('') }}'
-      sap_swpm_cd_sapase_client_path: '{{ sap_swpm_cd_sapase_client_path | d('') }}'
-      sap_swpm_cd_sapmaxdb_path: '{{ sap_swpm_cd_sapmaxdb_path | d('') }}'
-      sap_swpm_cd_export_path: '{{ sap_swpm_cd_export_path | d('') }}'
-      sap_swpm_cd_export_pt1_path: '{{ sap_swpm_cd_export_pt1_path | d('') }}'
-      sap_swpm_cd_export_pt2_path: '{{ sap_swpm_cd_export_pt2_path | d('') }}'
-      sap_swpm_sapcar_path: '{{ sap_swpm_sapcar_path | d('') }}'
+    __sap_install_media_detect_vars="{{ __sap_install_media_detect_vars | d('') + item + ' = >' + lookup('vars', item, default='') + '<\n' }}"
+  loop:
+    - sap_hana_install_software_directory
+    - sap_hana_install_software_extract_directory
+    - sap_swpm_cd_rdms_path
+    - sap_swpm_cd_ibmdb2_path
+    - sap_swpm_cd_ibmdb2_client_path
+    - sap_anydb_install_oracle_extract_path
+    - sap_swpm_cd_oracle_path
+    - sap_swpm_cd_oracle_client_path
+    - sap_swpm_cd_sapase_path
+    - sap_swpm_cd_sapase_client_path
+    - sap_swpm_cd_sapmaxdb_path
+    - sap_swpm_cd_export_path
+    - sap_swpm_cd_export_pt1_path
+    - sap_swpm_cd_export_pt2_path
+    - sap_swpm_sapcar_path
 
 - name: SAP Install Media Detection Completed - Display all variables
   ansible.builtin.debug:
-    msg: "{{ __msg.split('\n') }}"
+    msg: "{{ __sap_install_media_detect_vars.split('\n') }}"
