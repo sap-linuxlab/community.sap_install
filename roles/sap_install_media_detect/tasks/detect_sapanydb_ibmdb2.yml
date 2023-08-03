@@ -30,9 +30,10 @@
   ignore_errors: true
   changed_when: false
 
-- name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 installation media
+# Reason for noqa: grep -q with pipefail shell option returns 141 instead of 0
+- name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 installation media # noqa risky-shell-pipe
   ansible.builtin.shell: |
-    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db2setup' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db2setup' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_ibmdb2
   changed_when: "item | length > 0"
   with_items:
@@ -40,9 +41,10 @@
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
 
-- name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 Client installation media
+# Reason for noqa: grep -q with pipefail shell option returns 141 instead of 0
+- name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 Client installation media # noqa risky-shell-pipe
   ansible.builtin.shell: |
-    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db6_update_client.sh' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db6_update_client.sh' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_ibmdb2_client
   changed_when: "item | length > 0"
   with_items:
@@ -50,9 +52,10 @@
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
 
-- name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 OEM license file
+# Reason for noqa: grep -q with pipefail shell option returns 141 instead of 0
+- name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 OEM license file # noqa risky-shell-pipe
   ansible.builtin.shell: |
-    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db2aese_c.lic' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'db2aese_c.lic' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_ibmdb2_license
   changed_when: "item | length > 0"
   with_items:
