@@ -28,9 +28,10 @@
   ignore_errors: true
   changed_when: false
 
-- name: SAP Install Media Detect - SAP MaxDB - Identify SAP MaxDB installation media
+# Reason for noqa: grep -q with pipefail shell option returns 141 instead of 0
+- name: SAP Install Media Detect - SAP MaxDB - Identify SAP MaxDB installation media # noqa risky-shell-pipe
   ansible.builtin.shell: |
-    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'MaxDB_7.9' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'MaxDB_7.9' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_sapmaxdb
   changed_when: "item | length > 0"
   with_items:

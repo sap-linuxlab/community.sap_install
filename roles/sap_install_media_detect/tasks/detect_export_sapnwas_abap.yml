@@ -38,10 +38,18 @@
   ignore_errors: true
   changed_when: no
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Identify EXPORT files
+# Reason for noqa: grep -q with pipefail shell option returns 141 instead of 0
+- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Identify EXPORT files # noqa risky-shell-pipe
   ansible.builtin.shell: |
-    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ;
-    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then
+       if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP'; then
+          echo '{{ item }}'
+       fi
+    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then
+       if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -q 'DATA_UNITS/EXP'; then
+          echo '{{ item }}'
+       fi
+    fi
   register: detect_directory_files_nwas_abap_export
   changed_when: "item | length > 0"
   with_items:
@@ -68,7 +76,7 @@
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Find self-extracting RAR EXE (parent RAR file) and extract SAP NetWeaver (ABAP) Installation Export files # noqa no-changed-when
-  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'RAR self-extracting archive')" ]; then eval "{{ sap_install_media_detect_rar_extract }}" "{{ item }}" sapnwas_abap_export_extracted/ ; fi
+  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'RAR self-extracting archive')" ]; then eval "{{ sap_install_media_detect_rar_extract }}" "{{ item }}{{ sap_install_media_detect_rar_extract_argument }}" sapnwas_abap_export_extracted/ ; fi
   with_items:
     - "{{ detect_directory_files_nwas_abap_export.results | map(attribute='stdout') | select() }}"
   args:
@@ -117,10 +125,18 @@
   when:
     - sap_install_media_detect_source == "local_dir"
 
-- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Local Directory source - re-identify EXPORT files
+# Reason for noqa: grep -q with pipefail shell option returns 141 instead of 0
+- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Local Directory source - re-identify EXPORT files # noqa risky-shell-pipe
   ansible.builtin.shell: |
-    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ;
-    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then
+       if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP'; then
+          echo '{{ item }}'
+       fi
+    elif [ ! -z "$(file {{ item }} | grep 'RAR')" ]; then
+       if eval "{{ sap_install_media_detect_rar_list }}" {{ item }} | grep -q 'DATA_UNITS/EXP'; then
+          echo '{{ item }}'
+       fi
+    fi
   register: detect_directory_files_nwas_abap_export_repeated
   changed_when: "item | length > 0"
   with_items:
