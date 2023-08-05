@@ -1,5 +1,17 @@
 ---
 
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Get info of directory 'sapecc_ides_export_extracted'
+  ansible.builtin.stat:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/sapecc_ides_export_extracted/"
+  register: __sap_install_media_detect_sapecc_ides_export_extracted_stat
+
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT- Ensure directory 'sapecc_ides_export_extracted' is absent
+  ansible.builtin.file:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/sapecc_ides_export_extracted/"
+    state: absent
+  when:
+    - not sap_install_media_detect_skip_extraction_if_target_dir_exists
+
 - name: SAP Install Media Detect - SAP ECC IDES EXPORT - Create Directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -65,14 +77,9 @@
     - "{{ detect_directory_files_ecc_export.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
-
-# Reason for noqa: Difficult to determine the change status in the shell command sequence
-#- name: SAP Install Media Detect - SAP ECC IDES EXPORT - If any RAR without file extension, then add file extension # noqa no-changed-when
-#  ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'RAR archive data')" ]; then filename="{{ item }}" && if [ "${filename##*.}" != "rar" ]; then mv {{ item }} {{ item }}.rar ; fi ; fi
-#  with_items:
-#    - "{{ detect_directory_files_ecc_export.results | map(attribute='stdout') | select() }}"
-#  args:
-#    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
+  when: (not __sap_install_media_detect_sapecc_ides_export_extracted_stat.stat.exists) or
+        (    __sap_install_media_detect_sapecc_ides_export_extracted_stat.stat.exists and not
+             sap_install_media_detect_skip_extraction_if_target_dir_exists)
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - SAP ECC IDES EXPORT - Find self-extracting RAR EXE (parent RAR file) and extract SAP ECC Installation Export files # noqa no-changed-when
@@ -81,6 +88,9 @@
     - "{{ detect_directory_files_ecc_export.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
+  when: (not __sap_install_media_detect_sapecc_ides_export_extracted_stat.stat.exists) or
+        (    __sap_install_media_detect_sapecc_ides_export_extracted_stat.stat.exists and not
+             sap_install_media_detect_skip_extraction_if_target_dir_exists)
 
 - name: SAP Install Media Detect - SAP ECC IDES EXPORT - Identify SAP ECC IDES EXPORT extracted
   ansible.builtin.find:

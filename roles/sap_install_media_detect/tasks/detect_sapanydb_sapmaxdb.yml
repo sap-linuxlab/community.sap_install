@@ -1,5 +1,17 @@
 ---
 
+- name: SAP Install Media Detect - SAP MaxDB - Get info of directory 'sapmaxdb_extracted'
+  ansible.builtin.stat:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/sapmaxdb_extracted/"
+  register: __sap_install_media_detect_sapmaxdb_extracted_stat
+
+- name: SAP Install Media Detect - SAP MaxDB - Ensure directory 'sapmaxdb_extracted' is absent
+  ansible.builtin.file:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/sapmaxdb_extracted/"
+    state: absent
+  when:
+    - not sap_install_media_detect_skip_extraction_if_target_dir_exists
+
 - name: SAP Install Media Detect - SAP MaxDB - Create Directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -46,6 +58,9 @@
     - "{{ detect_directory_files_sapmaxdb.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
+  when: (not __sap_install_media_detect_sapmaxdb_extracted_stat.stat.exists) or
+        (    __sap_install_media_detect_sapmaxdb_extracted_stat.stat.exists and not
+             sap_install_media_detect_skip_extraction_if_target_dir_exists)
 
 - name: SAP Install Media Detect - SAP MaxDB - Identify SAP MaxDB extracted
   ansible.builtin.find:
