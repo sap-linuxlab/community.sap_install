@@ -12,7 +12,7 @@
   when:
     - not sap_install_media_detect_skip_extraction_if_target_dir_exists
 
-- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Create Directories
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Ensure directories exist
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -23,11 +23,11 @@
     - "{{ __sap_install_media_detect_software_main_directory }}/sapnwas_abap_export/"
     - "{{ __sap_install_media_detect_software_main_directory }}/sapsolman_abap_export_extracted/"
 
-- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - List files in directory
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - List files in source directory
   ansible.builtin.command: find . -maxdepth 1 -type f
   register: detect_directory_files
   args:
-    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
+    chdir: "{{ sap_install_media_detect_source_directory }}"
   changed_when: false
 
 - name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Detect ZIP files (including no file extensions), ignore errors
@@ -36,7 +36,7 @@
   with_items:
     - "{{ detect_directory_files.stdout_lines }}"
   args:
-    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
+    chdir: "{{ sap_install_media_detect_source_directory }}"
   ignore_errors: true
   changed_when: false
 
@@ -49,7 +49,18 @@
   with_items:
     - "{{ detect_directory_files_zip.results | map(attribute='stdout') | select() }}"
   args:
-    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
+    chdir: "{{ sap_install_media_detect_source_directory }}"
+
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Copy EXPORT files to {{ sap_install_media_detect_target_directory }}
+  ansible.builtin.copy:
+    src: "{{ sap_install_media_detect_source_directory }}/{{ line_item }}"
+    dest: "{{ sap_install_media_detect_target_directory }}/{{ line_item }}"
+    remote_src: true
+  with_items:
+    - "{{ detect_directory_files_nwas_abap_export.results | map(attribute='stdout') | select() }}"
+  loop_control:
+    loop_var: line_item
+  when: sap_install_media_detect_source == 'remote_dir'
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
 - name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - If any ZIP, then extract the SAP NetWeaver (ABAP) Installation Export file (unzip) # noqa no-changed-when
@@ -71,16 +82,14 @@
     use_regex: true
   register: detect_directory_export_extracted
 
-- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Local Directory source - re-list files in directory
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Re-list files in directory
   ansible.builtin.command: find . -maxdepth 1 -type f
   register: detect_directory_files
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   changed_when: false
-  when:
-    - sap_install_media_detect_source == "local_dir"
 
-- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Local Directory source - re-detect ZIP files (including no file extensions), ignore errors
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Re-detect ZIP files (including no file extensions), ignore errors
   ansible.builtin.shell: set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then echo {{ item }}; fi
   register: detect_directory_files_zip_repeated
 #  changed_when: "item.stdout | length > 0"
@@ -89,11 +98,9 @@
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   ignore_errors: true
-  when:
-    - sap_install_media_detect_source == "local_dir"
 
 # Reason for noqa: grep -q with pipefail shell option returns 141 instead of 0
-- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Local Directory source - re-identify EXPORT files # noqa risky-shell-pipe
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Re-identify EXPORT files # noqa risky-shell-pipe
   ansible.builtin.shell: |
     if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'DATA_UNITS/EXP' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_nwas_abap_export_repeated
@@ -102,12 +109,8 @@
     - "{{ detect_directory_files_zip_repeated.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
-  when:
-    - sap_install_media_detect_source == "local_dir"
 
-- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Local Directory source - move EXPORT compressed archive files
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Move EXPORT compressed archive files
   ansible.builtin.command: mv "{{ __sap_install_media_detect_software_main_directory }}/{{ item }}" "{{ __sap_install_media_detect_software_main_directory }}/sapnwas_abap_export/{{ item }}"
   with_items:
     - "{{ detect_directory_files_nwas_abap_export_repeated.results | map(attribute='stdout') | select() }}"
-  when:
-    - sap_install_media_detect_source == "local_dir"

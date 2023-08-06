@@ -2,6 +2,26 @@
 
 - name: Identify SAP HANA Backup files
   ansible.builtin.find:
+    paths: "{{ sap_install_media_detect_source_directory }}"
+    recurse: true
+    file_type: directory
+    patterns: '.*COMPLETE.*'
+    use_regex: true
+  register: backup_saphana_find_dir_source
+
+- name: SAP Install Media Detect - SAP HANA Backup files - Copy files to {{ sap_install_media_detect_target_directory }}
+  ansible.builtin.copy:
+    src: "{{ line_item.path }}"
+    dest: "{{ sap_install_media_detect_target_directory }}/{{ line_item.path | basename }}"
+    remote_src: true
+  loop:
+    "{{ backup_saphana_find_dir_source.files }}"
+  loop_control:
+    loop_var: line_item
+  when: sap_install_media_detect_source == 'remote_dir'
+
+- name: Re-identify SAP HANA Backup files
+  ansible.builtin.find:
     paths: "{{ sap_install_media_detect_backup_directory }}"
     recurse: true
     file_type: directory

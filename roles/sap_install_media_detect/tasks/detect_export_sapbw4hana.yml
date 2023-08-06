@@ -12,15 +12,33 @@
 
 - name: SAP Install Media Detect - SAP BW/4HANA EXPORT - Identify SAP BW/4HANA EXPORT files
   ansible.builtin.find:
-    paths: "{{ __sap_install_media_detect_software_main_directory }}"
+    paths: "{{ sap_install_media_detect_source_directory }}"
+    recurse: true
+    file_type: file
+    patterns: '.*BW4.*EXPORT.*'
+    use_regex: true
+  register: bw4hana_export_files_source
+
+- name: SAP Install Media Detect - SAP BW/4HANA EXPORT - Copy EXPORT files to {{ sap_install_media_detect_target_directory }}
+  ansible.builtin.copy:
+    src: "{{ line_item.path }}"
+    dest: "{{ sap_install_media_detect_target_directory }}/{{ line_item.path | basename }}"
+    remote_src: true
+  loop:
+    "{{ bw4hana_export_files_source.files }}"
+  loop_control:
+    loop_var: line_item
+  when: sap_install_media_detect_source == 'remote_dir'
+
+- name: SAP Install Media Detect - SAP BW/4HANA EXPORT - Re-identify SAP BW/4HANA EXPORT files
+  ansible.builtin.find:
+    paths: "{{ sap_install_media_detect_target_directory }}"
     recurse: true
     file_type: file
     patterns: '.*BW4.*EXPORT.*'
     use_regex: true
   register: bw4hana_export_files
 
-- name: SAP Install Media Detect - SAP BW/4HANA EXPORT - Local Directory source - move SAP BW/4HANA EXPORT files
+- name: SAP Install Media Detect - SAP BW/4HANA EXPORT - Move SAP BW/4HANA EXPORT files
   ansible.builtin.command: mv "{{ item.path }}" "{{ __sap_install_media_detect_software_main_directory }}/sapbw4hana_export/{{ item.path | basename }}"
   with_items: "{{ bw4hana_export_files.files }}"
-  when:
-    - sap_install_media_detect_source == "local_dir"

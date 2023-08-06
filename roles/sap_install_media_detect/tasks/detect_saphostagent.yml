@@ -13,14 +13,21 @@
     group: root
 
 # SAPHOSTAGENT
-- name: SAP Install Media Detect - SAP Host Agent - Get SAPHOSTAGENT SAR file from folder - {{ __sap_install_media_detect_software_main_directory }}
+- name: SAP Install Media Detect - SAP Host Agent - Get SAPHOSTAGENT SAR file from folder - {{ sap_install_media_detect_source_directory }}
   ansible.builtin.shell: ls SAPHOSTAGENT*SAR
   args:
-    chdir: "{{ __sap_install_media_detect_software_main_directory }}"
+    chdir: "{{ sap_install_media_detect_source_directory }}"
   register: saphostagent_sarfile
   changed_when: false
 
-- name: SAP Install Media Detect - SAP Host Agent - Copy SAPHOSTAGENT SAR file
+- name: SAP Install Media Detect - SAP Host Agent - Copy SAPHOSTAGENT SAR file to {{ sap_install_media_detect_target_directory }}
+  ansible.builtin.copy:
+    src: "{{ sap_install_media_detect_source_directory }}/{{ saphostagent_sarfile.stdout }}"
+    dest: "{{ sap_install_media_detect_target_directory }}/{{ saphostagent_sarfile.stdout }}"
+    remote_src: true
+  when: sap_install_media_detect_source == 'remote_dir'
+
+- name: SAP Install Media Detect - SAP Host Agent - Copy SAPHOSTAGENT SAR file to subdirectory
   ansible.builtin.shell: |
     cp {{ __sap_install_media_detect_software_main_directory }}/{{ saphostagent_sarfile.stdout }} {{ sap_hostagent_install_directory }}/{{ saphostagent_sarfile.stdout }}
   changed_when: true

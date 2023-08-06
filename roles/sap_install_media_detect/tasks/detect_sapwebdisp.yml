@@ -1,13 +1,25 @@
 ---
 
 # 7. Web Dispatcher
-- name: SAP Install Media Detect - SAP WebDisp - Get WEBDISP from software path
+- name: SAP Install Media Detect - SAP WebDisp - Get WEBDISP from software path in source directory
   ansible.builtin.shell: ls SAPWEBDISP_*.SAR
   args:
-    chdir: "{{ sap_swpm_software_path }}"
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm"
+#    chdir: "{{ sap_swpm_software_path }}"
   register: sap_swpm_web_dispatcher_file_name_get
   ignore_errors: true
   changed_when: false
+
+- name: SAP Install Media Detect - SAP WebDisp - Copy WEBDISP file to {{ sap_install_media_detect_target_directory }}
+  ansible.builtin.copy:
+    src: "{{ line_item.path }}"
+    dest: "{{ sap_install_media_detect_target_directory }}/{{ line_item.path | basename }}"
+    remote_src: true
+  loop:
+    "{{ sap_swpm_web_dispatcher_file_name_get.stdout }}"
+  loop_control:
+    loop_var: line_item
+  when: sap_install_media_detect_source == 'remote_dir'
 
 - name: SAP Install Media Detect - SAP WebDisp - Set fact for WEBDISP
   ansible.builtin.set_fact:
