@@ -35,20 +35,35 @@
       tags: sap_install_media_detect_add_file_extension
   tags: sap_install_media_detect_add_file_extension
 
-- name: SAP Install Media Detect - Create a list of all files, phase 2
+- name: SAP Install Media Detect - Create a list of all required files, phase 2
   ansible.builtin.include_tasks:
     file: prepare/create_file_list_phase_2.yml
     apply:
       tags: sap_install_media_detect_create_file_list_phase_2
   tags: sap_install_media_detect_create_file_list_phase_2
 
-- name: SAP Install Media Detect - Organize all files
-  ansible.builtin.include_tasks: organize_all_files.yml
+- name: SAP Install Media Detect - Organize files
+  ansible.builtin.include_tasks:
+    file: organize_files.yml
+    apply:
+      tags: sap_install_media_detect_organize_files
+  tags: sap_install_media_detect_organize_files
 
-- name: SAP Install Media Detection Completed - set global vars for subsequent Ansible Tasks
-  ansible.builtin.include_tasks: set_global_vars.yml
+- name: SAP Install Media Detect - Detect files after extraction
+  ansible.builtin.include_tasks:
+    file: detect_files_after_extraction.yml
+    apply:
+      tags: sap_install_media_detect_detect_files_after_extraction
+  tags: sap_install_media_detect_detect_files_after_extraction
 
-- name: SAP Install Media Detect - Cleanup - Disable the EPEL repo if necessary
+- name: SAP Install Media Detection Completed - Set global vars for subsequent Ansible tasks or roles
+  ansible.builtin.include_tasks:
+    file: set_global_vars.yml
+    apply:
+      tags: sap_install_media_detect_set_global_vars
+  tags: sap_install_media_detect_set_global_vars
+
+- name: SAP Install Media Detection Completed - Cleanup - Disable the EPEL repo if necessary
   ansible.builtin.include_tasks:
     file: cleanup/disable-epel-repo.yml
     apply:

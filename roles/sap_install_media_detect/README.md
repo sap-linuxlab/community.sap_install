@@ -25,9 +25,14 @@ This role does not depend on any other Ansible Role.
 With the following tags, the role can be called to perform certain activities only:
 - tag `sap_install_media_detect_rar_handling`: Only perform the tasks for enabling the listing and extracting of files of type `RAR`. This
   includes enabling and disabling the EPEL repo for RHEL systems, if desired.
-- tag `sap_install_media_detect_add_rar_extension`: Only add `.rar` to any files in `sap_install_media_detect_source_directory` which are of type `RAR` and have no ending. Needs to be used with tag `sap_install_media_detect_create_file_list`.
+- tag `sap_install_media_detect_add_file_extension`: Add file name extensions to any files in `sap_install_media_detect_source_directory` which are of type `RAR` or `ZIP` and have no ending. Needs to be used with tag `sap_install_media_detect_create_file_list_phase_1`.
 - tag `sap_install_media_detect_check_directories`: Find out if the directory `sap_install_media_detect_target_directory` or `sap_install_media_detect_source_directory` is writable.
-- tag `sap_install_media_detect_create_file_list`: Only create a list of all files in `sap_install_media_detect_source_directory`, and create a list of any files which have no ending and are of type `RAR`.
+- tag `sap_install_media_detect_provide_sapfile_utility `: Provides the sapfile utility on the managed node. This tool is required for determining the SAP file type.
+- tag `sap_install_media_detect_create_file_list_phase_1`: Create a list of all files in `sap_install_media_detect_source_directory`, and create a list of any files which have no ending and are of type `RAR`.
+- tag `sap_install_media_detect_create_file_list_phase_2`: Create a final list of all required files in `sap_install_media_detect_source_directory` or `sap_install_media_detect_target_directory` (if that one is defined)
+- tag `sap_install_media_detect_organize_files`: Copies all required files from `sap_install_media_detect_source_directory` or `sap_install_media_detect_target_directory` (if that one is defined) and extracts all required files in to the target directories if specified by the output of the sapfile command.
+- tag `sap_install_media_detect_detect_files_after_extraction`: Finds all required files after they have been extracted so the final variables can be filled in the next step.
+- tag `sap_install_media_detect_set_global_vars`: Set all final variables for later use by Ansible roles or tasks.
 
 ## License
 

@@ -13,6 +13,20 @@
     loop_var: line_item
   when: sap_install_media_detect_source == 'remote_dir'
 
+- name: SAP Install Media Detect - Organize all files - Remove existing target extraction directories
+  ansible.builtin.file:
+    path: "{{ sap_install_media_detect_target_directory }}/{{ line_item.sap_file_type }}_extracted"
+    state: absent
+  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
+  loop_control:
+    loop_var: line_item
+  when:
+    line_item.extract_archive == 'y' and
+    (line_item.archive_type == 'zip' or
+     line_item.archive_type == 'rarexe' or
+     line_item.archive_type == 'rar' or
+     line_item.archive_type == 'sapcar')
+
 - name: SAP Install Media Detect - Organize all files - Create target extraction directories
   ansible.builtin.file:
     path: "{{ sap_install_media_detect_target_directory }}/{{ line_item.sap_file_type }}_extracted"
