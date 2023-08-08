@@ -71,3 +71,14 @@
     __sap_install_media_detect_fact_rar_files_without_extension: "{{ __sap_install_media_detect_fact_rar_files_without_extension + [item] }}"
   when: item.file_type is search 'RAR archive data'
   loop: "{{ __sap_install_media_detect_fact_files_without_extension_file_results }}"
+
+- name: SAP Install Media Detect - Prepare - Fail if there is a zip or rar file without extension on read-only file system
+  ansible.builtin.fail:
+    msg: "There is at least one zip or rar file without extension on a read-only file system.
+          The file(s) cannot be renamed on this system, and without ending, the extraction of the such files might fail."
+  when:
+    - sap_install_media_detect_source == 'remote_dir'
+    - not __sap_install_media_detect_source_directory_stat.stat.writeable
+    - (__sap_install_media_detect_fact_zip_files_without_extension | length > 0 or
+       __sap_install_media_detect_fact_exe_files_without_extension | length > 0 or
+       __sap_install_media_detect_fact_rar_files_without_extension | length > 0)
