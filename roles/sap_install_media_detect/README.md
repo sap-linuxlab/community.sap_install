@@ -31,7 +31,7 @@ With the following tags, the role can be called to perform certain activities on
 - tag `sap_install_media_detect_create_file_list_phase_1`: Create a list of all files in `sap_install_media_detect_source_directory`, and create a list of any files which have no ending and are of type `RAR`.
 - tag `sap_install_media_detect_create_file_list_phase_2`: Create a final list of all required files in `sap_install_media_detect_source_directory` or `sap_install_media_detect_target_directory` (if that one is defined)
 - tag `sap_install_media_detect_organize_files`: Copies all required files from `sap_install_media_detect_source_directory` or `sap_install_media_detect_target_directory` (if that one is defined) and extracts all required files in to the target directories if specified by the output of the sapfile command.
-- tag `sap_install_media_detect_detect_files_after_extraction`: Finds all required files after they have been extracted so the final variables can be filled in the next step.
+- tag `sap_install_media_detect_find_files_after_extraction`: Finds all required files after they have been extracted so the final variables can be filled in the next step.
 - tag `sap_install_media_detect_set_global_vars`: Set all final variables for later use by Ansible roles or tasks.
 
 ## License
