@@ -13,9 +13,9 @@
     loop_var: line_item
   when: sap_install_media_detect_source == 'remote_dir'
 
-- name: SAP Install Media Detect - Organize all files - Remove existing target extraction directories
+- name: SAP Install Media Detect - Organize all files - Remove existing archive extraction directories
   ansible.builtin.file:
-    path: "{{ sap_install_media_detect_target_directory }}/{{ line_item.sap_file_type }}_extracted"
+    path: "{{ __sap_install_media_detect_software_main_directory }}/{{ line_item.sap_file_type }}_extracted"
     state: absent
   loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
   loop_control:
@@ -27,9 +27,9 @@
      line_item.archive_type == 'rar' or
      line_item.archive_type == 'sapcar')
 
-- name: SAP Install Media Detect - Organize all files - Create target extraction directories
+- name: SAP Install Media Detect - Organize all files - Create archive extraction directories
   ansible.builtin.file:
-    path: "{{ sap_install_media_detect_target_directory }}/{{ line_item.sap_file_type }}_extracted"
+    path: "{{ __sap_install_media_detect_software_main_directory }}/{{ line_item.sap_file_type }}_extracted"
     state: directory
     owner: root
     group: root
@@ -44,9 +44,9 @@
      line_item.archive_type == 'rar' or
      line_item.archive_type == 'sapcar')
 
-- name: SAP Install Media Detect - Organize all files - Create target directories
+- name: SAP Install Media Detect - Organize all files - Create archive directories
   ansible.builtin.file:
-    path: "{{ sap_install_media_detect_target_directory }}/{{ line_item.archive_dir }}"
+    path: "{{ __sap_install_media_detect_software_main_directory }}/{{ line_item.archive_dir }}"
     state: directory
     owner: root
     group: root
@@ -61,7 +61,7 @@
     line_item.archive_type == 'sapcar'
 
 - name: SAP Install Media Detect - Organize all files - Extract zip archive files
-  ansible.builtin.shell: "set -o pipefail && unzip {{ line_item.file }} -d {{ sap_install_media_detect_target_directory }}/{{ line_item.sap_file_type }}_extracted"
+  ansible.builtin.shell: "set -o pipefail && unzip {{ line_item.file }} -d {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.sap_file_type }}_extracted"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
@@ -72,7 +72,7 @@
     - line_item.extract_archive == 'y'
 
 - name: SAP Install Media Detect - Organize all files - Extract rar archive files
-  ansible.builtin.shell: "set -o pipefail && {{ sap_install_media_detect_rar_extract }} {{ line_item.file }}{{ sap_install_media_detect_rar_extract_argument }} {{ sap_install_media_detect_target_directory }}/{{ line_item.sap_file_type }}_extracted"
+  ansible.builtin.shell: "set -o pipefail && {{ sap_install_media_detect_rar_extract }} {{ line_item.file }}{{ sap_install_media_detect_rar_extract_argument }} {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.sap_file_type }}_extracted"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
@@ -83,7 +83,7 @@
     - line_item.extract_archive == 'y'
 
 - name: SAP Install Media Detect - Organize all files - Extract sapcar archive files
-  ansible.builtin.shell: "set -o pipefail && {{ __sap_install_media_detect_fact_sapcar_path }} -xvf {{ line_item.file }} -R {{ sap_install_media_detect_target_directory }}/{{ line_item.sap_file_type }}_extracted"
+  ansible.builtin.shell: "set -o pipefail && {{ __sap_install_media_detect_fact_sapcar_path }} -xvf {{ line_item.file }} -R {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.sap_file_type }}_extracted"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
@@ -96,7 +96,7 @@
 - name: SAP Install Media Detect - Organize all files - Copy sapcar to sap_swpm directory
   ansible.builtin.copy:
     src: "{{ __sap_install_media_detect_fact_sapcar_path }}"
-    dest: "{{ sap_install_media_detect_target_directory }}/sap_swpm/"
+    dest: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm/"
     remote_src: true
     owner: root
     group: root
