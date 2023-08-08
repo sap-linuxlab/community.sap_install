@@ -23,7 +23,7 @@
   loop: "{{ __sap_install_media_detect_register_find_result_phase_2.files }}"
 
 - name: SAP Install Media Detect - Prepare - Iterate over files and determine file type
-  ansible.builtin.shell: set -o pipefail && {{ __sap_install_media_detect_sapfile_path }} -l {{ line_item }} | awk '{print $(NF-1), $NF}'
+  ansible.builtin.shell: set -o pipefail && {{ __sap_install_media_detect_sapfile_path }} -lde {{ line_item }} | awk '{print $(NF-3), $(NF-2), $(NF-1), $NF}'
   register: __sap_install_media_detect_register_files_phase_2
   loop: "{{ __sap_install_media_detect_fact_find_result_phase_2 }}"
   loop_control:
@@ -39,7 +39,9 @@
       dir: "{{ item.line_item | dirname }}"
       file: "{{ item.line_item | basename }}"
       sap_file_type: "{{ item.stdout.split(' ')[0] }}"
-      archive_type: "{{ item.stdout.split(' ')[1] }}"
+      archive_dir: "{{ item.stdout.split(' ')[1] }}"
+      archive_type: "{{ item.stdout.split(' ')[2] }}"
+      extract_archive: "{{ item.stdout.split(' ')[3] }}"
   when:
     (item.stdout.split(' ')[0] == 'sapcar') or
     (sap_install_media_detect_swpm | d('false') and item.stdout.split(' ')[0] == 'sap_swpm') or
@@ -47,19 +49,24 @@
     (sap_install_media_detect_igs | d('false') and item.stdout.split(' ')[0] == 'sap_igs') or
     (sap_install_media_detect_kernel | d('false') and item.stdout.split(' ')[0] == 'sap_kernel') or
     (sap_install_media_detect_webdisp | d('false') and item.stdout.split(' ')[0] == 'sap_webdisp') or
-    (sap_install_media_detect_db == 'sapmaxdb' and item.stdout.split(' ')[0] == 'sap_db_maxdb') or
+    (sap_install_media_detect_db == 'saphana' and (
+       item.stdout.split(' ')[0] == 'saphana' or
+       item.stdout.split(' ')[0] == 'saphana_client' or
+       item.stdout.split(' ')[0] == 'saphana_other')
+    ) or
+    (sap_install_media_detect_db == 'sapmaxdb' and item.stdout.split(' ')[0] == 'sapmaxdb') or
     (sap_install_media_detect_db == 'sapase' and (
-       item.stdout.split(' ')[0] == 'sap_db_ase' or
-       item.stdout.split(' ')[0] == 'sap_db_ase_client')
+       item.stdout.split(' ')[0] == 'sapase' or
+       item.stdout.split(' ')[0] == 'sapase_client')
     ) or
     (sap_install_media_detect_db == 'oracledb' and (
-       item.stdout.split(' ')[0] == 'sap_db_oracle' or
-       item.stdout.split(' ')[0] == 'sap_db_oracle_client')
+       item.stdout.split(' ')[0] == 'oracledb' or
+       item.stdout.split(' ')[0] == 'oracledb_client')
     ) or
     (sap_install_media_detect_db == 'ibmdb2' and (
-       item.stdout.split(' ')[0] == 'sap_db_db2' or
-       item.stdout.split(' ')[0] == 'sap_db_db2_client' or
-       item.stdout.split(' ')[0] == 'sap_db_db2_license')
+       item.stdout.split(' ')[0] == 'ibmdb2' or
+       item.stdout.split(' ')[0] == 'ibmdb2_client' or
+       item.stdout.split(' ')[0] == 'ibmdb2_license')
     ) or
     (sap_install_media_detect_export == 'saps4hana' and item.stdout.split(' ')[0] == 'sap_s4hana_export') or
     (sap_install_media_detect_export == 'sapbw4hana' and item.stdout.split(' ')[0] == 'sap_bw4hana_export') or

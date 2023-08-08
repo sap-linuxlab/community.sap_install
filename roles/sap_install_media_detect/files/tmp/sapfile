@@ -21,9 +21,13 @@ set -o pipefail
 usage () {
    echo "sapfile: Determine and display SAP file type. If unknown, call the file command."
    echo "Usage: sapfile [OPTION...] [FILE...]"
-   echo "Determine type of SAP FILEs, optionally followed by type of FILEs."
+   echo "Determine and display type of SAP FILEs, optionally followed by additional information."
    echo "  -h, --help                 display this help and exit"
    echo "  -l                         long listing: also display the file type, taken from the output of the file command"
+   echo "  -d                         also display the directory where to move the archive files, for use with Ansible role"
+   echo "                               community.sap_install.sap_install_media_detect"
+   echo "  -e                         also display if the SAP FILE should be extracted, for use with Ansible role"
+   echo "                               community.sap_install.sap_install_media_detect"
    echo ""
    echo "Requires:"
    echo "- lsar (contained in the unar package from the EPEL RHEL repo)"
@@ -31,12 +35,20 @@ usage () {
    echo "- sapcar (SAP program to handle sapcar files; typical filename: SAPCAR_1115-70006178.EXE)"
 }
 
-_EXTENDED_OUTPUT="n"
+_DISPLAY_FILE_TYPE="n"
+_DISPLAY_DIRECTORY="n"
+_DISPLAY_EXTRACT="n"
 
-while getopts ":lh" opt; do
+while getopts ":ldeh" opt; do
    case ${opt} in
       l)
-         _EXTENDED_OUTPUT="y"
+         _DISPLAY_FILE_TYPE="y"
+         ;;
+      d)
+         _DISPLAY_DIRECTORY="y"
+         ;;
+      e)
+         _DISPLAY_EXTRACT="y"
          ;;
       h)
          usage
@@ -79,7 +91,7 @@ for _FILE in "$@"; do
          _list_content=""
       fi
    fi
-   printf "%-32s " "${_FILE}":
+   printf "%-40s " "${_FILE}":
 
    if [[ ! -e "${_FILE}" ]]; then
       echo "No such file or directory."
@@ -89,17 +101,17 @@ for _FILE in "$@"; do
    SAP_FILE_TYPE_FROM_FILENAME=$(echo "${_FILE}" | awk '
    BEGIN{_sap_file_type="look_inside"}
    /SAPCAR/&&/\.EXE/{_sap_file_type="sapcar"}
-   !/IMDB_SERVER/&&!/IMDB_CLIENT/&&/IMDB/&&/\.SAR/{_sap_file_type="sap_db_hana_other"}
-   /IMDB_SERVER/&&/\.SAR/{_sap_file_type="sap_db_hana"}
-   /IMDB_CLIENT/&&/\.SAR/{_sap_file_type="sap_db_hana_client"}
+   /IMDB_SERVER/&&/\.SAR/{_sap_file_type="saphana"}
+   /IMDB_CLIENT/&&/\.SAR/{_sap_file_type="saphana_client"}
+   !/IMDB_SERVER/&&!/IMDB_CLIENT/&&/IMDB/&&/\.SAR/{_sap_file_type="saphana_other"}
    /SWPM/&&/\.SAR/{_sap_file_type="sap_swpm"}
    /SAPHOSTAGENT/&&/\.SAR/{_sap_file_type="sap_hostagent"}
-   /igsexe/||/igshelper/{_sap_file_type="sap_igs"}
    /SAPEXE_/||/SAPEXEDB_/{_sap_file_type="sap_kernel"}
+   /igsexe/||/igshelper/{_sap_file_type="sap_igs"}
    /SAPWEBDISP_/{_sap_file_type="sap_webdisp"}
    /SAPJVM/{_sap_file_type="sap_jvm"}
-   /ASEBC/{_sap_file_type="sap_db_ase_client"}
-   /COMPLETE/{_sap_file_type="sap_hana_backup"}
+   /ASEBC/{_sap_file_type="sapase_client"}
+   /COMPLETE/{_sap_file_type="saphana_backup"}
    /S4/&&/HANA/&&/LANG/{_sap_file_type="sap_s4hana_lang"}
    /S4/&&/EXPORT/{_sap_file_type="sap_s4hana_export"}
    /BW4/&&/EXPORT/{_sap_file_type="sap_bw4hana_export"}
@@ -117,14 +129,14 @@ for _FILE in "$@"; do
               ${_ARCHIVE_TYPE}. == "sapcar." ]]; then
          _SAP_FILE_TYPE=$(eval "${_list_content}" "${_FILE}" | awk '
          BEGIN{_sap_file_type="sap_unknown"}
-         /BD_SYBASE_ASE/{_sap_file_type="sap_db_ase"}
-         /ASEBC/{_sap_file_type="sap_db_ase_client"}
-         /MaxDB_7.9/{_sap_file_type="sap_db_maxdb"}
-         /19cinstall.sh/{_sap_file_type="sap_db_oracle"}
-         /OCL_LINUX_X86_64/{_sap_file_type="sap_db_oracle_client"}
-         /db2setup/{_sap_file_type="sap_db_db2"}
-         /db6_update_client.sh/{_sap_file_type="sap_db_db2_client"}
-         /db2aese_c.lic/{_sap_file_type="sap_db_db2_license"}
+         /BD_SYBASE_ASE/{_sap_file_type="sapase"}
+         /ASEBC/{_sap_file_type="sapase_client"}
+         /MaxDB_7.9/{_sap_file_type="sapmaxdb"}
+         /19cinstall.sh/{_sap_file_type="oracledb"}
+         /OCL_LINUX_X86_64/{_sap_file_type="oracledb_client"}
+         /db2setup/{_sap_file_type="ibmdb2"}
+         /db6_update_client.sh/{_sap_file_type="ibmdb2_client"}
+         /db2aese_c.lic/{_sap_file_type="ibmdb2_license"}
          /DATA_UNITS\/EXPORT/{_sap_file_type="sap_ecc_export"}
          /EXP[0-9]/{_sap_file_type="sap_ecc_ides_export"}
          /DATA_UNITS\/EXP[0-9]/{_sap_file_type="sap_nwas_abap_export"}
@@ -136,10 +148,45 @@ for _FILE in "$@"; do
       fi
    fi
 
+   _DIRECTORY=${_SAP_FILE_TYPE}
+   _EXTRACT="y"
+
+   case ${_SAP_FILE_TYPE} in
+      directory)
+         _EXTRACT="n"
+         ;;
+      sapcar)
+         _EXTRACT="n"
+         ;;
+      sapase|sapase_client)
+         _DIRECTORY="sapase"
+         ;;
+      sapmaxdb)
+         ;;
+      oracledb|oracledb_client)
+         _DIRECTORY="oracledb"
+         ;;
+      ibmdb2|ibmdb2_client|ibmdb2_license)
+         _DIRECTORY="ibmdb2"
+         ;;
+      saphana|saphana_client|saphana_other)
+         _DIRECTORY="saphana"
+         ;;
+      sap_swpm|sap_kernel|sap_igs|sap_webdisp|sap_jvm)
+         _DIRECTORY="sap_swpm"
+         _EXTRACT="n"
+         ;;
+   esac
+
    printf "%-24s " "${_SAP_FILE_TYPE}"
-   if [[ ${_EXTENDED_OUTPUT}. == "y." ]]; then
-      printf "%s\n" "${_ARCHIVE_TYPE}"
-   else
-      printf "\n"
+   if [[ ${_DISPLAY_DIRECTORY}. == "y." ]]; then
+      printf "%-24s" "${_DIRECTORY}"
    fi
+   if [[ ${_DISPLAY_FILE_TYPE}. == "y." ]]; then
+      printf "%-6s " "${_ARCHIVE_TYPE}"
+   fi
+   if [[ ${_DISPLAY_EXTRACT}. == "y." ]]; then
+      printf "%-2s" "${_EXTRACT}"
+   fi
+   printf "\n"
 done

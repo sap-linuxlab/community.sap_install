@@ -1,125 +1,361 @@
 ---
 
-- name: SAP Install Media Detection Completed - set facts for SAP HANA
+- name: SAP Install Media Detect - SAPCAR - Get SAPCAR executable file from folder - {{ sap_install_media_detect_directory }}
+  ansible.builtin.shell: ls SAPCAR*.EXE
+  args:
+    chdir: "{{ sap_install_media_detect_directory }}"
+  register: sap_swpm_sapcar_file_name_get
+  changed_when: false
+
+- name: SAP Install Media Detect - SAPCAR - Set fact
   ansible.builtin.set_fact:
-    sap_hana_install_software_directory: "{{ sap_hana_install_directory }}" # for sap_hana_install Ansible Role
-    sap_hana_install_software_extract_directory: "{{ sap_hana_install_directory }}/extracted" # for sap_hana_install Ansible Role
+    sap_swpm_sapcar_file_name: "{{ sap_swpm_sapcar_file_name_get.stdout }}"
+
+- name: SAP Install Media Detection Completed - Set facts for SAP SWPM
+  ansible.builtin.set_fact:
+    sap_swpm_software_path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm" # for sap_swpm Ansible Role
+    sap_swpm_sapcar_path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm" # for sap_swpm Ansible Role
+  ignore_errors: true
+  when: sap_install_media_detect_swpm
+
+- name: SAP Install Media Detect - SAP HANA - Find SAP_HANA_CLIENT for SAP SWPM
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}"
+    recurse: true
+    file_type: directory
+    patterns: "SAP_HANA_CLIENT"
+  register: sap_hana_client_path
+  ignore_errors: true
+  when: sap_install_media_detect_db == "saphana"
+
+- name: SAP Install Media Detection Completed - Set facts for SAP HANA
+  ansible.builtin.set_fact:
+    sap_hana_install_directory: "{{ __sap_install_media_detect_software_main_directory }}/saphana"
+    sap_hana_install_software_directory: "{{ __sap_install_media_detect_software_main_directory }}/saphana" # for sap_hana_install Ansible Role
+    sap_hana_install_software_extract_directory: "{{ __sap_install_media_detect_software_main_directory }}/saphana_extracted" # for sap_hana_install Ansible Role
     sap_swpm_cd_rdms_path: "{{ sap_hana_client_path.files[0].path }}" # for sap_swpm Ansible Role
   ignore_errors: true
-  when:
-    - sap_install_media_detect_db == "saphana"
+  when: sap_install_media_detect_db == "saphana"
 
-- name: SAP Install Media Detection Completed - set facts for IBM Db2
+- name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 extracted
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2_extracted"
+    recurse: true
+    file_type: directory
+    patterns: ".*LINUXX86_64.*"
+    use_regex: true
+  register: detect_directory_ibmdb2_extracted
+  when: sap_install_media_detect_db == "ibmdb2"
+
+- name: SAP Install Media Detect - IBM Db2 - Identify IBM Db2 Client extracted
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/ibmdb2_client_extracted"
+    recurse: true
+    file_type: directory
+    patterns: ".*DATA_UNITS.*"
+    use_regex: true
+  register: detect_directory_ibmdb2_client_extracted
+  when: sap_install_media_detect_db == "ibmdb2"
+
+- name: SAP Install Media Detection Completed - Set facts for IBM Db2
   ansible.builtin.set_fact:
     sap_swpm_cd_ibmdb2_path: "{{ detect_directory_ibmdb2_extracted.files[0].path }}" # for sap_swpm Ansible Role
     sap_swpm_cd_ibmdb2_client_path: "{{ detect_directory_ibmdb2_client_extracted.files[0].path }}" # for sap_swpm Ansible Role
   ignore_errors: true
-  when:
-    - sap_install_media_detect_db == "ibmdb2"
+  when: sap_install_media_detect_db == "ibmdb2"
 
-- name: SAP Install Media Detection Completed - set facts for Oracle DB
+- name: SAP Install Media Detect - Oracle DB - Identify Oracle DB extracted
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/oracledb_extracted"
+    recurse: true
+    file_type: directory
+    patterns: ".*LINUX_X86_64.*"
+    use_regex: true
+  register: detect_directory_oracledb_extracted
+  when: sap_install_media_detect_db == "oracledb"
+
+- name: SAP Install Media Detect - Oracle DB - Identify Oracle DB Client extracted
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/oracledb_client_extracted"
+    recurse: true
+    file_type: directory
+    patterns: ".*OCL_LINUX_X86_64.*"
+    use_regex: true
+  register: detect_directory_oracledb_client_extracted
+  when: sap_install_media_detect_db == "oracledb"
+
+- name: SAP Install Media Detection Completed - Set facts for Oracle DB
   ansible.builtin.set_fact:
     sap_anydb_install_oracle_extract_path: "{{ detect_directory_oracledb_extracted.files[0].path }}" # for sap_anydb_install_oracle Ansible Role
     sap_swpm_cd_oracle_path: "{{ detect_directory_oracledb_extracted.files[0].path }}" # for sap_swpm Ansible Role
     sap_swpm_cd_oracle_client_path: "{{ detect_directory_oracledb_client_extracted.files[0].path }}" # for sap_swpm Ansible Role
   ignore_errors: true
-  when:
-    - sap_install_media_detect_db == "oracledb"
+  when: sap_install_media_detect_db == "oracledb"
 
-- name: SAP Install Media Detection Completed - set facts for SAP ASE
+- name: SAP Install Media Detect - SAP ASE - Identify SAP ASE extracted
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sapase_extracted"
+    recurse: true
+    file_type: directory
+    patterns: ".*SYBASE_LINUX.*"
+    use_regex: true
+  register: detect_directory_sapase_extracted
+  when: sap_install_media_detect_db == "sapase"
+
+- name: SAP Install Media Detect - SAP ASE - Identify SAP ASE Client extracted
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sapase_client_extracted"
+    recurse: true
+    file_type: file
+    patterns: ".*sybodbc.*"
+    use_regex: true
+  register: detect_directory_sapase_client_extracted
+  when: sap_install_media_detect_db == "sapase"
+
+- name: SAP Install Media Detection Completed - Set facts for SAP ASE
   ansible.builtin.set_fact:
     sap_swpm_cd_sapase_path: "{{ detect_directory_sapase_extracted.files[0].path }}" # for sap_swpm Ansible Role
     sap_swpm_cd_sapase_client_path: "{{ detect_directory_sapase_client_extracted.files[0].path }}" # for sap_swpm Ansible Role
   ignore_errors: true
-  when:
-    - sap_install_media_detect_db == "sapase"
+  when: sap_install_media_detect_db == "sapase"
 
-- name: SAP Install Media Detection Completed - set facts for SAP MaxDB
+- name: SAP Install Media Detect - SAP MaxDB - Identify SAP MaxDB extracted
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sapmaxdb_extracted/"
+    recurse: true
+    file_type: directory
+    patterns: '.*MaxDB_7.9.*'
+    use_regex: true
+  register: detect_directory_sapmaxdb_extracted
+  when: sap_install_media_detect_db == "sapmaxdb"
+
+- name: SAP Install Media Detection Completed - Set facts for SAP MaxDB
   ansible.builtin.set_fact:
     sap_swpm_cd_sapmaxdb_path: "{{ detect_directory_sapmaxdb_extracted.files[0].path }}" # for sap_swpm Ansible Role
   ignore_errors: true
-  when:
-    - sap_install_media_detect_db == "sapmaxdb"
+  when: sap_install_media_detect_db == "sapmaxdb"
 
-- name: SAP Install Media Detection Completed - set facts for Export of SAP ECC
+- name: SAP Install Media Detect - SAP Kernel - Get SAPEXEDB from software path
+  ansible.builtin.shell: |
+    ls SAPEXEDB_*.SAR
+  args:
+    chdir: "{{ sap_swpm_software_path }}"
+  register: sap_swpm_kernel_dependent_file_name_get
+  when: sap_install_media_detect_kernel
+
+- name: SAP Install Media Detect - SAP Kernel - Set fact for SAPEXEDB
+  ansible.builtin.set_fact:
+    sap_swpm_kernel_dependent_path: "{{ sap_swpm_software_path }}"
+    sap_swpm_kernel_dependent_file_name: "{{ sap_swpm_kernel_dependent_file_name_get.stdout }}"
+  when: sap_install_media_detect_kernel
+
+- name: SAP Install Media Detect - SAP Kernel - Get SAPEXE from software path
+  ansible.builtin.shell: |
+    ls SAPEXE_*.SAR
+  args:
+    chdir: "{{ sap_swpm_software_path }}"
+  register: sap_swpm_kernel_independent_file_name_get
+  when: sap_install_media_detect_kernel
+
+- name: SAP Install Media Detect - SAP Kernel - Set fact for SAPEXE
+  ansible.builtin.set_fact:
+    sap_swpm_kernel_independent_path: "{{ sap_swpm_software_path }}"
+    sap_swpm_kernel_independent_file_name: "{{ sap_swpm_kernel_independent_file_name_get.stdout }}"
+  when: sap_install_media_detect_kernel
+
+- name: SAP Install Media Detect - SAP IGS - Get IGS from software path
+  ansible.builtin.shell: |
+    ls igsexe*.sar
+  args:
+    chdir: "{{ sap_swpm_software_path }}"
+  register: sap_swpm_igs_file_name_get
+  when: sap_install_media_detect_igs
+
+- name: SAP Install Media Detect - SAP IGS - Set fact for IGS
+  ansible.builtin.set_fact:
+    sap_swpm_igs_path: "{{ sap_swpm_software_path }}"
+    sap_swpm_igs_file_name: "{{ sap_swpm_igs_file_name_get.stdout }}"
+  when: sap_install_media_detect_igs
+
+- name: SAP Install Media Detect - SAP IGS - Get IGS Helper from software path
+  ansible.builtin.shell: |
+    ls igshelper*.sar
+  args:
+    chdir: "{{ sap_swpm_software_path }}"
+  register: sap_swpm_igs_helper_file_name_get
+  when: sap_install_media_detect_igs
+
+- name: SAP Install Media Detect - SAP IGS - Set fact for IGS Helper
+  ansible.builtin.set_fact:
+    sap_swpm_igs_helper_path: "{{ sap_swpm_software_path }}"
+    sap_swpm_igs_helper_file_name: "{{ sap_swpm_igs_helper_file_name_get.stdout }}"
+  when: sap_install_media_detect_igs
+
+- name: SAP Install Media Detect - SAP WebDisp - Get WEBDISP from software path
+  ansible.builtin.shell: |
+    ls SAPWEBDISP_*.SAR
+  args:
+    chdir: "{{ sap_swpm_software_path }}"
+  register: sap_swpm_web_dispatcher_file_name_get
+  ignore_errors: true
+  when: sap_install_media_detect_webdisp
+
+- name: SAP Install Media Detect - SAP WebDisp - Set fact for WEBDISP
+  ansible.builtin.set_fact:
+    sap_swpm_web_dispatcher_path: "{{ sap_swpm_software_path }}"
+    sap_swpm_web_dispatcher_file_name: "{{ sap_swpm_web_dispatcher_file_name_get.stdout }}"
+  ignore_errors: true
+  when: sap_install_media_detect_webdisp
+
+- name: SAP Install Media Detect - SAP ECC EXPORT - Identify SAP ECC Export extracted
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sapecc_export_extracted"
+    recurse: true
+    file_type: directory
+    patterns: '.*DATA_UNITS.*'
+    use_regex: true
+  register: detect_directory_export_extracted
+  when: sap_install_media_detect_export == "sapecc"
+
+- name: SAP Install Media Detection Completed - Set facts for Export of SAP ECC
   ansible.builtin.set_fact:
     sap_swpm_cd_export_path: "{{ detect_directory_export_extracted.files[0].path }}" # for sap_swpm Ansible Role
   ignore_errors: true
-  when:
-    - sap_install_media_detect_export == "sapecc"
+  when: sap_install_media_detect_export == "sapecc"
 
-- name: SAP Install Media Detection Completed - set facts for Export of SAP ECC IDES
+- name: SAP Install Media Detect - SAP ECC IDES EXPORT - Identify SAP ECC IDES EXPORT extracted
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sapecc_ides_export_extracted"
+    recurse: true
+    file_type: directory
+    patterns: '.*EXP.*'
+    use_regex: true
+  register: detect_directory_export_extracted
+  when: sap_install_media_detect_export == "sapecc_ides"
+
+- name: SAP Install Media Detection Completed - Set facts for Export of SAP ECC IDES
   ansible.builtin.set_fact:
     sap_swpm_cd_export_path: "{{ detect_directory_export_extracted.files[0].path | dirname | dirname }}" # for sap_swpm Ansible Role
     sap_swpm_cd_export_pt1_path: "{{ (detect_directory_export_extracted.files | map(attribute='path') | map('dirname') | list | select() | unique)[0] }}" # for sap_swpm Ansible Role
     sap_swpm_cd_export_pt2_path: "{{ (detect_directory_export_extracted.files | map(attribute='path') | map('dirname') | list | select() | unique)[1] }}" # for sap_swpm Ansible Role
   ignore_errors: true
-  when:
-    - sap_install_media_detect_export == "sapecc_ides"
+  when: sap_install_media_detect_export == "sapecc_ides"
 
-- name: SAP Install Media Detection Completed - set facts for Export of SAP S/4HANA
+- name: SAP Install Media Detect - SAP S/4HANA EXPORT - Re-Identify SAP S/4HANA EXPORT files
+  ansible.builtin.find:
+    paths: "{{ sap_install_media_detect_source_directory }}"
+    recurse: true
+    file_type: file
+    patterns: '.*S4.*EXPORT.*'
+    use_regex: true
+  register: s4hana_export_files
+  when: sap_install_media_detect_export == "saps4hana"
+
+- name: SAP Install Media Detection Completed - Set facts for Export of SAP S/4HANA
   ansible.builtin.set_fact:
     sap_swpm_cd_export_path: "{{ s4hana_export_files.files[0].path }}" # for sap_swpm Ansible Role
   ignore_errors: true
-  when:
-    - sap_install_media_detect_export == "saps4hana"
+  when: sap_install_media_detect_export == "saps4hana"
 
-- name: SAP Install Media Detection Completed - set facts for Export of SAP BW/4HANA
+- name: SAP Install Media Detect - SAP BW/4HANA EXPORT - Identify SAP BW/4HANA EXPORT files
+  ansible.builtin.find:
+    paths: "{{ sap_install_media_detect_target_directory }}"
+    recurse: true
+    file_type: file
+    patterns: '.*BW4.*EXPORT.*'
+    use_regex: true
+  register: bw4hana_export_files
+  when: sap_install_media_detect_export == "sapbw4hana"
+
+- name: SAP Install Media Detection Completed - Set facts for Export of SAP BW/4HANA
   ansible.builtin.set_fact:
     sap_swpm_cd_export_path: "{{ bw4hana_export_files.files[0].path }}" # for sap_swpm Ansible Role
   ignore_errors: true
-  when:
-    - sap_install_media_detect_export == "sapbw4hana"
+  when: sap_install_media_detect_export == "sapbw4hana"
 
-- name: SAP Install Media Detection Completed - set facts for Export of SAP NetWeaver AS (ABAP) platform only
+- name: SAP Install Media Detect - SAP NetWeaver AS (ABAP) platform only EXPORT - Identify EXPORT extracted
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sap_nwas_abap_export_extracted"
+    recurse: true
+    file_type: directory
+    patterns: '.*DATA_UNITS.*'
+    use_regex: true
+  register: detect_directory_export_extracted
+  when: sap_install_media_detect_export == "sapnwas_abap"
+
+- name: SAP Install Media Detection Completed - Set facts for Export of SAP NetWeaver AS (ABAP) platform only
   ansible.builtin.set_fact:
     sap_swpm_cd_export_path: "{{ detect_directory_export_extracted.files[0].path }}" # for sap_swpm Ansible Role
   ignore_errors: true
-  when:
-    - sap_install_media_detect_export == "sapnwas_abap"
+  when: sap_install_media_detect_export == "sapnwas_abap"
 
-- name: SAP Install Media Detection Completed - set facts for Export of SAP NetWeaver AS (JAVA) platform only
+- name: SAP Install Media Detect - SAP NetWeaver AS (JAVA) platform only EXPORT - Identify EXPORT extracted
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sap_nwas_java_export_extracted"
+    recurse: true
+    file_type: directory
+    patterns: '.*DATA_UNITS.*'
+    use_regex: true
+  register: detect_directory_export_extracted
+  when: sap_install_media_detect_export == "sapnwas_java"
+
+- name: SAP Install Media Detection Completed - Set facts for Export of SAP NetWeaver AS (JAVA) platform only
   ansible.builtin.set_fact:
     sap_swpm_cd_export_path: "{{ detect_directory_export_extracted.files[0].path }}" # for sap_swpm Ansible Role
   ignore_errors: true
-  when:
-    - sap_install_media_detect_export == "sapnwas_java"
+  when: sap_install_media_detect_export == "sapnwas_java"
 
-- name: SAP Install Media Detection Completed - set facts for Export of SAP Solution Manager (ABAP)
+- name: SAP Install Media Detect - SAP Solution Manager (ABAP) EXPORT - Identify EXPORT extracted
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sapsolman_abap_export_extracted"
+    recurse: true
+    file_type: directory
+    patterns: '.*DATA_UNITS.*'
+    use_regex: true
+  register: detect_directory_export_extracted
+  when: sap_install_media_detect_export == "sapsolman_abap"
+
+- name: SAP Install Media Detection Completed - Set facts for Export of SAP Solution Manager (ABAP)
   ansible.builtin.set_fact:
     sap_swpm_cd_export_path: "{{ detect_directory_export_extracted.files[0].path | dirname | dirname }}" # for sap_swpm Ansible Role
     sap_swpm_cd_export_pt1_path: "{{ detect_directory_export_extracted.files[0].path }}" # for sap_swpm Ansible Role
     sap_swpm_cd_export_pt2_path: "{{ detect_directory_export_extracted.files[1].path }}" # for sap_swpm Ansible Role
   ignore_errors: true
-  when:
-    - sap_install_media_detect_export == "sapsolman_abap"
+  when: sap_install_media_detect_export == "sapsolman_abap"
 
-- name: SAP Install Media Detection Completed - set facts for SAP SWPM
+- name: SAP Install Media Detection Completed - Set fact for displaying all variables
   ansible.builtin.set_fact:
-    sap_swpm_sapcar_path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm" # for sap_swpm Ansible Role
-  ignore_errors: true
-  when:
-    - sap_install_media_detect_swpm
-
-- name: SAP Install Media Detection Completed - set fact for displaying all variables
-  ansible.builtin.set_fact:
-    __sap_install_media_detect_vars="{{ __sap_install_media_detect_vars | d('') + item + ' = >' + lookup('vars', item, default='') + '<\n' }}"
+    __sap_install_media_detect_vars: "{{ __sap_install_media_detect_vars | d('') + item + ' = >' + lookup('vars', item, default='') + '<\n' }}"
   loop:
+    - sap_hana_install_directory
     - sap_hana_install_software_directory
     - sap_hana_install_software_extract_directory
-    - sap_swpm_cd_rdms_path
-    - sap_swpm_cd_ibmdb2_path
-    - sap_swpm_cd_ibmdb2_client_path
     - sap_anydb_install_oracle_extract_path
+    - sap_swpm_swpm_path
+    - sap_swpm_software_path
+    - sap_swpm_cd_ibmdb2_path
     - sap_swpm_cd_oracle_path
-    - sap_swpm_cd_oracle_client_path
     - sap_swpm_cd_sapase_path
-    - sap_swpm_cd_sapase_client_path
     - sap_swpm_cd_sapmaxdb_path
+    - sap_swpm_cd_rdms_path
+    - sap_swpm_cd_ibmdb2_client_path
+    - sap_swpm_cd_oracle_client_path
+    - sap_swpm_cd_sapase_client_path
     - sap_swpm_cd_export_path
     - sap_swpm_cd_export_pt1_path
     - sap_swpm_cd_export_pt2_path
     - sap_swpm_sapcar_path
+    - sap_swpm_sapcar_file_name
+    - sap_swpm_igs_path
+    - sap_swpm_igs_file_name
+    - sap_swpm_igs_helper_path
+    - sap_swpm_igs_helper_file_name
+    - sap_swpm_kernel_dependent_path
+    - sap_swpm_kernel_dependent_file_name
+    - sap_swpm_kernel_independent_path
+    - sap_swpm_kernel_independent_file_name
+    - sap_swpm_web_dispatcher_path
+    - sap_swpm_web_dispatcher_file_name
 
 - name: SAP Install Media Detection Completed - Display all variables
   ansible.builtin.debug:
