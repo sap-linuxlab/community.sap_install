@@ -22,25 +22,86 @@ usage () {
    echo "sapfile: Determine and display SAP file type. If unknown, call the file command."
    echo "Usage: sapfile [OPTION...] [FILE...]"
    echo "Determine and display type of SAP FILEs, optionally followed by additional information."
-   echo "  -h, --help                 display this help and exit"
-   echo "  -l                         long listing: also display the file type, taken from the output of the file command"
-   echo "  -d                         also display the directory where to move the archive files, for use with Ansible role"
+   echo "  -h|--help                  display this help and exit"
+   echo "  -l|--long                  long listing: also display the file type, taken from the output of the file command"
+   echo "  -d|--directory             also display the directory where to move the archive files, for use with Ansible role"
    echo "                               community.sap_install.sap_install_media_detect"
-   echo "  -e                         also display if the SAP FILE should be extracted, for use with Ansible role"
+   echo "  -e|--extract               also display if the SAP FILE should be extracted, for use with Ansible role"
    echo "                               community.sap_install.sap_install_media_detect"
+   echo "  --lsar_file=<FILE>         the name of the program to list the content of a RAR file, if different from 'lsar',"
+   echo "                               either as the name of a file in one of the PATH directories or as an FQPN."
+   echo "                               When specifying the 'unrar' program, it will be called with option 'lb'."
+   echo "  --sapcar_file=<FILE>       the name of the sapcar program, if different from 'sapcar', either as the name of a file"
+   echo "                               in one of the PATH directories or as an FQPN."
    echo ""
    echo "Requires:"
-   echo "- lsar (contained in the unar package from the EPEL RHEL repo)"
+   echo "- lsar (program to list the content of a RAR package, e.g. as part of the 'unar' package from the EPEL RHEL repo)"
    echo "- zipinfo (contained in the unzip RHEL package)"
    echo "- sapcar (SAP program to handle sapcar files; typical filename: SAPCAR_1115-70006178.EXE)"
 }
 
+# option defaults:
 _DISPLAY_FILE_TYPE="n"
 _DISPLAY_DIRECTORY="n"
 _DISPLAY_EXTRACT="n"
+_SAPCAR_FILE='sapcar'
+_LSAR_FILE='lsar'
 
-while getopts ":ldeh" opt; do
+if [[ ${#} == 0 ]]; then
+   usage
+   exit 1
+fi
+
+options=":ldeh-:"
+while getopts "$options" opt; do
    case ${opt} in
+      -)
+         case "${OPTARG}" in
+            long)
+               _DISPLAY_FILE_TYPE="y"
+               ;;
+            directory)
+               _DISPLAY_DIRECTORY="y"
+               ;;
+            extract)
+               _DISPLAY_EXTRACT="y"
+               ;;
+            lsar_file)
+               if [[ ${!OPTIND-x} == x ]]; then
+                  usage
+                  exit 0
+               fi
+               _LSAR_FILE="${!OPTIND}"
+               OPTIND=$(( ${OPTIND} + 1 ))
+               ;;
+            lsar_file=*)
+               _LSAR_FILE=${OPTARG#*=}
+               opt=${OPTARG%=${_LSAR_FILE}}
+               ;;
+            sapcar_file)
+               if [[ ${!OPTIND-x} == x ]]; then
+                  usage
+                  exit 0
+               fi
+               _SAPCAR_FILE="${!OPTIND}"
+               OPTIND=$(( ${OPTIND} + 1 ))
+               ;;
+            sapcar_file=*)
+               _SAPCAR_FILE=${OPTARG#*=}
+               opt=${OPTARG%=${_SAPCAR_FILE}}
+               ;;
+            help)
+               usage
+               exit 0
+               ;;
+            *)
+               if [[ "$OPTERR" = 1 ]] && [[ "${options:0:1}" != ":" ]]; then
+                  echo "Invalid option -${OPTARG}"
+                  usage
+               fi
+               exit 0
+               ;;
+         esac;;
       l)
          _DISPLAY_FILE_TYPE="y"
          ;;
@@ -52,16 +113,22 @@ while getopts ":ldeh" opt; do
          ;;
       h)
          usage
-         exit 1
+         exit 0
          ;;
       \?)
          echo "Invalid option -$OPTARG"
          usage
-         exit 1
+         exit 0
          ;;
    esac
 done
 shift "$((OPTIND-1))"
+
+if [[ "${_LSAR_FILE}" == *"lsar"* ]]; then
+   _LSAR_COMMAND="${_LSAR_FILE}"
+elif [[ "${_LSAR_FILE}" == *"unrar"* ]]; then
+   _LSAR_COMMAND="${_LSAR_FILE} lb"
+fi
 
 _ARCHIVE_TYPE="other"
 
@@ -69,7 +136,7 @@ for _FILE in "$@"; do
    _FILE_OUTPUT=$(file "${_FILE}" | sed 's,'"${_FILE}"': ,,')
    if [[ ${_FILE_OUTPUT}. == "data." ]] && [[ (${_FILE##*.} == "SAR" || ${_FILE##*.} == "sar") ]]; then
       _ARCHIVE_TYPE="sapcar"
-      _list_content="sapcar -tvf"
+      _list_content="${_SAPCAR_FILE} -tvf"
    else
       _ARCHIVE_TYPE=$(echo "${_FILE_OUTPUT}" | awk '
       BEGIN{_file_type="other"}
@@ -80,13 +147,13 @@ for _FILE in "$@"; do
       /directory/{_file_type="dir"}
       END{print _file_type}')
       if [[ ${_ARCHIVE_TYPE}. == "rarexe." ]]; then
-         _list_content="lsar"
+         _list_content="${_LSAR_COMMAND}"
       elif [[ ${_ARCHIVE_TYPE}. == "rar." ]]; then
-         _list_content="lsar"
+         _list_content="${_LSAR_COMMAND}"
       elif [[ ${_ARCHIVE_TYPE}. == "zip." ]]; then
          _list_content="zipinfo -1"
       elif [[ ${_ARCHIVE_TYPE}. == "sapcar." ]]; then
-         _list_content="sapcar -tvf"
+         _list_content="${_SAPCAR_FILE} -tvf"
       elif [[ ${_ARCHIVE_TYPE}. == "dir." ]]; then
          _list_content=""
       fi
