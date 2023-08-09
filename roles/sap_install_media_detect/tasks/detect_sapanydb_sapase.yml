@@ -55,10 +55,10 @@
 - name: SAP Install Media Detect - SAP ASE - Identify SAP ASE Client installation media
   ansible.builtin.find:
     paths: "{{ __sap_install_media_detect_software_main_directory }}"
-    recurse: yes
+    recurse: true
     file_type: file
     patterns: '.*ASEBC.*'
-    use_regex: yes
+    use_regex: true
   register: detect_directory_files_sapase_client
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
@@ -87,18 +87,19 @@
 - name: SAP Install Media Detect - SAP ASE - Identify SAP ASE extracted
   ansible.builtin.find:
     paths: "{{ __sap_install_media_detect_software_main_directory }}/sapase_extracted"
-    recurse: yes
+    recurse: true
     file_type: directory
-    patterns: ".*SYBASE_LINUX.*" # Use patterns to identify directory with this string
-    use_regex: yes
+    patterns: ".*SYBASE_LINUX.*"
+    use_regex: true
   register: detect_directory_sapase_extracted
 
 - name: SAP Install Media Detect - SAP ASE - Identify SAP ASE Client extracted
   ansible.builtin.find:
     paths: "{{ __sap_install_media_detect_software_main_directory }}/sapase_client_extracted"
-    recurse: yes
-    file_type: directory
-    contains: "sybodbc" # Use contains to find specific filename
+    recurse: true
+    file_type: file
+    patterns: ".*sybodbc.*"
+    use_regex: true
   register: detect_directory_sapase_client_extracted
 
 - name: SAP Install Media Detect - SAP ASE - Local Directory source - move SAP ASE compressed archive files
