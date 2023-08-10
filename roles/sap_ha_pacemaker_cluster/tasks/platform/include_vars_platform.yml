@@ -13,11 +13,11 @@
 # pcmk_host_map format: <hostname1>:<host1-id>;<hostname2>:<host2-id>...
 - name: "SAP HA Prepare Pacemaker - AWS EC2 VS - Assemble host mapping"
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_pcmk_host_map: >
+    __sap_ha_pacemaker_cluster_pcmk_host_map: |-
       {% for node in ansible_play_hosts_all -%}
         {{ hostvars[node].ansible_hostname }}:{{ hostvars[node].ansible_board_asset_tag }}
-      {%-  if not loop.last %};{% endif -%}
-      {%- endfor %}
+        {%- if not loop.last %};{% endif %}
+      {% endfor %}
   when: __sap_ha_pacemaker_cluster_platform == "cloud_aws_ec2_vs"
 
 
@@ -29,31 +29,31 @@
 # pcmk_host_map format: <hostname1>:<host1-id>;<hostname2>:<host2-id>...
 - name: "SAP HA Prepare Pacemaker - IBM Power VS from IBM Cloud - Assemble host mapping"
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_pcmk_host_map: >-
+    __sap_ha_pacemaker_cluster_pcmk_host_map: |-
       {% for node in ansible_play_hosts_all -%}
         {{ hostvars[node].ansible_hostname }}:{{ hostvars[node].sap_ha_pacemaker_cluster_ibmcloud_powervs_host_guid }}
-      {%-  if not loop.last %};{%- endif -%}
-      {%- endfor %}
+        {%- if not loop.last %};{% endif %}
+      {% endfor %}
   when: __sap_ha_pacemaker_cluster_platform == "cloud_ibmcloud_powervs"
 
 
 # pcmk_host_map format: <hostname1>:<host1-id>;<hostname2>:<host2-id>...
 - name: "SAP HA Prepare Pacemaker - IBM Cloud VS - Assemble host mapping"
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_pcmk_host_map: >-
+    __sap_ha_pacemaker_cluster_pcmk_host_map: |-
       {% for node in ansible_play_hosts_all -%}
         {{ hostvars[node].ansible_hostname }}:{{ hostvars[node].__sap_ha_pacemaker_cluster_register_ibmcloud_vs_host.stdout }}
-      {%-  if not loop.last %};{%- endif -%}
-      {%- endfor %}
+        {%- if not loop.last %};{% endif %}
+      {% endfor %}
   when: __sap_ha_pacemaker_cluster_platform == "cloud_ibmcloud_vs"
 
 
 # pcmk_host_map format: <hostname1>:<hostname1>;<hostname2>:<hostname2>...
 - name: "SAP HA Prepare Pacemaker - MS Azure VM - Assemble host mapping"
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_pcmk_host_map: >-
+    __sap_ha_pacemaker_cluster_pcmk_host_map: |-
       {% for node in ansible_play_hosts_all -%}
         {{ hostvars[node].ansible_hostname }}:{{ hostvars[node].ansible_hostname }}
-      {%-  if not loop.last %};{%- endif -%}
-      {%- endfor %}
+        {%- if not loop.last %};{% endif %}
+      {% endfor %}
   when: __sap_ha_pacemaker_cluster_platform == "cloud_msazure_vm"
