@@ -107,6 +107,19 @@
       vars:
         __sap_ha_pacemaker_cluster_platform_file: "{{ role_path }}/tasks/{{ item }}"
 
+    # Stop and disable services that conflict with cluster setups,
+    # for instance cloud-init services on cloud platforms
+    - name: "SAP HA Install Pacemaker - Stop and disable services"
+      when: sap_ha_pacemaker_cluster_disable_services is defined
+      ansible.builtin.service:
+        name: "{{ service_item }}"
+        enabled: false
+        state: stopped
+      loop: "{{ sap_ha_pacemaker_cluster_disable_services }}"
+      loop_control:
+        loop_var: service_item
+        label: "{{ service_item }}"
+
     # Before we are ready to call the ha_cluster role, we want to validate
     # that the minimum required parameters are defined and not empty.
     # TODO: make this smarter, currently all these vars are pre-defined anyway

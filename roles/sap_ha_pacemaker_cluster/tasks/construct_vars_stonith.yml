@@ -67,7 +67,7 @@
     __sap_ha_pacemaker_cluster_stonith_resource: "{{ __sap_ha_pacemaker_cluster_stonith_resource | default([]) + [__stonith_resource_element] }}"
   vars:
     __stonith_resource_element:
-      id: "res_{{ sap_ha_pacemaker_cluster_stonith_default.id }}"
+      id: "{{ sap_ha_pacemaker_cluster_stonith_default.id }}"
       agent: "{{ sap_ha_pacemaker_cluster_stonith_default.agent }}"
       instance_attrs:
         - attrs: |-
@@ -77,7 +77,7 @@
                 'name': 'pcmk_host_map',
                 'value': __sap_ha_pacemaker_cluster_pcmk_host_map
               }]) -%}
-            {%- for agent_opt in (sap_ha_pacemaker_cluster_stonith_default.options | dict2items) -%}
+            {%- for agent_opt in (sap_ha_pacemaker_cluster_stonith_default.options | default({}) | dict2items) -%}
               {% set aopts = attrs.extend([
                 {
                   'name': agent_opt.key,
@@ -90,7 +90,7 @@
                   'name': fence_opt.key,
                   'value': fence_opt.value
                 }]) -%}
-            {%- endfor %}
+              {%- endfor %}
             {{ attrs }}
 
 - name: "SAP HA Prepare Pacemaker - Assemble the stonith resources from custom definition"
