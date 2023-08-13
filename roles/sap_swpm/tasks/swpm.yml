@@ -115,6 +115,29 @@
   register: swpm_success_file_contents
   changed_when: false
 
+- name: SAP SWPM - Find sapcontrol log file/s
+  ansible.builtin.find:
+    paths: "{{ swpm_last_install_path.stdout }}"
+    recurse: false
+    file_type: file
+    patterns: '.*sapcontrol.*log'
+    use_regex: true
+  register: swpm_output_sapcontrol_files
+
+- name: SAP SWPM - Get sapcontrol file/s
+  ansible.builtin.command: awk -v RS='(^|\n)GetInstanceProperties\n' 'END{printf "%s", $0}' {{ item }}
+  register: swpm_sapcontrol_file_contents
+  changed_when: false
+  loop: "{{ swpm_output_sapcontrol_files.files | map(attribute='path') | list | unique }}"
+
 - name: SAP SWPM - Display installation finished from success file
   ansible.builtin.debug:
     msg: "{{ swpm_success_file_contents.stdout_lines }}"
+
+- name: SAP SWPM - Display status from sapcontrol file/s
+  ansible.builtin.debug:
+    msg: "{{ ['GetInstanceProperties'] + file_output.stdout_lines }}"
+  loop: "{{ swpm_sapcontrol_file_contents.results }}"
+  loop_control:
+    loop_var: file_output
+    label: "{{ file_output.item }}"
