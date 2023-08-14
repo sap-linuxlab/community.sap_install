@@ -95,25 +95,29 @@ There are various methods to execute the Ansible Collection, dependant on the us
 | ---- | ---- | ---- |
 | Ansible Playbook <br/>-> source Ansible Collection <br/>-> execute Ansible Task <br/>--> run Ansible Role <br/>---> run Ansible Module for Shell (built-in)<br/>---> ... | Complex executions with various interlinked activities;<br/> run in parallel or sequentially | Localhost or Remote |
 
-## Requirements, Dependencies and Testing
+## Testing, Requirements and Dependencies
 
-## Testing with SAP Software Provisioning Manager (SWPM)
+### Testing
 
 Various SAP Software solutions have been extensively tested:
 
 - SAP HANA
-- SAP NetWeaver AS (ABAP or JAVA)
-- SAP S/4HANA AnyPremise 1809, 1909, 2020, 2021
-  - One Host installation
-  - Dual Host installation
+  - Scale-Up
+  - Scale-Out
+  - High Availability
+- SAP NetWeaver AS (ABAP or JAVA) and additional addons (e.g. GRC, ADS)
+- SAP S/4HANA AnyPremise (1809, 1909, 2020, 2021, 2022)
+  - Sandbox (One Host) installation
+  - Standard (Dual Host) installation
   - Distributed installation
   - High Availability installation
   - System Copy (Homogeneous with SAP HANA Backup / Recovery) installation
+  - Maintenance Planner installation
   - System Rename
 - SAP BW/4HANA
+- SAP Business Suite on HANA (SoH, i.e. SAP ECC on HANA)
+- SAP Business Suite (i.e. SAP ECC with SAP AnyDB - SAP ASE, SAP MaxDB, IBM Db2, Oracle DB)
 - SAP Solution Manager 7.2
-- SAP Business Suite (i.e. ECC)
-- SAP NetWeaver applications (e.g. GRC)
 - SAP Web Dispatcher
 
 ### Target host - Operating System requirements
@@ -136,7 +140,7 @@ N.B. The Ansible Collection works with SLES from version 15 SP3 and upwards, for
 
 Execution of Ansible Playbooks using this Ansible Collection have been tested with:
 - Python 3.9.7 and above (i.e. CPython distribution)
-- Ansible Core 2.11.5 and above (included with optional installation of Ansible Community Edition 4.0 and above)
+- Ansible Core 2.11.5 and above _(included with optional installation of Ansible Community Edition 4.0 and above)_
 - OS: macOS with Homebrew, RHEL, SLES, and containers in Task Runners (e.g. Azure DevOps)
 
 ## License
