@@ -85,6 +85,7 @@
           {%- for dev in av_dev -%}
             {%- if (fs.disk_size | string + 'GB') in (dev.value.size | regex_replace('(\.\d+\s*)', ''))
                 and dev.key not in assigned_dev
+                and dev.value.holders | length == 0
                 and matching_dev | length < (fs.lvm_lv_stripes | d('1') | int) %}
 
                 {%- set assigned = assigned_dev.append(dev.key) %}
@@ -93,16 +94,17 @@
             {%- endif %}
           {%- endfor %}
 
-
-          {%- set extend = device_map.extend([
-            {
-              'device': matching_dev | join(','),
-              'fstype': fs.filesystem_type | default(sap_storage_setup_local_filesystem_type),
-              'mountpoint': fs.mountpoint | default(''),
-              'name': fs.name,
-              'size': fs.disk_size,
-            }
-          ]) %}
+          {%- if matching_dev | length > 0 -%}
+            {%- set extend = device_map.extend([
+              {
+                'device': matching_dev | join(','),
+                'fstype': fs.filesystem_type | default(sap_storage_setup_local_filesystem_type),
+                'mountpoint': fs.mountpoint | default(''),
+                'name': fs.name,
+                'size': fs.disk_size,
+              }
+            ]) %}
+          {%- endif %}
         {%- endif %}
       {%- endfor %}
       {{ device_map }}
@@ -151,11 +153,16 @@
     - map_item.nfs_path is not defined
     - '"nfs" not in map_item.filesystem_type'
     - map_item.swap_path is not defined
+    - filesystem_device_map is defined
+    - filesystem_device_map | length > 0
 
 
 - name: SAP Storage Setup - Display local disk setup assignment
   ansible.builtin.debug:
     var: volume_map
+  when:
+    - volume_map is defined
+
 
 ################
 

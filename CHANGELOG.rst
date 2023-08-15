@@ -5,6 +5,21 @@ community.sap_install Release Notes
 .. contents:: Topics
 
 
+v1.3.1
+======
+
+Release Summary
+---------------
+
+| Release Date: 2023-08-14
+| sap_ha_pacemaker_cluster: Improved AWS constructs based on feedback
+| sap_ha_pacemaker_cluster: Improved no STONITH resource definition handling
+| sap_hana_install: Bug fix for arg spec on deprecated vars
+| sap_hostagent: Bug fix for media handling
+| sap_install_media_detect: Improved handling based on feedback
+| sap_storage_setup: Bug fix for existing storage devices
+| sap_swpm: Make full log output optional and replace with sapcontrol log final status
+| collection: Bug fix for sample Ansible Playbooks
 
 v1.3.0
 ======

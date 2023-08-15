@@ -1,5 +1,7 @@
 ---
 
+# Set this parameter to use either the unar package from EPEL or another software package for handling RAR files.
+# Based on this setting, the commands for listing and extracting RAR files are being set in tasks/prepare/enable_rar_handling.yml
 sap_install_media_detect_rar_package: 'EPEL'
 #sap_install_media_detect_rar_package: 'linux-rar'
 
@@ -10,13 +12,6 @@ sap_install_media_detect_epel_gpg_key_url: "https://download.fedoraproject.org/p
 # For using the rpm -e command, set this variable to 'false'.
 sap_install_media_detect_use_rpm_key_module_for_removing_the_key: true
 
-# commands for handling rar files
-sap_install_media_detect_rar_list: '/usr/bin/lsar'
-sap_install_media_detect_rar_extract: '/usr/bin/unar'
-
-#sap_install_media_detect_rar_list: '/usr/bin/unrar lb'
-#sap_install_media_detect_rar_extract: '/usr/bin/unrar x'
-
 # If this role is running on a file server on which the SAP software is not to be installed, set the following to true.
 # If this role is running on a system on which the SAP software is to be installed, set the following to false.
 sap_install_media_detect_file_server_only: false
@@ -24,17 +19,22 @@ sap_install_media_detect_file_server_only: false
 # Directory where the SAP software is located
 sap_install_media_detect_source_directory: /software
 
+# Directory where the SAP software is located after the role is run, if different from sap_install_media_detect_source_directory
+#sap_install_media_detect_target_directory: /software_local
+
 # If there are two files of the same RAR or ZIP type, one with and one without suffix, the following parameter will determine what
 # the role will do for such a file: skip the file renaming, fail, or overwrite the file with the suffix by the file without suffix
 sap_install_media_detect_rename_target_file_exists: 'skip'
 #sap_install_media_detect_rename_target_file_exists: 'fail'
 #sap_install_media_detect_rename_target_file_exists: 'overwrite'
 
-# Directory where the SAP software is located after the role is run, if different from sap_install_media_detect_source_directory
-#sap_install_media_detect_target_directory: /software_local
-
 # local_dir, remote_dir (e.g. NFS, s3fuse)
 #sap_install_media_detect_source: local_dir
+
+# If the following parameter is set to true and the target directory for the extracted files (= *_extracted) already exists,
+# the extraction of the corresponding file will be skipped. If set to false, target directories will be removed initially,
+# forcing a fresh extraction, including re-creation of the target directory.
+sap_install_media_detect_skip_extraction_if_target_dir_exists: false
 
 # saphana, sapase, sapmaxdb, oracledb, ibmdb2
 sap_install_media_detect_db: "saphana"

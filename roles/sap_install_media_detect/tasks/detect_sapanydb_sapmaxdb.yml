@@ -1,5 +1,17 @@
 ---
 
+- name: SAP Install Media Detect - SAP MaxDB - Get info of directory 'sapmaxdb_extracted'
+  ansible.builtin.stat:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/sapmaxdb_extracted/"
+  register: __sap_install_media_detect_sapmaxdb_extracted_stat
+
+- name: SAP Install Media Detect - SAP MaxDB - Ensure directory 'sapmaxdb_extracted' is absent
+  ansible.builtin.file:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/sapmaxdb_extracted/"
+    state: absent
+  when:
+    - not sap_install_media_detect_skip_extraction_if_target_dir_exists
+
 - name: SAP Install Media Detect - SAP MaxDB - Create Directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -12,7 +24,7 @@
     - "{{ __sap_install_media_detect_software_main_directory }}/sapmaxdb_extracted/"
 
 - name: SAP Install Media Detect - SAP MaxDB - List files in directory
-  ansible.builtin.command: ls -1
+  ansible.builtin.command: find . -maxdepth 1 -type f
   register: detect_directory_files
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
@@ -28,9 +40,10 @@
   ignore_errors: true
   changed_when: false
 
-- name: SAP Install Media Detect - SAP MaxDB - Identify SAP MaxDB installation media
+# Reason for noqa: grep -q with pipefail shell option returns 141 instead of 0
+- name: SAP Install Media Detect - SAP MaxDB - Identify SAP MaxDB installation media # noqa risky-shell-pipe
   ansible.builtin.shell: |
-    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'MaxDB_7.9' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'MaxDB_7.9' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_sapmaxdb
   changed_when: "item | length > 0"
   with_items:
@@ -45,14 +58,17 @@
     - "{{ detect_directory_files_sapmaxdb.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
+  when: (not __sap_install_media_detect_sapmaxdb_extracted_stat.stat.exists) or
+        (    __sap_install_media_detect_sapmaxdb_extracted_stat.stat.exists and not
+             sap_install_media_detect_skip_extraction_if_target_dir_exists)
 
 - name: SAP Install Media Detect - SAP MaxDB - Identify SAP MaxDB extracted
   ansible.builtin.find:
     paths: "{{ __sap_install_media_detect_software_main_directory }}/sapmaxdb_extracted/"
-    recurse: yes
+    recurse: true
     file_type: directory
-    patterns: '.*MaxDB_7.9.*' # Use patterns to identify directory with this string
-    use_regex: yes
+    patterns: '.*MaxDB_7.9.*'
+    use_regex: true
   register: detect_directory_sapmaxdb_extracted
 
 - name: SAP Install Media Detect - SAP MaxDB - Local Directory source - move SAP MaxDB compressed archive files

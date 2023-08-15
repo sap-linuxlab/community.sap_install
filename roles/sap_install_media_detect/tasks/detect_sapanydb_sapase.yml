@@ -1,5 +1,17 @@
 ---
 
+- name: SAP Install Media Detect - SAP ASE - Get info of directory 'sapase_extracted'
+  ansible.builtin.stat:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/sapase_extracted/"
+  register: __sap_install_media_detect_sapase_extracted_stat
+
+- name: SAP Install Media Detect - SAP ASE - Ensure directory 'sapase_extracted' is absent
+  ansible.builtin.file:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/sapase_extracted/"
+    state: absent
+  when:
+    - not sap_install_media_detect_skip_extraction_if_target_dir_exists
+
 - name: SAP Install Media Detect - SAP ASE - Create Directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -13,7 +25,7 @@
     - "{{ __sap_install_media_detect_software_main_directory }}/sapase_client_extracted/"
 
 - name: SAP Install Media Detect - SAP ASE - List files in directory
-  ansible.builtin.command: ls -1
+  ansible.builtin.command: find . -maxdepth 1 -type f
   register: detect_directory_files
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
@@ -29,9 +41,10 @@
   ignore_errors: true
   changed_when: false
 
-- name: SAP Install Media Detect - SAP ASE - Identify SAP ASE installation media
+# Reason for noqa: grep -q with pipefail shell option returns 141 instead of 0
+- name: SAP Install Media Detect - SAP ASE - Identify SAP ASE installation media # noqa risky-shell-pipe
   ansible.builtin.shell: |
-    set -o pipefail && if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'BD_SYBASE_ASE' ; then echo '{{ item }}' ; fi ; fi
+    if [ ! -z "$(file {{ item }} | grep 'Zip archive data')" ]; then if zipinfo -1 {{ item }} | grep -q 'BD_SYBASE_ASE' ; then echo '{{ item }}' ; fi ; fi
   register: detect_directory_files_sapase
   changed_when: "item | length > 0"
   with_items:
@@ -42,10 +55,10 @@
 - name: SAP Install Media Detect - SAP ASE - Identify SAP ASE Client installation media
   ansible.builtin.find:
     paths: "{{ __sap_install_media_detect_software_main_directory }}"
-    recurse: yes
+    recurse: true
     file_type: file
     patterns: '.*ASEBC.*'
-    use_regex: yes
+    use_regex: true
   register: detect_directory_files_sapase_client
 
 # Reason for noqa: Difficult to determine the change status in the shell command sequence
@@ -55,6 +68,9 @@
     - "{{ detect_directory_files_sapase.results | map(attribute='stdout') | select() }}"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
+  when: (not __sap_install_media_detect_sapase_extracted_stat.stat.exists) or
+        (    __sap_install_media_detect_sapase_extracted_stat.stat.exists and not
+             sap_install_media_detect_skip_extraction_if_target_dir_exists)
 
 - name: SAP Install Media Detect - SAP ASE - Extract SAP ASE 16.0 Client with SAPCAR
   ansible.builtin.shell: |
@@ -71,18 +87,19 @@
 - name: SAP Install Media Detect - SAP ASE - Identify SAP ASE extracted
   ansible.builtin.find:
     paths: "{{ __sap_install_media_detect_software_main_directory }}/sapase_extracted"
-    recurse: yes
+    recurse: true
     file_type: directory
-    patterns: ".*SYBASE_LINUX.*" # Use patterns to identify directory with this string
-    use_regex: yes
+    patterns: ".*SYBASE_LINUX.*"
+    use_regex: true
   register: detect_directory_sapase_extracted
 
 - name: SAP Install Media Detect - SAP ASE - Identify SAP ASE Client extracted
   ansible.builtin.find:
     paths: "{{ __sap_install_media_detect_software_main_directory }}/sapase_client_extracted"
-    recurse: yes
-    file_type: directory
-    contains: "sybodbc" # Use contains to find specific filename
+    recurse: true
+    file_type: file
+    patterns: ".*sybodbc.*"
+    use_regex: true
   register: detect_directory_sapase_client_extracted
 
 - name: SAP Install Media Detect - SAP ASE - Local Directory source - move SAP ASE compressed archive files
