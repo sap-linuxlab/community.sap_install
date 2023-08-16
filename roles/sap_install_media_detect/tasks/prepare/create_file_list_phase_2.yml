@@ -23,7 +23,7 @@
   loop: "{{ __sap_install_media_detect_register_find_result_phase_2.files }}"
 
 - name: SAP Install Media Detect - Prepare - Iterate over files and determine file type
-  ansible.builtin.shell: set -o pipefail && {{ __sap_install_media_detect_sapfile_path }} -lde --lsar_file={{ __sap_install_media_detect_rar_list.split(' ')[0] }} --sapcar_file={{ __sap_install_media_detect_fact_sapcar_path_for_sapfile }} {{ line_item }} | awk '{print $(NF-3), $(NF-2), $(NF-1), $NF}'
+  ansible.builtin.shell: set -o pipefail && {{ __sap_install_media_detect_sapfile_path }} -le --lsar_file={{ __sap_install_media_detect_rar_list.split(' ')[0] }} --sapcar_file={{ __sap_install_media_detect_fact_sapcar_path }} {{ line_item }}
   register: __sap_install_media_detect_register_files_phase_2
   loop: "{{ __sap_install_media_detect_fact_find_result_phase_2 }}"
   loop_control:
@@ -38,60 +38,64 @@
     __new_dict:
       dir: "{{ item.line_item | dirname }}"
       file: "{{ item.line_item | basename }}"
-      sap_file_type: "{{ item.stdout.split(' ')[0] }}"
-      archive_dir: "{{ item.stdout.split(' ')[1] }}"
-      archive_type: "{{ item.stdout.split(' ')[2] }}"
-      extract_archive: "{{ item.stdout.split(' ')[3] }}"
+      sap_file_type: "{{ item.stdout.split(';')[1] }}"
+      target_dir: "{{ item.stdout.split(';')[2] }}"
+      extraction_dir: "{{ item.stdout.split(';')[3] }}"
+      archive_type: "{{ item.stdout.split(';')[4] }}"
+      extract_archive: "{{ item.stdout.split(';')[5] }}"
+      copy_archive: "{{ item.stdout.split(';')[6] }}"
   when:
-    (item.stdout.split(' ')[0] == 'sapcar') or
-    (sap_install_media_detect_swpm | d('false') and item.stdout.split(' ')[0] == 'sap_swpm') or
-    (sap_install_media_detect_hostagent | d('false') and item.stdout.split(' ')[0] == 'sap_hostagent') or
-    (sap_install_media_detect_igs | d('false') and item.stdout.split(' ')[0] == 'sap_igs') or
-    (sap_install_media_detect_kernel | d('false') and item.stdout.split(' ')[0] == 'sap_kernel') or
-    (sap_install_media_detect_webdisp | d('false') and item.stdout.split(' ')[0] == 'sap_webdisp') or
+    (item.stdout.split(';')[1] == 'sapcar') or
+    (item.stdout.split(';')[1] == 'sap_jvm') or
+    (item.stdout.split(';')[1] == 'sap_unknown') or
+    (sap_install_media_detect_swpm | d('false') and item.stdout.split(';')[1] == 'sap_swpm') or
+    (sap_install_media_detect_hostagent | d('false') and item.stdout.split(';')[1] == 'sap_hostagent') or
+    (sap_install_media_detect_igs | d('false') and item.stdout.split(';')[1] == 'sap_igs') or
+    (sap_install_media_detect_kernel | d('false') and item.stdout.split(';')[1] == 'sap_kernel') or
+    (sap_install_media_detect_webdisp | d('false') and item.stdout.split(';')[1] == 'sap_webdisp') or
     (sap_install_media_detect_db == 'saphana' and (
-       item.stdout.split(' ')[0] == 'saphana' or
-       item.stdout.split(' ')[0] == 'saphana_client' or
-       item.stdout.split(' ')[0] == 'saphana_other')
+       item.stdout.split(';')[1] == 'saphana' or
+       item.stdout.split(';')[1] == 'saphana_client' or
+       item.stdout.split(';')[1] == 'saphana_other')
     ) or
-    (sap_install_media_detect_db == 'sapmaxdb' and item.stdout.split(' ')[0] == 'sapmaxdb') or
+    (sap_install_media_detect_db == 'sapmaxdb' and item.stdout.split(';')[1] == 'sapmaxdb') or
     (sap_install_media_detect_db == 'sapase' and (
-       item.stdout.split(' ')[0] == 'sapase' or
-       item.stdout.split(' ')[0] == 'sapase_client')
+       item.stdout.split(';')[1] == 'sapase' or
+       item.stdout.split(';')[1] == 'sapase_client')
     ) or
     (sap_install_media_detect_db == 'oracledb' and (
-       item.stdout.split(' ')[0] == 'oracledb' or
-       item.stdout.split(' ')[0] == 'oracledb_client')
+       item.stdout.split(';')[1] == 'oracledb' or
+       item.stdout.split(';')[1] == 'oracledb_client')
     ) or
     (sap_install_media_detect_db == 'ibmdb2' and (
-       item.stdout.split(' ')[0] == 'ibmdb2' or
-       item.stdout.split(' ')[0] == 'ibmdb2_client' or
-       item.stdout.split(' ')[0] == 'ibmdb2_license')
+       item.stdout.split(';')[1] == 'ibmdb2' or
+       item.stdout.split(';')[1] == 'ibmdb2_client' or
+       item.stdout.split(';')[1] == 'ibmdb2_license')
     ) or
-    (sap_install_media_detect_export == 'saps4hana' and item.stdout.split(' ')[0] == 'sap_s4hana_export') or
-    (sap_install_media_detect_export == 'sapbw4hana' and item.stdout.split(' ')[0] == 'sap_bw4hana_export') or
-    (sap_install_media_detect_export == 'sapnwas_abap' and item.stdout.split(' ')[0] == 'sapnwas_abap_export') or
-    (sap_install_media_detect_export == 'sapnwas_java' and item.stdout.split(' ')[0] == 'sapnwas_java_export') or
-    (sap_install_media_detect_export == 'sapecc' and item.stdout.split(' ')[0] == 'sapecc_export') or
-    (sap_install_media_detect_export == 'sapecc_ides' and item.stdout.split(' ')[0] == 'sapecc_ides_export')
+    (sap_install_media_detect_export == 'saps4hana' and item.stdout.split(';')[1] == 'sap_export_s4hana') or
+    (sap_install_media_detect_export == 'sapbw4hana' and item.stdout.split(';')[1] == 'sap_export_bw4hana') or
+    (sap_install_media_detect_export == 'sapnwas_abap' and item.stdout.split(';')[1] == 'sap_export_nwas_abap') or
+    (sap_install_media_detect_export == 'sapnwas_java' and item.stdout.split(';')[1] == 'sap_export_nwas_java') or
+    (sap_install_media_detect_export == 'sapecc' and item.stdout.split(';')[1] == 'sap_export_ecc') or
+    (sap_install_media_detect_export == 'sapecc_ides' and item.stdout.split(';')[1] == 'sap_export_ecc_ides')
 
-- name: SAP Install Media Detect - Prepare - Identify the sapcar program
-  ansible.builtin.set_fact:
-    __sap_install_media_detect_fact_sapcar_path: "{{ __sap_install_media_detect_software_main_directory }}/{{ item.line_item | basename }}"
-  loop: "{{ __sap_install_media_detect_register_files_phase_2.results }}"
-  when: item.stdout.split(' ')[0] == 'sapcar'
+#- name: SAP Install Media Detect - Prepare - Identify the sapcar program
+#  ansible.builtin.set_fact:
+#    __sap_install_media_detect_fact_sapcar_path: "{{ __sap_install_media_detect_software_main_directory }}/{{ item.line_item | basename }}"
+#  loop: "{{ __sap_install_media_detect_register_files_phase_2.results }}"
+#  when: item.stdout.split(';')[1] == 'sapcar'
 
-- name: SAP Install Media Detect - Prepare - Ensure sapcar is executable
-  ansible.builtin.file:
-    path: "{{ __sap_install_media_detect_fact_sapcar_path }}"
-    owner: root
-    group: root
-    mode: '0755'
+#- name: SAP Install Media Detect - Prepare - Ensure sapcar is executable
+#  ansible.builtin.file:
+#    path: "{{ __sap_install_media_detect_fact_sapcar_path }}"
+#    owner: root
+#    group: root
+#    mode: '0755'
 
 - name: SAP Install Media Detect - Prepare - Display the file dict, phase 2
   ansible.builtin.debug:
     var: __sap_install_media_detect_fact_files_sapfile_results
 
-- name: SAP Install Media Detect - Prepare - Display the path to the sapcar program
-  ansible.builtin.debug:
-    var: __sap_install_media_detect_fact_sapcar_path
+#- name: SAP Install Media Detect - Prepare - Display the path to the sapcar program
+#  ansible.builtin.debug:
+#    var: __sap_install_media_detect_fact_sapcar_path

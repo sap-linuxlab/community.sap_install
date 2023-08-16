@@ -2,11 +2,11 @@
 
 - name: SAP Install Media Detect - Find files after extraction - Set fact for SAP kernel files
   ansible.builtin.set_fact:
-    sap_swpm_software_path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm" # for setting consecutive vars
+    sap_swpm_software_path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm_download_basket" # for setting consecutive vars
   ignore_errors: true
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAPCAR
-  ansible.builtin.shell: ls SAPCAR*.EXE
+  ansible.builtin.shell: ls SAPCAR*.EXE | tail -1
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   register: sap_swpm_sapcar_file_name_get
@@ -93,40 +93,35 @@
   when: sap_install_media_detect_db == "sapmaxdb"
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAPEXEDB
-  ansible.builtin.shell: |
-    ls SAPEXEDB_*.SAR
+  ansible.builtin.shell: ls SAPEXEDB_*.SAR
   args:
     chdir: "{{ sap_swpm_software_path }}"
   register: sap_swpm_kernel_dependent_file_name_get
   when: sap_install_media_detect_kernel
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAPEXE
-  ansible.builtin.shell: |
-    ls SAPEXE_*.SAR
+  ansible.builtin.shell: ls SAPEXE_*.SAR
   args:
     chdir: "{{ sap_swpm_software_path }}"
   register: sap_swpm_kernel_independent_file_name_get
   when: sap_install_media_detect_kernel
 
 - name: SAP Install Media Detect - Find files after extraction - Find IGS
-  ansible.builtin.shell: |
-    ls igsexe*.sar
+  ansible.builtin.shell: ls igsexe*.sar
   args:
     chdir: "{{ sap_swpm_software_path }}"
   register: sap_swpm_igs_file_name_get
   when: sap_install_media_detect_igs
 
 - name: SAP Install Media Detect - Find files after extraction - Find IGS Helper
-  ansible.builtin.shell: |
-    ls igshelper*.sar
+  ansible.builtin.shell: ls igshelper*.sar
   args:
     chdir: "{{ sap_swpm_software_path }}"
   register: sap_swpm_igs_helper_file_name_get
   when: sap_install_media_detect_igs
 
 - name: SAP Install Media Detect - Find files after extraction - Find WEBDISP
-  ansible.builtin.shell: |
-    ls SAPWEBDISP_*.SAR
+  ansible.builtin.shell: ls SAPWEBDISP_*.SAR
   args:
     chdir: "{{ sap_swpm_software_path }}"
   register: sap_swpm_web_dispatcher_file_name_get
@@ -135,7 +130,7 @@
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP ECC Export
   ansible.builtin.find:
-    paths: "{{ __sap_install_media_detect_software_main_directory }}/sapecc_export_extracted"
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sap_export_ecc_extracted"
     recurse: true
     file_type: directory
     patterns: '.*DATA_UNITS.*'
@@ -145,7 +140,7 @@
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP ECC IDES Export
   ansible.builtin.find:
-    paths: "{{ __sap_install_media_detect_software_main_directory }}/sapecc_ides_export_extracted"
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sap_export_ecc_ides_extracted"
     recurse: true
     file_type: directory
     patterns: '.*EXP.*'
@@ -175,7 +170,7 @@
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP NetWeaver AS (ABAP) platform only Export
   ansible.builtin.find:
-    paths: "{{ __sap_install_media_detect_software_main_directory }}/sapnwas_abap_export_extracted"
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sap_export_nwas_abap_extracted"
     recurse: true
     file_type: directory
     patterns: '.*DATA_UNITS.*'
@@ -185,7 +180,7 @@
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP NetWeaver AS (JAVA) platform only Export
   ansible.builtin.find:
-    paths: "{{ __sap_install_media_detect_software_main_directory }}/sapnwas_java_export_extracted"
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sap_export_nwas_java_extracted"
     recurse: true
     file_type: directory
     patterns: '.*DATA_UNITS.*'
@@ -195,7 +190,8 @@
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP Solution Manager (ABAP) platform only Export
   ansible.builtin.find:
-    paths: "{{ __sap_install_media_detect_software_main_directory }}/sapsolman_abap_export_extracted"
+#    paths: "{{ __sap_install_media_detect_software_main_directory }}/sap_export_solman_abap_extracted"
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sap_export_nwas_abap_extracted"
     recurse: true
     file_type: directory
     patterns: '.*DATA_UNITS.*'

@@ -23,11 +23,9 @@ usage () {
    echo "Usage: sapfile [OPTION...] [FILE...]"
    echo "Determine and display type of SAP FILEs, optionally followed by additional information."
    echo "  -h|--help                  display this help and exit"
+   echo "  -H|--header                display a column header"
    echo "  -l|--long                  long listing: also display the file type, taken from the output of the file command"
-   echo "  -d|--directory             also display the directory where to move the archive files, for use with Ansible role"
-   echo "                               community.sap_install.sap_install_media_detect"
-   echo "  -e|--extract               also display if the SAP FILE should be extracted, for use with Ansible role"
-   echo "                               community.sap_install.sap_install_media_detect"
+   echo "  -e|--extra-long            extra long listing: display all information required by role sap_install_media_detect"
    echo "  --lsar_file=<FILE>         the name of the program to list the content of a RAR file, if different from 'lsar',"
    echo "                               either as the name of a file in one of the PATH directories or as an FQPN."
    echo "                               When specifying the 'unrar' program, it will be called with option 'lb'."
@@ -40,10 +38,13 @@ usage () {
    echo "- sapcar (SAP program to handle sapcar files; typical filename: SAPCAR_1115-70006178.EXE)"
 }
 
+# defaults:
+_DELIMITER=";"
+
 # option defaults:
 _DISPLAY_FILE_TYPE="n"
-_DISPLAY_DIRECTORY="n"
-_DISPLAY_EXTRACT="n"
+_DISPLAY_ALL_INFO="n"
+_DISPLAY_HEADER="n"
 _SAPCAR_FILE='sapcar'
 _LSAR_FILE='lsar'
 
@@ -52,7 +53,7 @@ if [[ ${#} == 0 ]]; then
    exit 1
 fi
 
-options=":ldeh-:"
+options=":leHh-:"
 while getopts "$options" opt; do
    case ${opt} in
       -)
@@ -60,11 +61,11 @@ while getopts "$options" opt; do
             long)
                _DISPLAY_FILE_TYPE="y"
                ;;
-            directory)
-               _DISPLAY_DIRECTORY="y"
+            extra-long)
+               _DISPLAY_ALL_INFO="y"
                ;;
-            extract)
-               _DISPLAY_EXTRACT="y"
+            header)
+               _DISPLAY_HEADER="y"
                ;;
             lsar_file)
                if [[ ${!OPTIND-x} == x ]]; then
@@ -72,11 +73,11 @@ while getopts "$options" opt; do
                   exit 0
                fi
                _LSAR_FILE="${!OPTIND}"
-               OPTIND=$(( ${OPTIND} + 1 ))
+               OPTIND=$(( OPTIND + 1 ))
                ;;
             lsar_file=*)
                _LSAR_FILE=${OPTARG#*=}
-               opt=${OPTARG%=${_LSAR_FILE}}
+               opt=${OPTARG%="${_LSAR_FILE}"}
                ;;
             sapcar_file)
                if [[ ${!OPTIND-x} == x ]]; then
@@ -84,11 +85,11 @@ while getopts "$options" opt; do
                   exit 0
                fi
                _SAPCAR_FILE="${!OPTIND}"
-               OPTIND=$(( ${OPTIND} + 1 ))
+               OPTIND=$(( OPTIND + 1 ))
                ;;
             sapcar_file=*)
                _SAPCAR_FILE=${OPTARG#*=}
-               opt=${OPTARG%=${_SAPCAR_FILE}}
+               opt=${OPTARG%="${_SAPCAR_FILE}"}
                ;;
             help)
                usage
@@ -105,11 +106,11 @@ while getopts "$options" opt; do
       l)
          _DISPLAY_FILE_TYPE="y"
          ;;
-      d)
-         _DISPLAY_DIRECTORY="y"
-         ;;
       e)
-         _DISPLAY_EXTRACT="y"
+         _DISPLAY_ALL_INFO="y"
+         ;;
+      H)
+         _DISPLAY_HEADER="y"
          ;;
       h)
          usage
@@ -130,15 +131,27 @@ elif [[ "${_LSAR_FILE}" == *"unrar"* ]]; then
    _LSAR_COMMAND="${_LSAR_FILE} lb"
 fi
 
-_ARCHIVE_TYPE="other"
+_GENERIC_FILE_TYPE="other"
+
+if [[ ${_DISPLAY_HEADER}. == "y." ]]; then
+   if [[ ${_DISPLAY_ALL_INFO}. == "y." ]]; then
+      printf "%s;%s;%s;%s;%s;%s;%s\n" "filename" "sap_file_type" "target_dir" "extraction_dir" "file_type" "extract" "copy"
+   else
+      if [[ ${_DISPLAY_FILE_TYPE}. == "y." ]]; then
+         printf "%-40s %-24s %-6s\n" "filename:" "sap_file_type" "file_type"
+      else
+         printf "%-40s %-24s\n" "filename:" "sap_file_type"
+      fi
+   fi
+fi
 
 for _FILE in "$@"; do
    _FILE_OUTPUT=$(file "${_FILE}" | sed 's,'"${_FILE}"': ,,')
    if [[ ${_FILE_OUTPUT}. == "data." ]] && [[ (${_FILE##*.} == "SAR" || ${_FILE##*.} == "sar") ]]; then
-      _ARCHIVE_TYPE="sapcar"
+      _GENERIC_FILE_TYPE="sapcar"
       _list_content="${_SAPCAR_FILE} -tvf"
    else
-      _ARCHIVE_TYPE=$(echo "${_FILE_OUTPUT}" | awk '
+      _GENERIC_FILE_TYPE=$(echo "${_FILE_OUTPUT}" | awk '
       BEGIN{_file_type="other"}
       /RAR self-extracting archive/{_file_type="rarexe"}
       /RAR archive data/{_file_type="rar"}
@@ -146,19 +159,23 @@ for _FILE in "$@"; do
       /SAPCAR archive data/{_file_type="sapcar"}
       /directory/{_file_type="dir"}
       END{print _file_type}')
-      if [[ ${_ARCHIVE_TYPE}. == "rarexe." ]]; then
+      if [[ ${_GENERIC_FILE_TYPE}. == "rarexe." ]]; then
          _list_content="${_LSAR_COMMAND}"
-      elif [[ ${_ARCHIVE_TYPE}. == "rar." ]]; then
+      elif [[ ${_GENERIC_FILE_TYPE}. == "rar." ]]; then
          _list_content="${_LSAR_COMMAND}"
-      elif [[ ${_ARCHIVE_TYPE}. == "zip." ]]; then
+      elif [[ ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
          _list_content="zipinfo -1"
-      elif [[ ${_ARCHIVE_TYPE}. == "sapcar." ]]; then
+      elif [[ ${_GENERIC_FILE_TYPE}. == "sapcar." ]]; then
          _list_content="${_SAPCAR_FILE} -tvf"
-      elif [[ ${_ARCHIVE_TYPE}. == "dir." ]]; then
+      elif [[ ${_GENERIC_FILE_TYPE}. == "dir." ]]; then
          _list_content=""
       fi
    fi
-   printf "%-40s " "${_FILE}":
+   if [[ ${_DISPLAY_ALL_INFO}. == "y." ]]; then
+      printf "%s%s" "${_FILE}" "${_DELIMITER}"
+   else
+      printf "%-40s " "${_FILE}":
+   fi
 
    if [[ ! -e "${_FILE}" ]]; then
       echo "No such file or directory."
@@ -180,20 +197,20 @@ for _FILE in "$@"; do
    /ASEBC/{_sap_file_type="sapase_client"}
    /COMPLETE/{_sap_file_type="saphana_backup"}
    /S4/&&/HANA/&&/LANG/{_sap_file_type="sap_s4hana_lang"}
-   /S4/&&/EXPORT/{_sap_file_type="sap_s4hana_export"}
-   /BW4/&&/EXPORT/{_sap_file_type="sap_bw4hana_export"}
+   /S4/&&/EXPORT/{_sap_file_type="sap_export_s4hana"}
+   /BW4/&&/EXPORT/{_sap_file_type="sap_export_bw4hana"}
    /VCH/&&/\.SAR/{_sap_file_type="sap_vch_afl"}
    END{print _sap_file_type}')
 
    if [[ ${SAP_FILE_TYPE_FROM_FILENAME}. != "look_inside." ]]; then
       _SAP_FILE_TYPE=${SAP_FILE_TYPE_FROM_FILENAME}
    else
-      if [[ ${_ARCHIVE_TYPE}. == "dir." ]]; then
+      if [[ ${_GENERIC_FILE_TYPE}. == "dir." ]]; then
          _SAP_FILE_TYPE=${_FILE_OUTPUT}
-      elif [[ ${_ARCHIVE_TYPE}. == "rarexe." ||
-              ${_ARCHIVE_TYPE}. == "rar." ||
-              ${_ARCHIVE_TYPE}. == "zip." ||
-              ${_ARCHIVE_TYPE}. == "sapcar." ]]; then
+      elif [[ ${_GENERIC_FILE_TYPE}. == "rarexe." ||
+              ${_GENERIC_FILE_TYPE}. == "rar." ||
+              ${_GENERIC_FILE_TYPE}. == "zip." ||
+              ${_GENERIC_FILE_TYPE}. == "sapcar." ]]; then
          _SAP_FILE_TYPE=$(eval "${_list_content}" "${_FILE}" | awk '
          BEGIN{_sap_file_type="sap_unknown"}
          /BD_SYBASE_ASE/{_sap_file_type="sapase"}
@@ -205,10 +222,10 @@ for _FILE in "$@"; do
          /db2setup/{_sap_file_type="ibmdb2"}
          /db6_update_client.sh/{_sap_file_type="ibmdb2_client"}
          /db2aese_c.lic/{_sap_file_type="ibmdb2_license"}
-         /DATA_UNITS\/EXPORT/{_sap_file_type="sapecc_export"}
-         /EXP[0-9]/{_sap_file_type="sapecc_ides_export"}
-         /DATA_UNITS\/EXP[0-9]/{_sap_file_type="sapnwas_abap_export"}
-         /DATA_UNITS\/JAVA_EXPORT_JDMP/{_sap_file_type="sapnwas_java_export"}
+         /DATA_UNITS\/EXPORT/{_sap_file_type="sap_export_ecc"}
+         /EXP[0-9]/{_sap_file_type="sap_export_ecc_ides"}
+         /DATA_UNITS\/EXP[0-9]/{_sap_file_type="sap_export_nwas_abap"}
+         /DATA_UNITS\/JAVA_EXPORT_JDMP/{_sap_file_type="sap_export_nwas_java"}
          /format error in header/{_sap_file_type="format_error_in_header"}
          END{print _sap_file_type}')
       else
@@ -216,45 +233,76 @@ for _FILE in "$@"; do
       fi
    fi
 
-   _DIRECTORY=${_SAP_FILE_TYPE}
+   _TARGET_DIRECTORY=${_SAP_FILE_TYPE}
+   _EXTRACTION_DIRECTORY=${_SAP_FILE_TYPE}_extracted
    _EXTRACT="y"
+   _COPY="n"
 
    case ${_SAP_FILE_TYPE} in
       directory)
          _EXTRACT="n"
+         _EXTRACTION_DIRECTORY="none"
          ;;
       sapcar)
+         _TARGET_DIRECTORY="auto"
+         _EXTRACTION_DIRECTORY="none"
          _EXTRACT="n"
+         _COPY="y"
+         ;;
+      sap_hostagent)
+         _TARGET_DIRECTORY="auto"
+         _EXTRACTION_DIRECTORY="none"
+         _EXTRACT="n"
+         _COPY="y"
+         ;;
+      saphana_client)
+         _TARGET_DIRECTORY="auto"
+         _EXTRACTION_DIRECTORY="sap_hana_client"
+         _EXTRACT="y"
+         _COPY="y"
          ;;
       sapase|sapase_client)
-         _DIRECTORY="sapase"
+         _TARGET_DIRECTORY="sapase"
          ;;
       sapmaxdb)
          ;;
       oracledb|oracledb_client|oracledb_tools)
-         _DIRECTORY="oracledb"
+         _TARGET_DIRECTORY="oracledb"
          ;;
       ibmdb2|ibmdb2_client|ibmdb2_license)
-         _DIRECTORY="ibmdb2"
+         _TARGET_DIRECTORY="ibmdb2"
          ;;
-      saphana|saphana_client|saphana_other)
-         _DIRECTORY="saphana"
+      saphana|saphana_other|sap_vch_afl)
+         _TARGET_DIRECTORY="sap_hana"
+         _EXTRACTION_DIRECTORY="none"
+         _EXTRACT="n"
          ;;
-      sap_swpm|sap_kernel|sap_igs|sap_webdisp|sap_jvm)
-         _DIRECTORY="sap_swpm"
+      sap_swpm)
+         _TARGET_DIRECTORY="sap_swpm"
+         _EXTRACTION_DIRECTORY="none"
+         _EXTRACT="n"
+         ;;
+      sap_kernel|sap_igs|sap_webdisp|sap_jvm)
+         _TARGET_DIRECTORY="sap_swpm_download_basket"
+         _EXTRACTION_DIRECTORY="none"
+         _EXTRACT="n"
+         ;;
+      sap_export*)
+         ;;
+      *)
+         _TARGET_DIRECTORY="sap_swpm_download_basket"
+         _EXTRACTION_DIRECTORY="none"
          _EXTRACT="n"
          ;;
    esac
 
-   printf "%-24s " "${_SAP_FILE_TYPE}"
-   if [[ ${_DISPLAY_DIRECTORY}. == "y." ]]; then
-      printf "%-24s" "${_DIRECTORY}"
+   if [[ ${_DISPLAY_ALL_INFO}. == "y." ]]; then
+      printf "%s%s%s%s%s%s%s%s%s%s%s\n" "${_SAP_FILE_TYPE}" "${_DELIMITER}" "${_TARGET_DIRECTORY}" "${_DELIMITER}" "${_EXTRACTION_DIRECTORY}" "${_DELIMITER}" "${_GENERIC_FILE_TYPE}" "${_DELIMITER}" "${_EXTRACT}" "${_DELIMITER}" "${_COPY}"
+   else
+      if [[ ${_DISPLAY_FILE_TYPE}. == "y." ]]; then
+         printf "%-24s %-6s\n" "${_SAP_FILE_TYPE}" "${_GENERIC_FILE_TYPE}"
+      else
+         printf "%-24s\n" "${_SAP_FILE_TYPE}"
+      fi
    fi
-   if [[ ${_DISPLAY_FILE_TYPE}. == "y." ]]; then
-      printf "%-6s " "${_ARCHIVE_TYPE}"
-   fi
-   if [[ ${_DISPLAY_EXTRACT}. == "y." ]]; then
-      printf "%-2s" "${_EXTRACT}"
-   fi
-   printf "\n"
 done
