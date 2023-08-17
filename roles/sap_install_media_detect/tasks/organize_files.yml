@@ -61,6 +61,19 @@
      line_item.archive_type == 'rar' or
      line_item.archive_type == 'sapcar')
 
+- name: SAP Install Media Detect - Organize all files - Create target directory sap_swpm_download_basket archive files
+  ansible.builtin.file:
+    path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm_download_basket"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
+  loop_control:
+    loop_var: line_item
+  when:
+    line_item.target_dir == 'auto'
+
 - name: SAP Install Media Detect - Organize all files - Extract zip archive files
   ansible.builtin.shell: "set -o pipefail && unzip {{ line_item.file }} -d {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}"
   args:

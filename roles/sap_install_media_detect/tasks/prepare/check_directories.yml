@@ -17,21 +17,37 @@
     - sap_install_media_detect_target_directory | string | length > 0
   block:
 
+    - name: SAP Install Media Detect - Prepare - Create 'sap_install_media_detect_target_directory'
+      ansible.builtin.file:
+        path: "{{ sap_install_media_detect_target_directory }}"
+        state: directory
+        owner: 'root'
+        group: 'root'
+        mode: '0755'
+      when:
+        - sap_install_media_detect_create_target_directory
+
     - name: SAP Install Media Detect - Prepare - Get info of 'sap_install_media_detect_target_directory'
       ansible.builtin.stat:
         path: "{{ sap_install_media_detect_target_directory }}"
       register: __sap_install_media_detect_target_directory_stat
+      when:
+        - not sap_install_media_detect_create_target_directory
 
     - name: SAP Install Media Detect - Prepare - Check if 'sap_install_media_detect_target_directory' exists
       ansible.builtin.fail:
         msg: "FAIL: Directory {{ sap_install_media_detect_target_directory }} does not exist!"
-      when: not __sap_install_media_detect_target_directory_stat.stat.exists
+      when:
+        - not sap_install_media_detect_create_target_directory
+        - not __sap_install_media_detect_target_directory_stat.stat.exists
 
     - name: SAP Install Media Detect - Prepare - Check if 'sap_install_media_detect_target_directory' is writable
       ansible.builtin.assert:
         that: __sap_install_media_detect_target_directory_stat.stat.writeable
         fail_msg: "FAIL: Directory {{ sap_install_media_detect_target_directory }} is not writable!"
         success_msg: "PASS: Directory {{ sap_install_media_detect_target_directory }} is writable."
+      when:
+        - not sap_install_media_detect_create_target_directory
 
     - name: SAP Install Media Detect - Prepare - Set facts in case of remote file system'
       ansible.builtin.set_fact:
