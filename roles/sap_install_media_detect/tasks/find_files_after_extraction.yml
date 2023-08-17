@@ -6,7 +6,7 @@
   ignore_errors: true
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAPCAR
-  ansible.builtin.shell: ls SAPCAR*.EXE | tail -1
+  ansible.builtin.shell: set -o pipefail && ls SAPCAR*.EXE | tail -1
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   register: sap_swpm_sapcar_file_name_get
@@ -190,11 +190,20 @@
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP Solution Manager (ABAP) platform only Export
   ansible.builtin.find:
-#    paths: "{{ __sap_install_media_detect_software_main_directory }}/sap_export_solman_abap_extracted"
-    paths: "{{ __sap_install_media_detect_software_main_directory }}/sap_export_nwas_abap_extracted"
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sap_export_solman_abap_extracted"
     recurse: true
     file_type: directory
     patterns: '.*DATA_UNITS.*'
     use_regex: true
-  register: detect_directory_solgmr_export_extracted
+  register: detect_directory_solgmr_abap_export_extracted
   when: sap_install_media_detect_export == "sapsolman_abap"
+
+- name: SAP Install Media Detect - Find files after extraction - Find SAP Solution Manager (JAVA) platform only Export
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_software_main_directory }}/sap_export_solman_java_extracted"
+    recurse: true
+    file_type: directory
+    patterns: '.*DATA_UNITS.*'
+    use_regex: true
+  register: detect_directory_solgmr_java_export_extracted
+  when: sap_install_media_detect_export == "sapsolman_java"

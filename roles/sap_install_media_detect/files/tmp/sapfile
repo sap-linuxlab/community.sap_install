@@ -226,8 +226,14 @@ for _FILE in "$@"; do
          /EXP[0-9]/{_sap_file_type="sap_export_ecc_ides"}
          /DATA_UNITS\/EXP[0-9]/{_sap_file_type="sap_export_nwas_abap"}
          /DATA_UNITS\/JAVA_EXPORT_JDMP/{_sap_file_type="sap_export_nwas_java"}
+         /DATA_UNITS\/SOLMAN/&&/_JAVA_UT/{_sap_file_type="sap_export_solman_java"}
          /format error in header/{_sap_file_type="format_error_in_header"}
          END{print _sap_file_type}')
+         if [[ ${_SAP_FILE_TYPE}. == "sap_export_nwas_abap." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
+            _SAP_FILE_TYPE=$(unzip -p "${_FILE}" LABEL.ASC | awk '
+            /SAP SOLUTION MANAGER/{_sap_file_type="sap_export_solman_abap"}
+            END{print _sap_file_type}')
+         fi
       else
          _SAP_FILE_TYPE="sap_unknown"
       fi
