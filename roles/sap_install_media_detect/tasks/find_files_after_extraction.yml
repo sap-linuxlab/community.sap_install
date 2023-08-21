@@ -92,13 +92,6 @@
   register: detect_directory_sapmaxdb_extracted
   when: sap_install_media_detect_db == "sapmaxdb"
 
-- name: SAP Install Media Detect - Find files after extraction - Find SAPEXEDB
-  ansible.builtin.shell: ls SAPEXEDB_*.SAR
-  args:
-    chdir: "{{ sap_swpm_software_path }}"
-  register: sap_swpm_kernel_dependent_file_name_get
-  when: sap_install_media_detect_kernel
-
 - name: SAP Install Media Detect - Find files after extraction - Find SAPEXE
   ansible.builtin.shell: ls SAPEXE_*.SAR
   args:
@@ -106,15 +99,36 @@
   register: sap_swpm_kernel_independent_file_name_get
   when: sap_install_media_detect_kernel
 
-- name: SAP Install Media Detect - Find files after extraction - Find IGS
-  ansible.builtin.shell: ls igsexe*.sar
+- name: SAP Install Media Detect - Find files after extraction - Fail if more than one SAPEXE found
+  ansible.builtin.fail:
+    msg: "More than one SAPEXE file has been detected."
+  when:
+    - sap_install_media_detect_kernel
+    - sap_swpm_kernel_independent_file_name_get.stdout_lines | count > 1
+
+- name: SAP Install Media Detect - Find files after extraction - Find SAPEXEDB
+  ansible.builtin.shell: ls SAPEXEDB_*.SAR
+  args:
+    chdir: "{{ sap_swpm_software_path }}"
+  register: sap_swpm_kernel_dependent_file_name_get
+  when: sap_install_media_detect_kernel
+
+- name: SAP Install Media Detect - Find files after extraction - Fail if more than one SAPEXEDB found
+  ansible.builtin.fail:
+    msg: "More than one SAPEXEDB file has been detected."
+  when:
+    - sap_install_media_detect_kernel
+    - sap_swpm_kernel_dependent_file_name_get.stdout_lines | count > 1
+
+- name: SAP Install Media Detect - Find files after extraction - Find IGS, latest version
+  ansible.builtin.shell: set -o pipefail && ls -1tr igsexe*.sar | tail -1
   args:
     chdir: "{{ sap_swpm_software_path }}"
   register: sap_swpm_igs_file_name_get
   when: sap_install_media_detect_igs
 
-- name: SAP Install Media Detect - Find files after extraction - Find IGS Helper
-  ansible.builtin.shell: ls igshelper*.sar
+- name: SAP Install Media Detect - Find files after extraction - Find IGS Helper, latest version
+  ansible.builtin.shell: set -o pipefail && ls -1tr igshelper*.sar | tail -1
   args:
     chdir: "{{ sap_swpm_software_path }}"
   register: sap_swpm_igs_helper_file_name_get
@@ -127,6 +141,13 @@
   register: sap_swpm_web_dispatcher_file_name_get
   ignore_errors: true
   when: sap_install_media_detect_webdisp
+
+- name: SAP Install Media Detect - Find files after extraction - Fail if more than one WEBDISP found
+  ansible.builtin.fail:
+    msg: "More than one SAPWEBDISP file has been detected."
+  when:
+    - sap_install_media_detect_webdisp
+    - sap_swpm_web_dispatcher_file_name_get.stdout_lines | count > 1
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP ECC Export
   ansible.builtin.find:

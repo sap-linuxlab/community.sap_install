@@ -101,21 +101,21 @@
       when:
         - sap_install_media_detect_swpm | d(false)
 
-    - name: SAP Install Media Detect - Prepare - Assert SAP Kernel, DB independent, is present
+    - name: SAP Install Media Detect - Prepare - Assert exactly one SAP Kernel DB independent is present
       ansible.builtin.assert:
         that:
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'match', 'sap_kernel') | length > 0
-          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXE') | length > 0
-        fail_msg: "No DB independent SAP Kernel file found"
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXE_') | length == 1
+        fail_msg: "No, or more than one, DB independent SAP Kernel file found"
       when:
         - sap_install_media_detect_kernel | d(false)
 
-    - name: SAP Install Media Detect - Prepare - Assert SAP Kernel, DB dependent, is present
+    - name: SAP Install Media Detect - Prepare - Assert exactly one SAP Kernel DB dependent is present
       ansible.builtin.assert:
         that:
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'match', 'sap_kernel') | length > 0
-          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXEDB') | length > 0
-        fail_msg: "No DB dependent SAP Kernel file found"
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXEDB_') | length == 1
+        fail_msg: "No, or more than one, DB dependent SAP Kernel file found"
       when:
         - sap_install_media_detect_kernel | d(false)
 
@@ -145,11 +145,12 @@
       when:
         - sap_install_media_detect_igs | d(false)
 
-    - name: SAP Install Media Detect - Prepare - Assert sap_webdisp is present
+    - name: SAP Install Media Detect - Prepare - Assert exactly one SAP WEBDISP is present
       ansible.builtin.assert:
         that:
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'match', 'sap_webdisp') | length > 0
-        fail_msg: "No sap_webdisp file found"
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPWEBDISP_') | length == 1
+        fail_msg: "No, or more than one, SAPWEBDISP file found"
       when:
         - sap_install_media_detect_webdisp | d(false)
 
