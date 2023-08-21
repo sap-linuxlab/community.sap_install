@@ -54,6 +54,7 @@
     (sap_install_media_detect_hostagent | d(false) and item.stdout.split(';')[1] == 'sap_hostagent') or
     (sap_install_media_detect_igs | d(false) and item.stdout.split(';')[1] == 'sap_igs') or
     (sap_install_media_detect_kernel | d(false) and item.stdout.split(';')[1] == 'sap_kernel') or
+    (sap_install_media_detect_kernel | d(false) and item.stdout.split(';')[1] is search('sap_kernel_db_')) or
     (sap_install_media_detect_webdisp | d(false) and item.stdout.split(';')[1] == 'sap_webdisp') or
     (sap_install_media_detect_db == 'saphana' and (
        item.stdout.split(';')[1] == 'saphana' or
@@ -110,12 +111,57 @@
       when:
         - sap_install_media_detect_kernel | d(false)
 
-    - name: SAP Install Media Detect - Prepare - Assert exactly one SAP Kernel DB dependent is present
+    - name: SAP Install Media Detect - Prepare - Assert at least one SAP Kernel DB dependent is present
       ansible.builtin.assert:
         that:
-          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'match', 'sap_kernel') | length > 0
-          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXEDB_') | length == 1
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'search', 'sap_kernel_db_') | length > 0
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXEDB_') | length > 0
         fail_msg: "No, or more than one, DB dependent SAP Kernel file found"
+      when:
+        - sap_install_media_detect_kernel | d(false)
+
+    - name: SAP Install Media Detect - Prepare - Assert not more than one SAP Kernel DB dependent for SAP HANA is present
+      ansible.builtin.assert:
+        that:
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'search', 'sap_kernel_db_hdb') | length <= 1
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXEDB_') | length == 1
+        fail_msg: "More than one DB dependent SAP Kernel file for SAP HANA found"
+      when:
+        - sap_install_media_detect_kernel | d(false)
+
+    - name: SAP Install Media Detect - Prepare - Assert not more than one SAP Kernel DB dependent for SAP ASE is present
+      ansible.builtin.assert:
+        that:
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'search', 'sap_kernel_db_ase') | length <= 1
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXEDB_') | length == 1
+        fail_msg: "More than one DB dependent SAP Kernel file for SAP ASE found"
+      when:
+        - sap_install_media_detect_kernel | d(false)
+
+    - name: SAP Install Media Detect - Prepare - Assert not more than one SAP Kernel DB dependent for SAP MAXDB is present
+      ansible.builtin.assert:
+        that:
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'search', 'sap_kernel_db_ada') | length <= 1
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXEDB_') | length == 1
+        fail_msg: "More than one DB dependent SAP Kernel file for SAP MAXDB found"
+      when:
+        - sap_install_media_detect_kernel | d(false)
+
+    - name: SAP Install Media Detect - Prepare - Assert not more than one SAP Kernel DB dependent for Oracle DB is present
+      ansible.builtin.assert:
+        that:
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'search', 'sap_kernel_db_ora') | length <= 1
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXEDB_') | length == 1
+        fail_msg: "More than one DB dependent SAP Kernel file for Oracle DB found"
+      when:
+        - sap_install_media_detect_kernel | d(false)
+
+    - name: SAP Install Media Detect - Prepare - Assert not more than one SAP Kernel DB dependent for IBM Db2 is present
+      ansible.builtin.assert:
+        that:
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'search', 'sap_kernel_db_db6') | length <= 1
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXEDB_') | length == 1
+        fail_msg: "More than one DB dependent SAP Kernel file for IBM Db2 found"
       when:
         - sap_install_media_detect_kernel | d(false)
 
