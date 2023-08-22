@@ -137,7 +137,7 @@
 
 - name: SAP Install Media Detect - Organize all files - Copy certain files to 'sap_hana' directory
   ansible.builtin.copy:
-    src: "{{ __sap_install_media_detect_fact_sapcar_path }}"
+    src: "{{ __sap_install_media_detect_software_main_directory }}/{{ line_item.file }}"
     dest: "{{ __sap_install_media_detect_software_main_directory }}/sap_hana/{{ line_item.file }}"
     remote_src: true
     owner: root
@@ -148,12 +148,13 @@
     loop_var: line_item
   when:
     - sap_install_media_detect_db == 'saphana'
-    - (line_item.sap_file_type == 'saphana_client' or
+    - (line_item.sap_file_type == 'sapcar' or
+       line_item.sap_file_type == 'saphana_client' or
        line_item.sap_file_type == 'sap_hostagent')
 
 - name: SAP Install Media Detect - Organize all files - Copy certain files to 'sap_swpm_download_basket' directory
   ansible.builtin.copy:
-    src: "{{ __sap_install_media_detect_fact_sapcar_path }}"
+    src: "{{ __sap_install_media_detect_software_main_directory }}/{{ line_item.file }}"
     dest: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm_download_basket/{{ line_item.file }}"
     remote_src: true
     owner: root
