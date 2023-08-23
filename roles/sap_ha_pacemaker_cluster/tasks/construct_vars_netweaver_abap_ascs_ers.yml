@@ -168,7 +168,7 @@
         id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_filesystem_resource_name }}"
         role: started
       resource_then:
-        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ASCS{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}_group"
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ASCS{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}_group"
       options:
         - name: symmetrical
           value: "false"
@@ -235,7 +235,7 @@
         id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_filesystem_resource_name }}"
         role: started
       resource_then:
-        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ERS{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}_group"
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ERS{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}_group"
       options:
         - name: symmetrical
           value: "false"
@@ -250,12 +250,14 @@
 # - ASCS filesystem
 # - ASCS instance
 # - ASCS VIP
+# The order of the resources in the group define the order in which they are
+# started - resources are stopped in reverse order.
 - name: "SAP HA Prepare Pacemaker - Add resource group for ASCS resources"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__ascs_group] }}"
   vars:
     __ascs_group:
-      id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ASCS{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}_group"
+      id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ASCS{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}_group"
       resource_ids:
         - "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_filesystem_resource_name }}"
         - "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name }}"
@@ -271,12 +273,14 @@
 # - ERS filesystem
 # - ERS instance
 # - ERS VIP
+# The order of the resources in the group define the order in which they are
+# started - resources are stopped in reverse order.
 - name: "SAP HA Prepare Pacemaker - Add resource group for ERS resources"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__ers_group] }}"
   vars:
     __ers_group:
-      id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ERS{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}_group"
+      id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ERS{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}_group"
       resource_ids:
         - "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_filesystem_resource_name }}"
         - "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name }}"
@@ -290,16 +294,16 @@
 #################################################
 
 # ERS and ASCS resource groups should try to avoid running on the same node
-- name: "SAP HA Prepare Pacemaker - Add colocation constraint: NetWeaver ERS and ASCS avoid on the same node"
+- name: "SAP HA Prepare Pacemaker - Add colocation constraint: ERS avoids to run on the ASCS node"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation + [__constraint_colo_ers] }}"
   vars:
     __constraint_colo_ers:
       resource_leader:
-        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ASCS{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}_group"
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ERS{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}_group"
         role: started
       resource_follower:
-        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ERS{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}_group"
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ASCS{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}_group"
       options:
         - name: score
           value: -5000
@@ -313,10 +317,10 @@
   vars:
     __constraint_order_ascs_ers:
       resource_first:
-        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ASCS{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}_group"
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ASCS{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}_group"
         role: started
       resource_then:
-        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ERS{{ sap_ha_pacemaker_cluster_netweaver_instance_number }}_group"
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ERS{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}_group"
       options:
         - name: symmetrical
           value: "false"
