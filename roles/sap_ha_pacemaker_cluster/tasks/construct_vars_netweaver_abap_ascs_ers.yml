@@ -168,7 +168,7 @@
         id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_filesystem_resource_name }}"
         role: started
       resource_then:
-        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ASCS{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}_group"
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name }}"
       options:
         - name: symmetrical
           value: "false"
@@ -193,14 +193,6 @@
               value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_automatic_recover_bool | string }}"
             - name: IS_ERS
               value: "true"
-      meta_attrs:
-        - attrs:
-            - name: resource-stickiness
-              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_stickiness }}"
-            - name: migration-threshold
-              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_migration_threshold }}"
-            - name: failure-timeout
-              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_failure_timeout }}"
       operations:
         - action: start
           attrs:
@@ -235,7 +227,7 @@
         id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_filesystem_resource_name }}"
         role: started
       resource_then:
-        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ERS{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}_group"
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name }}"
       options:
         - name: symmetrical
           value: "false"
@@ -265,7 +257,7 @@
       meta_attrs:
         - attrs:
             - name: resource-stickiness
-              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_stickiness }}"
+              value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_group_stickiness }}"
   when:
     - __ascs_group.id is not in (__sap_ha_pacemaker_cluster_resource_groups | map(attribute='id'))
 
@@ -300,10 +292,10 @@
   vars:
     __constraint_colo_ers:
       resource_leader:
-        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ERS{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}_group"
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ASCS{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}_group"
         role: started
       resource_follower:
-        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ASCS{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}_group"
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ERS{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}_group"
       options:
         - name: score
           value: -5000
