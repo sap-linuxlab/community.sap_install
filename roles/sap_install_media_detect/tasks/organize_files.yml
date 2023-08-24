@@ -21,11 +21,12 @@
   loop_control:
     loop_var: line_item
   when:
-    line_item.extract_archive == 'y' and
-    (line_item.archive_type == 'zip' or
-     line_item.archive_type == 'rarexe' or
-     line_item.archive_type == 'rar' or
-     line_item.archive_type == 'sapcar')
+    - sap_install_media_detect_extract_archives
+    - line_item.extract_archive == 'y'
+    - (line_item.archive_type == 'zip' or
+       line_item.archive_type == 'rarexe' or
+       line_item.archive_type == 'rar' or
+       line_item.archive_type == 'sapcar')
 
 - name: SAP Install Media Detect - Organize all files - Create archive extraction directories
   ansible.builtin.file:
@@ -38,11 +39,12 @@
   loop_control:
     loop_var: line_item
   when:
-    line_item.extract_archive == 'y' and
-    (line_item.archive_type == 'zip' or
-     line_item.archive_type == 'rarexe' or
-     line_item.archive_type == 'rar' or
-     line_item.archive_type == 'sapcar')
+    - sap_install_media_detect_extract_archives
+    - line_item.extract_archive == 'y'
+    - (line_item.archive_type == 'zip' or
+       line_item.archive_type == 'rarexe' or
+       line_item.archive_type == 'rar' or
+       line_item.archive_type == 'sapcar')
 
 - name: SAP Install Media Detect - Organize all files - Create target directories for archive files
   ansible.builtin.file:
@@ -55,11 +57,12 @@
   loop_control:
     loop_var: line_item
   when:
-    line_item.target_dir != 'auto' and
-    (line_item.archive_type == 'zip' or
-     line_item.archive_type == 'rarexe' or
-     line_item.archive_type == 'rar' or
-     line_item.archive_type == 'sapcar')
+    - sap_install_media_detect_move_or_copy_archives
+    - line_item.target_dir != 'auto'
+    - (line_item.archive_type == 'zip' or
+       line_item.archive_type == 'rarexe' or
+       line_item.archive_type == 'rar' or
+       line_item.archive_type == 'sapcar')
 
 - name: SAP Install Media Detect - Organize all files - Create target directory 'sap_hana'
   ansible.builtin.file:
@@ -72,6 +75,7 @@
   loop_control:
     loop_var: line_item
   when:
+    - sap_install_media_detect_move_or_copy_archives
     - sap_install_media_detect_db == 'saphana'
     - line_item.target_dir == 'auto'
 
@@ -86,6 +90,7 @@
   loop_control:
     loop_var: line_item
   when:
+    - sap_install_media_detect_move_or_copy_archives
     - sap_install_media_detect_swpm
     - line_item.target_dir == 'auto'
 
@@ -97,6 +102,7 @@
   loop_control:
     loop_var: line_item
   when:
+    - sap_install_media_detect_extract_archives
     - line_item.archive_type == 'zip'
     - line_item.extract_archive == 'y'
     - line_item.sap_file_type is search("export")
@@ -109,6 +115,7 @@
   loop_control:
     loop_var: line_item
   when:
+    - sap_install_media_detect_extract_archives
     - line_item.archive_type == 'zip'
     - line_item.extract_archive == 'y'
     - not line_item.sap_file_type is search("export")
@@ -121,6 +128,7 @@
   loop_control:
     loop_var: line_item
   when:
+    - sap_install_media_detect_extract_archives
     - line_item.archive_type == 'rarexe'
     - line_item.extract_archive == 'y'
 
@@ -132,6 +140,7 @@
   loop_control:
     loop_var: line_item
   when:
+    - sap_install_media_detect_extract_archives
     - line_item.archive_type == 'sapcar'
     - line_item.extract_archive == 'y'
 
@@ -147,6 +156,7 @@
   loop_control:
     loop_var: line_item
   when:
+    - sap_install_media_detect_move_or_copy_archives
     - sap_install_media_detect_db == 'saphana'
     - (line_item.sap_file_type == 'sapcar' or
        line_item.sap_file_type == 'saphana_client' or
@@ -164,6 +174,7 @@
   loop_control:
     loop_var: line_item
   when:
+    - sap_install_media_detect_move_or_copy_archives
     - sap_install_media_detect_swpm
     - (line_item.sap_file_type == 'sapcar' or
        line_item.sap_file_type == 'saphana_client' or
@@ -175,6 +186,7 @@
   loop_control:
     loop_var: line_item
   when:
+    - sap_install_media_detect_move_or_copy_archives
     - line_item.copy_archive == 'y'
     - line_item.sap_file_type != 'sapcar'
     - line_item.sap_file_type != 'saphana_client'
@@ -186,4 +198,5 @@
   loop_control:
     loop_var: line_item
   when:
+    - sap_install_media_detect_move_or_copy_archives
     - line_item.copy_archive == 'n'

@@ -1,9 +1,18 @@
 ---
 
-- name: SAP Install Media Detect - Find files after extraction - Set fact for SAP kernel files
+- name: SAP Install Media Detect - Find files after extraction - Set fact for SAP kernel files, move_or_copy_archives parameter set
   ansible.builtin.set_fact:
     sap_swpm_software_path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm_download_basket" # for setting consecutive vars
   ignore_errors: true
+  when:
+    - sap_install_media_detect_move_or_copy_archives
+
+- name: SAP Install Media Detect - Find files after extraction - Set fact for SAP kernel files, move_or_copy_archives parameter not set
+  ansible.builtin.set_fact:
+    sap_swpm_software_path: "{{ __sap_install_media_detect_software_main_directory }}" # for setting consecutive vars
+  ignore_errors: true
+  when:
+    - not sap_install_media_detect_move_or_copy_archives
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAPCAR
   ansible.builtin.shell: set -o pipefail && ls -1tr SAPCAR*.EXE | tail -1
