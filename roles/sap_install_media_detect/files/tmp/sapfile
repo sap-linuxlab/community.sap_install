@@ -138,16 +138,35 @@ if [[ ${_SAPCAR_FILE}. == "sapcar." ]]; then
    if [[ ${RC1} -eq 0 ]]; then
       _SAPCAR_FILE=$(which sapcar)
    else
-      _SAPCAR_TEST=$(set -o pipefail && ls -1tr ./SAPCAR*EXE 2>/dev/null | tail -1)
+      _SAPCAR_TEST=$(set -o pipefail && ls -1tr ./SAPCAR*EXE 2>/dev/null)
       RC2=$?
       if [[ ${RC2} != 0 ]]; then
          echo "No file with name SAPCAR*EXE in current directory found."
-         echo "Note: sapfile needs sapcar in PATH or SAPCAR*EXE in current directory to function properly."
+         echo "Note: sapfile needs sapcar in PATH or SAPCAR*EXE in current directory - matching the system's CPU architecture - to function properly."
          echo
          usage
          exit 1
       else
-         _SAPCAR_FILE=${_SAPCAR_TEST}
+         _SAPCAR_ARCH=$(for sapcar_any in ${_SAPCAR_TEST}; do
+             file ${sapcar_any} | awk '{
+                split ($0, a, ":"); split (a[2], b, ","); sub ("^ ", "", b[2]);
+                sub ("x86-64", "x86_64", b[2]);
+                if (index (b[2], "64-bit PowerPC") > 0) {
+                   if ((index (b[3], "GNU/Linux") > 0)||(index (b[4], "GNU/Linux") > 0)) {sub ("64-bit PowerPC", "ppc64le", b[2])};
+                   if ((index (b[3], "SYSV") > 0)||(index (b[4], "SYSV") > 0)) {sub ("64-bit PowerPC", "ppc64", b[2])};
+                }
+                sub ("IBM S/390", "s390x", b[2]);
+                printf ("%s %s %s\n", a[1], b[2], b[3])}';
+             done | awk '/'$(uname -m)'/{print $1}' | tail -1)
+         if [[ ${_SAPCAR_ARCH}. == . ]]; then
+            echo "No file SAPCAR*EXE for the CPU architecture '$(uname -m)' in current directory found."
+            echo "Note: sapfile needs sapcar in PATH or SAPCAR*EXE in current directory - matching the system's CPU architecture - to function properly."
+            echo
+            usage
+            exit 1
+         else
+            _SAPCAR_FILE=${_SAPCAR_TEST}
+         fi
       fi
    fi
 fi
