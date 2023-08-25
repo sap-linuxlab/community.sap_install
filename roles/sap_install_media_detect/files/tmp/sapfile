@@ -131,6 +131,27 @@ elif [[ "${_LSAR_FILE}" == *"unrar"* ]]; then
    _LSAR_COMMAND="${_LSAR_FILE} lb"
 fi
 
+# Identify sapcar: Try using sapcar in PATH or SAPCAR*EXE in current directory
+if [[ ${_SAPCAR_FILE}. == "sapcar." ]]; then
+   which sapcar >/dev/null 2>&1
+   RC1=$?
+   if [[ ${RC1} -eq 0 ]]; then
+      _SAPCAR_FILE=$(which sapcar)
+   else
+      _SAPCAR_TEST=$(set -o pipefail && ls -1tr ./SAPCAR*EXE 2>/dev/null | tail -1)
+      RC2=$?
+      if [[ ${RC2}. != 0 ]]; then
+         echo "No file with name SAPCAR*EXE in current directory found."
+         echo "Note: sapfile needs sapcar in PATH or SAPCAR*EXE in current directory to function properly."
+         echo
+         usage
+         exit 1
+      else
+         _SAPCAR_FILE=${_SAPCAR_TEST}
+      fi
+   fi
+fi
+
 _GENERIC_FILE_TYPE="other"
 
 if [[ ${_DISPLAY_HEADER}. == "y." ]]; then
