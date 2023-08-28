@@ -133,8 +133,7 @@ Red Hat for SAP Community of Practice, Janine Fuchs, IBM Lab for SAP Solutions
 
 Minimum required parameters:
 
-- [ha_cluster_hacluster_password](#ha_cluster_hacluster_password)
-- [sap_hana_instance_number](#sap_hana_instance_number)
+- [sap_ha_pacemaker_cluster_hacluster_password](#sap_ha_pacemaker_cluster_hacluster_password)
 
 
 ### ha_cluster
@@ -154,19 +153,6 @@ ha_cluster:
   - 192.168.2.10
   node_name: nodeA
 ```
-
-### ha_cluster_cluster_name
-
-- _Type:_ `str`
-- _Default:_ `my-cluster`
-
-The name of the pacemaker cluster.<br>
-
-### ha_cluster_hacluster_password <sup>required</sup>
-
-- _Type:_ `str`
-
-The password of the `hacluster` user which is created during pacemaker installation.<br>
 
 ### sap_ha_pacemaker_cluster_aws_access_key_id
 
@@ -188,6 +174,29 @@ Required for cluster nodes setup on Amazon cloud.<br>
 
 AWS secret key, paired with the access key for instance control.<br>
 Required for cluster nodes setup on Amazon cloud.<br>
+
+### sap_ha_pacemaker_cluster_aws_vip_client_interface
+
+- _Type:_ `str`
+- _Default:_ `eth0`
+
+OS device name of the network interface to use for the Virtual IP configuration.<br>
+This is needed for `aws_vpc_move_ip` resources in AWS EC2 environments.<br>
+
+### sap_ha_pacemaker_cluster_aws_vip_update_rt
+
+- _Type:_ `list`
+
+List one more routing table IDs for managing Virtual IP failover through routing table changes.<br>
+Required for VIP configuration in AWS EC2 environments.<br>
+
+### sap_ha_pacemaker_cluster_cluster_name
+
+- _Type:_ `str`
+- _Default:_ `my-cluster`
+
+The name of the pacemaker cluster.<br>
+Inherits the `ha_cluster` LSR native parameter `ha_cluster_cluster_name` if not defined.<br>
 
 ### sap_ha_pacemaker_cluster_cluster_properties
 
@@ -242,6 +251,12 @@ sap_ha_pacemaker_cluster_fence_options:
   pcmk_reboot_timeout: 400
   power_timeout: 240
 ```
+
+### sap_ha_pacemaker_cluster_hacluster_password <sup>required</sup>
+
+- _Type:_ `str`
+
+The password of the `hacluster` user which is created during pacemaker installation.<br>
 
 ### sap_ha_pacemaker_cluster_hana_automated_register
 
@@ -321,27 +336,12 @@ sap_ha_pacemaker_cluster_resource_defaults:
   resource-stickiness: 1000
 ```
 
-### sap_ha_pacemaker_cluster_vip_client_interface
-
-- _Type:_ `str`
-- _Default:_ `eth0`
-
-OS device name of the network interface to use for the Virtual IP configuration.<br>
-This is used for VIP agents that require an interface name, for example in cloud platform environments.<br>
-
 ### sap_ha_pacemaker_cluster_vip_resource_name
 
 - _Type:_ `str`
 - _Default:_ `vip_<SID>_<Instance Number>`
 
 Customize the name of the resource managing the Virtual IP.<br>
-
-### sap_ha_pacemaker_cluster_vip_update_rt
-
-- _Type:_ `list`
-
-List one more routing table IDs for managing Virtual IP failover through routing table changes.<br>
-Required for VIP configuration in AWS EC2 environments.<br>
 
 ### sap_hana_cluster_nodes
 
@@ -373,11 +373,11 @@ sap_hana_cluster_nodes:
   node_role: secondary
 ```
 
-### sap_hana_instance_number <sup>required</sup>
+### sap_hana_instance_number
 
 - _Type:_ `str`
 
-The instance number of the SAP HANA database which is role will configure in the cluster.<br>
+The instance number of the SAP HANA database which this role will configure in the cluster.<br>
 
 ### sap_hana_sid
 
