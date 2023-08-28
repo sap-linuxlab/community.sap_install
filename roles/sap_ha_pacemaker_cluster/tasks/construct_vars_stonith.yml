@@ -2,14 +2,36 @@
 # The following variables are constructed here in order to be provided as
 # input for the included 'ha_cluster' system role.
 
-
-# Block for disabling stonith when no stonith resource definition is found
+### Block for disabling stonith when no stonith resource definition is found
+#
+# This block is entered when
+# - no default stonith resource is defined and no custom is defined either
+# - an empty custom is defined to override any default (defined or not)
 - name: "SAP HA Prepare Pacemaker - Block when no STONITH resource is defined"
   when:
-    - sap_ha_pacemaker_cluster_stonith_default is not defined
-      or sap_ha_pacemaker_cluster_stonith_default | length == 0
-      or sap_ha_pacemaker_cluster_stonith_custom is not defined
-      or sap_ha_pacemaker_cluster_stonith_custom | length == 0
+    - (
+        sap_ha_pacemaker_cluster_stonith_custom is defined
+        and
+        (
+          sap_ha_pacemaker_cluster_stonith_custom == ''
+          or sap_ha_pacemaker_cluster_stonith_custom | length == 0
+        )
+      )
+      or
+      (
+        sap_ha_pacemaker_cluster_stonith_custom is not defined
+        and sap_ha_pacemaker_cluster_stonith_default is defined
+        and
+        (
+          sap_ha_pacemaker_cluster_stonith_default == ''
+          or sap_ha_pacemaker_cluster_stonith_default | length == 0
+        )
+      )
+      or
+      (
+        sap_ha_pacemaker_cluster_stonith_custom is not defined
+        and sap_ha_pacemaker_cluster_stonith_default is not defined
+      )
   block:
 
     - name: "SAP HA Prepare Pacemaker - Set STONITH to disabled when no fencing resource is defined"

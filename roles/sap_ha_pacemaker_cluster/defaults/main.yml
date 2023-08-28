@@ -28,7 +28,7 @@ sap_ha_pacemaker_cluster_hana_instance_number: "{{ sap_hana_instance_number | de
 # TODO: document filesystem definitions
 sap_ha_pacemaker_cluster_storage_definition: "{{ sap_storage_definition | default([]) }}"
 sap_ha_pacemaker_cluster_storage_nfs_filesytem_type: nfs
-sap_ha_pacemaker_cluster_storage_nfs_mount_options: ''
+sap_ha_pacemaker_cluster_storage_nfs_mount_options: 'defaults'
 sap_ha_pacemaker_cluster_storage_nfs_server: "{{ sap_storage_nfs_server | default('') }}"
 
 ################################################################################
@@ -66,10 +66,8 @@ sap_ha_pacemaker_cluster_fence_agent_packages:
 
 sap_ha_pacemaker_cluster_extra_packages: "{{ ha_cluster_extra_packages | default([]) }}"
 
-# Adjusting resource defaults
-sap_ha_pacemaker_cluster_resource_defaults:
-  resource-stickiness: 1000
-  migration-threshold: 5000
+## Resource defaults are defined differently by cluster type, if not custom defined.
+sap_ha_pacemaker_cluster_resource_defaults: {}
 
 # The type of SAP landscape and multi-node replication
 # TODO: Type definitions and feature support
@@ -120,6 +118,9 @@ sap_ha_pacemaker_cluster_resource_filesystem_force_unmount: safe
 sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_resource_name: "Filesystem_NWAS_SAPMNT_{{ sap_ha_pacemaker_cluster_netweaver_sid }}"
 sap_ha_pacemaker_cluster_netweaver_transports_filesystem_resource_name: "Filesystem_NWAS_TRANS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}"
 sap_ha_pacemaker_cluster_netweaver_sys_filesystem_resource_name: "Filesystem_NWAS_SYS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}"
+
+# Enable to manage the SYS, transport and sapmnt filesystems in the cluster
+sap_ha_pacemaker_cluster_netweaver_shared_filesystems_cluster_managed: false
 
 # TODO: document parameters
 
