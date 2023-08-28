@@ -2,18 +2,8 @@
 # Variables containing variables must be constructed with values
 # to be fed into the included ha_cluster role
 
-# - put here all scale-up and scale-out common resources
-# - certain differences like ra agent names are provided through
-#   type specific variables
-
 # TODO: add conditionals to verify that the same resource agent is not already
 #       defined in user input variables. Conflicting user input should take precedence.
-
-- name: "SAP HA Prepare Pacemaker - Set ERS resource option for ENSA1"
-  ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_netweaver_is_ers: true
-  when:
-    - sap_ha_pacemaker_cluster_netweaver_ascs_ers_ensa1
 
 - name: "SAP HA Prepare Pacemaker - Add filesystem resources for ASCS/ERS to resource definition"
   ansible.builtin.set_fact:
@@ -163,22 +153,6 @@
   when:
     - __resource_sapinstance.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
 
-## Order Constraint: ASCS filesystem should start before instance
-#- name: "SAP HA Prepare Pacemaker - Add order constraint: first start ASCS filesystem, then ASCS instance"
-#  ansible.builtin.set_fact:
-#    __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_ascs_fs] }}"
-#  vars:
-#    __constraint_order_ascs_fs:
-#      resource_first:
-#        id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_filesystem_resource_name }}"
-#        role: started
-#      resource_then:
-#        id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name }}"
-#      options:
-#        - name: symmetrical
-#          value: "false"
-#  when:
-#    - __constraint_order_ascs_fs.resource_first not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_first'))
 
 # ERS instance resource definition
 - name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for Enqueue Replication Service (ABAP ERS)"
@@ -197,7 +171,7 @@
             - name: AUTOMATIC_RECOVER
               value: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_automatic_recover_bool | string }}"
             - name: IS_ERS
-              value: "{{ __sap_ha_pacemaker_cluster_netweaver_is_ers | default() }}"
+              value: true
       operations:
         - action: start
           attrs:
@@ -222,22 +196,6 @@
   when:
     - __resource_sapinstance_ers.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
 
-## Order Constraint: ERS filesystem should start before instance
-#- name: "SAP HA Prepare Pacemaker - Add order constraint: first start ERS filesystem, then ERS instance"
-#  ansible.builtin.set_fact:
-#    __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_ers_fs] }}"
-#  vars:
-#    __constraint_order_ers_fs:
-#      resource_first:
-#        id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_filesystem_resource_name }}"
-#        role: started
-#      resource_then:
-#        id: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name }}"
-#      options:
-#        - name: symmetrical
-#          value: "false"
-#  when:
-#    - __constraint_order_ers_fs.resource_first not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_first'))
 
 #################################################
 # Group resources that belong together
@@ -249,6 +207,7 @@
 # - ASCS VIP
 # The order of the resources in the group define the order in which they are
 # started - resources are stopped in reverse order.
+
 - name: "SAP HA Prepare Pacemaker - Add resource group for ASCS resources"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__ascs_group] }}"
@@ -272,6 +231,7 @@
 # - ERS VIP
 # The order of the resources in the group define the order in which they are
 # started - resources are stopped in reverse order.
+
 - name: "SAP HA Prepare Pacemaker - Add resource group for ERS resources"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__ers_group] }}"
@@ -287,7 +247,7 @@
 
 
 #################################################
-# Constraints between the groups
+# Constraints
 #################################################
 
 # ERS and ASCS resource groups should try to avoid running on the same node
@@ -326,6 +286,49 @@
   when:
     - __constraint_order_ascs_ers.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))
 
-# TODO: add ENSA1 location constraint here
-# when
-# __sap_ha_pacemaker_cluster_is_ers is defined and __sap_ha_pacemaker_cluster_is_ers
+# ENSA1 only: location rule for ASCS to follow ERS
+- name: "SAP HA Prepare Pacemaker - Add location constraint: ASCS follows ERS in ENSA1 setup"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_location: "{{ __sap_ha_pacemaker_cluster_constraints_location + [__constraint_location_ascs_ers] }}"
+  vars:
+    __constraint_location_ascs_ers:
+      resource:
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ascs{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}"
+      rule: "runs_ers_{{ sap_ha_pacemaker_cluster_netweaver_sid }} eq 1"
+      options:
+        - name: score
+          value: 2000
+  when:
+    - sap_ha_pacemaker_cluster_netweaver_ascs_ers_ensa1 is defined
+    - sap_ha_pacemaker_cluster_netweaver_ascs_ers_ensa1
+
+
+# When /sapmnt is managed by the cluster,
+# start instance groups only after the SAPMNT resource is running.
+- name: "SAP HA Prepare Pacemaker - Add order constraint: first start /sapmnt, then start ASCS group"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_sapmnt_order: "{{ __sap_ha_pacemaker_cluster_constraints_sapmnt_order + [__constraint_order_sapmnt] }}"
+  vars:
+    __constraint_order_sapmnt:
+      resource_first:
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_resource_name }}"
+        role: started
+      resource_then:
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ASCS{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}_group"
+  when:
+    - sap_ha_pacemaker_cluster_netweaver_shared_filesystems_cluster_managed
+    - __constraint_order_sapmnt.resource_then not in (__sap_ha_pacemaker_cluster_constraints_sapmnt_order | map(attribute='resource_then'))
+
+- name: "SAP HA Prepare Pacemaker - Add order constraint: first start /sapmnt, then start ERS group"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_sapmnt_order: "{{ __sap_ha_pacemaker_cluster_constraints_sapmnt_order + [__constraint_order_sapmnt] }}"
+  vars:
+    __constraint_order_sapmnt:
+      resource_first:
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_resource_name }}"
+        role: started
+      resource_then:
+        id: "{{ sap_ha_pacemaker_cluster_netweaver_sid }}_ERS{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}_group"
+  when:
+    - sap_ha_pacemaker_cluster_netweaver_shared_filesystems_cluster_managed
+    - __constraint_order_sapmnt.resource_then not in (__sap_ha_pacemaker_cluster_constraints_sapmnt_order | map(attribute='resource_then'))

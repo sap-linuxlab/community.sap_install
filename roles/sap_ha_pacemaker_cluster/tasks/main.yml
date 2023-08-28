@@ -182,8 +182,9 @@
         ha_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives }}"
       tags: ha_cluster
 
-    # Resource defaults can currently not be updated through ha_cluster
-    # role parameters, and thus need to be added.
+    # Resource defaults settings were added to "ha_cluster" in Apr 2023 (GH version 1.9.0)
+    # https://github.com/linux-system-roles/ha_cluster#ha_cluster_resource_defaults
+    # Keeping separate for compatibility with older versions of the ha_cluster role.
     - name: "SAP HA Install Pacemaker - Check resource defaults"
       ansible.builtin.command:
         cmd: |
@@ -196,10 +197,12 @@
     - name: "SAP HA Install Pacemaker - Update resource default attributes"
       when:
         - item.key ~ '=' ~ item.value not in __sap_ha_pacemaker_cluster_check_resource_defaults.stdout
+        - __sap_ha_pacemaker_cluster_resource_defaults is defined
+        - __sap_ha_pacemaker_cluster_resource_defaults | length > 0
       ansible.builtin.command:
         cmd: |
           pcs resource defaults update {{ item.key }}={{ item.value }}
-      loop: "{{ sap_ha_pacemaker_cluster_resource_defaults | dict2items }}"
+      loop: "{{ __sap_ha_pacemaker_cluster_resource_defaults | dict2items }}"
       loop_control:
         label: "{{ item.key }}={{ item.value }}"
       run_once: true
