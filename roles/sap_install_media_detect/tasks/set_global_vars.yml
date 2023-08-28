@@ -10,17 +10,28 @@
     sap_swpm_sapcar_path: "{{ __sap_install_media_detect_software_main_directory }}"
     sap_swpm_sapcar_file_name: "{{ sap_swpm_sapcar_file_name_get.stdout }}"
 
-- name: SAP Install Media Detect - Detection completed - Set fact for SWPM
+- name: SAP Install Media Detect - Detection completed - Set fact for SWPM, move_or_copy_archives parameter set
   ansible.builtin.set_fact:
 #    sap_swpm_software_path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm" # set in find_files_after_extraction.yml
 #    sap_swpm_install_directory: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm"
+#    sap_swpm_install_directory: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm_download_basket" # for sap_swpm Ansible Role
     sap_swpm_install_directory: "{{ sap_swpm_software_path }}"
-#    sap_swpm_swpm_path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm" # for sap_swpm Ansible Role
-    sap_swpm_swpm_path: "{{ sap_swpm_software_path }}" # for sap_swpm Ansible Role
+    sap_swpm_swpm_path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm" # for sap_swpm Ansible Role
 #    sap_swpm_sapcar_path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm" # for sap_swpm Ansible Role
 #    sap_swpm_sapcar_path: "{{ sap_swpm_software_path }}" # for sap_swpm Ansible Role
   ignore_errors: true
-  when: sap_install_media_detect_swpm
+  when:
+    - sap_install_media_detect_move_or_copy_archives
+    - sap_install_media_detect_swpm
+
+- name: SAP Install Media Detect - Detection completed - Set fact for SWPM, move_or_copy_archives parameter not set
+  ansible.builtin.set_fact:
+#    sap_swpm_install_directory: "{{ __sap_install_media_detect_software_main_directory }}" # for sap_swpm Ansible Role
+    sap_swpm_install_directory: "{{ sap_swpm_software_path }}"
+    sap_swpm_swpm_path: "{{ sap_swpm_software_path }}" # for sap_swpm Ansible Role
+  when:
+    - not sap_install_media_detect_move_or_copy_archives
+    - sap_install_media_detect_swpm
 
 - name: SAP Install Media Detect - Detection completed - Set facts for SAP HANA - sap_hana_install, move_or_copy_archives parameter set
   ansible.builtin.set_fact:
@@ -85,17 +96,26 @@
   ignore_errors: true
   when: sap_install_media_detect_db == "sapmaxdb"
 
-- name: SAP Install Media Detect - Detection completed - Set facts for SAPEXEDB
-  ansible.builtin.set_fact:
-    sap_swpm_kernel_dependent_path: "{{ sap_swpm_software_path }}"
-    sap_swpm_kernel_dependent_file_name: "{{ sap_swpm_kernel_dependent_file_name_get.stdout }}"
-  when: sap_install_media_detect_kernel
-
 - name: SAP Install Media Detect - Detection completed - Set facts for SAPEXE
   ansible.builtin.set_fact:
     sap_swpm_kernel_independent_path: "{{ sap_swpm_software_path }}"
     sap_swpm_kernel_independent_file_name: "{{ sap_swpm_kernel_independent_file_name_get.stdout }}"
   when: sap_install_media_detect_kernel
+
+- name: SAP Install Media Detect - Detection completed - Set facts for SAPEXEDB, unspecific
+  ansible.builtin.set_fact:
+    sap_swpm_kernel_dependent_path: "{{ sap_swpm_software_path }}"
+    sap_swpm_kernel_dependent_file_name: "{{ sap_swpm_kernel_dependent_file_name_get.stdout }}"
+  when:
+    - sap_install_media_detect_kernel_db is not defined
+    - sap_install_media_detect_kernel
+
+- name: SAP Install Media Detect - Detection completed - Set facts for SAPEXEDB, specific
+  ansible.builtin.set_fact:
+    sap_swpm_kernel_dependent_path: "{{ sap_swpm_software_path }}"
+    sap_swpm_kernel_dependent_file_name: "{{ sap_swpm_kernel_dependent_file_name_get }}"
+  when:
+    - sap_install_media_detect_kernel_db is defined
 
 - name: SAP Install Media Detect - Detection completed - Set facts for SAP IGS
   ansible.builtin.set_fact:
