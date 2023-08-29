@@ -432,12 +432,83 @@ sap_ha_pacemaker_cluster_resource_defaults:
   resource-stickiness: 1000
 ```
 
-### sap_ha_pacemaker_cluster_vip_resource_name
+### sap_ha_pacemaker_cluster_vip_hana_primary_ip
 
 - _Type:_ `str`
-- _Default:_ `vip_<SID>_<Instance Number>`
 
-Customize the name of the resource managing the Virtual IP.<br>
+The virtual IP of the primary HANA instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_hana_primary_resource_name
+
+- _Type:_ `str`
+- _Default:_ `vip_<SID><Instance Number>`
+
+Customize the name of the resource managing the Virtual IP of the primary HANA instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_hana_secondary_ip
+
+- _Type:_ `str`
+
+The virtual IP for read-only access to the secondary HANA instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_aas_ip
+
+- _Type:_ `str`
+
+The virtual IP of the NetWeaver AAS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_aas_resource_name
+
+- _Type:_ `str`
+- _Default:_ `vip_<SID><Instance Number>`
+
+Customize the name of the resource managing the Virtual IP of the NetWeaver AAS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_ascs_ip
+
+- _Type:_ `str`
+
+The virtual IP of the NetWeaver ASCS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_ascs_resource_name
+
+- _Type:_ `str`
+- _Default:_ `vip_<SID><Instance Number>`
+
+Customize the name of the resource managing the Virtual IP of the NetWeaver ASCS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_ers_ip
+
+- _Type:_ `str`
+
+The virtual IP of the NetWeaver ERS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_ers_resource_name
+
+- _Type:_ `str`
+- _Default:_ `vip_<SID><Instance Number>`
+
+Customize the name of the resource managing the Virtual IP of the NetWeaver ERS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_pas_ip
+
+- _Type:_ `str`
+
+The virtual IP of the NetWeaver PAS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_pas_resource_name
+
+- _Type:_ `str`
+- _Default:_ `vip_<SID><Instance Number>`
+
+Customize the name of the resource managing the Virtual IP of the NetWeaver PAS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_secondary_resource_name
+
+- _Type:_ `str`
+- _Default:_ `vip_<SID><Instance Number>`
+
+Customize the name of the resource managing the Virtual IP of read-only access to the secondary HANA instance.<br>
 
 ### sap_hana_cluster_nodes
 
