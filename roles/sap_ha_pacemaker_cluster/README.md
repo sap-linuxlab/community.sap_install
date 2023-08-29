@@ -313,6 +313,102 @@ Required for cluster nodes setup in IBM Cloud.<br>
 The cloud region key in which the instances are running.<br>
 Required for cluster nodes setup in IBM Cloud.<br>
 
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_filesystem_resource_name
+
+- _Type:_ `str`
+
+Name of the filesystem resource for the ASCS instance.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_group_stickiness
+
+- _Type:_ `str`
+- _Default:_ `3000`
+
+NetWeaver ASCS resource group stickiness to prefer the ASCS group to stay on the node it was started on.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_automatic_recover_bool
+
+- _Type:_ `bool`
+- _Default:_ `False`
+
+NetWeaver ASCS instance resource option "AUTOMATIC_RECOVER".<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_ensa1_failure_timeout
+
+- _Type:_ `str`
+- _Default:_ `60`
+
+NetWeaver ASCS instance failure-timeout attribute.<br>
+Only used for ENSA1 setups. Default is ENSA2.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_ensa1_migration_threshold
+
+- _Type:_ `str`
+- _Default:_ `1`
+
+NetWeaver ASCS instance migration-threshold setting attribute.<br>
+Only used for ENSA1 setups. Default is ENSA2.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_instance_name
+
+- _Type:_ `str`
+
+The name of the ASCS instance, typically the profile name.<br>
+Required for the NetWeaver ASCS resource.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name
+
+- _Type:_ `str`
+
+Name of the ASCS instance resource.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_stickiness
+
+- _Type:_ `str`
+- _Default:_ `5000`
+
+NetWeaver ASCS instance resource stickiness attribute.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_start_profile_string
+
+- _Type:_ `str`
+
+The full path and name of the ASCS instance profile.<br>
+Required for the NetWeaver ASCS resource.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ers_filesystem_resource_name
+
+- _Type:_ `str`
+
+Name of the filesystem resource for the ERS instance.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_automatic_recover_bool
+
+- _Type:_ `bool`
+- _Default:_ `False`
+
+NetWeaver ERS instance resource option "AUTOMATIC_RECOVER".<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_instance_name
+
+- _Type:_ `str`
+
+The name of the ERS instance, typically the profile name.<br>
+Required for the NetWeaver ERS resource.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name
+
+- _Type:_ `str`
+
+Name of the ERS instance resource.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_start_profile_string
+
+- _Type:_ `str`
+
+The full path and name of the ERS instance profile.<br>
+Required for the NetWeaver ERS resource.<br>
+
 ### sap_ha_pacemaker_cluster_replication_type
 
 - _Type:_ `str`
