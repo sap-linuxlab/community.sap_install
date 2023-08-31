@@ -120,11 +120,11 @@
     - sap_install_media_detect_kernel
     - sap_swpm_kernel_independent_file_name_get.stdout_lines | count > 1
 
-- name: SAP Install Media Detect - Find files after extraction - Find SAPEXEDB, unspecific
+- name: SAP Install Media Detect - Find files after extraction - Find SAPEXEDB, database unspecific - block
   when: sap_install_media_detect_kernel_db is not defined
   block:
 
-    - name: SAP Install Media Detect - Find files after extraction - Find SAPEXEDB
+    - name: SAP Install Media Detect - Find files after extraction - Find SAPEXEDB, database unspecific
       ansible.builtin.shell: ls SAPEXEDB_*.SAR
       args:
         chdir: "{{ sap_swpm_software_path }}"
@@ -132,18 +132,18 @@
       changed_when: false
       when: sap_install_media_detect_kernel
 
-    - name: SAP Install Media Detect - Find files after extraction - Fail if more than one SAPEXEDB file found
+    - name: SAP Install Media Detect - Find files after extraction - Fail if more than one SAPEXEDB file found, database unspecific
       ansible.builtin.fail:
         msg: "No, or more than one, SAPEXEDB file has been detected."
       when:
         - sap_install_media_detect_kernel
         - sap_swpm_kernel_dependent_file_name_get.stdout_lines | count != 1
 
-- name: SAP Install Media Detect - Find files after extraction - Find SAPEXEDB, database specific
+- name: SAP Install Media Detect - Find files after extraction - Find SAPEXEDB, database specific - block
   when: sap_install_media_detect_kernel_db is defined
   block:
 
-    - name: SAP Install Media Detect - Find files after extraction - Find SAPEXEDB
+    - name: SAP Install Media Detect - Find files after extraction - Find SAPEXEDB, database specific
       ansible.builtin.shell: "{{ __sap_install_media_detect_sapfile_path }} -e --sapcar_file={{ __sap_install_media_detect_fact_sapcar_path }} SAPEXEDB_*.SAR"
       args:
         chdir: "{{ sap_swpm_software_path }}"
