@@ -175,14 +175,6 @@ Required for cluster nodes setup on Amazon cloud.<br>
 AWS secret key, paired with the access key for instance control.<br>
 Required for cluster nodes setup on Amazon cloud.<br>
 
-### sap_ha_pacemaker_cluster_aws_vip_client_interface
-
-- _Type:_ `str`
-- _Default:_ `eth0`
-
-OS device name of the network interface to use for the Virtual IP configuration.<br>
-This is needed for `aws_vpc_move_ip` resources in AWS EC2 environments.<br>
-
 ### sap_ha_pacemaker_cluster_aws_vip_update_rt
 
 - _Type:_ `list`
@@ -431,6 +423,13 @@ sap_ha_pacemaker_cluster_resource_defaults:
   migration-threshold: 5000
   resource-stickiness: 1000
 ```
+
+### sap_ha_pacemaker_cluster_vip_client_interface
+
+- _Type:_ `str`
+- _Default:_ `eth0`
+
+OS device name of the network interface to use for the Virtual IP configuration.<br>
 
 ### sap_ha_pacemaker_cluster_vip_hana_primary_ip
 
