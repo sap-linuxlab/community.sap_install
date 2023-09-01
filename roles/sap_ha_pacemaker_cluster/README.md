@@ -133,8 +133,7 @@ Red Hat for SAP Community of Practice, Janine Fuchs, IBM Lab for SAP Solutions
 
 Minimum required parameters:
 
-- [ha_cluster_hacluster_password](#ha_cluster_hacluster_password)
-- [sap_hana_instance_number](#sap_hana_instance_number)
+- [sap_ha_pacemaker_cluster_hacluster_password](#sap_ha_pacemaker_cluster_hacluster_password)
 
 
 ### ha_cluster
@@ -154,19 +153,6 @@ ha_cluster:
   - 192.168.2.10
   node_name: nodeA
 ```
-
-### ha_cluster_cluster_name
-
-- _Type:_ `str`
-- _Default:_ `my-cluster`
-
-The name of the pacemaker cluster.<br>
-
-### ha_cluster_hacluster_password <sup>required</sup>
-
-- _Type:_ `str`
-
-The password of the `hacluster` user which is created during pacemaker installation.<br>
 
 ### sap_ha_pacemaker_cluster_aws_access_key_id
 
@@ -188,6 +174,21 @@ Required for cluster nodes setup on Amazon cloud.<br>
 
 AWS secret key, paired with the access key for instance control.<br>
 Required for cluster nodes setup on Amazon cloud.<br>
+
+### sap_ha_pacemaker_cluster_aws_vip_update_rt
+
+- _Type:_ `list`
+
+List one more routing table IDs for managing Virtual IP failover through routing table changes.<br>
+Required for VIP configuration in AWS EC2 environments.<br>
+
+### sap_ha_pacemaker_cluster_cluster_name
+
+- _Type:_ `str`
+- _Default:_ `my-cluster`
+
+The name of the pacemaker cluster.<br>
+Inherits the `ha_cluster` LSR native parameter `ha_cluster_cluster_name` if not defined.<br>
 
 ### sap_ha_pacemaker_cluster_cluster_properties
 
@@ -242,6 +243,12 @@ sap_ha_pacemaker_cluster_fence_options:
   pcmk_reboot_timeout: 400
   power_timeout: 240
 ```
+
+### sap_ha_pacemaker_cluster_hacluster_password <sup>required</sup>
+
+- _Type:_ `str`
+
+The password of the `hacluster` user which is created during pacemaker installation.<br>
 
 ### sap_ha_pacemaker_cluster_hana_automated_register
 
@@ -298,6 +305,102 @@ Required for cluster nodes setup in IBM Cloud.<br>
 The cloud region key in which the instances are running.<br>
 Required for cluster nodes setup in IBM Cloud.<br>
 
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_filesystem_resource_name
+
+- _Type:_ `str`
+
+Name of the filesystem resource for the ASCS instance.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_group_stickiness
+
+- _Type:_ `str`
+- _Default:_ `3000`
+
+NetWeaver ASCS resource group stickiness to prefer the ASCS group to stay on the node it was started on.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_automatic_recover_bool
+
+- _Type:_ `bool`
+- _Default:_ `False`
+
+NetWeaver ASCS instance resource option "AUTOMATIC_RECOVER".<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_ensa1_failure_timeout
+
+- _Type:_ `str`
+- _Default:_ `60`
+
+NetWeaver ASCS instance failure-timeout attribute.<br>
+Only used for ENSA1 setups. Default is ENSA2.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_ensa1_migration_threshold
+
+- _Type:_ `str`
+- _Default:_ `1`
+
+NetWeaver ASCS instance migration-threshold setting attribute.<br>
+Only used for ENSA1 setups. Default is ENSA2.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_instance_name
+
+- _Type:_ `str`
+
+The name of the ASCS instance, typically the profile name.<br>
+Required for the NetWeaver ASCS resource.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name
+
+- _Type:_ `str`
+
+Name of the ASCS instance resource.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_stickiness
+
+- _Type:_ `str`
+- _Default:_ `5000`
+
+NetWeaver ASCS instance resource stickiness attribute.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_start_profile_string
+
+- _Type:_ `str`
+
+The full path and name of the ASCS instance profile.<br>
+Required for the NetWeaver ASCS resource.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ers_filesystem_resource_name
+
+- _Type:_ `str`
+
+Name of the filesystem resource for the ERS instance.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_automatic_recover_bool
+
+- _Type:_ `bool`
+- _Default:_ `False`
+
+NetWeaver ERS instance resource option "AUTOMATIC_RECOVER".<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_instance_name
+
+- _Type:_ `str`
+
+The name of the ERS instance, typically the profile name.<br>
+Required for the NetWeaver ERS resource.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name
+
+- _Type:_ `str`
+
+Name of the ERS instance resource.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_start_profile_string
+
+- _Type:_ `str`
+
+The full path and name of the ERS instance profile.<br>
+Required for the NetWeaver ERS resource.<br>
+
 ### sap_ha_pacemaker_cluster_replication_type
 
 - _Type:_ `str`
@@ -327,21 +430,84 @@ sap_ha_pacemaker_cluster_resource_defaults:
 - _Default:_ `eth0`
 
 OS device name of the network interface to use for the Virtual IP configuration.<br>
-This is used for VIP agents that require an interface name, for example in cloud platform environments.<br>
 
-### sap_ha_pacemaker_cluster_vip_resource_name
+### sap_ha_pacemaker_cluster_vip_hana_primary_ip_address
 
 - _Type:_ `str`
-- _Default:_ `vip_<SID>_<Instance Number>`
 
-Customize the name of the resource managing the Virtual IP.<br>
+The virtual IP of the primary HANA instance.<br>
 
-### sap_ha_pacemaker_cluster_vip_update_rt
+### sap_ha_pacemaker_cluster_vip_hana_primary_resource_name
 
-- _Type:_ `list`
+- _Type:_ `str`
+- _Default:_ `vip_<SID><Instance Number>`
 
-List one more routing table IDs for managing Virtual IP failover through routing table changes.<br>
-Required for VIP configuration in AWS EC2 environments.<br>
+Customize the name of the resource managing the Virtual IP of the primary HANA instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address
+
+- _Type:_ `str`
+
+The virtual IP for read-only access to the secondary HANA instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_aas_ip_address
+
+- _Type:_ `str`
+
+The virtual IP of the NetWeaver AAS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_aas_resource_name
+
+- _Type:_ `str`
+- _Default:_ `vip_<SID><Instance Number>`
+
+Customize the name of the resource managing the Virtual IP of the NetWeaver AAS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_ascs_ip_address
+
+- _Type:_ `str`
+
+The virtual IP of the NetWeaver ASCS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_ascs_resource_name
+
+- _Type:_ `str`
+- _Default:_ `vip_<SID><Instance Number>`
+
+Customize the name of the resource managing the Virtual IP of the NetWeaver ASCS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_ers_ip_address
+
+- _Type:_ `str`
+
+The virtual IP of the NetWeaver ERS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_ers_resource_name
+
+- _Type:_ `str`
+- _Default:_ `vip_<SID><Instance Number>`
+
+Customize the name of the resource managing the Virtual IP of the NetWeaver ERS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_pas_ip_address
+
+- _Type:_ `str`
+
+The virtual IP of the NetWeaver PAS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_netweaver_pas_resource_name
+
+- _Type:_ `str`
+- _Default:_ `vip_<SID><Instance Number>`
+
+Customize the name of the resource managing the Virtual IP of the NetWeaver PAS instance.<br>
+
+### sap_ha_pacemaker_cluster_vip_secondary_resource_name
+
+- _Type:_ `str`
+- _Default:_ `vip_<SID><Instance Number>`
+
+Customize the name of the resource managing the Virtual IP of read-only access to the secondary HANA instance.<br>
 
 ### sap_hana_cluster_nodes
 
@@ -373,11 +539,11 @@ sap_hana_cluster_nodes:
   node_role: secondary
 ```
 
-### sap_hana_instance_number <sup>required</sup>
+### sap_hana_instance_number
 
 - _Type:_ `str`
 
-The instance number of the SAP HANA database which is role will configure in the cluster.<br>
+The instance number of the SAP HANA database which this role will configure in the cluster.<br>
 
 ### sap_hana_sid
 

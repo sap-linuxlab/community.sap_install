@@ -111,6 +111,7 @@
     # for instance cloud-init services on cloud platforms
     - name: "SAP HA Install Pacemaker - Stop and disable services"
       when: sap_ha_pacemaker_cluster_disable_services is defined
+      register: __sap_ha_pacemaker_cluster_disable_services
       ansible.builtin.service:
         name: "{{ service_item }}"
         enabled: false
@@ -119,6 +120,9 @@
       loop_control:
         loop_var: service_item
         label: "{{ service_item }}"
+      failed_when:
+        - __sap_ha_pacemaker_cluster_disable_services.failed
+        - '"Could not find the requested service" not in __sap_ha_pacemaker_cluster_disable_services.msg'
 
     # Before we are ready to call the ha_cluster role, we want to validate
     # that the minimum required parameters are defined and not empty.
@@ -168,6 +172,7 @@
         ha_cluster_cluster_name: "{{ __sap_ha_pacemaker_cluster_cluster_name }}"
         ha_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order }}"
         ha_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation }}"
+        ha_cluster_constraints_location: "{{ __sap_ha_pacemaker_cluster_constraints_location }}"
         ha_cluster_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties }}"
         ha_cluster_extra_packages: "{{ __sap_ha_pacemaker_cluster_extra_packages }}"
         ha_cluster_fence_agent_packages: "{{ __sap_ha_pacemaker_cluster_fence_agent_packages }}"
@@ -178,8 +183,9 @@
         ha_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives }}"
       tags: ha_cluster
 
-    # Resource defaults can currently not be updated through ha_cluster
-    # role parameters, and thus need to be added.
+    # Resource defaults settings were added to "ha_cluster" in Apr 2023 (GH version 1.9.0)
+    # https://github.com/linux-system-roles/ha_cluster#ha_cluster_resource_defaults
+    # Keeping separate for compatibility with older versions of the ha_cluster role.
     - name: "SAP HA Install Pacemaker - Check resource defaults"
       ansible.builtin.command:
         cmd: |
@@ -192,10 +198,12 @@
     - name: "SAP HA Install Pacemaker - Update resource default attributes"
       when:
         - item.key ~ '=' ~ item.value not in __sap_ha_pacemaker_cluster_check_resource_defaults.stdout
+        - __sap_ha_pacemaker_cluster_resource_defaults is defined
+        - __sap_ha_pacemaker_cluster_resource_defaults | length > 0
       ansible.builtin.command:
         cmd: |
           pcs resource defaults update {{ item.key }}={{ item.value }}
-      loop: "{{ sap_ha_pacemaker_cluster_resource_defaults | dict2items }}"
+      loop: "{{ __sap_ha_pacemaker_cluster_resource_defaults | dict2items }}"
       loop_control:
         label: "{{ item.key }}={{ item.value }}"
       run_once: true
