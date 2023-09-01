@@ -431,7 +431,7 @@ sap_ha_pacemaker_cluster_resource_defaults:
 
 OS device name of the network interface to use for the Virtual IP configuration.<br>
 
-### sap_ha_pacemaker_cluster_vip_hana_primary_ip
+### sap_ha_pacemaker_cluster_vip_hana_primary_ip_address
 
 - _Type:_ `str`
 
@@ -444,13 +444,13 @@ The virtual IP of the primary HANA instance.<br>
 
 Customize the name of the resource managing the Virtual IP of the primary HANA instance.<br>
 
-### sap_ha_pacemaker_cluster_vip_hana_secondary_ip
+### sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address
 
 - _Type:_ `str`
 
 The virtual IP for read-only access to the secondary HANA instance.<br>
 
-### sap_ha_pacemaker_cluster_vip_netweaver_aas_ip
+### sap_ha_pacemaker_cluster_vip_netweaver_aas_ip_address
 
 - _Type:_ `str`
 
@@ -463,7 +463,7 @@ The virtual IP of the NetWeaver AAS instance.<br>
 
 Customize the name of the resource managing the Virtual IP of the NetWeaver AAS instance.<br>
 
-### sap_ha_pacemaker_cluster_vip_netweaver_ascs_ip
+### sap_ha_pacemaker_cluster_vip_netweaver_ascs_ip_address
 
 - _Type:_ `str`
 
@@ -476,7 +476,7 @@ The virtual IP of the NetWeaver ASCS instance.<br>
 
 Customize the name of the resource managing the Virtual IP of the NetWeaver ASCS instance.<br>
 
-### sap_ha_pacemaker_cluster_vip_netweaver_ers_ip
+### sap_ha_pacemaker_cluster_vip_netweaver_ers_ip_address
 
 - _Type:_ `str`
 
@@ -489,7 +489,7 @@ The virtual IP of the NetWeaver ERS instance.<br>
 
 Customize the name of the resource managing the Virtual IP of the NetWeaver ERS instance.<br>
 
-### sap_ha_pacemaker_cluster_vip_netweaver_pas_ip
+### sap_ha_pacemaker_cluster_vip_netweaver_pas_ip_address
 
 - _Type:_ `str`
 
