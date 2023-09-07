@@ -33,7 +33,7 @@
 # Similar to generic device discovery and fs mapping (main.yml), but using different
 # information from the ansible_devices facts to map the WWN instead of dynamic device names.
 
-# Logic: Collect "dm-*" devices which have
+# Logic: Collect devices which have
 # - no "holders"
 # - no "links.uuids"
 # - no "partitions"
@@ -46,13 +46,13 @@
       {% set av_disks = [] %}
       {% set all_disks = (ansible_devices | dict2items) %}
       {% for disk in all_disks %}
-        {%- if disk.key.startswith('dm-')
-            and disk.value.wwn is defined %}
+        {%- if disk.value.wwn is defined
+            and disk.value.links.uuids | length == 0
+            and disk.value.partitions | length == 0
+            and disk.value.holders | length == 0
+            %}
           {%- for fs in sap_storage_setup_definition %}
-            {%- if disk.value.links.uuids | length == 0
-                and disk.value.partitions | length == 0
-                and disk.value.holders | length == 0
-                and fs.disk_size is defined
+            {%- if fs.disk_size is defined
                 and (fs.disk_size | string + 'GB') in (disk.value.size | regex_replace('(\.\d+\s*)', '')) %}
               {%- set add_to_list = av_disks.append(disk) %}
             {%- endif %}
@@ -90,14 +90,12 @@
 
           {%- for dev in av_dev -%}
             {%- if (fs.disk_size | string + 'GB') in (dev.value.size | regex_replace('(\.\d+\s*)', ''))
-                and dev.key not in assigned_dev
+                and dev.value.wwn not in assigned_dev
                 and matching_dev | length < (fs.lvm_lv_stripes | d('1') | int) %}
 
-                {#- comment: dev.key is the dm- device and assigned_dev is just a list of
-                    devices that have been processed already -#}
-                {%- set assigned = assigned_dev.append(dev.key) %}
+                {#- comment: assigned_dev is a list for keeping track of wwns that have been added already -#}
+                {%- set assigned = assigned_dev.append(dev.value.wwn) %}
 
-                {#- comment: this is the actual device and path to be used for the mapping -#}
                 {#- comment: wwn prefix "0x" must be removed and a "3" prefixed -#}
                 {%- set add = matching_dev.append('/dev/mapper/3' + dev.value.wwn[2:]) %}
 
