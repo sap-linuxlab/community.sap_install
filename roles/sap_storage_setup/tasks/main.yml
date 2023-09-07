@@ -92,8 +92,10 @@
         {% set matching_dev = [] -%}
 
         {%- if fs.disk_size is defined
-          and ('nfs' not in fs.filesystem_type | default(sap_storage_setup_local_filesystem_type))
-          and fs.swap_path is not defined -%}
+          and 'nfs' not in fs.filesystem_type | default(sap_storage_setup_local_filesystem_type)
+          and fs.swap_path is not defined
+          and fs.mountpoint not in filesystem_device_map | map(attribute="mountpoint")
+          -%}
 
           {%- for dev in av_dev -%}
             {%- if (fs.disk_size | string + 'GB') in (dev.value.size | regex_replace('(\.\d+\s*)', ''))
