@@ -130,7 +130,7 @@ If not defined, the default will be inherited from the global parameter `sap_hos
 ### sap_storage_setup_multipath_enable_and_detect
 
 - _Type:_ `bool`
-- _Default:_ `True`
+- _Default:_ `False`
 
 Define if multipathing should be enabled and dynamic multipath devices detected and used for the filesystem setup.<br>
 
