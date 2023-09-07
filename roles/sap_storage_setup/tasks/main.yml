@@ -15,6 +15,7 @@
     state: present
 
 - name: SAP Storage Setup - Make sure services are running
+  when: __sap_storage_setup_extra_services is defined
   ansible.builtin.service:
     name: "{{ service_item }}"
     state: started
@@ -94,6 +95,7 @@
         {%- if fs.disk_size is defined
           and 'nfs' not in fs.filesystem_type | default(sap_storage_setup_local_filesystem_type)
           and fs.swap_path is not defined
+          and fs.mountpoint is defined
           and fs.mountpoint not in filesystem_device_map | map(attribute="mountpoint")
           -%}
 
