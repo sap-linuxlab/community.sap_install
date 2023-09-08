@@ -38,7 +38,11 @@
         new_mounts_item.mountpoint is defined
         and new_mounts_item.mountpoint not in ansible_mounts | map(attribute="mount")
       )
-      or new_mounts_item.filesystem_type == 'swap'
+      or
+      (
+        new_mounts_item.filesystem_type == 'swap'
+        and ansible_swaptotal_mb > new_mounts_item.disk_size * 1000
+      )
   ansible.builtin.set_fact:
     sap_storage_setup_new_mounts_fact: "{{ sap_storage_setup_new_mounts_fact | default([]) + [new_mounts_item] }}"
   loop: "{{ sap_storage_setup_definition }}"
@@ -91,7 +95,7 @@
   ansible.builtin.include_tasks:
     file: "{{ sap_storage_setup_cloud_type }}_tasks/configure_swap.yml"
   when:
-    - '"swap" in sap_storage_setup_definition
+    - '"swap" in sap_storage_setup_new_mounts_fact
       | map(attribute="filesystem_type", default=sap_storage_setup_local_filesystem_type)'
 
 - name: SAP Storage Setup - Configure NFS filesystems
