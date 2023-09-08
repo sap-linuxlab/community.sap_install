@@ -43,6 +43,8 @@
         new_mounts_item.filesystem_type == 'swap'
         and ansible_swaptotal_mb < (new_mounts_item.disk_size * 1000)
       )
+    # Calculating with 1000 instead of 1024, because existing swaptotal is likely to be
+    # reported at a slightly reduced size due to volume/filesystem metadata.
   ansible.builtin.set_fact:
     sap_storage_setup_new_mounts_fact: "{{ sap_storage_setup_new_mounts_fact | default([]) + [new_mounts_item] }}"
   loop: "{{ sap_storage_setup_definition }}"
