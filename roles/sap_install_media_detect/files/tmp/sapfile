@@ -281,6 +281,17 @@ for _FILE in "$@"; do
             /SAP SOLUTION MANAGER/{_sap_file_type="sap_export_solman_abap"}
             END{print _sap_file_type}')
          fi
+         if [[ ${_SAP_FILE_TYPE}. == "sap_unknown." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
+            _SAP_FILE_TYPE=$(unzip -p "${_FILE}" META-INF/SAPMANIFEST.MF | awk '
+            BEGIN{FS="="}
+            /total/{total=$NF}
+            /number/{number=$NF}
+            /product-id/{product_id=$NF; if (length(total)>0 && length(number)>0) {
+               a=substr(product_id, index(product_id, "4")+1, index(product_id, "1")-(index(product_id, "4")+1));
+               if (a=="fnd" || a=="core")print "sap_export_s4hana"
+               }
+            }')
+         fi
       else
          _SAP_FILE_TYPE="sap_unknown"
       fi
