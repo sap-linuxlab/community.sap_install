@@ -34,8 +34,11 @@
 - name: SAP Storage Setup - Determine which local filesystems are not configured yet
   when:
     - new_mounts_item.nfs_path is not defined
-    - new_mounts_item.mountpoint is defined
-    - new_mounts_item.mountpoint not in ansible_mounts | map(attribute=mount")
+    - (
+        new_mounts_item.mountpoint is defined
+        and new_mounts_item.mountpoint not in ansible_mounts | map(attribute="mount")
+      )
+      or new_mounts_item.filesystem_type == 'swap'
   ansible.builtin.set_fact:
     sap_storage_setup_new_mounts_fact: "{{ sap_storage_setup_new_mounts_fact | default([]) + [new_mounts_item] }}"
   loop: "{{ sap_storage_setup_definition }}"
