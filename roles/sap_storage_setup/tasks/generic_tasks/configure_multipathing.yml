@@ -38,7 +38,7 @@
 # - no "links.uuids"
 # - no "partitions"
 # - "wwn" defined
-# - "size" matching any of the filesystems defined in {{ sap_storage_setup_definition }}
+# - "size" matching any of the filesystems defined in {{ sap_storage_setup_new_mounts_fact }}
 
 - name: SAP Storage Setup - (Multipathing) Make a list of unused WWNs of the requested sizes
   ansible.builtin.set_fact:
@@ -51,7 +51,7 @@
             and disk.value.partitions | length == 0
             and disk.value.holders | length == 0
             %}
-          {%- for fs in sap_storage_setup_definition %}
+          {%- for fs in sap_storage_setup_new_mounts_fact %}
             {%- if fs.disk_size is defined
                 and (fs.disk_size | string + 'GB') in (disk.value.size | regex_replace('(\.\d+\s*)', '')) %}
               {%- set add_to_list = av_disks.append(disk) %}
@@ -67,7 +67,7 @@
 # !!
 
 # This task assigns device names for each volume to be created.
-# - custom definition: sap_storage_setup_definition
+# - reduced custom definition: sap_storage_setup_new_mounts_fact
 # - ansible facts: ansible-devices
 
 # DM devices are used for discovery, but the actual WWN will be used for
@@ -81,7 +81,7 @@
       {% set device_map = [] %}
       {% set av_dev = (available_devices_multipath | dict2items) %}
       {% set assigned_dev = [] %}
-      {% for fs in sap_storage_setup_definition -%}
+      {% for fs in sap_storage_setup_new_mounts_fact -%}
         {% set matching_dev = [] -%}
 
         {%- if fs.disk_size is defined

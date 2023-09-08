@@ -1,7 +1,7 @@
 ---
 ##########
 # Creating a list of unused devices that match the requested filesystem sizes, using
-# - custom definition: sap_storage_setup_definition
+# - definition of unconfigured filesystems: sap_storage_setup_new_mounts_fact
 # - ansible facts: ansible_devices
 #
 #########
@@ -12,7 +12,7 @@
       {% set av_disks = [] %}
       {% set all_disks = (ansible_devices | dict2items) %}
       {% for disk in all_disks %}
-        {%- for fs in sap_storage_setup_definition %}
+        {%- for fs in sap_storage_setup_new_mounts_fact %}
           {%- if not disk.key.startswith('dm-')
               and disk.value.links.uuids | length == 0
               and disk.value.partitions | length == 0
@@ -31,7 +31,7 @@
 
 ##########
 # This task assigns device names for each volume to be created.
-# - custom definition: sap_storage_setup_definition
+# - definition of unconfigured filesystems: sap_storage_setup_new_mounts_fact
 # - ansible facts: ansible-devices
 #
 ##########
@@ -49,7 +49,7 @@
       {% set device_map = [] %}
       {% set av_dev = (available_devices | dict2items) %}
       {% set assigned_dev = [] %}
-      {% for fs in sap_storage_setup_definition -%}
+      {% for fs in sap_storage_setup_new_mounts_fact -%}
         {% set matching_dev = [] -%}
 
         {%- if fs.disk_size is defined
@@ -88,7 +88,7 @@
 
 # This task combines information to create a mapping list of devices to filesystems.
 # Sources:
-# - Extravars definition: sap_storage_setup_definition
+# - sap_storage_setup_new_mounts_fact derived from extravars: sap_storage_setup_definition
 # - Ansible host facts: hostvars[host_node].ansible_devices
 - name: SAP Storage Setup - Set fact for device to filesystem mapping
   ansible.builtin.set_fact:
@@ -121,7 +121,7 @@
           {%- endif %}
           {{ lvopts | join(' ') }}
 
-  loop: "{{ sap_storage_setup_definition }}"
+  loop: "{{ sap_storage_setup_new_mounts_fact }}"
   loop_control:
     label: "{{ map_item.name }}"
     loop_var: map_item
