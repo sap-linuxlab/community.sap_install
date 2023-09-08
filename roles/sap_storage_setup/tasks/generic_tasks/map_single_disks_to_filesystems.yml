@@ -56,7 +56,7 @@
         {%- if fs.disk_size is defined
           and 'nfs' not in fs.filesystem_type | default(sap_storage_setup_local_filesystem_type)
           and fs.swap_path is not defined
-          and fs.name not in filesystem_device_map | map(attribute="name")
+          and fs.name not in filesystem_device_map | default([]) | map(attribute="name")
           -%}
 
           {%- for dev in av_dev -%}
@@ -93,6 +93,12 @@
 #   and is dynamically generated during runtime to list only unconfigured filesystems
 # - Ansible host facts: hostvars[host_node].ansible_devices
 - name: SAP Storage Setup - Set fact for device to filesystem mapping
+  when:
+    - map_item.nfs_path is not defined
+    - '"nfs" not in map_item.filesystem_type'
+    - map_item.swap_path is not defined
+    - filesystem_device_map is defined
+    - filesystem_device_map | length > 0
   ansible.builtin.set_fact:
     volume_map: "{{ volume_map + volume_element }}"
   vars:
@@ -127,12 +133,6 @@
   loop_control:
     label: "{{ map_item.name }}"
     loop_var: map_item
-  when:
-    - map_item.nfs_path is not defined
-    - '"nfs" not in map_item.filesystem_type'
-    - map_item.swap_path is not defined
-    - filesystem_device_map is defined
-    - filesystem_device_map | length > 0
 
 
 - name: SAP Storage Setup - Display local disk setup assignment
