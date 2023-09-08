@@ -1,10 +1,10 @@
 ---
-- name: SAP Storage Setup - Install OS packages for multipathing
+- name: SAP Storage Setup - (Multipathing) Install OS packages
   ansible.builtin.package:
     name: "{{ __sap_storage_setup_extra_packages_multipath }}"
     state: present
 
-- name: SAP Storage Setup - Make sure multipath services are running
+- name: SAP Storage Setup - (Multipathing) Make sure services are running
   ansible.builtin.service:
     name: "{{ mp_service_item }}"
     state: started
@@ -14,7 +14,7 @@
 
 # Scan the SCSI bus to make sure devices have been refreshed after multipath was enabled.
 # Create /etc/multipath.conf if it does not exist yet.
-- name: SAP Storage Setup - Scan SCSI bus and create/refresh multipath config
+- name: SAP Storage Setup - (Multipathing) Scan SCSI bus and create/refresh config
   register: __sap_storage_setup_register_refresh
   ansible.builtin.shell: |
     rescan-scsi-bus.sh \
@@ -25,7 +25,7 @@
   failed_when: false
   changed_when: __sap_storage_setup_register_refresh.rc == 0
 
-- name: SAP Storage Setup - Refresh ansible device facts
+- name: SAP Storage Setup - (Multipathing) Refresh ansible device facts
   ansible.builtin.setup:
     gather_subset:
       - "hardware"
@@ -40,7 +40,7 @@
 # - "wwn" defined
 # - "size" matching any of the filesystems defined in {{ sap_storage_setup_definition }}
 
-- name: SAP Storage Setup - Make a list of unused DM devices of the requested sizes
+- name: SAP Storage Setup - (Multipathing) Make a list of unused WWNs of the requested sizes
   ansible.builtin.set_fact:
     available_devices_multipath: |
       {% set av_disks = [] %}
@@ -73,9 +73,9 @@
 # DM devices are used for discovery, but the actual WWN will be used for
 # the filesystem mapping.
 
-- name: SAP Storage Setup - Set fact for target filesystem device mapping
+- name: SAP Storage Setup - (Multipathing) Set fact for target filesystem device mapping
   ansible.builtin.set_fact:
-    filesystem_device_map: "{{ filesystem_device_map | default([]) + [__multipath_to_fs_device_map] }}"
+    filesystem_device_map: "{{ filesystem_device_map | default([]) + __multipath_to_fs_device_map }}"
   vars:
     __multipath_to_fs_device_map: |
       {% set device_map = [] %}
