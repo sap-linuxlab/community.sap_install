@@ -186,6 +186,7 @@
     # Resource defaults settings were added to "ha_cluster" in Apr 2023 (GH version 1.9.0)
     # https://github.com/linux-system-roles/ha_cluster#ha_cluster_resource_defaults
     # Keeping separate for compatibility with older versions of the ha_cluster role.
+    # TODO: Change resource defaults update to "ha_cluster" native syntax.
     - name: "SAP HA Install Pacemaker - Check resource defaults"
       ansible.builtin.command:
         cmd: |
@@ -216,6 +217,15 @@
       tags: srhook
       when:
         - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+
+    - name: "SAP HA Install Pacemaker - Include NetWeaver ASCS/ERS post installation"
+      ansible.builtin.include_tasks:
+        file: configure_netweaver_postinstallation.yml
+        apply:
+          tags: nwas_postinst
+      tags: nwas_postinst
+      when:
+        - sap_ha_pacemaker_cluster_host_type | select('search', 'ascs_ers') | length > 0
 
 ### END OF BLOCK: prerequisite changes and cluster setup
 
