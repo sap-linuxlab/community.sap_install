@@ -16,13 +16,16 @@
   when:
     - ansible_interfaces | length > 2
 
-- name: "SAP HA Pacemaker - Set interface name and netmask when only one interface is present"
+- name: "SAP HA Pacemaker - Set interface name when only one interface is present"
   ansible.builtin.set_fact:
     sap_ha_pacemaker_cluster_vip_client_interface: "{{ ansible_default_ipv4.interface }}"
-    sap_ha_pacemaker_cluster_vip_cidr_netmask: "{{ ansible_default_ipv4.prefix }}"
   when:
     - not __sap_ha_pacemaker_cluster_nic_multi_bool
     - sap_ha_pacemaker_cluster_vip_client_interface == ''
+
+- name: "SAP HA Pacemaker - Set cidr netmask of the defined interface"
+  ansible.builtin.set_fact:
+    sap_ha_pacemaker_cluster_vip_cidr_netmask: "{{ vars['ansible_' + sap_ha_pacemaker_cluster_vip_client_interface].ipv4.prefix }}"
 
 # Include vars files based on the environment.
 # Respect order for potential variable precedence.
