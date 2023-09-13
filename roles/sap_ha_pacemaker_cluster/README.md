@@ -427,9 +427,9 @@ sap_ha_pacemaker_cluster_resource_defaults:
 ### sap_ha_pacemaker_cluster_vip_client_interface
 
 - _Type:_ `str`
-- _Default:_ `eth0`
 
 OS device name of the network interface to use for the Virtual IP configuration.<br>
+When there is only one interface on the system, its name will be used by default.<br>
 
 ### sap_ha_pacemaker_cluster_vip_hana_primary_ip_address
 
