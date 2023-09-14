@@ -7,6 +7,24 @@
   ansible.builtin.setup:
     gather_subset: hardware,interfaces
 
+# Multi-NIC:
+# Find out if there is more than one interface present, this will
+# be used for determining the target NIC for VIP configurations.
+# Assumption: The local loopback "lo" is always in the list.
+- name: "SAP HA Prepare Pacemaker - Set multi-NIC when more than one interface is found"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_nic_multi_bool: true
+  when:
+    - ansible_interfaces | length > 2
+
+- name: "SAP HA Prepare Pacemaker - Set interface name when only one interface is present"
+  ansible.builtin.set_fact:
+    sap_ha_pacemaker_cluster_vip_client_interface: "{{ ansible_default_ipv4.interface }}"
+  when:
+    - not __sap_ha_pacemaker_cluster_nic_multi_bool
+    - sap_ha_pacemaker_cluster_vip_client_interface == ''
+
+
 # Include vars files based on the environment.
 # Respect order for potential variable precedence.
 - name: "SAP HA Prepare Pacemaker - Include environment specific variables"

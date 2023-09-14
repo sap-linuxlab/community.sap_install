@@ -1,0 +1,117 @@
+---
+- name: SAP Storage Setup - (Multipathing) Install OS packages
+  ansible.builtin.package:
+    name: "{{ __sap_storage_setup_extra_packages_multipath }}"
+    state: present
+
+- name: SAP Storage Setup - (Multipathing) Make sure services are running
+  ansible.builtin.service:
+    name: "{{ mp_service_item }}"
+    state: started
+  loop: "{{ __sap_storage_setup_extra_services_multipath }}"
+  loop_control:
+    loop_var: mp_service_item
+
+# Scan the SCSI bus to make sure devices have been refreshed after multipath was enabled.
+# Create /etc/multipath.conf if it does not exist yet.
+- name: SAP Storage Setup - (Multipathing) Scan SCSI bus and create/refresh config
+  register: __sap_storage_setup_register_refresh
+  ansible.builtin.shell: |
+    rescan-scsi-bus.sh \
+    && sleep 10 \
+    && {
+      multipathd reconfigure || /sbin/mpathconf --enable
+      }
+  failed_when: false
+  changed_when: __sap_storage_setup_register_refresh.rc == 0
+
+- name: SAP Storage Setup - (Multipathing) Refresh ansible device facts
+  ansible.builtin.setup:
+    gather_subset:
+      - "hardware"
+
+# Similar to generic device discovery and fs mapping (main.yml), but using different
+# information from the ansible_devices facts to map the WWN instead of dynamic device names.
+
+# Logic: Collect devices which have
+# - no "holders"
+# - no "links.uuids"
+# - no "partitions"
+# - "wwn" defined
+# - "size" matching any of the filesystems defined in {{ sap_storage_setup_new_mounts_fact }}
+
+- name: SAP Storage Setup - (Multipathing) Make a list of unused WWNs of the requested sizes
+  ansible.builtin.set_fact:
+    available_devices_multipath: |
+      {% set av_disks = [] %}
+      {% set all_disks = (ansible_devices | dict2items) %}
+      {% for disk in all_disks %}
+        {%- if disk.value.wwn is defined
+            and disk.value.links.uuids | length == 0
+            and disk.value.partitions | length == 0
+            and disk.value.holders | length == 0
+            %}
+          {%- for fs in sap_storage_setup_new_mounts_fact %}
+            {%- if fs.disk_size is defined
+                and (fs.disk_size | string + 'GB') in (disk.value.size | regex_replace('(\.\d+\s*)', '')) %}
+              {%- set add_to_list = av_disks.append(disk) %}
+            {%- endif %}
+          {%- endfor %}
+        {%- endif %}
+      {%- endfor %}
+      {{ av_disks | items2dict }}
+
+# !!
+# If the DISK MATCHING syntax has changed in the above, it must also
+# be adjusted in the next task
+# !!
+
+# This task assigns device names for each volume to be created.
+# - sap_storage_setup_new_mounts_fact derived from extravars: sap_storage_setup_definition
+#   and is dynamically generated during runtime to list only unconfigured filesystems
+# - ansible facts: ansible-devices
+
+# DM devices are used for discovery, but the actual WWN will be used for
+# the filesystem mapping.
+
+- name: SAP Storage Setup - (Multipathing) Set fact for target filesystem device mapping
+  ansible.builtin.set_fact:
+    filesystem_device_map: "{{ filesystem_device_map | default([]) + __multipath_to_fs_device_map }}"
+  vars:
+    __multipath_to_fs_device_map: |
+      {% set device_map = [] %}
+      {% set av_dev = (available_devices_multipath | dict2items) %}
+      {% set assigned_dev = [] %}
+      {% for fs in sap_storage_setup_new_mounts_fact -%}
+        {% set matching_dev = [] -%}
+
+        {%- if fs.disk_size is defined
+          and ('nfs' not in fs.filesystem_type | default(sap_storage_setup_local_filesystem_type))
+          and fs.swap_path is not defined -%}
+
+          {%- for dev in av_dev -%}
+            {%- if (fs.disk_size | string + 'GB') in (dev.value.size | regex_replace('(\.\d+\s*)', ''))
+                and dev.value.wwn not in assigned_dev
+                and matching_dev | length < (fs.lvm_lv_stripes | d('1') | int) %}
+
+                {#- comment: assigned_dev is a list for keeping track of wwns that have been added already -#}
+                {%- set assigned = assigned_dev.append(dev.value.wwn) %}
+
+                {#- comment: wwn prefix "0x" must be removed and a "3" prefixed -#}
+                {%- set add = matching_dev.append('/dev/mapper/3' + dev.value.wwn[2:]) %}
+
+            {%- endif %}
+          {%- endfor %}
+
+          {%- set extend = device_map.extend([
+            {
+              'device': matching_dev | join(','),
+              'fstype': fs.filesystem_type | default(sap_storage_setup_local_filesystem_type),
+              'mountpoint': fs.mountpoint | default(''),
+              'name': fs.name,
+              'size': fs.disk_size,
+            }
+          ]) %}
+        {%- endif %}
+      {%- endfor %}
+      {{ device_map }}
