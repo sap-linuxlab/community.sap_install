@@ -148,6 +148,18 @@
     - line_item.archive_type == 'sapcar'
     - line_item.extract_archive == 'y'
 
+- name: SAP Install Media Detect - Organize all files - Move SIGNATURE.SMF into subdir for SAP HANA non-export files
+  ansible.builtin.shell: |
+    extracted_dir=$(ls -d */)
+    mv SIGNATURE.SMF ${extracted_dir}
+  args:
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}"
+  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
+  loop_control:
+    loop_var: line_item
+  when:
+    - line_item.sap_file_type is search("saphana")
+
 - name: SAP Install Media Detect - Organize all files - Copy certain files to 'sap_hana' directory
   ansible.builtin.copy:
     src: "{{ __sap_install_media_detect_software_main_directory }}/{{ line_item.file }}"
