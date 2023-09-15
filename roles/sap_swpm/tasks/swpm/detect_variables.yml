@@ -2,68 +2,70 @@
 
 # Detect Product ID
 - name: SAP SWPM - Detect Product ID
-  ansible.builtin.shell: |
-    set -o pipefail && sed -n '3p' {{ sap_swpm_tmpdir.path }}/inifile.params | awk 'NF{print $(NF-1)}' | tr -d \'
+  ansible.builtin.command: |
+    awk 'BEGIN{IGNORECASE=1;a=0}
+      /Product ID/&&a==0{a=1; gsub ("#", ""); gsub ("\047", ""); product_id=$NF}
+      END{print product_id}' {{ sap_swpm_tmpdir.path }}/inifile.params
   register: sap_swpm_inifile_product_id_detect
   changed_when: false
 
 # Set fact for product id
-- name: Set SAP product ID
+- name: SAP SWPM - Set SAP product ID
   ansible.builtin.set_fact:
     sap_swpm_product_catalog_id: "{{ sap_swpm_inifile_product_id_detect.stdout }}"
 
-- name: Display SAP product ID
+- name: SAP SWPM - Display SAP product ID
   ansible.builtin.debug:
     msg:
       - "Product ID is {{ sap_swpm_product_catalog_id }}"
 
 # Detect Software Path
 - name: SAP SWPM - Detect Software Path
-  ansible.builtin.shell: |
-    set -o pipefail && cat {{ sap_swpm_tmpdir.path }}/inifile.params | grep archives.downloadBasket | awk '{ print $3 }'
+  ansible.builtin.command: |
+    awk '!/^#/&&/archives.downloadBasket/{print $3}' {{ sap_swpm_tmpdir.path }}/inifile.params
   register: sap_swpm_inifile_software_path
   changed_when: false
 
 # Set fact for software path
-- name: Set Software Path
+- name: SAP SWPM - Set Software Path
   ansible.builtin.set_fact:
     sap_swpm_software_path: "{{ sap_swpm_inifile_software_path.stdout }}"
 
-- name: Display SAP SID
+- name: SAP SWPM - Display Software Path
   ansible.builtin.debug:
     msg:
       - "Software path is {{ sap_swpm_software_path }}"
 
 # Detect SID
 - name: SAP SWPM - Detect SID
-  ansible.builtin.shell: |
-    set -o pipefail && cat {{ sap_swpm_tmpdir.path }}/inifile.params | grep NW_GetSidNoProfiles.sid | awk '{ print $3 }'
+  ansible.builtin.command: |
+    awk '!/^#/&&/NW_GetSidNoProfiles.sid/{print $3}' {{ sap_swpm_tmpdir.path }}/inifile.params
   register: sap_swpm_inifile_sid
   changed_when: false
 
 # Set fact for SID
-- name: Set SID
+- name: SAP SWPM - Set SID
   ansible.builtin.set_fact:
     sap_swpm_sid: "{{ sap_swpm_inifile_sid.stdout }}"
 
-- name: Display SAP SID
+- name: SAP SWPM - Display SAP SID
   ansible.builtin.debug:
     msg:
       - "SAP SID {{ sap_swpm_sid }}"
 
 # Detect FQDN
 - name: SAP SWPM - Detect FQDN
-  ansible.builtin.shell: |
-    set -o pipefail && cat {{ sap_swpm_tmpdir.path }}/inifile.params | grep NW_getFQDN.FQDN | awk '{ print $3 }'
+  ansible.builtin.command: |
+    awk '!/^#/&&/NW_getFQDN.FQDN/{print $3}' {{ sap_swpm_tmpdir.path }}/inifile.params
   register: sap_swpm_inifile_fqdn
   changed_when: false
 
 # Set fact for FQDN
-- name: Set FQDN
+- name: SAP SWPM - Set FQDN
   ansible.builtin.set_fact:
     sap_swpm_fqdn: "{{ sap_swpm_inifile_fqdn.stdout }}"
 
-- name: Display FQDN
+- name: SAP SWPM - Display FQDN
   ansible.builtin.debug:
     msg:
       - "SAP fqdn {{ sap_swpm_fqdn }}"
