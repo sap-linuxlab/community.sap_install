@@ -1,0 +1,19 @@
+---
+
+- name: SAP Install Media Detect - Prepare - Create temporary directory to store various files
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: media_detect
+  register: __sap_install_media_detect_tmpdir
+
+- name: SAP Install Media Detect - Prepare - Copy file sapfile utility to '{{ __sap_install_media_detect_tmpdir.path }}'
+  ansible.builtin.copy:
+    src: tmp/sapfile
+    dest: "{{ __sap_install_media_detect_tmpdir.path }}/sapfile"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: SAP Install Media Detect - Prepare - Set fact for sapfile utility
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_sapfile_path: "{{ __sap_install_media_detect_tmpdir.path }}/sapfile"
