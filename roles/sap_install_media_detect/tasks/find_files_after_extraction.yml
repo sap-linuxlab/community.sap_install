@@ -33,7 +33,7 @@
     patterns: "SAP_HANA_CLIENT"
   register: sap_hana_client_path
   ignore_errors: true
-  when: sap_install_media_detect_db == "saphana"
+  when: sap_install_media_detect_db | d('') == 'saphana'
 
 - name: SAP Install Media Detect - Find files after extraction - Find IBM Db2
   ansible.builtin.find:
@@ -43,7 +43,7 @@
     patterns: ".*LINUXX86_64.*"
     use_regex: true
   register: detect_directory_ibmdb2_extracted
-  when: sap_install_media_detect_db == "ibmdb2"
+  when: sap_install_media_detect_db | d('') == 'ibmdb2'
 
 - name: SAP Install Media Detect - Find files after extraction - Find IBM Db2 Client
   ansible.builtin.find:
@@ -53,7 +53,7 @@
     patterns: ".*DATA_UNITS.*"
     use_regex: true
   register: detect_directory_ibmdb2_client_extracted
-  when: sap_install_media_detect_db == "ibmdb2"
+  when: sap_install_media_detect_db | d('') == 'ibmdb2'
 
 - name: SAP Install Media Detect - Find files after extraction - Find Oracle DB
   ansible.builtin.find:
@@ -63,7 +63,7 @@
     patterns: ".*LINUX_X86_64.*"
     use_regex: true
   register: detect_directory_oracledb_extracted
-  when: sap_install_media_detect_db == "oracledb"
+  when: sap_install_media_detect_db | d('') == 'oracledb'
 
 - name: SAP Install Media Detect - Find files after extraction - Find Oracle DB Client
   ansible.builtin.find:
@@ -73,7 +73,7 @@
     patterns: ".*OCL_LINUX_X86_64.*"
     use_regex: true
   register: detect_directory_oracledb_client_extracted
-  when: sap_install_media_detect_db == "oracledb"
+  when: sap_install_media_detect_db | d('') == 'oracledb'
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP ASE
   ansible.builtin.find:
@@ -83,7 +83,7 @@
     patterns: ".*SYBASE_LINUX.*"
     use_regex: true
   register: detect_directory_sapase_extracted
-  when: sap_install_media_detect_db == "sapase"
+  when: sap_install_media_detect_db | d('') == 'sapase'
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP ASE Client
   ansible.builtin.find:
@@ -93,7 +93,7 @@
     patterns: "sybodbc"
     use_regex: true
   register: detect_directory_sapase_client_extracted
-  when: sap_install_media_detect_db == "sapase"
+  when: sap_install_media_detect_db | d('') == 'sapase'
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP MaxDB
   ansible.builtin.find:
@@ -103,7 +103,7 @@
     patterns: '.*MaxDB_7.9.*'
     use_regex: true
   register: detect_directory_sapmaxdb_extracted
-  when: sap_install_media_detect_db == "sapmaxdb"
+  when: sap_install_media_detect_db | d('') == 'sapmaxdb'
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAPEXE
   ansible.builtin.shell: ls SAPEXE_*.SAR
@@ -111,7 +111,7 @@
     chdir: "{{ sap_swpm_software_path }}"
   register: sap_swpm_kernel_independent_file_name_get
   changed_when: false
-  when: sap_install_media_detect_kernel
+  when: sap_install_media_detect_kernel | d(false)
 
 - name: SAP Install Media Detect - Find files after extraction - Fail if more than one SAPEXE found
   ansible.builtin.fail:
@@ -130,7 +130,7 @@
         chdir: "{{ sap_swpm_software_path }}"
       register: sap_swpm_kernel_dependent_file_name_get
       changed_when: false
-      when: sap_install_media_detect_kernel
+      when: sap_install_media_detect_kernel | d(false)
 
     - name: SAP Install Media Detect - Find files after extraction - Fail if more than one SAPEXEDB file found, database unspecific
       ansible.builtin.fail:
@@ -150,7 +150,7 @@
       register: __sap_install_media_detect_register_db_dependent_kernel_files
       changed_when: false
       when:
-        - sap_install_media_detect_kernel
+        - sap_install_media_detect_kernel | d(false)
         - sap_install_media_detect_kernel_db is defined
 
     - name: SAP Install Media Detect - Find files after extraction - Set fact with the results of the sapfile command
@@ -238,7 +238,7 @@
     chdir: "{{ sap_swpm_software_path }}"
   register: sap_swpm_igs_file_name_get
   changed_when: false
-  when: sap_install_media_detect_igs
+  when: sap_install_media_detect_igs | d(false)
 
 - name: SAP Install Media Detect - Find files after extraction - Find IGS Helper, latest version
   ansible.builtin.shell: set -o pipefail && ls -1tr igshelper*.sar | tail -1
@@ -246,7 +246,7 @@
     chdir: "{{ sap_swpm_software_path }}"
   register: sap_swpm_igs_helper_file_name_get
   changed_when: false
-  when: sap_install_media_detect_igs
+  when: sap_install_media_detect_igs | d(false)
 
 - name: SAP Install Media Detect - Find files after extraction - Find WEBDISP
   ansible.builtin.shell: ls SAPWEBDISP_*.SAR
@@ -255,7 +255,7 @@
   register: sap_swpm_web_dispatcher_file_name_get
   ignore_errors: true
   changed_when: false
-  when: sap_install_media_detect_webdisp
+  when: sap_install_media_detect_webdisp | d(false)
 
 - name: SAP Install Media Detect - Find files after extraction - Fail if more than one WEBDISP found
   ansible.builtin.fail:
@@ -272,7 +272,7 @@
     patterns: '.*DATA_UNITS.*'
     use_regex: true
   register: detect_directory_ecc_export_extracted
-  when: sap_install_media_detect_export == "sapecc"
+  when: sap_install_media_detect_export | d('') == 'sapecc'
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP ECC IDES Export
   ansible.builtin.find:
@@ -282,7 +282,7 @@
     patterns: '.*EXP.*'
     use_regex: true
   register: detect_directory_ecc_ides_export_extracted
-  when: sap_install_media_detect_export == "sapecc_ides"
+  when: sap_install_media_detect_export | d('') == 'sapecc_ides'
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP S/4HANA Export
   ansible.builtin.find:
@@ -292,7 +292,7 @@
     patterns: '.*S4.*EXPORT.*'
     use_regex: true
   register: s4hana_export_files
-  when: sap_install_media_detect_export == "saps4hana"
+  when: sap_install_media_detect_export | d('') == 'saps4hana'
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP BW/4HANA Export
   ansible.builtin.find:
@@ -302,7 +302,7 @@
     patterns: '.*BW4.*EXPORT.*'
     use_regex: true
   register: bw4hana_export_files
-  when: sap_install_media_detect_export == "sapbw4hana"
+  when: sap_install_media_detect_export | d('') == 'sapbw4hana'
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP NetWeaver AS (ABAP) platform only Export
   ansible.builtin.find:
@@ -312,7 +312,7 @@
     patterns: '.*DATA_UNITS.*'
     use_regex: true
   register: detect_directory_nwas_abap_export_extracted
-  when: sap_install_media_detect_export == "sapnwas_abap"
+  when: sap_install_media_detect_export | d('') == 'sapnwas_abap'
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP NetWeaver AS (JAVA) platform only Export
   ansible.builtin.find:
@@ -322,7 +322,7 @@
     patterns: '.*DATA_UNITS.*'
     use_regex: true
   register: detect_directory_nwas_java_export_extracted
-  when: sap_install_media_detect_export == "sapnwas_java"
+  when: sap_install_media_detect_export | d('') == 'sapnwas_java'
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP Solution Manager (ABAP) platform only Export
   ansible.builtin.find:
@@ -332,7 +332,7 @@
     patterns: '.*DATA_UNITS.*'
     use_regex: true
   register: detect_directory_solgmr_abap_export_extracted
-  when: sap_install_media_detect_export == "sapsolman_abap"
+  when: sap_install_media_detect_export | d('') == 'sapsolman_abap'
 
 - name: SAP Install Media Detect - Find files after extraction - Find SAP Solution Manager (JAVA) platform only Export
   ansible.builtin.find:
@@ -342,4 +342,4 @@
     patterns: '.*DATA_UNITS.*'
     use_regex: true
   register: detect_directory_solgmr_java_export_extracted
-  when: sap_install_media_detect_export == "sapsolman_java"
+  when: sap_install_media_detect_export | d('') == 'sapsolman_java'
