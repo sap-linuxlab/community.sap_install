@@ -73,7 +73,7 @@ The Ansible Control System (where Ansible is executed from) must have:
     - Ansible Collection [`redhat.sap_install` from Red Hat Ansible Automation Platform Hub](https://console.redhat.com/ansible/automation-hub/repo/published/redhat/sap_install) version `1.3.0` or later
     - Ansible Collection [`redhat.rhel_system_roles` from Red Hat Ansible Automation Platform Hub](https://console.redhat.com/ansible/automation-hub/repo/published/redhat/rhel_system_roles) version `1.20.0` or later
   - **Supported (Downstream)** via RHEL4SAP license:
-    - RHEL System Roles for SAP RPM Package `rhel-system-roles-3.6.0` or later
+    - RHEL System Roles for SAP RPM Package `rhel-system-roles-sap-3.6.0` or later
     - RHEL System Roles RPM Package `rhel-system-roles-1.20.0` or later
 
 ## Prerequisites
