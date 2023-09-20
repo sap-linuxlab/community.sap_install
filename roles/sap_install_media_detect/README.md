@@ -44,6 +44,7 @@ This role does not depend on any other Ansible Role.
 ## Tags
 
 With the following tags, the role can be called to perform certain activities only:
+- tag `sap_install_media_detect_zip_handling`: Only perform the task for enabling the listing and extracting of files of type `ZIP`.
 - tag `sap_install_media_detect_rar_handling`: Only perform the tasks for enabling the listing and extracting of files of type `RAR`. This
   includes enabling and disabling the EPEL repo for RHEL systems, if desired.
 - tag `sap_install_media_detect_add_file_extension`: Add file name extensions to any files in `sap_install_media_detect_source_directory` which are of type `RAR` or `ZIP` and have no ending. Needs to be used with tag `sap_install_media_detect_create_file_list_phase_1`.
