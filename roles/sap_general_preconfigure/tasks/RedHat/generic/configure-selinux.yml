@@ -24,6 +24,10 @@
   check_mode: no
   changed_when: false
 
+- name: SELinux - Display the current SELinux state
+  ansible.builtin.debug:
+    var: __sap_general_preconfigure_register_getenforce.stdout
+
 # Reason for noqa: We need to notify a handler in another role, which is not possible from a handler in the current role
 - name: SELinux - Set the flag that reboot is needed to apply changes # noqa no-handler
   ansible.builtin.set_fact:
@@ -96,14 +100,24 @@
   ansible.builtin.debug:
     var: sap_general_preconfigure_fact_reboot_required | d(false)
 
-- name: Configure '/usr/sap' SELinux file labels
+- name: SELinux - Warn if the SELinux file contexts cannot be set
+  ansible.builtin.debug:
+    msg: "WARN: The SELinux file context cannot be set on an SELinux disabled system!"
+  when:
+    - sap_general_preconfigure_modify_selinux_labels
+    - __sap_general_preconfigure_register_getenforce.stdout | lower == 'disabled'
+
+- name: SELinux - Configure SELinux file contexts
   ansible.builtin.include_role:
     name: '{{ sap_general_preconfigure_system_roles_collection }}.selinux'
   vars:
     selinux_booleans:
       - { name: 'selinuxuser_execmod', state: 'on' }
     selinux_fcontexts:
-      - { target: '/usr/sap(/.*)?', setype: 'usr_t' }
+      - "{{ sap_general_preconfigure_fact_targets_setypes }}"
     selinux_restore_dirs:
-      - '/usr/sap'
-  when: sap_general_preconfigure_modify_selinux_labels
+      - "{{ sap_general_preconfigure_sap_directories }}"
+  when:
+    - sap_general_preconfigure_modify_selinux_labels
+    - sap_general_preconfigure_selinux_state != 'disabled'
+    - __sap_general_preconfigure_register_getenforce.stdout | lower != 'disabled'
