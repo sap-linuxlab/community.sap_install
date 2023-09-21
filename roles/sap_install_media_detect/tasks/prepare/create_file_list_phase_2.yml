@@ -48,32 +48,36 @@
     (item.stdout.split(';')[1] == 'sapcar') or
     (item.stdout.split(';')[1] == 'sap_jvm') or
     (item.stdout.split(';')[1] == 'sap_unknown') or
-    (sap_install_media_detect_swpm | d(false) and item.stdout.split(';')[1] == 'sap_swpm') or
-    (sap_install_media_detect_hostagent | d(false) and item.stdout.split(';')[1] == 'sap_hostagent') or
-    (sap_install_media_detect_igs | d(false) and item.stdout.split(';')[1] == 'sap_igs') or
-    (sap_install_media_detect_kernel | d(false) and item.stdout.split(';')[1] == 'sap_kernel') or
-    (sap_install_media_detect_kernel | d(false) and item.stdout.split(';')[1] is search('sap_kernel_db_')) or
-    (sap_install_media_detect_webdisp | d(false) and item.stdout.split(';')[1] == 'sap_webdisp') or
+    (sap_install_media_detect_swpm and item.stdout.split(';')[1] == 'sap_swpm') or
+    (sap_install_media_detect_hostagent and item.stdout.split(';')[1] == 'sap_hostagent') or
+    (sap_install_media_detect_igs and item.stdout.split(';')[1] == 'sap_igs') or
+    (sap_install_media_detect_kernel and item.stdout.split(';')[1] == 'sap_kernel') or
+    (sap_install_media_detect_kernel and item.stdout.split(';')[1] is search('sap_kernel_db_')) or
+    (sap_install_media_detect_webdisp and item.stdout.split(';')[1] == 'sap_webdisp') or
     (sap_install_media_detect_db == 'saphana' and (
        item.stdout.split(';')[1] == 'saphana' or
        item.stdout.split(';')[1] == 'saphana_client' or
        item.stdout.split(';')[1] == 'saphana_other')
     ) or
+    (sap_install_media_detect_db_client == 'saphana' and item.stdout.split(';')[1] == 'saphana_client') or
     (sap_install_media_detect_db == 'sapmaxdb' and item.stdout.split(';')[1] == 'sapmaxdb') or
     (sap_install_media_detect_db == 'sapase' and (
        item.stdout.split(';')[1] == 'sapase' or
        item.stdout.split(';')[1] == 'sapase_client')
     ) or
+    (sap_install_media_detect_db_client == 'sapase' and item.stdout.split(';')[1] == 'sapase_client') or
     (sap_install_media_detect_db == 'oracledb' and (
        item.stdout.split(';')[1] == 'oracledb' or
        item.stdout.split(';')[1] == 'oracledb_client' or
        item.stdout.split(';')[1] == 'oracledb_tools')
     ) or
+    (sap_install_media_detect_db_client == 'oracledb' and item.stdout.split(';')[1] == 'oracledb_client') or
     (sap_install_media_detect_db == 'ibmdb2' and (
        item.stdout.split(';')[1] == 'ibmdb2' or
        item.stdout.split(';')[1] == 'ibmdb2_client' or
        item.stdout.split(';')[1] == 'ibmdb2_license')
     ) or
+    (sap_install_media_detect_db_client == 'ibmdb2' and item.stdout.split(';')[1] == 'ibmdb2_client') or
     (sap_install_media_detect_export == 'saps4hana' and (
        item.stdout.split(';')[1] == 'sap_export_s4hana' or
        item.stdout.split(';')[1] == 'sap_s4hana_lang')
@@ -105,7 +109,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_swpm') | length > 0
         fail_msg: "No file found for sap_swpm"
       when:
-        - sap_install_media_detect_swpm | d(false)
+        - sap_install_media_detect_swpm
 
     - name: SAP Install Media Detect - Prepare - Assert that exactly one SAP Kernel DB independent is present
       ansible.builtin.assert:
@@ -114,7 +118,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXE_') | length == 1
         fail_msg: "No, or more than one, DB independent SAP Kernel file found"
       when:
-        - sap_install_media_detect_kernel | d(false)
+        - sap_install_media_detect_kernel
 
     - name: SAP Install Media Detect - Prepare - Assert that exactly one SAP Kernel DB dependent is present
       ansible.builtin.assert:
@@ -123,7 +127,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXEDB_') | length == 1
         fail_msg: "No, or more than one, DB dependent SAP Kernel file found"
       when:
-        - sap_install_media_detect_kernel | d(false)
+        - sap_install_media_detect_kernel
         - sap_install_media_detect_kernel_db is not defined
 
     - name: SAP Install Media Detect - Prepare - Assert that exactly one matching SAP Kernel DB dependent is present
@@ -176,7 +180,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_hostagent') | length > 0
         fail_msg: "No SAP Host Agent file found"
       when:
-        - sap_install_media_detect_hostagent | d(false)
+        - sap_install_media_detect_hostagent
 
     - name: SAP Install Media Detect - Prepare - Assert that igsexe is present
       ansible.builtin.assert:
@@ -185,7 +189,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'igsexe') | length > 0
         fail_msg: "No igsexe file found"
       when:
-        - sap_install_media_detect_igs | d(false)
+        - sap_install_media_detect_igs
 
     - name: SAP Install Media Detect - Prepare - Assert that igshelper is present
       ansible.builtin.assert:
@@ -194,7 +198,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'igshelper') | length > 0
         fail_msg: "No igshelper file found"
       when:
-        - sap_install_media_detect_igs | d(false)
+        - sap_install_media_detect_igs
 
     - name: SAP Install Media Detect - Prepare - Assert that exactly one SAP WEBDISP is present
       ansible.builtin.assert:
@@ -203,7 +207,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPWEBDISP_') | length == 1
         fail_msg: "No, or more than one, SAPWEBDISP file found"
       when:
-        - sap_install_media_detect_webdisp | d(false)
+        - sap_install_media_detect_webdisp
 
     - name: SAP Install Media Detect - Prepare - Assert that saphana is present
       ansible.builtin.assert:
@@ -211,7 +215,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'saphana') | length > 0
         fail_msg: "No file found for saphana"
       when:
-        - (sap_install_media_detect_db | d('')) == 'saphana'
+        - sap_install_media_detect_db
 
     - name: SAP Install Media Detect - Prepare - Assert that saphana_client is present
       ansible.builtin.assert:
@@ -219,8 +223,8 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'saphana_client') | length > 0
         fail_msg: "No file found for saphana_client"
       when:
-        - (sap_install_media_detect_db | d('')) == 'saphana' or
-          (sap_install_media_detect_db_client | d('')) == 'saphana'
+        - sap_install_media_detect_db == 'saphana' or
+          sap_install_media_detect_db_client == 'saphana'
 
     - name: SAP Install Media Detect - Prepare - Assert that sapase is present
       ansible.builtin.assert:
@@ -228,7 +232,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sapase') | length > 0
         fail_msg: "No file found for sapase"
       when:
-        - (sap_install_media_detect_db | d('')) == 'sapase'
+        - sap_install_media_detect_db == 'sapase'
 
     - name: SAP Install Media Detect - Prepare - Assert that sapase_client is present
       ansible.builtin.assert:
@@ -236,8 +240,8 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sapase_client') | length > 0
         fail_msg: "No file found for sapase_client"
       when:
-        - (sap_install_media_detect_db | d('')) == 'sapase' or
-          (sap_install_media_detect_db_client | d('')) == 'sapase'
+        - sap_install_media_detect_db == 'sapase' or
+          sap_install_media_detect_db_client == 'sapase'
 
     - name: SAP Install Media Detect - Prepare - Assert that sapmaxdb is present
       ansible.builtin.assert:
@@ -245,7 +249,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sapmaxdb') | length > 0
         fail_msg: "No file found for sapmaxdb"
       when:
-        - (sap_install_media_detect_db | d('')) == 'sapmaxdb'
+        - sap_install_media_detect_db == 'sapmaxdb'
 
     - name: SAP Install Media Detect - Prepare - Assert that oracledb is present
       ansible.builtin.assert:
@@ -253,7 +257,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'oracledb') | length > 0
         fail_msg: "No file found for oracledb"
       when:
-        - (sap_install_media_detect_db | d('')) == 'oracledb'
+        - sap_install_media_detect_db == 'oracledb'
 
     - name: SAP Install Media Detect - Prepare - Assert that oracledb_client is present
       ansible.builtin.assert:
@@ -261,8 +265,8 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'oracledb_client') | length > 0
         fail_msg: "No file found for oracledb_client"
       when:
-        - (sap_install_media_detect_db | d('')) == 'oracledb' or
-          (sap_install_media_detect_db_client | d('')) == 'oracledb'
+        - sap_install_media_detect_db == 'oracledb' or
+          sap_install_media_detect_db_client == 'oracledb'
 
     - name: SAP Install Media Detect - Prepare - Assert that ibmdb2 is present
       ansible.builtin.assert:
@@ -270,7 +274,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'ibmdb2') | length > 0
         fail_msg: "No file found for ibmdb2"
       when:
-        - (sap_install_media_detect_db | d('')) == 'ibmdb2'
+        - sap_install_media_detect_db == 'ibmdb2'
 
     - name: SAP Install Media Detect - Prepare - Assert that ibmdb2_client is present
       ansible.builtin.assert:
@@ -278,8 +282,8 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'ibmdb2_client') | length > 0
         fail_msg: "No file found for ibmdb2_client"
       when:
-        - (sap_install_media_detect_db | d('')) == 'ibmdb2' or
-          (sap_install_media_detect_db_client | d('')) == 'ibmdb2'
+        - sap_install_media_detect_db == 'ibmdb2' or
+          sap_install_media_detect_db_client == 'ibmdb2'
 
     - name: SAP Install Media Detect - Prepare - Assert that ibmdb2_license is present
       ansible.builtin.assert:
@@ -287,7 +291,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'ibmdb2_license') | length > 0
         fail_msg: "No file found for ibmdb2_license"
       when:
-        - (sap_install_media_detect_db | d('')) == 'ibmdb2'
+        - sap_install_media_detect_db == 'ibmdb2'
 
     - name: SAP Install Media Detect - Prepare - Assert that sap_export_s4hana is present
       ansible.builtin.assert:
@@ -295,7 +299,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_export_s4hana') | length > 0
         fail_msg: "No file found for sap_export_s4hana"
       when:
-        - (sap_install_media_detect_export | d('')) == 'saps4hana'
+        - sap_install_media_detect_export == 'saps4hana'
 
     - name: SAP Install Media Detect - Prepare - Assert that sap_export_bw4hana is present
       ansible.builtin.assert:
@@ -303,7 +307,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_export_bw4hana') | length > 0
         fail_msg: "No file found for sap_export_bw4hana"
       when:
-        - (sap_install_media_detect_export | d('')) == 'sapbw4hana'
+        - sap_install_media_detect_export == 'sapbw4hana'
 
     - name: SAP Install Media Detect - Prepare - Assert that sap_export_ecc is present
       ansible.builtin.assert:
@@ -311,7 +315,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_export_ecc') | length > 0
         fail_msg: "No file found for sap_export_ecc"
       when:
-        - (sap_install_media_detect_export | d('')) == 'sapecc'
+        - sap_install_media_detect_export == 'sapecc'
 
     - name: SAP Install Media Detect - Prepare - Assert that sap_export_ecc_ides is present
       ansible.builtin.assert:
@@ -319,7 +323,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_export_ecc_ides') | length > 0
         fail_msg: "No file found for sap_export_ecc_ides"
       when:
-        - (sap_install_media_detect_export | d('')) == 'sapecc_ides'
+        - sap_install_media_detect_export == 'sapecc_ides'
 
     - name: SAP Install Media Detect - Prepare - Assert that sap_export_nwas_abap is present
       ansible.builtin.assert:
@@ -327,7 +331,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_export_nwas_abap') | length > 0
         fail_msg: "No file found for sap_export_nwas_abap"
       when:
-        - (sap_install_media_detect_export | d('')) == 'sapnwas_abap'
+        - sap_install_media_detect_export == 'sapnwas_abap'
 
     - name: SAP Install Media Detect - Prepare - Assert that sap_export_nwas_java is present
       ansible.builtin.assert:
@@ -335,7 +339,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_export_nwas_java') | length > 0
         fail_msg: "No file found for sap_export_nwas_java"
       when:
-        - (sap_install_media_detect_export | d('')) == 'sapnwas_java'
+        - sap_install_media_detect_export == 'sapnwas_java'
 
     - name: SAP Install Media Detect - Prepare - Assert that sap_export_solman_abap is present
       ansible.builtin.assert:
@@ -343,7 +347,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_export_solman_abap') | length > 0
         fail_msg: "No file found for sap_export_solman_abap"
       when:
-        - (sap_install_media_detect_export | d('')) == 'sapsolman_abap'
+        - sap_install_media_detect_export == 'sapsolman_abap'
 
     - name: SAP Install Media Detect - Prepare - Assert that sap_export_solman_java is present
       ansible.builtin.assert:
@@ -351,7 +355,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_export_solman_java') | length > 0
         fail_msg: "No file found for sap_export_solman_java"
       when:
-        - (sap_install_media_detect_export | d('')) == 'sapsolman_java'
+        - sap_install_media_detect_export == 'sapsolman_java'
 
 #- name: SAP Install Media Detect - Prepare - Identify the sapcar program
 #  ansible.builtin.set_fact:
