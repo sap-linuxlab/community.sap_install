@@ -134,68 +134,84 @@ Red Hat for SAP Community of Practice, Janine Fuchs, IBM Lab for SAP Solutions
 Minimum required parameters:
 
 - [sap_ha_pacemaker_cluster_hacluster_password](#sap_ha_pacemaker_cluster_hacluster_password)
+- [sap_ha_pacemaker_cluster_hana_instance_number](#sap_ha_pacemaker_cluster_hana_instance_number)
+- [sap_ha_pacemaker_cluster_hana_sid](#sap_ha_pacemaker_cluster_hana_sid)
 
-
-### ha_cluster
-
-- _Type:_ `dict`
-
-Optional _**host_vars**_ parameter - if defined it must be set for each node.<br>
-Dictionary that can contain various node options for the pacemaker cluster configuration.<br>
-Supported options can be reviewed in the `ha_cluster` Linux System Role [https://github.com/linux-system-roles/ha_cluster/blob/master/README.md].<br>
-
-Example:
-
-```yaml
-ha_cluster:
-  corosync_addresses:
-  - 192.168.1.10
-  - 192.168.2.10
-  node_name: nodeA
-```
 
 ### sap_ha_pacemaker_cluster_aws_access_key_id
 
 - _Type:_ `str`
 
 AWS access key to allow control of instances (for example for fencing operations).<br>
-Required for cluster nodes setup on Amazon cloud.<br>
+Mandatory for the cluster nodes setup on AWS EC2 instances.<br>
 
 ### sap_ha_pacemaker_cluster_aws_region
 
 - _Type:_ `str`
 
 The AWS region in which the instances to be used for the cluster setup are located.<br>
-Required for cluster nodes setup on Amazon cloud.<br>
+Mandatory for cluster nodes setup on AWS EC2 instances.<br>
 
 ### sap_ha_pacemaker_cluster_aws_secret_access_key
 
 - _Type:_ `str`
 
 AWS secret key, paired with the access key for instance control.<br>
-Required for cluster nodes setup on Amazon cloud.<br>
+Mandatory for the cluster setup on AWS EC2 instances.<br>
 
 ### sap_ha_pacemaker_cluster_aws_vip_update_rt
 
 - _Type:_ `list`
 
 List one more routing table IDs for managing Virtual IP failover through routing table changes.<br>
-Required for VIP configuration in AWS EC2 environments.<br>
+Mandatory for the VIP resource configuration in AWS EC2 environments.<br>
 
 ### sap_ha_pacemaker_cluster_cluster_name
 
 - _Type:_ `str`
-- _Default:_ `my-cluster`
 
 The name of the pacemaker cluster.<br>
 Inherits the `ha_cluster` LSR native parameter `ha_cluster_cluster_name` if not defined.<br>
+If not defined, the `ha_cluster` Linux System Role default will be used.<br>
+
+### sap_ha_pacemaker_cluster_cluster_nodes
+
+- _Type:_ `list`
+
+List of cluster nodes and associated attributes to describe the target SAP HA environment.<br>
+This is required for the HANA System Replication configuration.<br>
+Synonym for this parameter is `sap_hana_cluster_nodes`.<br>
+
+- **hana_site**<br>
+    Site of the cluster and/or SAP HANA System Replication node (for example 'DC01').<br>This is required for HANA System Replication configuration.
+- **node_ip**<br>
+    IP address of the node used for HANA System Replication.
+- **node_name**<br>
+    Name of the cluster node, should match the remote systems' hostnames.<br>This is needed by the cluster members to know all their partner nodes.
+- **node_role**<br>
+    Role of this node in the SAP cluster setup.<br>There must be only **one** primary, but there can be multiple secondary nodes.
+
+Example:
+
+```yaml
+sap_ha_pacemaker_cluster_cluster_nodes:
+- hana_site: DC01
+  node_ip: 192.168.5.1
+  node_name: nodeA
+  node_role: primary
+- hana_site: DC02
+  node_ip: 192.168.5.2
+  node_name: nodeB
+  node_role: secondary
+```
 
 ### sap_ha_pacemaker_cluster_cluster_properties
 
 - _Type:_ `dict`
-- _Default:_ `See example`
+- _Default:_ `{'concurrent-fencing': True, 'stonith-enabled': True, 'stonith-timeout': 900}`
 
 Standard pacemaker cluster properties are configured with recommended settings for cluster node fencing.<br>
+When no STONITH resource is defined, STONITH will be disabled and a warning displayed.<br>
 
 Example:
 
@@ -226,9 +242,31 @@ This allows using the output file later as input file for additional custom step
 When enabled this parameters file is also created when the playbook is run in check_mode (`--check`) and can be used to review the configuration parameters without executing actual changes on the target nodes.<br>
 WARNING! This report may include sensitive details like secrets required for certain cluster resources!<br>
 
+### sap_ha_pacemaker_cluster_extra_packages
+
+- _Type:_ `list`
+
+Additional extra packages to be installed, for instance specific resource packages.<br>
+For SAP clusters configured by this role, the relevant standard packages for the target scenario are automatically included.<br>
+
+### sap_ha_pacemaker_cluster_fence_agent_minimal_packages
+
+- _Type:_ `list`
+- _Default:_ `['fence-agents-all']`
+
+The minimal set of fence agent packages that will be installed.<br>
+
+### sap_ha_pacemaker_cluster_fence_agent_packages
+
+- _Type:_ `list`
+
+Additional fence agent packages to be installed.<br>
+This is automatically combined with `sap_ha_pacemaker_cluster_fence_agent_minimal_packages`.<br>
+
 ### sap_ha_pacemaker_cluster_fence_options
 
 - _Type:_ `dict`
+- _Default:_ `{'pcmk_reboot_retries': 4, 'pcmk_reboot_timeout': 400, 'power_timeout': 240}`
 
 STONITH resource common parameters that apply to most fencing agents.<br>
 These options are applied to fencing resources this role uses automatically for pre-defined platforms (like AWS EC2 VS, IBM Cloud VS).<br>
@@ -244,11 +282,46 @@ sap_ha_pacemaker_cluster_fence_options:
   power_timeout: 240
 ```
 
+### sap_ha_pacemaker_cluster_gcp_project
+
+- _Type:_ `str`
+
+Google Cloud project name in which the target instances are installed.<br>
+Mandatory for the cluster setup on GCP instances.<br>
+
+### sap_ha_pacemaker_cluster_gcp_region_zone
+
+- _Type:_ `str`
+
+Goocle Cloud Platform region zone ID.<br>
+Mandatory for the cluster setup on GCP instances.<br>
+
+### sap_ha_pacemaker_cluster_ha_cluster
+
+- _Type:_ `dict`
+
+The `ha_cluster` LSR native parameter `ha_cluster` can be used as a synonym.<br>
+Optional _**host_vars**_ parameter - if defined it must be set for each node.<br>
+Dictionary that can contain various node options for the pacemaker cluster configuration.<br>
+Supported options can be reviewed in the `ha_cluster` Linux System Role [https://github.com/linux-system-roles/ha_cluster/blob/master/README.md].<br>
+If not defined, the `ha_cluster` Linux System Role default will be used.<br>
+
+Example:
+
+```yaml
+sap_ha_pacemaker_cluster_ha_cluster:
+  corosync_addresses:
+  - 192.168.1.10
+  - 192.168.2.10
+  node_name: nodeA
+```
+
 ### sap_ha_pacemaker_cluster_hacluster_password <sup>required</sup>
 
 - _Type:_ `str`
 
 The password of the `hacluster` user which is created during pacemaker installation.<br>
+Inherits the value of `ha_cluster_hacluster_password`, when defined.<br>
 
 ### sap_ha_pacemaker_cluster_hana_automated_register
 
@@ -268,6 +341,13 @@ Time difference needed between to primary time stamps, if a dual-primary situati
 If the time difference is less than the time gap, then the cluster holds one or both instances in a "WAITING" status.<br>
 This is to give an admin a chance to react on a failover. A failed former primary will be registered after the time difference is passed.<br>
 
+### sap_ha_pacemaker_cluster_hana_instance_number <sup>required</sup>
+
+- _Type:_ `str`
+
+The instance number of the SAP HANA database which this role will configure in the cluster.<br>
+Inherits the value of `sap_hana_instance_number`, when defined.<br>
+
 ### sap_ha_pacemaker_cluster_hana_prefer_site_takeover
 
 - _Type:_ `bool`
@@ -277,12 +357,34 @@ Parameter for the 'SAPHana' cluster resource.<br>
 Set to "false" if the cluster should first attempt to restart the instance on the same node.<br>
 When set to "true" (default) a failover to secondary will be initiated on resource failure.<br>
 
+### sap_ha_pacemaker_cluster_hana_resource_clone_name
+
+- _Type:_ `str`
+- _Default:_ `SAPHana_<SID>_<Instance Number>-clone`
+
+Customize the cluster resource name of the SAP HANA DB resource clone.<br>
+
 ### sap_ha_pacemaker_cluster_hana_resource_name
 
 - _Type:_ `str`
 - _Default:_ `SAPHana_<SID>_<Instance Number>`
 
 Customize the cluster resource name of the SAP HANA DB resource.<br>
+
+### sap_ha_pacemaker_cluster_hana_sid <sup>required</sup>
+
+- _Type:_ `str`
+
+The SAP HANA SID of the instance that will be configured in the cluster.<br>
+The SID must follow SAP specifications - see SAP Note 1979280.<br>
+Inherits the value of `sap_hana_sid`, when defined.<br>
+
+### sap_ha_pacemaker_cluster_hana_topology_resource_clone_name
+
+- _Type:_ `str`
+- _Default:_ `SAPHanaTopology_<SID>_<Instance Number>-clone`
+
+Customize the cluster resource name of the SAP HANA Topology resource clone.<br>
 
 ### sap_ha_pacemaker_cluster_hana_topology_resource_name
 
@@ -291,23 +393,60 @@ Customize the cluster resource name of the SAP HANA DB resource.<br>
 
 Customize the cluster resource name of the SAP HANA Topology resource.<br>
 
+### sap_ha_pacemaker_cluster_host_type
+
+- _Type:_ `str`
+- _Default:_ `hana_scaleup_perf`
+
+The SAP landscape to for which the cluster is to be configured.<br>
+The default is a 2-node SAP HANA scale-up cluster.<br>
+
 ### sap_ha_pacemaker_cluster_ibmcloud_api_key
 
 - _Type:_ `str`
 
-The API key is required to allow control of instances (for example for fencing operations).<br>
-Required for cluster nodes setup in IBM Cloud.<br>
+The API key which is required to allow the control of instances (for example for fencing operations).<br>
+Mandatory for the cluster setup on IBM Cloud V or IBM Cloud Power VS instances.<br>
 
 ### sap_ha_pacemaker_cluster_ibmcloud_region
 
 - _Type:_ `str`
 
-The cloud region key in which the instances are running.<br>
-Required for cluster nodes setup in IBM Cloud.<br>
+The IBM Cloud VS region name in which the instances are running.<br>
+Mandatory for the cluster setup on IBM Cloud VS or IBM Cloud Power VS instances.<br>
+
+### sap_ha_pacemaker_cluster_msazure_resource_group
+
+- _Type:_ `str`
+
+Resource group name/ID in which the target instances are defined.<br>
+Mandatory for the cluster setup on MS Azure instances.<br>
+
+### sap_ha_pacemaker_cluster_msazure_subscription_id
+
+- _Type:_ `str`
+
+Subscription ID of the MS Azure environment containing the target instances.<br>
+Mandatory for the cluster setup on MS Azure instances.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_aas_instance_number
+
+- _Type:_ `str`
+
+Instance number of the NetWeaver ABAP AAS instance.<br>
+Mandatory for NetWeaver AAS cluster configuration.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_ers_filesystems
+
+- _Type:_ `list`
+- _Default:_ `['<SID>/ASCS<ascs_instance_number>', '<SID>/ERS<ers_instance_number>']`
+
+Standard NetWeaver paths in "/usr/sap" and automatically appended to the configuration, when "/usr/sap" is in the list of `sap_ha_pacemaker_cluster_storage_definition`.<br>
 
 ### sap_ha_pacemaker_cluster_netweaver_abap_ascs_filesystem_resource_name
 
 - _Type:_ `str`
+- _Default:_ `Filesystem_NWAS_ABAP_ASCS_<SID>_<ASCS-instance-number>`
 
 Name of the filesystem resource for the ASCS instance.<br>
 
@@ -317,6 +456,13 @@ Name of the filesystem resource for the ASCS instance.<br>
 - _Default:_ `3000`
 
 NetWeaver ASCS resource group stickiness to prefer the ASCS group to stay on the node it was started on.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number
+
+- _Type:_ `str`
+
+Instance number of the NetWeaver ABAP ASCS instance.<br>
+Mandatory for NetWeaver ASCS/ERS cluster configuration.<br>
 
 ### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_automatic_recover_bool
 
@@ -331,7 +477,7 @@ NetWeaver ASCS instance resource option "AUTOMATIC_RECOVER".<br>
 - _Default:_ `60`
 
 NetWeaver ASCS instance failure-timeout attribute.<br>
-Only used for ENSA1 setups. Default is ENSA2.<br>
+Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_netweaver_ascs_ers_ensa1`). Default setup is ENSA2.<br>
 
 ### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_ensa1_migration_threshold
 
@@ -339,18 +485,19 @@ Only used for ENSA1 setups. Default is ENSA2.<br>
 - _Default:_ `1`
 
 NetWeaver ASCS instance migration-threshold setting attribute.<br>
-Only used for ENSA1 setups. Default is ENSA2.<br>
+Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_netweaver_ascs_ers_ensa1`). Default setup is ENSA2.<br>
 
 ### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_instance_name
 
 - _Type:_ `str`
 
 The name of the ASCS instance, typically the profile name.<br>
-Required for the NetWeaver ASCS resource.<br>
+Mandatory for the NetWeaver ASCS/ERS cluster setup<br>
 
 ### sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name
 
 - _Type:_ `str`
+- _Default:_ `SAPInstance_NWAS_ABAP_ASCS_<SID>_<ASCS-instance-number>`
 
 Name of the ASCS instance resource.<br>
 
@@ -366,13 +513,21 @@ NetWeaver ASCS instance resource stickiness attribute.<br>
 - _Type:_ `str`
 
 The full path and name of the ASCS instance profile.<br>
-Required for the NetWeaver ASCS resource.<br>
+Mandatory for the NetWeaver ASCS/ERS cluster setup.<br>
 
 ### sap_ha_pacemaker_cluster_netweaver_abap_ers_filesystem_resource_name
 
 - _Type:_ `str`
+- _Default:_ `Filesystem_NWAS_ABAP_ERS_<SID>_<ERS-instance-number>`
 
 Name of the filesystem resource for the ERS instance.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number
+
+- _Type:_ `str`
+
+Instance number of the NetWeaver ABAP ERS instance.<br>
+Mandatory for NetWeaver ASCS/ERS cluster configuration.<br>
 
 ### sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_automatic_recover_bool
 
@@ -386,11 +541,12 @@ NetWeaver ERS instance resource option "AUTOMATIC_RECOVER".<br>
 - _Type:_ `str`
 
 The name of the ERS instance, typically the profile name.<br>
-Required for the NetWeaver ERS resource.<br>
+Mandatory for the NetWeaver ASCS/ERS cluster setup.<br>
 
 ### sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name
 
 - _Type:_ `str`
+- _Default:_ `SAPInstance_NWAS_ABAP_ERS_<SID>_<ERS-instance-number>`
 
 Name of the ERS instance resource.<br>
 
@@ -399,7 +555,64 @@ Name of the ERS instance resource.<br>
 - _Type:_ `str`
 
 The full path and name of the ERS instance profile.<br>
-Required for the NetWeaver ERS resource.<br>
+Mandatory for the NetWeaver ASCS/ERS cluster.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_abap_pas_instance_number
+
+- _Type:_ `str`
+
+Instance number of the NetWeaver ABAP PAS instance.<br>
+Mandatory for NetWeaver PAS cluster configuration.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_ascs_ers_ensa1
+
+- _Type:_ `bool`
+- _Default:_ `False`
+
+The standard NetWeaver ASCS/ERS cluster will be set up as ENSA2.<br>
+Set this parameter to 'true' to configure it as ENSA1.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_resource_name
+
+- _Type:_ `str`
+- _Default:_ `Filesystem_NWAS_SAPMNT_<SID>`
+
+Filesystem resource name for the shared filesystem /sapmnt.<br>
+Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.<br>
+Enable this resource setup using `sap_ha_pacemaker_cluster_netweaver_shared_filesystems_cluster_managed`.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_shared_filesystems_cluster_managed
+
+- _Type:_ `bool`
+- _Default:_ `False`
+
+Change this parameter to 'true' if the 3 shared filesystems `/usr/sap/trans`, `/usr/sap/<SID>/SYS` and '/sapmnt' shall be configured as cloned cluster resources.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_sid
+
+- _Type:_ `str`
+
+SID of the NetWeaver instances.<br>
+Mandatory for NetWeaver cluster configuration.<br>
+Uses `sap_swpm_sid` if defined.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_sys_filesystem_resource_name
+
+- _Type:_ `str`
+- _Default:_ `Filesystem_NWAS_SYS_<SID>`
+
+Filesystem resource name for the transports filesystem /usr/sap/<SID>/SYS.<br>
+Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.<br>
+Enable this resource setup using `sap_ha_pacemaker_cluster_netweaver_shared_filesystems_cluster_managed`.<br>
+
+### sap_ha_pacemaker_cluster_netweaver_transports_filesystem_resource_name
+
+- _Type:_ `str`
+- _Default:_ `Filesystem_NWAS_TRANS_<SID>`
+
+Filesystem resource name for the transports filesystem /usr/sap/trans.<br>
+Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.<br>
+Enable this resource setup using `sap_ha_pacemaker_cluster_netweaver_shared_filesystems_cluster_managed`.<br>
 
 ### sap_ha_pacemaker_cluster_replication_type
 
@@ -412,7 +625,7 @@ _Not yet supported_<br>
 ### sap_ha_pacemaker_cluster_resource_defaults
 
 - _Type:_ `dict`
-- _Default:_ `See example`
+- _Default:_ `{'migration-threshold': 5000, 'resource-stickiness': 3000}`
 
 Set default parameters that will be valid for all pacemaker resources.<br>
 
@@ -423,6 +636,106 @@ sap_ha_pacemaker_cluster_resource_defaults:
   migration-threshold: 5000
   resource-stickiness: 1000
 ```
+
+### sap_ha_pacemaker_cluster_stonith_custom
+
+- _Type:_ `list`
+
+Custom list of STONITH resource(s) to be configured in the cluster.<br>
+This definition override any defaults the role would apply otherwise.<br>
+
+- **agent**<br>
+    Resource agent name, must contain the prefix "stonith:" to avoid mismatches or failures.
+- **name**<br>
+    Name that will be used as the resource ID (name).
+- **options**<br>
+    The resource options listed in dictionary format, one option per line.<br>Requires the mandatory options for the particular stonith resource agent to be defined, otherwise the setup will fail.
+
+Example:
+
+```yaml
+sap_ha_pacemaker_cluster_stonith_custom:
+- agent: stonith:fence_rhevm
+  name: my-fence-resource
+  options:
+    ip: rhevm-server
+    password: login-user-password
+    pcmk_host_list: node1,node2
+    power_wait: 3
+    username: login-user
+```
+
+### sap_ha_pacemaker_cluster_storage_definition
+
+- _Type:_ `list`
+
+List of filesystem definitions used for filesystem cluster resources.<br>
+Uses `sap_storage_setup_definition` when defined.<br>
+
+- **mountpoint**<br>
+    Path under which the filesystem will be mounted.<br>Mandatory for all filesystems that have a mountpoint.<br>Special treatment for a generic "/usr/sap" which will automatically be duplicated into the 2 standard sub-directories "/usr/sap/<SID>/<instance_type><instance_number>" and "/usr/sap/<SID>/SYS".
+- **name**<br>
+    Unique name of the filesystem definition entry.
+- **nfs_filesystem_type**<br>
+    _Default:_ `<sap_ha_pacemaker_cluster_storage_nfs_filesytem_type>`<br>
+    NFS filesystem type used to mount this filesystem.
+- **nfs_mount_options**<br>
+    _Default:_ `<sap_ha_pacemaker_cluster_storage_nfs_mount_options>`<br>
+    Mount options to be used for this specific filesystem.
+- **nfs_path**<br>
+    Path to the filesystem source directory on the NFS server.
+- **nfs_server**<br>
+    _Default:_ `<sap_ha_pacemaker_cluster_storage_nfs_server>`<br>
+    Name of the NFS server for this particular filesystem.
+
+Example:
+
+```yaml
+sap_ha_pacemaker_cluster_storage_definition:
+- mountpoint: /usr/sap
+  name: usr_sap
+  nfs_path: /usr/sap
+  nfs_server: nfs-server.example.com:/
+- mountpoint: /usr/sap/trans
+  name: usr_sap_trans
+  nfs_path: /usr/sap/trans
+  nfs_server: nfs-server.example.com:/
+- mountpoint: /sapmnt
+  name: sapmnt
+  nfs_filesystem_type: nfs
+  nfs_mount_options: defaults
+  nfs_path: /sapmnt
+  nfs_server: nfs-server.example.com:/
+```
+
+### sap_ha_pacemaker_cluster_storage_nfs_filesytem_type
+
+- _Type:_ `str`
+- _Default:_ `nfs`
+
+Filesystem type of the NFS filesystems that are part of the cluster configuration.<br>
+
+### sap_ha_pacemaker_cluster_storage_nfs_mount_options
+
+- _Type:_ `str`
+- _Default:_ `defaults`
+
+Mount options of the NFS filesystems that are part of the cluster configuration.<br>
+
+### sap_ha_pacemaker_cluster_storage_nfs_server
+
+- _Type:_ `str`
+
+Default address of the NFS server, if not defined individually by filesystem.<br>
+
+### sap_ha_pacemaker_cluster_system_roles_collection
+
+- _Type:_ `str`
+- _Default:_ `fedora.linux_system_roles`
+
+Reference to the Ansible Collection used for the Linux System Roles.<br>
+For community/upstream, use 'fedora.linux_system_roles'.<br>
+For RHEL System Roles for SAP, or Red Hat Automation Hub, use 'redhat.rhel_system_roles'.<br>
 
 ### sap_ha_pacemaker_cluster_vip_client_interface
 
@@ -436,6 +749,7 @@ When there is only one interface on the system, its name will be used by default
 - _Type:_ `str`
 
 The virtual IP of the primary HANA instance.<br>
+Mandatory parameter for HANA clusters.<br>
 
 ### sap_ha_pacemaker_cluster_vip_hana_primary_resource_name
 
@@ -449,58 +763,63 @@ Customize the name of the resource managing the Virtual IP of the primary HANA i
 - _Type:_ `str`
 
 The virtual IP for read-only access to the secondary HANA instance.<br>
+Optional parameter in HANA clusters.<br>
 
 ### sap_ha_pacemaker_cluster_vip_netweaver_aas_ip_address
 
 - _Type:_ `str`
 
-The virtual IP of the NetWeaver AAS instance.<br>
+Virtual IP of the NetWeaver AAS instance.<br>
+Mandatory for NetWeaver AAS cluster setup.<br>
 
 ### sap_ha_pacemaker_cluster_vip_netweaver_aas_resource_name
 
 - _Type:_ `str`
-- _Default:_ `vip_<SID><Instance Number>`
+- _Default:_ `vip_<SID>_<AAS-instance-number>_aas`
 
-Customize the name of the resource managing the Virtual IP of the NetWeaver AAS instance.<br>
+Name of the SAPInstance resource for NetWeaver AAS.<br>
 
 ### sap_ha_pacemaker_cluster_vip_netweaver_ascs_ip_address
 
 - _Type:_ `str`
 
-The virtual IP of the NetWeaver ASCS instance.<br>
+Virtual IP of the NetWeaver ASCS instance.<br>
+Mandatory for NetWeaver ASCS/ERS cluster setup.<br>
 
 ### sap_ha_pacemaker_cluster_vip_netweaver_ascs_resource_name
 
 - _Type:_ `str`
-- _Default:_ `vip_<SID><Instance Number>`
+- _Default:_ `vip_<SID>_<ASCS-instance-number>_ascs`
 
-Customize the name of the resource managing the Virtual IP of the NetWeaver ASCS instance.<br>
+Name of the SAPInstance resource for NetWeaver ASCS.<br>
 
 ### sap_ha_pacemaker_cluster_vip_netweaver_ers_ip_address
 
 - _Type:_ `str`
 
-The virtual IP of the NetWeaver ERS instance.<br>
+Virtual IP of the NetWeaver ERS instance.<br>
+Mandatory for NetWeaver ASCS/ERS cluster setup.<br>
 
 ### sap_ha_pacemaker_cluster_vip_netweaver_ers_resource_name
 
 - _Type:_ `str`
-- _Default:_ `vip_<SID><Instance Number>`
+- _Default:_ `vip_<SID>_<ERS-instance-number>_ers`
 
-Customize the name of the resource managing the Virtual IP of the NetWeaver ERS instance.<br>
+Name of the SAPInstance resource for NetWeaver ERS.<br>
 
 ### sap_ha_pacemaker_cluster_vip_netweaver_pas_ip_address
 
 - _Type:_ `str`
 
-The virtual IP of the NetWeaver PAS instance.<br>
+Virtual IP of the NetWeaver PAS instance.<br>
+Mandatory for NetWeaver PAS cluster setup.<br>
 
 ### sap_ha_pacemaker_cluster_vip_netweaver_pas_resource_name
 
 - _Type:_ `str`
-- _Default:_ `vip_<SID><Instance Number>`
+- _Default:_ `vip_<SID>_<PAS-instance-number>_pas`
 
-Customize the name of the resource managing the Virtual IP of the NetWeaver PAS instance.<br>
+Name of the SAPInstance resource for NetWeaver PAS.<br>
 
 ### sap_ha_pacemaker_cluster_vip_secondary_resource_name
 
@@ -508,62 +827,5 @@ Customize the name of the resource managing the Virtual IP of the NetWeaver PAS 
 - _Default:_ `vip_<SID><Instance Number>`
 
 Customize the name of the resource managing the Virtual IP of read-only access to the secondary HANA instance.<br>
-
-### sap_hana_cluster_nodes
-
-- _Type:_ `list`
-
-List of cluster nodes and associated attributes to describe the target SAP HA environment.<br>
-This is required for the HANA System Replication configuration.<br>
-
-- **hana_site**<br>
-    Site of the cluster and/or SAP HANA System Replication node (for example 'DC01').<br>This is required for HANA System Replication configuration.
-- **node_ip**<br>
-    IP address of the node used for HANA System Replication.
-- **node_name**<br>
-    Name of the cluster node, should match the remote systems' hostnames.<br>This is needed by the cluster members to know all their partner nodes.
-- **node_role**<br>
-    Role of this node in the SAP cluster setup.<br>There must be only **one** primary, but there can be multiple secondary nodes.
-
-Example:
-
-```yaml
-sap_hana_cluster_nodes:
-- hana_site: DC01
-  node_ip: 192.168.5.1
-  node_name: nodeA
-  node_role: primary
-- hana_site: DC02
-  node_ip: 192.168.5.2
-  node_name: nodeB
-  node_role: secondary
-```
-
-### sap_hana_instance_number
-
-- _Type:_ `str`
-
-The instance number of the SAP HANA database which this role will configure in the cluster.<br>
-
-### sap_hana_sid
-
-- _Type:_ `str`
-
-The SAP HANA SID of the instance that will be configured in the cluster.<br>
-The SID must follow SAP specifications - see SAP Note 1979280.<br>
-
-### sap_hana_vip
-
-- _Type:_ `dict`
-
-One floating IP is required for SAP HANA DB connection by clients.<br>
-This main VIP will always run on the promoted HANA node and be moved with it during a failover.<br>
-
-Example:
-
-```yaml
-sap_hana_vip:
-  primary: 192.168.10.100
-```
 
 <!-- END: Role Input Parameters -->
