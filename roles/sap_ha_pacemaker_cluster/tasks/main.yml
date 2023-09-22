@@ -135,20 +135,6 @@
         - __sap_ha_pacemaker_cluster_disable_services.failed
         - '"Could not find the requested service" not in __sap_ha_pacemaker_cluster_disable_services.msg'
 
-#    # Before we are ready to call the ha_cluster role, we want to validate
-#    # that the minimum required parameters are defined and not empty.
-#    # TODO: make this smarter, currently all these vars are pre-defined anyway
-#    - name: "SAP HA Install Pacemaker - Validate parameters for 'ha_cluster' role input"
-#      ansible.builtin.assert:
-#        that:
-#          - __sap_ha_pacemaker_cluster_cluster_properties is defined
-#          - __sap_ha_pacemaker_cluster_extra_packages is defined
-#          - __sap_ha_pacemaker_cluster_resource_primitives is defined
-#          - __sap_ha_pacemaker_cluster_resource_clones is defined
-#          - __sap_ha_pacemaker_cluster_constraints_order is defined
-#          - __sap_ha_pacemaker_cluster_constraints_colocation is defined
-#        fail_msg: "Cluster build parameter construction has failed for this parameter."
-
     - name: "SAP HA Install Pacemaker - Query if CIB already exists"
       ansible.builtin.command:
         cmd: cibadmin --query
@@ -177,23 +163,6 @@
         apply:
           tags: ha_cluster
           no_log: true  # some parameters contain secrets
-      no_log: true  # some parameters contain secrets
-#
-# Remove hard-coded parameters and set 'ha_cluster' LSR parameters in this play right
-# before the 'ha_cluster' role is included.
-#      vars:
-#        __ha_cluster_repos: "{{ __sap_ha_pacemaker_cluster_repos }}"
-#        ha_cluster_cluster_name: "{{ __sap_ha_pacemaker_cluster_cluster_name }}"
-#        ha_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order }}"
-#        ha_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation }}"
-#        ha_cluster_constraints_location: "{{ __sap_ha_pacemaker_cluster_constraints_location }}"
-#        ha_cluster_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties }}"
-#        ha_cluster_extra_packages: "{{ __sap_ha_pacemaker_cluster_extra_packages }}"
-#        ha_cluster_fence_agent_packages: "{{ __sap_ha_pacemaker_cluster_fence_agent_packages }}"
-#        ha_cluster_hacluster_password: "{{ __sap_ha_pacemaker_cluster_hacluster_password }}"
-#        ha_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones }}"
-#        ha_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups }}"
-#        ha_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives }}"
       tags: ha_cluster
 
     # Resource defaults settings were added to "ha_cluster" in Apr 2023 (GH version 1.9.0)
