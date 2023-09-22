@@ -293,7 +293,7 @@ Mandatory for the cluster setup on GCP instances.<br>
 
 - _Type:_ `str`
 
-Goocle Cloud Platform region zone ID.<br>
+Google Cloud Platform region zone ID.<br>
 Mandatory for the cluster setup on GCP instances.<br>
 
 ### sap_ha_pacemaker_cluster_ha_cluster
@@ -406,14 +406,14 @@ The default is a 2-node SAP HANA scale-up cluster.<br>
 - _Type:_ `str`
 
 The API key which is required to allow the control of instances (for example for fencing operations).<br>
-Mandatory for the cluster setup on IBM Cloud V or IBM Cloud Power VS instances.<br>
+Mandatory for the cluster setup on IBM Cloud Virtual Server instances or IBM Power Virtual Server on IBM Cloud.<br>
 
 ### sap_ha_pacemaker_cluster_ibmcloud_region
 
 - _Type:_ `str`
 
 The IBM Cloud VS region name in which the instances are running.<br>
-Mandatory for the cluster setup on IBM Cloud VS or IBM Cloud Power VS instances.<br>
+Mandatory for the cluster setup on IBM Cloud Virtual Server instances or IBM Power Virtual Server on IBM Cloud.<br>
 
 ### sap_ha_pacemaker_cluster_msazure_resource_group
 
