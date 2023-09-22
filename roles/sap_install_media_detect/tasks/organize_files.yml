@@ -140,7 +140,7 @@
     group: root
     mode: '0755'
 
-- name: SAP Install Media Detect - Organize all files - Extract sapcar archive files
+- name: SAP Install Media Detect - Organize all files - Extract HANA sapcar archive files
   ansible.builtin.shell: >-
     {{ __sap_install_media_detect_fact_sapcar_path }}
     -R {{ __sap_install_media_detect_software_main_directory }}/tmp_extract
@@ -148,7 +148,7 @@
     -manifest SIGNATURE.SMF
     && extracted_dir=$(ls -d */)
     && mv SIGNATURE.SMF $extracted_dir
-    && mkdir -p {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}/$extracted_dir
+    && mkdir -p {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}
     && mv $extracted_dir {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}/
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}/tmp_extract"
@@ -157,8 +157,26 @@
     loop_var: line_item
   when:
     - sap_install_media_detect_extract_archives
-    - line_item.archive_type == 'sapcar'
     - line_item.extract_archive == 'y'
+    - line_item.archive_type == 'sapcar'
+    - line_item.sap_file_type is search('saphana')
+
+- name: SAP Install Media Detect - Organize all files - Extract non-HANA sapcar archive files
+  ansible.builtin.shell: >-
+    {{ __sap_install_media_detect_fact_sapcar_path }}
+    -R {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}
+    -xvf {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.file }}
+    -manifest SIGNATURE.SMF
+  args:
+    chdir: "{{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}"
+  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
+  loop_control:
+    loop_var: line_item
+  when:
+    - sap_install_media_detect_extract_archives
+    - line_item.extract_archive == 'y'
+    - line_item.archive_type == 'sapcar'
+    - not line_item.sap_file_type is search('saphana')
 
 - name: SAP Install Media Detect - Organize all files - Remove temp dir - {{ __sap_install_media_detect_software_main_directory }}/tmp_extract
   ansible.builtin.file:
