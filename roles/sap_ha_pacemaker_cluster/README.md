@@ -407,6 +407,28 @@ The default is a 2-node SAP HANA scale-up cluster.<br>
 The API key which is required to allow the control of instances (for example for fencing operations).<br>
 Mandatory for the cluster setup on IBM Cloud Virtual Server instances or IBM Power Virtual Server on IBM Cloud.<br>
 
+### sap_ha_pacemaker_cluster_ibmcloud_powervs_api_type
+
+- _Type:_ `string`
+
+IBM Power Virtual Server API Endpoint type (public or private) dependent on network interface attachments for the target instances.<br>
+['Mandatory for the cluster setup on IBM Power Virtual Server from IBM Cloud.']<br>
+
+### sap_ha_pacemaker_cluster_ibmcloud_powervs_forward_proxy_url
+
+- _Type:_ `string`
+
+IBM Power Virtual Server forward proxy url when IBM Power Virtual Server API Endpoint type is set to private.<br>
+When public network interface, can be ignored.<br>
+When private network interface, mandatory for the cluster setup on IBM Power Virtual Server from IBM Cloud.<br>
+
+### sap_ha_pacemaker_cluster_ibmcloud_powervs_workspace_crn
+
+- _Type:_ `string`
+
+IBM Power Virtual Server Workspace service cloud resource name (CRN) identifier which contains the target instances<br>
+Mandatory for the cluster setup on IBM Power Virtual Server from IBM Cloud.<br>
+
 ### sap_ha_pacemaker_cluster_ibmcloud_region
 
 - _Type:_ `string`
