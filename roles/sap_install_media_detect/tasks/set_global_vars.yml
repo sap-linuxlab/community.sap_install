@@ -59,15 +59,13 @@
   ignore_errors: true
   when:
     - sap_install_media_detect_move_or_copy_archives
-    - sap_install_media_detect_db == 'saphana' or
-      sap_install_media_detect_db_client == 'saphana'
+    - sap_install_media_detect_db_client == 'saphana'
 
 # In 'find_files_after_extraction.yml', we search for a directory named 'LINUXX86_64'. For the role sap_swpm, we need to set
 # exactly this path
 - name: SAP Install Media Detect - Detection completed - Set facts for IBM Db2
   ansible.builtin.set_fact:
     sap_swpm_cd_ibmdb2_path: "{{ detect_directory_ibmdb2_extracted.files[0].path }}/" # for sap_swpm Ansible Role
-    sap_swpm_cd_ibmdb2_client_path: "{{ detect_directory_ibmdb2_client_extracted.files[0].path }}/" # for sap_swpm Ansible Role
   ignore_errors: true
   when: sap_install_media_detect_db == 'ibmdb2'
 
@@ -84,7 +82,6 @@
   ansible.builtin.set_fact:
     sap_anydb_install_oracle_extract_path: "{{ detect_directory_oracledb_extracted.files[0].path | dirname }}/" # for sap_anydb_install_oracle Ansible Role
     sap_swpm_cd_oracle_path: "{{ detect_directory_oracledb_extracted.files[0].path | dirname }}/" # for sap_swpm Ansible Role
-    sap_swpm_cd_oracle_client_path: "{{ detect_directory_oracledb_client_extracted.files[0].path | dirname }}/" # for sap_swpm Ansible Role
   ignore_errors: true
   when: sap_install_media_detect_db == 'oracledb'
 
@@ -100,7 +97,6 @@
 - name: SAP Install Media Detect - Detection completed - Set facts for SAP ASE
   ansible.builtin.set_fact:
     sap_swpm_cd_sapase_path: "{{ detect_directory_sapase_extracted.files[0].path }}/" # for sap_swpm Ansible Role
-    sap_swpm_cd_sapase_client_path: "{{ detect_directory_sapase_client_extracted.files[0].path }}/" # for sap_swpm Ansible Role
   ignore_errors: true
   when: sap_install_media_detect_db == 'sapase'
 

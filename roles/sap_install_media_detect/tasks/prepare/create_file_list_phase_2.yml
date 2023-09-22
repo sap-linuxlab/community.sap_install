@@ -56,25 +56,19 @@
     (sap_install_media_detect_webdisp and item.stdout.split(';')[1] == 'sap_webdisp') or
     (sap_install_media_detect_db == 'saphana' and (
        item.stdout.split(';')[1] == 'saphana' or
-       item.stdout.split(';')[1] == 'saphana_client' or
        item.stdout.split(';')[1] == 'saphana_other')
     ) or
     (sap_install_media_detect_db_client == 'saphana' and item.stdout.split(';')[1] == 'saphana_client') or
     (sap_install_media_detect_db == 'sapmaxdb' and item.stdout.split(';')[1] == 'sapmaxdb') or
-    (sap_install_media_detect_db == 'sapase' and (
-       item.stdout.split(';')[1] == 'sapase' or
-       item.stdout.split(';')[1] == 'sapase_client')
-    ) or
+    (sap_install_media_detect_db == 'sapase' and item.stdout.split(';')[1] == 'sapase') or
     (sap_install_media_detect_db_client == 'sapase' and item.stdout.split(';')[1] == 'sapase_client') or
     (sap_install_media_detect_db == 'oracledb' and (
        item.stdout.split(';')[1] == 'oracledb' or
-       item.stdout.split(';')[1] == 'oracledb_client' or
        item.stdout.split(';')[1] == 'oracledb_tools')
     ) or
     (sap_install_media_detect_db_client == 'oracledb' and item.stdout.split(';')[1] == 'oracledb_client') or
     (sap_install_media_detect_db == 'ibmdb2' and (
        item.stdout.split(';')[1] == 'ibmdb2' or
-       item.stdout.split(';')[1] == 'ibmdb2_client' or
        item.stdout.split(';')[1] == 'ibmdb2_license')
     ) or
     (sap_install_media_detect_db_client == 'ibmdb2' and item.stdout.split(';')[1] == 'ibmdb2_client') or
@@ -223,8 +217,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'saphana_client') | length > 0
         fail_msg: "No file found for saphana_client"
       when:
-        - sap_install_media_detect_db == 'saphana' or
-          sap_install_media_detect_db_client == 'saphana'
+        - sap_install_media_detect_db_client == 'saphana'
 
     - name: SAP Install Media Detect - Prepare - Assert that sapase is present
       ansible.builtin.assert:
@@ -240,8 +233,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sapase_client') | length > 0
         fail_msg: "No file found for sapase_client"
       when:
-        - sap_install_media_detect_db == 'sapase' or
-          sap_install_media_detect_db_client == 'sapase'
+        - sap_install_media_detect_db_client == 'sapase'
 
     - name: SAP Install Media Detect - Prepare - Assert that sapmaxdb is present
       ansible.builtin.assert:
@@ -265,8 +257,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'oracledb_client') | length > 0
         fail_msg: "No file found for oracledb_client"
       when:
-        - sap_install_media_detect_db == 'oracledb' or
-          sap_install_media_detect_db_client == 'oracledb'
+        - sap_install_media_detect_db_client == 'oracledb'
 
     - name: SAP Install Media Detect - Prepare - Assert that ibmdb2 is present
       ansible.builtin.assert:
@@ -282,8 +273,7 @@
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'ibmdb2_client') | length > 0
         fail_msg: "No file found for ibmdb2_client"
       when:
-        - sap_install_media_detect_db == 'ibmdb2' or
-          sap_install_media_detect_db_client == 'ibmdb2'
+        - sap_install_media_detect_db_client == 'ibmdb2'
 
     - name: SAP Install Media Detect - Prepare - Assert that ibmdb2_license is present
       ansible.builtin.assert:
