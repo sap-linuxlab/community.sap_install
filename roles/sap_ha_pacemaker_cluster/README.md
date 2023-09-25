@@ -239,6 +239,14 @@ This allows using the output file later as input file for additional custom step
 When enabled this parameters file is also created when the playbook is run in check_mode (`--check`) and can be used to review the configuration parameters without executing actual changes on the target nodes.<br>
 WARNING! This report may include sensitive details like secrets required for certain cluster resources!<br>
 
+### sap_ha_pacemaker_cluster_enable_cluster_connector
+
+- _Type:_ `bool`
+- _Default:_ `True`
+
+Enables/Disables the SAP HA Interface for SAP ABAP application server instances, also known as `sap_cluster_connector`.<br>
+Set this parameter to 'false' if the SAP HA interface should not be installed and configured.<br>
+
 ### sap_ha_pacemaker_cluster_extra_packages
 
 - _Type:_ `list`
