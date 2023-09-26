@@ -40,8 +40,8 @@
     loop_var: vip_list_item
     label: "{{ vip_list_item.key }} - {{ vip_list_item.value }}"
   when:
-    - __sap_ha_pacemaker_cluster_platform not in __sap_ha_pacemaker_cluster_supported_platforms
-    - vip_list_item.value != ''
+    - sap_ha_pacemaker_cluster_vip_method == 'ipaddr'
+    - vip_list_item.value | length > 0
 
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for platform VIP resources"
@@ -52,8 +52,8 @@
     loop_var: vip_list_item
     label: "{{ vip_list_item.key }} - {{ vip_list_item.value }}"
   when:
-    - __sap_ha_pacemaker_cluster_platform in __sap_ha_pacemaker_cluster_supported_platforms
-    - vip_list_item.value != ''
+    - sap_ha_pacemaker_cluster_vip_method != 'ipaddr'
+    - vip_list_item.value | length > 0
 
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP Hana VIP constraints"

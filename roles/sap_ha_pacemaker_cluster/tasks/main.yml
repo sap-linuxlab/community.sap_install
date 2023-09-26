@@ -21,8 +21,8 @@
 # Make sure that all parameters already set for 'ha_cluster' are also inherited.
 # Add to this file a task for EACH parameter which this SAP cluster role
 # supports.
-- name: "SAP HA Prepare Pacemaker - Include tasks for checking 'ha_cluster' predefinitions"
-  ansible.builtin.import_tasks: ascertain_ha_cluster_in_inventory.yml
+- name: "SAP HA Prepare Pacemaker - Include tasks from 'ha_cluster' role definitions"
+  ansible.builtin.import_tasks: import_hacluster_vars_from_inventory.yml
 
 - name: "SAP HA Prepare Pacemaker - Include facts and common variables"
   ansible.builtin.import_tasks: include_vars_common.yml
@@ -94,6 +94,17 @@
   when:
     - "'nwas_java' in nwas_build_item"
 
+# All of the SAP HA role constructed parameters must be translated to
+# 'ha_cluster' Linux System Role parameters.
+- name: "SAP HA Prepare Pacemaker - Translate all parameters to 'ha_cluster' input variables"
+  ansible.builtin.include_tasks:
+    file: construct_final_hacluster_vars.yml
+
+
+##########################################################
+# BLOCK which covers actual changes on the target systems
+##########################################################
+
 - name: "SAP HA Install Pacemaker - Block with actual changes"
   block:
 
@@ -124,20 +135,6 @@
         - __sap_ha_pacemaker_cluster_disable_services.failed
         - '"Could not find the requested service" not in __sap_ha_pacemaker_cluster_disable_services.msg'
 
-    # Before we are ready to call the ha_cluster role, we want to validate
-    # that the minimum required parameters are defined and not empty.
-    # TODO: make this smarter, currently all these vars are pre-defined anyway
-    - name: "SAP HA Install Pacemaker - Validate parameters for 'ha_cluster' role input"
-      ansible.builtin.assert:
-        that:
-          - __sap_ha_pacemaker_cluster_cluster_properties is defined
-          - __sap_ha_pacemaker_cluster_extra_packages is defined
-          - __sap_ha_pacemaker_cluster_resource_primitives is defined
-          - __sap_ha_pacemaker_cluster_resource_clones is defined
-          - __sap_ha_pacemaker_cluster_constraints_order is defined
-          - __sap_ha_pacemaker_cluster_constraints_colocation is defined
-        fail_msg: "Cluster build parameter construction has failed for this parameter."
-
     - name: "SAP HA Install Pacemaker - Query if CIB already exists"
       ansible.builtin.command:
         cmd: cibadmin --query
@@ -166,21 +163,6 @@
         apply:
           tags: ha_cluster
           no_log: true  # some parameters contain secrets
-      no_log: true  # some parameters contain secrets
-      vars:
-        __ha_cluster_repos: "{{ __sap_ha_pacemaker_cluster_repos }}"
-        ha_cluster_cluster_name: "{{ __sap_ha_pacemaker_cluster_cluster_name }}"
-        ha_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order }}"
-        ha_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation }}"
-        ha_cluster_constraints_location: "{{ __sap_ha_pacemaker_cluster_constraints_location }}"
-        ha_cluster_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties }}"
-        ha_cluster_extra_packages: "{{ __sap_ha_pacemaker_cluster_extra_packages }}"
-        ha_cluster_fence_agent_packages: "{{ __sap_ha_pacemaker_cluster_fence_agent_packages }}"
-        ha_cluster_hacluster_password: "{{ __sap_ha_pacemaker_cluster_hacluster_password }}"
-        ha_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties }}"
-        ha_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones }}"
-        ha_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups }}"
-        ha_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives }}"
       tags: ha_cluster
 
     # Resource defaults settings were added to "ha_cluster" in Apr 2023 (GH version 1.9.0)
