@@ -29,7 +29,7 @@ will be disabled as the last task.
 - A new list of all files with the correct final file names will then be created, and for each of the files, the SAP file types are determined using the `sapfile` tool, either using the file names or - if this information is not sufficient - from information inside the file.
 - We then assert that there is at least (or exactly, depending on the file type) one file available for each of the `sap_install_media_detect_*` parameters. For example, if `sap_install_media_detect_kernel_db` is set to `saphana`, then there must be one SAP Kernel DB dependent file for SAP HANA.
 - In case of `remote_dir`, the next step is to copy all files from `sap_install_media_detect_source_directory` to `sap_install_media_detect_target_directory`.
-- Then we extract files which are configured in `sapfile` to be extracted, and copy or move files which are configured in `sapfile` to be copied or moved. Certain files like SAPCAR*.EXE and SAP Host Agent will be copied to two different directories.
+- Then we extract files which are configured in `sapfile` to be extracted, and copy or move files which are configured in `sapfile` to be copied or moved. Certain files like `SAPCAR*.EXE` and `SAP Host Agent` will be copied to two different directories.
 - Once all necessary files have been extracted and all files are copied or moved to where we want them to be, we are using the Ansible find module to identify the different file types by using file or directory name patterns.
 - The last step is to fill all required `sap_swpm` parameters from the result of the previous find step, and display all the variables.
 
@@ -53,8 +53,12 @@ With the following tags, the role can be called to perform certain activities on
 - tag `sap_install_media_detect_create_file_list_phase_1`: Create a list of all files in `sap_install_media_detect_source_directory`, and create a list of any files which have no ending and are of type `RAR`.
 - tag `sap_install_media_detect_create_file_list_phase_2`: Create a final list of all required files in `sap_install_media_detect_source_directory` or `sap_install_media_detect_target_directory` (if that one is defined)
 - tag `sap_install_media_detect_organize_files`: Copies all required files from `sap_install_media_detect_source_directory` or `sap_install_media_detect_target_directory` (if that one is defined) and extracts all required files into the target directories if specified by the output of the sapfile command.
+- tag `sap_install_media_detect_move_files_to_main_directory`: Move SAP archive files from level 1 subdirectories (where they might reside after the role has been used initially) back to the main software directory. Those subdirectories will afterwards be removed. This is to make sure the run will produce the same result no matter how often it is executed (= idempotency). The directories with pattern `*_extracted` will remain in place.
 - tag `sap_install_media_detect_find_files_after_extraction`: Finds all required files after they have been extracted so the final variables can be filled in the next step.
 - tag `sap_install_media_detect_set_global_vars`: Set all final variables for later use by Ansible roles or tasks.
+
+Note: After running the role with the following four tags, the SAP archive files will be in the same place as before running the role the first time. The directories with pattern `*_extracted` will remain in place.
+`sap_install_media_detect_provide_sapfile_utility,sap_install_media_detect_check_directories,sap_install_media_detect_create_file_list_phase_1,sap_install_media_detect_move_files_to_main_directory`
 
 ## License
 
