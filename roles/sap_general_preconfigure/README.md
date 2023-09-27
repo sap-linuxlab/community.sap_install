@@ -237,11 +237,27 @@ Can be useful if you want to implement your own reboot handling.<br>
 
 One of the SELinux states to be set on the system.<br>
 
+### sap_general_preconfigure_create_directories
+- _Type:_ `bool`
+- _Default:_ `true`
+
+Set to `false` if you do not want the SAP directories to be created by the role.<br>
+The SAP directories will always be created if `sap_general_preconfigure_modify_selinux_labels`<br>
+(see below) is set to `true`, no matter how `sap_general_preconfigure_create_directories` is set.<br>
+
+### sap_general_preconfigure_sap_directories
+- _Type:_ `list` with elements of type `str`
+- _Default:_
+  - /usr/sap
+
+List of SAP directories to be created.<br>
+
 ### sap_general_preconfigure_modify_selinux_labels
 - _Type:_ `bool`
 - _Default:_ `true`
 
-Set to `false` if you do not want to modify the SELinux labels for the SAP directory `/usr/sap`.<br>
+Set to `false` if you do not want to modify the SELinux labels for the SAP directores set<br>
+in variable `sap_general_preconfigure_sap_directories`.<br>
 
 ### sap_general_preconfigure_size_of_tmpfs_gb
 - _Type:_ `str`
