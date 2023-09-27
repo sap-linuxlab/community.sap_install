@@ -239,6 +239,14 @@ This allows using the output file later as input file for additional custom step
 When enabled this parameters file is also created when the playbook is run in check_mode (`--check`) and can be used to review the configuration parameters without executing actual changes on the target nodes.<br>
 WARNING! This report may include sensitive details like secrets required for certain cluster resources!<br>
 
+### sap_ha_pacemaker_cluster_enable_cluster_connector
+
+- _Type:_ `bool`
+- _Default:_ `True`
+
+Enables/Disables the SAP HA Interface for SAP ABAP application server instances, also known as `sap_cluster_connector`.<br>
+Set this parameter to 'false' if the SAP HA interface should not be installed and configured.<br>
+
 ### sap_ha_pacemaker_cluster_extra_packages
 
 - _Type:_ `list`
@@ -684,23 +692,12 @@ sap_ha_pacemaker_cluster_stonith_custom:
 - _Type:_ `list`
 
 List of filesystem definitions used for filesystem cluster resources.<br>
-Uses `sap_storage_setup_definition` when defined.<br>
-
-- **mountpoint**<br>
-    Path under which the filesystem will be mounted.<br>Mandatory for all filesystems that have a mountpoint.<br>Special treatment for a generic "/usr/sap" which will automatically be duplicated into the 2 standard sub-directories "/usr/sap/<SID>/<instance_type><instance_number>" and "/usr/sap/<SID>/SYS".
-- **name**<br>
-    Unique name of the filesystem definition entry.
-- **nfs_filesystem_type**<br>
-    _Default:_ `<sap_ha_pacemaker_cluster_storage_nfs_filesytem_type>`<br>
-    NFS filesystem type used to mount this filesystem.
-- **nfs_mount_options**<br>
-    _Default:_ `<sap_ha_pacemaker_cluster_storage_nfs_mount_options>`<br>
-    Mount options to be used for this specific filesystem.
-- **nfs_path**<br>
-    Path to the filesystem source directory on the NFS server.
-- **nfs_server**<br>
-    _Default:_ `<sap_ha_pacemaker_cluster_storage_nfs_server>`<br>
-    Name of the NFS server for this particular filesystem.
+Options relevant, see example.<br>
+Mandatory for SAP NetWeaver HA cluster configurations.<br>
+Reuse `sap_storage_setup_definition` if defined.<br>
+Reuse `sap_storage_setup_definition` will extract values 'mountpoint', 'nfs_filesystem_type', 'nfs_mount_options', 'nfs_path', 'nfs_server'.<br>
+Reuse `sap_storage_setup_definition` all options are documented under Ansible Role `sap_storage_setup`.<br>
+Note! For this variable, the argument specification does not list options, to avoid errors during reuse of `sap_storage_setup_definition` if defined.<br>
 
 Example:
 
