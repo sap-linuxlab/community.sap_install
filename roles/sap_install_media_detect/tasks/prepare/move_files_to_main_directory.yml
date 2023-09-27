@@ -1,0 +1,47 @@
+---
+
+- name: SAP Install Media Detect - Prepare - Initialize fact variables, phase 1b
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_find_result_phase_1b: []
+
+# If any files have been moved to non-extract subdirectories already, move them back to the top level, making the role idempotent
+# Reason for noqa: When using pipefail and there is no result from the grep -v, this tail will fail but it should never fail
+- name: SAP Install Media Detect - Prepare - Find existing non-extract subdirectories # noqa risky-shell-pipe
+  ansible.builtin.shell: ls -d {{ __sap_install_media_detect_software_main_directory }}/*/ | grep -v '_extracted'
+  register: __sap_install_media_detect_register_subdirectories_phase_1b
+  changed_when: false
+  failed_when: false
+
+- name: SAP Install Media Detect - Prepare - Create list of all files one level below '{{ __sap_install_media_detect_software_main_directory }}'
+  ansible.builtin.find:
+    paths: "{{ line_item }}"
+    patterns: '*'
+    recurse: false
+    use_regex: false
+  loop:
+    - "{{ __sap_install_media_detect_register_subdirectories_phase_1b.stdout_lines }}"
+  loop_control:
+    loop_var: line_item
+  register: __sap_install_media_detect_register_find_result_phase_1b
+
+- name: SAP Install Media Detect - Prepare - Set fact from find result, phase 1b
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_find_result_phase_1b: "{{ __sap_install_media_detect_fact_find_result_phase_1b + [item.1.path] }}"
+  with_subelements:
+    - "{{ __sap_install_media_detect_register_find_result_phase_1b.results }}"
+    - files
+
+# Reason for noqa: Too much additional code required for determing if anything has changed or not
+- name: SAP Install Media Detect - Prepare - Move files back to '{{ __sap_install_media_detect_software_main_directory }}' # noqa no-changed-when
+  ansible.builtin.command: "mv {{ line_item }} {{ __sap_install_media_detect_software_main_directory }}/"
+  loop: "{{ __sap_install_media_detect_fact_find_result_phase_1b }}"
+  loop_control:
+    loop_var: line_item
+
+- name: SAP Install Media Detect - Prepare - Remove the subdirectories
+  ansible.builtin.file:
+    path: "{{ line_item }}"
+    state: absent
+  loop: "{{ __sap_install_media_detect_register_subdirectories_phase_1b.stdout_lines }}"
+  loop_control:
+    loop_var: line_item
