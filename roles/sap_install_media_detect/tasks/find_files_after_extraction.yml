@@ -269,6 +269,14 @@
     - sap_install_media_detect_webdisp
     - sap_swpm_web_dispatcher_file_name_get.stdout_lines | count > 1
 
+- name: SAP Install Media Detect - Find files after extraction - Find Maintenance Planner Stack XML file
+  ansible.builtin.shell: set -o pipefail && ls -1tr *.xml | tail -1
+  args:
+    chdir: "{{ sap_swpm_software_path }}"
+  register: sap_swpm_mp_xml_file_name_get
+  changed_when: false
+  when: sap_install_media_detect_mpstack
+
 - name: SAP Install Media Detect - Find files after extraction - Find SAP ECC Export
   ansible.builtin.find:
     paths: "{{ __sap_install_media_detect_software_main_directory }}/sap_export_ecc_extracted"

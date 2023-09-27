@@ -197,6 +197,7 @@ for _FILE in "$@"; do
       /RAR archive data/{_file_type="rar"}
       /Zip archive data/{_file_type="zip"}
       /SAPCAR archive data/{_file_type="sapcar"}
+      /XML/&&/ASCII/{_file_type="xml"}
       /directory/{_file_type="dir"}
       END{print _file_type}')
       if [[ ${_GENERIC_FILE_TYPE}. == "rarexe." ]]; then
@@ -207,6 +208,8 @@ for _FILE in "$@"; do
          _list_content="zipinfo -1"
       elif [[ ${_GENERIC_FILE_TYPE}. == "sapcar." ]]; then
          _list_content="${_SAPCAR_FILE} -tvf"
+      elif [[ ${_GENERIC_FILE_TYPE}. == "xml." ]]; then
+         _list_content="cat"
       elif [[ ${_GENERIC_FILE_TYPE}. == "dir." ]]; then
          _list_content=""
       fi
@@ -240,7 +243,7 @@ for _FILE in "$@"; do
    /S4/&&/LANG/{_sap_file_type="sap_s4hana_lang"}
    /S4/&&/EXPORT/{_sap_file_type="sap_export_s4hana"}
    /BW4/&&/EXPORT/{_sap_file_type="sap_export_bw4hana"}
-   /VCH/&&/\.SAR/{_sap_file_type="sap_vch_afl"}
+   /VCH/&&/\.SAR/{_sap_file_type="saphana_vch_afl"}
    END{print _sap_file_type}')
    if [[ ${SAP_FILE_TYPE_FROM_FILENAME}. == "sap_kernel_db." ]]; then
       SAP_FILE_TYPE_FROM_FILENAME=$(eval "${_list_content}" "${_FILE}" | awk '
@@ -256,7 +259,8 @@ for _FILE in "$@"; do
       elif [[ ${_GENERIC_FILE_TYPE}. == "rarexe." ||
               ${_GENERIC_FILE_TYPE}. == "rar." ||
               ${_GENERIC_FILE_TYPE}. == "zip." ||
-              ${_GENERIC_FILE_TYPE}. == "sapcar." ]]; then
+              ${_GENERIC_FILE_TYPE}. == "sapcar." ||
+              ${_GENERIC_FILE_TYPE}. == "xml." ]]; then
          _SAP_FILE_TYPE=$(eval "${_list_content}" "${_FILE}" | awk '
          BEGIN{_sap_file_type="sap_unknown"}
          /BD_SYBASE_ASE/{_sap_file_type="sapase"}
@@ -273,6 +277,7 @@ for _FILE in "$@"; do
          /DATA_UNITS\/EXP[0-9]/{_sap_file_type="sap_export_nwas_abap"}
          /DATA_UNITS\/JAVA_EXPORT_JDMP/{_sap_file_type="sap_export_nwas_java"}
          /DATA_UNITS\/SOLMAN/&&/_JAVA_UT/{_sap_file_type="sap_export_solman_java"}
+         /<sp-stacks/{_sap_file_type="sap_mp_xml"}
          /format error in header/{_sap_file_type="format_error_in_header"}
          END{print _sap_file_type}')
          if [[ ${_SAP_FILE_TYPE}. == "sap_export_nwas_abap." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
@@ -343,7 +348,7 @@ for _FILE in "$@"; do
       ibmdb2|ibmdb2_client|ibmdb2_license)
          _TARGET_DIRECTORY="ibmdb2"
          ;;
-      saphana|saphana_other|sap_vch_afl)
+      saphana|saphana_other|saphana_vch_afl)
          _TARGET_DIRECTORY="sap_hana"
          _EXTRACTION_DIRECTORY="sap_hana_extracted"
          _EXTRACT="y"
@@ -359,6 +364,11 @@ for _FILE in "$@"; do
          _EXTRACT="n"
          ;;
       sap_export_s4hana|sap_export_bw4hana)
+         _TARGET_DIRECTORY="sap_swpm_download_basket"
+         _EXTRACTION_DIRECTORY="none"
+         _EXTRACT="n"
+         ;;
+      sap_mp_xml)
          _TARGET_DIRECTORY="sap_swpm_download_basket"
          _EXTRACTION_DIRECTORY="none"
          _EXTRACT="n"
