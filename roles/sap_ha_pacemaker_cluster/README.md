@@ -222,7 +222,7 @@ sap_ha_pacemaker_cluster_cluster_properties:
 ### sap_ha_pacemaker_cluster_create_config_dest
 
 - _Type:_ `string`
-- _Default:_ `<cluster-name>_resource_config.yml`
+- _Default:_ `review_resource_config.yml`
 
 The pacemaker cluster resource configuration optionally created by this role will be saved in a Yaml file in the current working directory.<br>
 Requires `sap_ha_pacemaker_cluster_create_config_varfile` to be enabled for generating the output file.<br>
