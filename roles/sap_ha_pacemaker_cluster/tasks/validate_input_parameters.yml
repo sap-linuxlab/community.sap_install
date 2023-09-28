@@ -36,11 +36,11 @@
 - name: "SAP HA Prepare Pacemaker - (SAP NetWeaver) Validate SAP System ID"
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_netweaver_sid | length == 3
-      - sap_ha_pacemaker_cluster_netweaver_sid not in __sap_sid_prohibited
+      - sap_ha_pacemaker_cluster_nwas_abap_sid | length == 3
+      - sap_ha_pacemaker_cluster_nwas_abap_sid not in __sap_sid_prohibited
     fail_msg: |
       Host type = {{ sap_ha_pacemaker_cluster_host_type }}
-      Requires 'sap_ha_pacemaker_cluster_netweaver_sid' to be defined!
+      Requires 'sap_ha_pacemaker_cluster_nwas_abap_sid' to be defined!
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas') | length > 0
 
@@ -62,15 +62,15 @@
 
       Host type = {{ sap_ha_pacemaker_cluster_host_type }}
       Requires the ASCS/ERS instance numbers to be defined:
-      - sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number
-      - sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number
+      - sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr
+      - sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr
 
       The instance number must be exactly 2 digits.
       Add quotes if the number starts with a 0!
 
   loop:
-    - "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}"
-    - "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}"
+    - "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}"
+    - "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}"
   loop_control:
     loop_var: ascs_ers_nr_item
 
@@ -111,35 +111,35 @@
 - name: "SAP HA Prepare Pacemaker - (NetWeaver ASCS) Verify that the VIP is defined"
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_vip_netweaver_ascs_ip_address is defined
-      - sap_ha_pacemaker_cluster_vip_netweaver_ascs_ip_address | length > 0
-    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_netweaver_ascs_ip_address' is not defined."
+      - sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address is defined
+      - sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address | length > 0
+    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address' is not defined."
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - (NetWeaver ERS) Verify that the VIP is defined"
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_vip_netweaver_ers_ip_address is defined
-      - sap_ha_pacemaker_cluster_vip_netweaver_ers_ip_address | length > 0
-    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_netweaver_ers_ip_address' is not defined."
+      - sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address is defined
+      - sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address | length > 0
+    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address' is not defined."
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - (NetWeaver PAS) Verify that the VIP is defined"
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_vip_netweaver_pas_ip_address is defined
-      - sap_ha_pacemaker_cluster_vip_netweaver_pas_ip_address | length > 0
-    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_netweaver_pas_ip_address' is not defined."
+      - sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address is defined
+      - sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address | length > 0
+    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address' is not defined."
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_pas') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - (NetWeaver AAS) Verify that the ERS VIP is defined"
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_vip_netweaver_aas_ip_address is defined
-      - sap_ha_pacemaker_cluster_vip_netweaver_aas_ip_address | length > 0
-    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_netweaver_aas_ip_address' is not defined."
+      - sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address is defined
+      - sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address | length > 0
+    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address' is not defined."
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_pas_aas') | length > 0
