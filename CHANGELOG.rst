@@ -22,6 +22,7 @@ sap_ha_pacemaker_cluster: Feature add for SAP HA Interface Cluster Connector aft
 sap_ha_pacemaker_cluster: Feature add for IBM PowerVM hypervisor
 sap_ha_pacemaker_cluster: Feature add for multiple network interfaces with Virtual IP
 sap_hana_install: Bug fix for SELinux disable when SLES4SAP
+sap_install_media_detect: Feature add for NFS compatibility
 sap_install_media_detect: Feature add for idempotency
 sap_install_media_detect: Feature add for new file detection after code restructure
 sap_install_media_detect: Bug fix for setting SAP Maintenance Planner Stack XML path
@@ -74,7 +75,7 @@ Release Summary
 
 | Release Date: 2023-04-25
 | sap_hana_preconfigure: Some modifications for HANA on RHEL 9
-| sap_ha_pacemaker_cluster: Support for custom stonith resource definitions containing more than one element
+| sap_ha_pacemaker_cluster: Compatibility for custom stonith resource definitions containing more than one element
 | sap_hana_preconfigure: Be more flexible with IBM service and productivity tools
 
 
