@@ -160,9 +160,10 @@ Mandatory for the cluster setup on AWS EC2 instances.<br>
 
 ### sap_ha_pacemaker_cluster_aws_vip_update_rt
 
-- _Type:_ `list`
+- _Type:_ `string`
 
 List one more routing table IDs for managing Virtual IP failover through routing table changes.<br>
+Multiple routing tables must be defined as a comma-separated string (no spaces).<br>
 Mandatory for the VIP resource configuration in AWS EC2 environments.<br>
 
 ### sap_ha_pacemaker_cluster_cluster_name
@@ -346,7 +347,7 @@ Time difference needed between to primary time stamps, if a dual-primary situati
 If the time difference is less than the time gap, then the cluster holds one or both instances in a "WAITING" status.<br>
 This is to give an admin a chance to react on a failover. A failed former primary will be registered after the time difference is passed.<br>
 
-### sap_ha_pacemaker_cluster_hana_instance_number
+### sap_ha_pacemaker_cluster_hana_instance_nr
 
 - _Type:_ `string`
 
