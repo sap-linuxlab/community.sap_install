@@ -160,6 +160,12 @@ The firewall ports for SAP HANA are defined in member `port` of the first field 
 member `state` is set to `enabled`, the ports will be enabled. If the member `state` is set to `disabled`,
 the ports will be disabled, which might be useful for testing.
 
+Certain parameters have identical meanings, for supporting different naming schemes in playbooks and inventories.
+You can find those in the task `Rename some variables used by hdblcm configfile` of the file `tasks/main.yml`.
+Example: The parameter `sap_hana_install_number`, which is used by the role to define the hdblm parameter `number`
+(= SAP HANA instance number) can be defined by setting `sap_hana_instance_number`, `sap_hana_install_instance_nr`,
+`sap_hana_install_instance_number`, or `sap_hana_install_number`. The order of precedence is from left to right.
+
 ### Default Parameters
 
 Please check the default parameters file for more information on other parameters that can be used as an input
@@ -189,7 +195,7 @@ Sample Ansible Playbook Execution
     sap_hana_install_software_directory: /software/hana
     sap_hana_install_common_master_password: 'NewPass$321'
     sap_hana_install_sid: 'H01'
-    sap_hana_install_instance_number: '00'
+    sap_hana_install_instance_nr: '00'
   roles:
     - sap_hana_install
 ```
@@ -208,7 +214,7 @@ Sample Ansible Playbook Execution
     sap_hana_install_root_password: 'NewPass$321'
     sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02'
     sap_hana_install_sid: 'H01'
-    sap_hana_install_instance_number: '00'
+    sap_hana_install_instance_nr: '00'
   roles:
     - sap_hana_install
 ```
@@ -228,7 +234,7 @@ Sample Ansible Playbook Execution
     sap_hana_install_common_master_password: 'NewPass$321'
     sap_hana_install_root_password: 'NewPass$321'
     sap_hana_install_sid: 'H01'
-    sap_hana_install_instance_number: '00'
+    sap_hana_install_instance_nr: '00'
   roles:
     - sap_hana_install
 ```
@@ -242,7 +248,7 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 #### Perform Initial Checks
 
 These checks are only performed if `sap_hana_install_force` is set to `true`. Its default value is `false`
-- If variable `sap_hana_install_check_sidadm_user` is undefined or set to `y`: Check if user sidadm exists. If yes,
+- If variable `sap_hana_install_check_sidadm_user` is undefined or set to `yes`: Check if user sidadm exists. If yes,
   abort the role.
 
 - Check if `/usr/sap/hostctrl/exe/saphostctrl` exists and get info on running HANA instances.
@@ -303,7 +309,7 @@ in a temporary directory for use by the hdblcm command in the next step.
 
 - Set Log Mode key to overwrite value and apply to system.
 
-- Apply SAP HANA license to the new deployed instance if set to `y`.
+- Apply SAP HANA license to the new deployed instance if set to `yes`.
 
 - Set expiry of Unix created users to `never`.
 
