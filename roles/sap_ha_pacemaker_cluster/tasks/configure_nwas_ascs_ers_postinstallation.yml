@@ -162,6 +162,13 @@
         /usr/sap/hostctrl/exe/sapcontrol -nr {{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }} -function RestartService
       changed_when: __sap_ha_pacemaker_cluster_register_restart_ers.rc == 0
 
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Pause after service restart"
+      when:
+        - __sap_ha_pacemaker_cluster_register_restart_ascs.changed
+          or __sap_ha_pacemaker_cluster_register_restart_ers.changed
+      ansible.builtin.pause:
+        seconds: 10
+
     - name: "SAP HA Pacemaker - (SAP HA Interface) Run HA check for ASCS"
       when:
         - __sap_ha_pacemaker_cluster_register_where_ascs.rc == 0
