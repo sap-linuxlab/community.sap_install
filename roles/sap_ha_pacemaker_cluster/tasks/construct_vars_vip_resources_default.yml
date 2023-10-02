@@ -2,16 +2,19 @@
 # Reminder: This file is included in a loop over a dictionary.
 
 # VIP resource definition itself
-- name: "SAP HA Prepare Pacemaker - Add resource: VIP {{ vip_list_item.key }}"
+- name: "SAP HA Prepare Pacemaker - Add resource: VIP {{ vip_list_item.key }} ({{ sap_ha_pacemaker_cluster_vip_resource_agent }})"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
   vars:
     __resource_vip:
-      id: "{{ __sap_ha_pacemaker_cluster_vip_resource_id }}"
+      id: "{{ vip_list_item.key }}"
       agent: "{{ sap_ha_pacemaker_cluster_vip_resource_agent }}"
       instance_attrs:
         - attrs:
             - name: ip
               value: "{{ vip_list_item.value | quote }}"
+            - name: nic
+              value: "{{ sap_ha_pacemaker_cluster_vip_client_interface }}"
   when:
     - __sap_ha_pacemaker_cluster_vip_resource_id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+    - '"IPaddr2" in sap_ha_pacemaker_cluster_vip_resource_agent'

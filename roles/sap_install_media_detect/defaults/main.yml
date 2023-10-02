@@ -16,11 +16,38 @@ sap_install_media_detect_use_rpm_key_module_for_removing_the_key: true
 # If this role is running on a system on which the SAP software is to be installed, set the following to false.
 sap_install_media_detect_file_server_only: false
 
+# Fully qualified path to the sapcar program. If not specified, the sapcar program (or a link with the name sapcar, pointing to
+# the actual SAPCAR*EXE program) is expected to be located in one of the PATH directories.
+#sap_install_media_detect_sapcar_path: '/usr/local/bin/sapcar'
+
+# Fully qualified path to the program for listing RAR files, including the argument for listing files. If not specified,
+# the lsar program (or a link with the name lsar, pointing to the actual lsar program) is expected to be located in one of
+# the PATH directories.
+# If sap_install_media_detect_rar_package is set to 'EPEL', this variable is not used.
+#sap_install_media_detect_rar_list: '/usr/bin/lsar'
+sap_install_media_detect_rar_list: '/usr/bin/unrar lb'
+
+# Fully qualified path to the program for extracting RAR files, including the argument for extracting files. If not specified,
+# the unar program (or a link with the name unar, pointing to the actual unar program) is expected to be located in one of
+# the PATH directories.
+# If sap_install_media_detect_rar_package is set to 'EPEL', this variable is not used.
+#sap_install_media_detect_rar_extract: '/usr/bin/unar'
+sap_install_media_detect_rar_extract: '/usr/bin/unrar x'
+
+# Fully qualified path to an additional argument to the program for extracting RAR files, for specifying the directory into
+# which the archive is to be extracted. Needs to be empty or start with a space character.
+# If sap_install_media_detect_rar_package is set to 'EPEL', this variable is not used.
+#sap_install_media_detect_rar_extract_directory_argument: ' -o'
+sap_install_media_detect_rar_extract_directory_argument: ''
+
 # Directory where the SAP software is located
 sap_install_media_detect_source_directory: /software
 
 # Directory where the SAP software is located after the role is run, if different from sap_install_media_detect_source_directory
 #sap_install_media_detect_target_directory: /software_local
+
+# Create target directory if it does not yet exist. If set to false, perform a check only
+sap_install_media_detect_create_target_directory: true
 
 # If there are two files of the same RAR or ZIP type, one with and one without suffix, the following parameter will determine what
 # the role will do for such a file: skip the file renaming, fail, or overwrite the file with the suffix by the file without suffix
@@ -28,25 +55,54 @@ sap_install_media_detect_rename_target_file_exists: 'skip'
 #sap_install_media_detect_rename_target_file_exists: 'fail'
 #sap_install_media_detect_rename_target_file_exists: 'overwrite'
 
-# local_dir, remote_dir (e.g. NFS, s3fuse)
-#sap_install_media_detect_source: local_dir
+# If you want the role to not extract archives which have the extract flag set, set the following parameter to `false`.
+sap_install_media_detect_extract_archives: true
 
-# If the following parameter is set to true and the target directory for the extracted files (= *_extracted) already exists,
-# the extraction of the corresponding file will be skipped. If set to false, target directories will be removed initially,
-# forcing a fresh extraction, including re-creation of the target directory.
-sap_install_media_detect_skip_extraction_if_target_dir_exists: false
+# If you want the role to not move or copy archive files to the `target_dir` subdirectories, set the following parameter to `false`.
+sap_install_media_detect_move_or_copy_archives: true
 
-# saphana, sapase, sapmaxdb, oracledb, ibmdb2
-sap_install_media_detect_db: "saphana"
+# By default, the presence of at least one file for each file type according to the configured role parameters is asserted. Set the
+# following parameter to 'false' to skip this step.
+sap_install_media_detect_assert_after_sapfile: true
 
-sap_install_media_detect_swpm: true
-sap_install_media_detect_hostagent: true
-sap_install_media_detect_igs: true
-sap_install_media_detect_kernel: true
+sap_install_media_detect_db: ''         # saphana, sapase, sapmaxdb, oracledb, ibmdb2
+sap_install_media_detect_db_client: ''  # saphana, sapase, sapmaxdb, oracledb, ibmdb2
+sap_install_media_detect_swpm: false
+sap_install_media_detect_hostagent: false
+sap_install_media_detect_igs: false
+sap_install_media_detect_kernel: false
+sap_install_media_detect_kernel_db: ''  # saphana, sapase, sapmaxdb, oracledb, ibmdb2
+#                                         (only necessary if there is more than one SAPEXEDB file in the source directory)
 sap_install_media_detect_webdisp: false
+sap_install_media_detect_mpstack: false
+sap_install_media_detect_export: ''     # saps4hana, sapbw4hana, sapecc, sapecc_ides,
+#                                         sapnwas_abap, sapnwas_java, sapsolman_abap, sapsolman_java
 
-# saps4hana, sapecc, sapecc_ides, sapbw4hana, sapnwas_abap, sapnwas_java
-sap_install_media_detect_export:
+# Example for parameter settings for SAP S/4HANA:
+#sap_install_media_detect_db: 'saphana'  # saphana, sapase, sapmaxdb, oracledb, ibmdb2
+#sap_install_media_detect_db_client: 'saphana'  # saphana, sapase, sapmaxdb, oracledb, ibmdb2
+#sap_install_media_detect_swpm: true
+#sap_install_media_detect_hostagent: true
+#sap_install_media_detect_igs: true
+#sap_install_media_detect_kernel: true
+#sap_install_media_detect_kernel_db: 'saphana'  # saphana, sapase, sapmaxdb, oracledb, ibmdb2
+#                                                 (only necessary if there is more than one SAPEXEDB file in the source directory)
+#sap_install_media_detect_webdisp: false
+#sap_install_media_detect_export: 'saps4hana'  # saps4hana, sapbw4hana, sapecc, sapecc_ides,
+#                                                sapnwas_abap, sapnwas_java, sapsolman_abap, sapsolman_java
+
+# Example for parameter settings for SAP ERP 6.0 EHP8 with SAP HANA database:
+#sap_install_media_detect_db: 'saphana'  # saphana, sapase, sapmaxdb, oracledb, ibmdb2
+#sap_install_media_detect_db_client: 'saphana'  # saphana, sapase, sapmaxdb, oracledb, ibmdb2
+#sap_install_media_detect_swpm: true
+#sap_install_media_detect_hostagent: true
+#sap_install_media_detect_igs: true
+#sap_install_media_detect_kernel: true
+#sap_install_media_detect_kernel_db: 'saphana'  # saphana, sapase, sapmaxdb, oracledb, ibmdb2
+#                                                 (only necessary if there is more than one SAPEXEDB file in the source directory)
+#sap_install_media_detect_webdisp: false
+#sap_install_media_detect_export: 'sapecc'  # saps4hana, sapbw4hana, sapecc, sapecc_ides,
+#                                               sapnwas_abap, sapnwas_java, sapsolman_abap, sapsolman_java
 
 # e.g. /db_backup
 sap_install_media_detect_backup_directory:

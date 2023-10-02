@@ -1,0 +1,394 @@
+#!/bin/bash
+# sapfile: Determine and display SAP file type
+#
+# Copyright 2023 Bernd Finger, Red Hat
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+set -o nounset
+set -o pipefail
+
+usage () {
+   echo "sapfile: Determine and display SAP file type. If unknown, call the file command."
+   echo "Usage: sapfile [OPTION...] [FILE...]"
+   echo "Determine and display type of SAP FILEs, optionally followed by additional information."
+   echo "  -h|--help                  display this help and exit"
+   echo "  -H|--header                display a column header"
+   echo "  -l|--long                  long listing: also display the file type, taken from the output of the file command"
+   echo "  -e|--extra-long            extra long listing: display all information required by role sap_install_media_detect"
+   echo "  --lsar_file=<FILE>         the name of the program to list the content of a RAR file, if different from 'lsar',"
+   echo "                               either as the name of a file in one of the PATH directories or as an FQPN."
+   echo "                               When specifying the 'unrar' program, it will be called with option 'lb'."
+   echo "  --sapcar_file=<FILE>       the name of the sapcar program, if different from 'sapcar', either as the name of a file"
+   echo "                               in one of the PATH directories or as an FQPN."
+   echo ""
+   echo "Requires:"
+   echo "- lsar (program to list the content of a RAR package, e.g. as part of the 'unar' package from the EPEL RHEL repo)"
+   echo "- zipinfo (contained in the unzip RHEL package)"
+   echo "- sapcar (SAP program to handle sapcar files; typical filename: SAPCAR_1115-70006178.EXE)"
+}
+
+# defaults:
+_DELIMITER=";"
+
+# option defaults:
+_DISPLAY_FILE_TYPE="n"
+_DISPLAY_ALL_INFO="n"
+_DISPLAY_HEADER="n"
+_SAPCAR_FILE='sapcar'
+_LSAR_FILE='lsar'
+
+if [[ ${#} == 0 ]]; then
+   usage
+   exit 1
+fi
+
+options=":leHh-:"
+while getopts "$options" opt; do
+   case ${opt} in
+      -)
+         case "${OPTARG}" in
+            long)
+               _DISPLAY_FILE_TYPE="y"
+               ;;
+            extra-long)
+               _DISPLAY_ALL_INFO="y"
+               ;;
+            header)
+               _DISPLAY_HEADER="y"
+               ;;
+            lsar_file)
+               if [[ ${!OPTIND-x} == x ]]; then
+                  usage
+                  exit 0
+               fi
+               _LSAR_FILE="${!OPTIND}"
+               OPTIND=$(( OPTIND + 1 ))
+               ;;
+            lsar_file=*)
+               _LSAR_FILE=${OPTARG#*=}
+               opt=${OPTARG%="${_LSAR_FILE}"}
+               ;;
+            sapcar_file)
+               if [[ ${!OPTIND-x} == x ]]; then
+                  usage
+                  exit 0
+               fi
+               _SAPCAR_FILE="${!OPTIND}"
+               OPTIND=$(( OPTIND + 1 ))
+               ;;
+            sapcar_file=*)
+               _SAPCAR_FILE=${OPTARG#*=}
+               opt=${OPTARG%="${_SAPCAR_FILE}"}
+               ;;
+            help)
+               usage
+               exit 0
+               ;;
+            *)
+               if [[ "$OPTERR" = 1 ]] && [[ "${options:0:1}" != ":" ]]; then
+                  echo "Invalid option -${OPTARG}"
+                  usage
+               fi
+               exit 0
+               ;;
+         esac;;
+      l)
+         _DISPLAY_FILE_TYPE="y"
+         ;;
+      e)
+         _DISPLAY_ALL_INFO="y"
+         ;;
+      H)
+         _DISPLAY_HEADER="y"
+         ;;
+      h)
+         usage
+         exit 0
+         ;;
+      \?)
+         echo "Invalid option -$OPTARG"
+         usage
+         exit 0
+         ;;
+   esac
+done
+shift "$((OPTIND-1))"
+
+if [[ "${_LSAR_FILE}" == *"lsar"* ]]; then
+   _LSAR_COMMAND="${_LSAR_FILE}"
+elif [[ "${_LSAR_FILE}" == *"unrar"* ]]; then
+   _LSAR_COMMAND="${_LSAR_FILE} lb"
+fi
+
+# Identify sapcar: Try using sapcar in PATH or SAPCAR*EXE in current directory
+if [[ ${_SAPCAR_FILE}. == "sapcar." ]]; then
+   which sapcar >/dev/null 2>&1
+   RC1=$?
+   if [[ ${RC1} -eq 0 ]]; then
+      _SAPCAR_FILE=$(which sapcar)
+   else
+      _SAPCAR_TEST=$(set -o pipefail && ls -1tr ./SAPCAR*EXE 2>/dev/null)
+      RC2=$?
+      if [[ ${RC2} != 0 ]]; then
+         echo "No file with name SAPCAR*EXE in current directory found."
+         echo "Note: sapfile needs sapcar in PATH or SAPCAR*EXE in current directory - matching the system's CPU architecture - to function properly."
+         echo
+         usage
+         exit 1
+      else
+         _SAPCAR_ARCH=$(for sapcar_any in ${_SAPCAR_TEST}; do
+             file ${sapcar_any} | awk '{
+                split ($0, a, ":"); split (a[2], b, ","); sub ("^ ", "", b[2]);
+                sub ("x86-64", "x86_64", b[2]);
+                if (index (b[2], "64-bit PowerPC") > 0) {
+                   if ((index (b[3], "GNU/Linux") > 0)||(index (b[4], "GNU/Linux") > 0)) {sub ("64-bit PowerPC", "ppc64le", b[2])};
+                   if ((index (b[3], "SYSV") > 0)||(index (b[4], "SYSV") > 0)) {sub ("64-bit PowerPC", "ppc64", b[2])};
+                }
+                sub ("IBM S/390", "s390x", b[2]);
+                printf ("%s %s %s\n", a[1], b[2], b[3])}';
+             done | awk '/'$(uname -m)'/{print $1}' | tail -1)
+         if [[ ${_SAPCAR_ARCH}. == . ]]; then
+            echo "No file SAPCAR*EXE for the CPU architecture '$(uname -m)' in current directory found."
+            echo "Note: sapfile needs sapcar in PATH or SAPCAR*EXE in current directory - matching the system's CPU architecture - to function properly."
+            echo
+            usage
+            exit 1
+         else
+            _SAPCAR_FILE=${_SAPCAR_ARCH}
+         fi
+      fi
+   fi
+fi
+
+_GENERIC_FILE_TYPE="other"
+
+if [[ ${_DISPLAY_HEADER}. == "y." ]]; then
+   if [[ ${_DISPLAY_ALL_INFO}. == "y." ]]; then
+      printf "%s;%s;%s;%s;%s;%s;%s\n" "filename" "sap_file_type" "target_dir" "extraction_dir" "file_type" "extract" "copy"
+   else
+      if [[ ${_DISPLAY_FILE_TYPE}. == "y." ]]; then
+         printf "%-40s %-24s %-6s\n" "filename:" "sap_file_type" "file_type"
+      else
+         printf "%-40s %-24s\n" "filename:" "sap_file_type"
+      fi
+   fi
+fi
+
+for _FILE in "$@"; do
+   _FILE_OUTPUT=$(file "${_FILE}" | sed 's,'"${_FILE}"': ,,')
+   if [[ ${_FILE_OUTPUT}. == "data." ]] && [[ (${_FILE##*.} == "SAR" || ${_FILE##*.} == "sar") ]]; then
+      _GENERIC_FILE_TYPE="sapcar"
+      _list_content="${_SAPCAR_FILE} -tvf"
+   else
+      _GENERIC_FILE_TYPE=$(echo "${_FILE_OUTPUT}" | awk '
+      BEGIN{_file_type="other"}
+      /RAR self-extracting archive/{_file_type="rarexe"}
+      /RAR archive data/{_file_type="rar"}
+      /Zip archive data/{_file_type="zip"}
+      /SAPCAR archive data/{_file_type="sapcar"}
+      /XML/&&/ASCII/{_file_type="xml"}
+      /directory/{_file_type="dir"}
+      END{print _file_type}')
+      if [[ ${_GENERIC_FILE_TYPE}. == "rarexe." ]]; then
+         _list_content="${_LSAR_COMMAND}"
+      elif [[ ${_GENERIC_FILE_TYPE}. == "rar." ]]; then
+         _list_content="${_LSAR_COMMAND}"
+      elif [[ ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
+         _list_content="zipinfo -1"
+      elif [[ ${_GENERIC_FILE_TYPE}. == "sapcar." ]]; then
+         _list_content="${_SAPCAR_FILE} -tvf"
+      elif [[ ${_GENERIC_FILE_TYPE}. == "xml." ]]; then
+         _list_content="cat"
+      elif [[ ${_GENERIC_FILE_TYPE}. == "dir." ]]; then
+         _list_content=""
+      fi
+   fi
+   if [[ ${_DISPLAY_ALL_INFO}. == "y." ]]; then
+      printf "%s%s" "${_FILE}" "${_DELIMITER}"
+   else
+      printf "%-40s " "${_FILE}":
+   fi
+
+   if [[ ! -e "${_FILE}" ]]; then
+      echo "No such file or directory."
+      exit 1
+   fi
+
+   SAP_FILE_TYPE_FROM_FILENAME=$(echo "${_FILE}" | awk '
+   BEGIN{_sap_file_type="look_inside"}
+   /SAPCAR/&&/\.EXE/{_sap_file_type="sapcar"}
+   /IMDB_SERVER/&&/\.SAR/{_sap_file_type="saphana"}
+   /IMDB_CLIENT/&&/\.SAR/{_sap_file_type="saphana_client"}
+   !/IMDB_SERVER/&&!/IMDB_CLIENT/&&/IMDB/&&/\.SAR/{_sap_file_type="saphana_other"}
+   /SWPM/&&/\.SAR/{_sap_file_type="sap_swpm"}
+   /SAPHOSTAGENT/&&/\.SAR/{_sap_file_type="sap_hostagent"}
+   /SAPEXE_/{_sap_file_type="sap_kernel"}
+   /SAPEXEDB_/{_sap_file_type="sap_kernel_db"}
+   /igsexe/||/igshelper/{_sap_file_type="sap_igs"}
+   /SAPWEBDISP_/{_sap_file_type="sap_webdisp"}
+   /SAPJVM/{_sap_file_type="sap_jvm"}
+   /ASEBC/{_sap_file_type="sapase_client"}
+   /COMPLETE/{_sap_file_type="saphana_backup"}
+   /S4/&&/LANG/{_sap_file_type="sap_s4hana_lang"}
+   /S4/&&/EXPORT/{_sap_file_type="sap_export_s4hana"}
+   /BW4/&&/EXPORT/{_sap_file_type="sap_export_bw4hana"}
+   /VCH/&&/\.SAR/{_sap_file_type="saphana_vch_afl"}
+   END{print _sap_file_type}')
+   if [[ ${SAP_FILE_TYPE_FROM_FILENAME}. == "sap_kernel_db." ]]; then
+      SAP_FILE_TYPE_FROM_FILENAME=$(eval "${_list_content}" "${_FILE}" | awk '
+      /exe_/&&/\.lst/{gsub ("exe_", ""); gsub ("\\.lst", ""); db_type=$NF}
+      END{printf ("sap_kernel_db_%s\n", db_type)}')
+   fi
+
+   if [[ ${SAP_FILE_TYPE_FROM_FILENAME}. != "look_inside." ]]; then
+      _SAP_FILE_TYPE=${SAP_FILE_TYPE_FROM_FILENAME}
+   else
+      if [[ ${_GENERIC_FILE_TYPE}. == "dir." ]]; then
+         _SAP_FILE_TYPE=${_FILE_OUTPUT}
+      elif [[ ${_GENERIC_FILE_TYPE}. == "rarexe." ||
+              ${_GENERIC_FILE_TYPE}. == "rar." ||
+              ${_GENERIC_FILE_TYPE}. == "zip." ||
+              ${_GENERIC_FILE_TYPE}. == "sapcar." ||
+              ${_GENERIC_FILE_TYPE}. == "xml." ]]; then
+         _SAP_FILE_TYPE=$(eval "${_list_content}" "${_FILE}" | awk '
+         BEGIN{_sap_file_type="sap_unknown"}
+         /BD_SYBASE_ASE/{_sap_file_type="sapase"}
+         /ASEBC/{_sap_file_type="sapase_client"}
+         /MaxDB_7.9/{_sap_file_type="sapmaxdb"}
+         /19cinstall.sh/{_sap_file_type="oracledb"}
+         /OCL_LINUX_X86_64/{_sap_file_type="oracledb_client"}
+         /brtools/{_sap_file_type="oracledb_tools"}
+         /db2setup/{_sap_file_type="ibmdb2"}
+         /db6_update_client.sh/{_sap_file_type="ibmdb2_client"}
+         /db2aese_c.lic/{_sap_file_type="ibmdb2_license"}
+         /DATA_UNITS\/EXPORT/{_sap_file_type="sap_export_ecc"}
+         /EXP[0-9]/{_sap_file_type="sap_export_ecc_ides"}
+         /DATA_UNITS\/EXP[0-9]/{_sap_file_type="sap_export_nwas_abap"}
+         /DATA_UNITS\/JAVA_EXPORT_JDMP/{_sap_file_type="sap_export_nwas_java"}
+         /DATA_UNITS\/SOLMAN/&&/_JAVA_UT/{_sap_file_type="sap_export_solman_java"}
+         /<sp-stacks/{_sap_file_type="sap_mp_xml"}
+         /format error in header/{_sap_file_type="format_error_in_header"}
+         END{print _sap_file_type}')
+         if [[ ${_SAP_FILE_TYPE}. == "sap_export_nwas_abap." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
+            _SAP_FILE_TYPE=$(unzip -p "${_FILE}" LABEL.ASC | awk '
+            BEGIN{_sap_file_type="sap_export_nwas_abap"}
+            /SAP SOLUTION MANAGER/{_sap_file_type="sap_export_solman_abap"}
+            END{print _sap_file_type}')
+         fi
+         if [[ ${_SAP_FILE_TYPE}. == "sap_unknown." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
+            _SAP_FILE_TYPE=$(unzip -p "${_FILE}" META-INF/SAPMANIFEST.MF | awk '
+            BEGIN{FS="="; _sap_file_type="sap_unknown"}
+            /total/{total=$NF}
+            /number/{number=$NF}
+            /product-id/{
+               product_id=$NF; if (length(total)>0 && length(number)>0) {
+                  a=substr(product_id, index(product_id, "4")+1, index(product_id, "1")-(index(product_id, "4")+1));
+                  if (a=="fnd" || a=="hanaop"){_sap_file_type="sap_export_s4hana"}
+               }
+            }
+            END{print _sap_file_type}')
+         fi
+      else
+         _SAP_FILE_TYPE="sap_unknown"
+      fi
+   fi
+
+   _TARGET_DIRECTORY=${_SAP_FILE_TYPE}
+   _EXTRACTION_DIRECTORY=${_SAP_FILE_TYPE}_extracted
+   _EXTRACT="y"
+   _COPY="n"
+
+   case ${_SAP_FILE_TYPE} in
+      directory)
+         _EXTRACT="n"
+         _EXTRACTION_DIRECTORY="none"
+         ;;
+      sapcar)
+         _TARGET_DIRECTORY="auto"
+         _EXTRACTION_DIRECTORY="none"
+         _EXTRACT="n"
+         _COPY="y"
+         ;;
+      sap_hostagent)
+         _TARGET_DIRECTORY="auto"
+         _EXTRACTION_DIRECTORY="none"
+         _EXTRACT="n"
+         _COPY="y"
+         ;;
+      saphana_client)
+         _TARGET_DIRECTORY="auto"
+         _EXTRACTION_DIRECTORY="sap_hana_client_extracted"
+         _EXTRACT="y"
+         _COPY="y"
+         ;;
+      sapase|sapase_client)
+         _TARGET_DIRECTORY="sapase"
+         ;;
+      sapmaxdb)
+         ;;
+      oracledb|oracledb_client)
+         _TARGET_DIRECTORY="oracledb"
+         ;;
+      oracledb_tools)
+         _TARGET_DIRECTORY="sap_swpm_download_basket"
+         _EXTRACTION_DIRECTORY="none"
+         _EXTRACT="n"
+         ;;
+      ibmdb2|ibmdb2_client|ibmdb2_license)
+         _TARGET_DIRECTORY="ibmdb2"
+         ;;
+      saphana|saphana_other|saphana_vch_afl)
+         _TARGET_DIRECTORY="sap_hana"
+         _EXTRACTION_DIRECTORY="sap_hana_extracted"
+         _EXTRACT="y"
+         ;;
+      sap_swpm)
+         _TARGET_DIRECTORY="sap_swpm"
+         _EXTRACTION_DIRECTORY="none"
+         _EXTRACT="n"
+         ;;
+      sap_kernel*|sap_igs|sap_webdisp|sap_jvm)
+         _TARGET_DIRECTORY="sap_swpm_download_basket"
+         _EXTRACTION_DIRECTORY="none"
+         _EXTRACT="n"
+         ;;
+      sap_export_s4hana|sap_export_bw4hana)
+         _TARGET_DIRECTORY="sap_swpm_download_basket"
+         _EXTRACTION_DIRECTORY="none"
+         _EXTRACT="n"
+         ;;
+      sap_mp_xml)
+         _TARGET_DIRECTORY="sap_swpm_download_basket"
+         _EXTRACTION_DIRECTORY="none"
+         _EXTRACT="n"
+         ;;
+      sap_export*)
+         ;;
+      *)
+         _TARGET_DIRECTORY="sap_swpm_download_basket"
+         _EXTRACTION_DIRECTORY="none"
+         _EXTRACT="n"
+         ;;
+   esac
+
+   if [[ ${_DISPLAY_ALL_INFO}. == "y." ]]; then
+      printf "%s%s%s%s%s%s%s%s%s%s%s\n" "${_SAP_FILE_TYPE}" "${_DELIMITER}" "${_TARGET_DIRECTORY}" "${_DELIMITER}" "${_EXTRACTION_DIRECTORY}" "${_DELIMITER}" "${_GENERIC_FILE_TYPE}" "${_DELIMITER}" "${_EXTRACT}" "${_DELIMITER}" "${_COPY}"
+   else
+      if [[ ${_DISPLAY_FILE_TYPE}. == "y." ]]; then
+         printf "%-24s %-6s\n" "${_SAP_FILE_TYPE}" "${_GENERIC_FILE_TYPE}"
+      else
+         printf "%-24s\n" "${_SAP_FILE_TYPE}"
+      fi
+   fi
+done

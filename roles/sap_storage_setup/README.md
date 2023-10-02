@@ -127,6 +127,13 @@ The type of service the target system is going to be configured for.<br>
 This can be a list of multiple types which apply to a single host.<br>
 If not defined, the default will be inherited from the global parameter `sap_host_type`. One of these parameters must be defined.<br>
 
+### sap_storage_setup_multipath_enable_and_detect
+
+- _Type:_ `bool`
+- _Default:_ `False`
+
+Define if multipathing should be enabled and dynamic multipath devices detected and used for the filesystem setup.<br>
+
 ### sap_storage_setup_sid <sup>required</sup>
 
 - _Type:_ `str`

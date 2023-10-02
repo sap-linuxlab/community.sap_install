@@ -9,6 +9,15 @@
 # TODO: add conditionals to verify that the same resource agent is not already
 #       defined in user input variables. Conflicting user input should take precedence.
 
+- name: "SAP HA Prepare Pacemaker - Define resource defaults for HANA clusters"
+  when:
+    - sap_ha_pacemaker_cluster_resource_defaults is not defined
+      or sap_ha_pacemaker_cluster_resource_defaults | length == 0
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_defaults:
+      resource-stickiness: 1000
+      migration-threshold: 5000
+
 - name: "SAP HA Prepare Pacemaker - Add resource: SAP HANA Topology"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_hana_topology] }}"
@@ -21,7 +30,7 @@
             - name: SID
               value: "{{ sap_ha_pacemaker_cluster_hana_sid }}"
             - name: InstanceNumber
-              value: "{{ sap_ha_pacemaker_cluster_hana_instance_number }}"
+              value: "{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
       operations:
         - action: start
           attrs:
@@ -52,7 +61,7 @@
             - name: SID
               value: "{{ sap_ha_pacemaker_cluster_hana_sid }}"
             - name: InstanceNumber
-              value: "{{ sap_ha_pacemaker_cluster_hana_instance_number }}"
+              value: "{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
             - name: AUTOMATED_REGISTER
               value: "{{ sap_ha_pacemaker_cluster_hana_automated_register | string }}"
             - name: DUPLICATE_PRIMARY_TIMEOUT

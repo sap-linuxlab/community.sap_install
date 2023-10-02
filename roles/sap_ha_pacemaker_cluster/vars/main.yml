@@ -27,42 +27,17 @@ __sap_ha_pacemaker_cluster_required_facts:
 #  - virtualization_role # subset: virtual
 #  - virtualization_type # subset: virtual
 
-# Define empty parameters to avoid undefined input variables.
-# The arguments_spec check complains.
-# The actual values must be empty, they are set by various tasks!
+# By default assume non-multi-NIC configuration.
+# This is automatically adjusted during preparation tasks.
+__sap_ha_pacemaker_cluster_nic_multi_bool: false
 
-__sap_ha_pacemaker_cluster_hana_primary_synonyms:
-  - primary
-  - hana_primary
-  - promoted
-  - rw
-
-__sap_ha_pacemaker_cluster_hana_secondary_synonyms:
-  - secondary
-  - hana_secondary
-  - unpromoted
-  - ro
-
-__sap_ha_pacemaker_cluster_nwas_ascs_synonyms:
-  - ascs
-  - nwas_ascs
-  - nwas_abap_ascs
-
-__sap_ha_pacemaker_cluster_nwas_ers_synonyms:
-  - ers
-  - nwas_ers
-  - nwas_abap_ers
-
-__sap_ha_pacemaker_cluster_nwas_pas_synonyms:
-  - pas
-  - nwas_pas
-  - nwas_abap_pas
+# By default use the construction of IPaddr2 VIP resources.
+# Platforms define different methods as applicable.
+sap_ha_pacemaker_cluster_vip_method: ipaddr
 
 # (cloud) platform helper variable - leave empty for default = not cloud
 __sap_ha_pacemaker_cluster_platform: ''
-__sap_ha_pacemaker_cluster_supported_platforms:
-  - cloud_aws_ec2_vs
-  - cloud_msazure_vm
+
 
 # ATTENTION:
 # Any variables for 'ha_cluster' which this SAP role supports/inherits should also
@@ -71,14 +46,26 @@ __sap_ha_pacemaker_cluster_supported_platforms:
 # - conditionals (if applicable)
 # - config report template
 #
-__sap_ha_pacemaker_cluster_cluster_name: ''
+# TODO: verify that the task flow logic works without these explicit
+# pre-definitions. Otherwise there is a need to hard-code parameters
+# which have defaults in the 'ha_cluster' LSR.
+# Remove this section when validated.
+#
+# Never set defaults for these:
+#__sap_ha_pacemaker_cluster_cluster_name:
+#__sap_ha_pacemaker_cluster_hacluster_user_password:
+
+
+# Pre-define internal optional parameters to avoid defaults in the code:
+__sap_ha_pacemaker_cluster_sap_extra_packages: []
+__sap_ha_pacemaker_cluster_platform_extra_packages: []
+
 __sap_ha_pacemaker_cluster_cluster_properties: []
 __sap_ha_pacemaker_cluster_constraints_colocation: []
 __sap_ha_pacemaker_cluster_constraints_location: []
 __sap_ha_pacemaker_cluster_constraints_order: []
 __sap_ha_pacemaker_cluster_extra_packages: []
 __sap_ha_pacemaker_cluster_fence_agent_packages: []
-__sap_ha_pacemaker_cluster_hacluster_password:
 __sap_ha_pacemaker_cluster_repos: []
 __sap_ha_pacemaker_cluster_resource_primitives: []
 __sap_ha_pacemaker_cluster_resource_groups: []

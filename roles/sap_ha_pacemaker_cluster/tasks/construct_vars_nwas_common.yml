@@ -3,11 +3,18 @@
 # to be fed into the included ha_cluster role
 
 # - put here all NetWeaver common resources
-# - certain differences like ra agent names are provided through
-#   type specific variables
 
 # TODO: add conditionals to verify that the same resource agent is not already
 #       defined in user input variables. Conflicting user input should take precedence.
+
+- name: "SAP HA Prepare Pacemaker - Define resource defaults for NetWeaver clusters"
+  when:
+    - sap_ha_pacemaker_cluster_resource_defaults is not defined
+      or sap_ha_pacemaker_cluster_resource_defaults | length == 0
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_defaults:
+      resource-stickiness: 1
+      migration-threshold: 3
 
 
 - name: "SAP HA Prepare Pacemaker - Add NetWeaver common filesystem resources to resource definition"
@@ -17,11 +24,11 @@
     __resource_filesystem:
       id: |-
         {%- if '/sapmnt' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_resource_name %}
+          {% set idname = sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name %}
         {% elif '/usr/sap/trans' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_netweaver_transports_filesystem_resource_name %}
-        {% elif '/usr/sap/' + sap_ha_pacemaker_cluster_netweaver_sid + '/SYS' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_netweaver_sys_filesystem_resource_name %}
+          {% set idname = sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name %}
+        {% elif '/usr/sap/' + sap_ha_pacemaker_cluster_nwas_abap_sid + '/SYS' in __mountpoint -%}
+          {% set idname = sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name %}
         {% endif %}
         {{ idname }}
 
@@ -64,13 +71,13 @@
     __nfs_server: "{{ commonfs_item.nfs_server | default(sap_ha_pacemaker_cluster_storage_nfs_server) | regex_replace('/$', '') }}"
     __nfs_path: |-
       {%- if '/usr/sap' in commonfs_item.nfs_path and '/usr/sap/trans' not in commonfs_item.nfs_path -%}
-        {{ commonfs_item.nfs_path | regex_replace('^/', '') | regex_replace('/$', '') }}/{{ sap_ha_pacemaker_cluster_netweaver_sid }}/SYS
+        {{ commonfs_item.nfs_path | regex_replace('^/', '') | regex_replace('/$', '') }}/{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}/SYS
       {%- else -%}
         {{ commonfs_item.nfs_path | regex_replace('^/', '') | regex_replace('/$', '') }}
       {%- endif %}
     __mountpoint: |-
       {%- if commonfs_item.mountpoint | regex_replace('/$', '') == '/usr/sap' -%}
-        {{ commonfs_item.mountpoint | regex_replace('/$', '') }}/{{ sap_ha_pacemaker_cluster_netweaver_sid }}/SYS
+        {{ commonfs_item.mountpoint | regex_replace('/$', '') }}/{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}/SYS
       {%- else -%}
         {{ commonfs_item.mountpoint | regex_replace('/$', '') }}
       {%- endif %}
@@ -80,11 +87,14 @@
     loop_var: commonfs_item
     label: "{{ commonfs_item.name }}"
   when:
+    - sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed
     - commonfs_item.mountpoint is defined
     - commonfs_item.nfs_path is defined
     - "'/usr/sap' in commonfs_item.mountpoint
       or '/sapmnt' in commonfs_item.mountpoint"
     - __resource_filesystem.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+# End of shared filesystems resource definition task
 
 
 # The shared/common filesystems are clones.
@@ -95,11 +105,11 @@
     __clone_common_filesystem:
       resource_id: |-
         {%- if '/sapmnt' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_resource_name %}
+          {% set idname = sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name %}
         {% elif '/usr/sap/trans' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_netweaver_transports_filesystem_resource_name %}
-        {% elif '/usr/sap/' + sap_ha_pacemaker_cluster_netweaver_sid + '/SYS' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_netweaver_sys_filesystem_resource_name %}
+          {% set idname = sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name %}
+        {% elif '/usr/sap/' + sap_ha_pacemaker_cluster_nwas_abap_sid + '/SYS' in __mountpoint -%}
+          {% set idname = sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name %}
         {% endif %}
         {{ idname }}
       meta_attrs:
@@ -109,7 +119,7 @@
 
     __mountpoint: |-
       {%- if commonfsclone_item.mountpoint | regex_replace('/$', '') == '/usr/sap' -%}
-        {{ commonfsclone_item.mountpoint | regex_replace('/$', '') }}/{{ sap_ha_pacemaker_cluster_netweaver_sid }}/SYS
+        {{ commonfsclone_item.mountpoint | regex_replace('/$', '') }}/{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}/SYS
       {%- else -%}
         {{ commonfsclone_item.mountpoint | regex_replace('/$', '') }}
       {%- endif %}
@@ -119,6 +129,7 @@
     loop_var: commonfsclone_item
     label: "{{ commonfsclone_item.name }}"
   when:
+    - sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed
     - commonfsclone_item.mountpoint is defined
     - commonfsclone_item.nfs_path is defined
     - "'/usr/sap' in commonfsclone_item.mountpoint

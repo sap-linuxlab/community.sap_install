@@ -1,5 +1,24 @@
 ---
 
+# The sapcar (SAPCAR.EXE) program is required for the detection of the SAP file types. It is detected in create_file_list_phase_1.yml
+#- name: SAP Install Media Detect - Prepare - Set fact for the sapcar program
+#  ansible.builtin.set_fact:
+#    __sap_install_media_detect_fact_sapcar_path_for_sapfile: "{{ sap_install_media_detect_sapcar_path | d('sapcar') }}"
+
+- name: SAP Install Media Detect - Prepare - Provide sapfile utility
+  ansible.builtin.include_tasks:
+    file: prepare/provide_sapfile_utility.yml
+    apply:
+      tags: sap_install_media_detect_provide_sapfile_utility
+  tags: sap_install_media_detect_provide_sapfile_utility
+
+- name: SAP Install Media Detect - Prepare - Enable zip handling
+  ansible.builtin.include_tasks:
+    file: prepare/enable_zip_handling.yml
+    apply:
+      tags: sap_install_media_detect_zip_handling
+  tags: sap_install_media_detect_zip_handling
+
 - name: SAP Install Media Detect - Prepare - Enable rar handling
   ansible.builtin.include_tasks:
     file: prepare/enable_rar_handling.yml
@@ -14,12 +33,12 @@
       tags: sap_install_media_detect_check_directories
   tags: sap_install_media_detect_check_directories
 
-- name: SAP Install Media Detect - Create a list of all files
+- name: SAP Install Media Detect - Create a list of all files, phase 1
   ansible.builtin.include_tasks:
-    file: prepare/create_file_list.yml
+    file: prepare/create_file_list_phase_1.yml
     apply:
-      tags: sap_install_media_detect_create_file_list
-  tags: sap_install_media_detect_create_file_list
+      tags: sap_install_media_detect_create_file_list_phase_1
+  tags: sap_install_media_detect_create_file_list_phase_1
 
 - name: SAP Install Media Detect - Detect and if necessary rename zip and rar files without extension
   ansible.builtin.include_tasks:
@@ -28,120 +47,47 @@
       tags: sap_install_media_detect_add_file_extension
   tags: sap_install_media_detect_add_file_extension
 
-- name: SAP Install Media Detect - Organize SAPCAR
-  ansible.builtin.include_tasks: detect_sapcar.yml
+- name: SAP Install Media Detect - Move any files from subdirectories to main directory
+  ansible.builtin.include_tasks:
+    file: prepare/move_files_to_main_directory.yml
+    apply:
+      tags: sap_install_media_detect_move_files_to_main_directory
+  tags: sap_install_media_detect_move_files_to_main_directory
+  when: not sap_install_media_detect_file_server_only
 
-- name: SAP Install Media Detect - Organize SAP HANA installation media files
-  ansible.builtin.include_tasks: detect_saphana.yml
-  when:
-    - sap_install_media_detect_db == "saphana"
+- name: SAP Install Media Detect - Create a list of all required files, phase 2
+  ansible.builtin.include_tasks:
+    file: prepare/create_file_list_phase_2.yml
+    apply:
+      tags: sap_install_media_detect_create_file_list_phase_2
+  tags: sap_install_media_detect_create_file_list_phase_2
+  when: not sap_install_media_detect_file_server_only
 
-- name: SAP Install Media Detect - Organize SAP SWPM installation media files
-  ansible.builtin.include_tasks: detect_sapswpm.yml
-  when:
-    - sap_install_media_detect_swpm
+- name: SAP Install Media Detect - Organize files
+  ansible.builtin.include_tasks:
+    file: organize_files.yml
+    apply:
+      tags: sap_install_media_detect_organize_files
+  tags: sap_install_media_detect_organize_files
+  when: not sap_install_media_detect_file_server_only
 
-- name: SAP Install Media Detect - Organize SAP Host Agent installation media files
-  ansible.builtin.include_tasks: detect_saphostagent.yml
-  when:
-    - sap_install_media_detect_hostagent
+- name: SAP Install Media Detect - Find files after extraction
+  ansible.builtin.include_tasks:
+    file: find_files_after_extraction.yml
+    apply:
+      tags: sap_install_media_detect_find_files_after_extraction
+  tags: sap_install_media_detect_find_files_after_extraction
+  when: not sap_install_media_detect_file_server_only
 
-- name: SAP Install Media Detect - Organize SAP IGS installation media files
-  ansible.builtin.include_tasks: detect_sapigs.yml
-  when:
-    - sap_install_media_detect_igs
+- name: SAP Install Media Detection Completed - Set global vars for subsequent Ansible tasks or roles
+  ansible.builtin.include_tasks:
+    file: set_global_vars.yml
+    apply:
+      tags: sap_install_media_detect_set_global_vars
+  tags: sap_install_media_detect_set_global_vars
+  when: not sap_install_media_detect_file_server_only
 
-- name: SAP Install Media Detect - Organize SAP Kernel installation media files
-  ansible.builtin.include_tasks: detect_sapkernel.yml
-  when:
-    - sap_install_media_detect_kernel
-
-- name: SAP Install Media Detect - Organize SAP Web Dispatcher installation media files
-  ansible.builtin.include_tasks: detect_sapwebdisp.yml
-  when:
-    - sap_install_media_detect_webdisp
-
-- name: SAP Install Media Detect - Complete Data Backup files for SAP HANA
-  ansible.builtin.include_tasks: detect_backup_saphana.yml
-  when:
-    - sap_install_media_detect_backup == "saphana"
-
-# Detect files which (historically) have filenames which are Numbered IDs only (e.g. 51054410_2 for SAP MaxDB 7.9)
-# Leave to last so directory has less files to scan
-
-- name: SAP Install Media Detect - Organize SAP ASE installation media files
-  ansible.builtin.include_tasks: detect_sapanydb_sapase.yml
-  when:
-    - sap_install_media_detect_db == "sapase"
-
-- name: SAP Install Media Detect - Organize SAP MaxDB installation media files
-  ansible.builtin.include_tasks: detect_sapanydb_sapmaxdb.yml
-  when:
-    - sap_install_media_detect_db == "sapmaxdb"
-
-- name: SAP Install Media Detect - Organize Oracle DB installation media files
-  ansible.builtin.include_tasks: detect_sapanydb_oracledb.yml
-  when:
-    - sap_install_media_detect_db == "oracledb"
-
-- name: SAP Install Media Detect - Organize IBM Db2 installation media files
-  ansible.builtin.include_tasks: detect_sapanydb_ibmdb2.yml
-  when:
-    - sap_install_media_detect_db == "ibmdb2"
-
-- name: SAP Install Media Detect - EXPORT files for SAP ECC
-  ansible.builtin.include_tasks: detect_export_sapecc.yml
-  when: sap_install_media_detect_export == "sapecc"
-
-- name: SAP Install Media Detect - EXPORT files for SAP ECC IDES
-  ansible.builtin.include_tasks: detect_export_sapecc_ides.yml
-  when: sap_install_media_detect_export == "sapecc_ides"
-
-- name: SAP Install Media Detect - EXPORT files for SAP S/4HANA
-  ansible.builtin.include_tasks: detect_export_saps4hana.yml
-  when:
-    - sap_install_media_detect_export == "saps4hana"
-
-- name: SAP Install Media Detect - EXPORT files for SAP BW/4HANA
-  ansible.builtin.include_tasks: detect_export_sapbw4hana.yml
-  when:
-    - sap_install_media_detect_export == "sapbw4hana"
-
-- name: SAP Install Media Detect - EXPORT files for SAP NetWeaver AS (ABAP) platform only
-  ansible.builtin.include_tasks: detect_export_sapnwas_abap.yml
-  when: sap_install_media_detect_export == "sapnwas_abap"
-
-- name: SAP Install Media Detect - EXPORT files for SAP NetWeaver AS (JAVA) platform only
-  ansible.builtin.include_tasks: detect_export_sapnwas_java.yml
-  when: sap_install_media_detect_export == "sapnwas_java"
-
-- name: SAP Install Media Detect - EXPORT files for SAP Solution Manager (ABAP)
-  ansible.builtin.include_tasks: detect_export_sapsolman_abap.yml
-  when:
-    - sap_install_media_detect_export == "sapsolman_abap"
-
-- name: SAP Install Media Detection Completed - set global vars for subsequent Ansible Tasks
-  ansible.builtin.include_tasks: set_global_vars.yml
-
-# Output of detected SAP Software
-
-- name: SAP Install Media Detection Completed - Display Paths for SAP HANA
-  ansible.builtin.debug:
-    msg:
-      - "SAP HANA Path - {{ sap_hana_install_directory }}"
-  when:
-    - sap_install_media_detect_db == "saphana"
-
-- name: SAP Install Media Detection Completed - Display Paths for SAP SWPM
-  ansible.builtin.debug:
-    msg:
-      - "SAP SWPM Software Path - {{ sap_swpm_software_path }}"
-      - "SAP SWPM SAPCAR Path - {{ sap_swpm_sapcar_path }}"
-      - "SAP SWPM Path - {{ sap_swpm_swpm_path }}"
-  when:
-    - sap_install_media_detect_swpm
-
-- name: SAP Install Media Detect - Cleanup - Disable the EPEL repo if necessary
+- name: SAP Install Media Detection Completed - Cleanup - Disable the EPEL repo if necessary
   ansible.builtin.include_tasks:
     file: cleanup/disable-epel-repo.yml
     apply:
@@ -149,4 +95,12 @@
   tags: sap_install_media_detect_rar_handling
   when:
     - sap_install_media_detect_rar_package == 'EPEL'
+    - ansible_os_family == 'RedHat'
     - __sap_install_media_detect_register_rpm_q_epel.stdout != 'epel-release'
+
+- name: SAP Install Media Detect - Cleanup - Remove sapfile utility
+  ansible.builtin.include_tasks:
+    file: cleanup/remove_sapfile_utility.yml
+    apply:
+      tags: sap_install_media_detect_provide_sapfile_utility
+  tags: sap_install_media_detect_provide_sapfile_utility

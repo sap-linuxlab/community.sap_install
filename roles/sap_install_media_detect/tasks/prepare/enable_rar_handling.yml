@@ -1,7 +1,9 @@
 ---
 
 - name: SAP Install Media Detect - Prepare - Install the unar package from EPEL
-  when: sap_install_media_detect_rar_package == 'EPEL'
+  when:
+    - sap_install_media_detect_rar_package == 'EPEL'
+    - ansible_os_family == 'RedHat'
   block:
 
 # Reason for noqa: Too much effort for now to examine the output of the yum module for the presence of a package
@@ -48,21 +50,35 @@
 
     - name: SAP Install Media Detect - Prepare - EPEL - Set facts
       ansible.builtin.set_fact:
-        sap_install_media_detect_rar_list: '/usr/bin/lsar'
-        sap_install_media_detect_rar_extract: '/usr/bin/unar'
-        sap_install_media_detect_rar_extract_argument: ' -o'
+        __sap_install_media_detect_rar_list: '/usr/bin/lsar'
+        __sap_install_media_detect_rar_extract: '/usr/bin/unar'
+        __sap_install_media_detect_rar_extract_directory_argument: ' -o'
 
-- name: SAP Install Media Detect - Prepare - Install an unrar package
-  when: sap_install_media_detect_rar_package != 'EPEL'
+
+- name: SAP Install Media Detect - Prepare - Install the unar package (SLES)
+  when:
+    - ansible_os_family == 'Suse'
   block:
 
-    - name: SAP Install Media Detect - Prepare - unrar - Install the unrar package
+    # Requires SLES Basesystem_Module_* to obtain package
+    - name: SAP Install Media Detect - Prepare - SLES - Install the unar package
       ansible.builtin.package:
-        name: "{{ sap_install_media_detect_rar_package }}"
+        name: unar
         state: present
 
-    - name: SAP Install Media Detect - Prepare - unrar - Set facts
+    - name: SAP Install Media Detect - Prepare - SLES - Set facts
       ansible.builtin.set_fact:
-        sap_install_media_detect_rar_list: '/usr/bin/unrar lb'
-        sap_install_media_detect_rar_extract: '/usr/bin/unrar x'
-        sap_install_media_detect_rar_extract_argument: ''
+        __sap_install_media_detect_rar_list: '/usr/bin/lsar'
+        __sap_install_media_detect_rar_extract: '/usr/bin/unar'
+        __sap_install_media_detect_rar_extract_directory_argument: ' -o'
+
+
+- name: SAP Install Media Detect - Prepare - Install a rar extractor package (no EPEL)
+  when: sap_install_media_detect_rar_package != 'EPEL' # When default is overriden
+  block:
+
+    - name: SAP Install Media Detect - Prepare - rar extractor - Set facts
+      ansible.builtin.set_fact:
+        __sap_install_media_detect_rar_list: "{{ sap_install_media_detect_rar_list }}"
+        __sap_install_media_detect_rar_extract: "{{ sap_install_media_detect_rar_extract }}"
+        __sap_install_media_detect_rar_extract_directory_argument: "{{ sap_install_media_detect_rar_extract_directory_argument }}"

@@ -33,3 +33,26 @@
       - '   IP                 -       {{ ansible_default_ipv4.address | d(ansible_all_ipv4_addresses[0]) }}  '
 #      - '   Master Password    -       {{ sap_swpm_master_password }} '
 #      - '   DDIC 000 Password  -       {{ sap_swpm_ddic_000_password }} '
+
+# SAP HANA Client will not be installed for any installation with SAP AnyDB
+# and will only be installed alongside SAP NWAS PAS or AAS (not NWAS ASCS)
+- name: SAP SWPM Post Install - Check for SAP HANA Client hdbuserstore
+  ansible.builtin.stat:
+    path: /usr/sap/{{ sap_swpm_sid }}/hdbclient/hdbuserstore
+  register: __sap_swpm_post_install_register_hdbuserstore_exists
+
+- name: SAP SWPM Post Install - Enforce Connection Info in SAP HANA Client hdbuserstore
+  ansible.builtin.shell: |
+    /usr/sap/{{ sap_swpm_sid }}/hdbclient/hdbuserstore \
+    SET DEFAULT \
+    {{ sap_swpm_db_host }}:3{{ sap_swpm_db_instance_nr }}13@{{ sap_swpm_db_sid }} \
+    {{ sap_swpm_db_schema_abap }} '{{ sap_swpm_db_system_password }}'
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ sap_swpm_sid | lower }}adm"
+  when:
+    - sap_swpm_install_saphostagent is defined and sap_swpm_install_saphostagent
+    - __sap_swpm_post_install_register_hdbuserstore_exists.stat.exists
+  register: __sap_swpm_post_install_register_hdbuserstore_connection
+  changed_when: __sap_swpm_post_install_register_hdbuserstore_connection is succeeded

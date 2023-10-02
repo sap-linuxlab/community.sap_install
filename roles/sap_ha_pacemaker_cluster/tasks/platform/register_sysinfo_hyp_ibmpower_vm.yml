@@ -1,0 +1,32 @@
+---
+# Ansible facts rely on SMBIOS/DMI, which does not exist on ppc64le CPU Architecture.
+# Use Open Firmware (OF) device tree values
+
+# Do not use cat on /proc files to avoid error 'ignored null byte in input'
+
+
+# The System's Machine Type and Machine Serial Number (MTMS) is a combined string, which is sometimes separated by underscore '_'
+# and in IBM Power HMC Web GUI is separated by asterisk '*'
+# An example of the combined string is '9009-22A' as Machine Type + '*' + '11A111' as Machine Serial Number
+# This is an alternative value to populate --managed instead of the IBM PowerVM HMC System Name,
+# which works with the command 'lssyscfg -r lpar -m <<--managed value of HMC System Name or System MTMS or System UUID>>
+- name: SAP HA Prepare Pacemaker - IBM Power VM - HMC System (aka. Hypervisor Node) Machine Type and Machine Serial Number (MTMS)
+  ansible.builtin.shell: |
+    set -o pipefail && echo $(tr -d '\0' < /proc/device-tree/model | sed 's/IBM,//g')*$(tr -d '\0' < /proc/device-tree/ibm,hardware-sn)
+  register: __sap_ha_pacemaker_cluster_register_ibmpower_vm_hmc_system_host_mtms_gui_string
+  changed_when: false
+  check_mode: false
+
+- name: SAP HA Prepare Pacemaker - IBM Power VM - HMC System's Partition Name of the Virtual Machine
+  ansible.builtin.shell: |
+    set -o pipefail && echo $(tr -d '\0' < /proc/device-tree/ibm,partition-name)
+  register: __sap_ha_pacemaker_cluster_register_ibmpower_vm_hmc_system_partition_name
+  changed_when: false
+  check_mode: false
+
+- name: SAP HA Prepare Pacemaker - IBM Power VM - HMC System's Partition UUID of the Virtual Machine
+  ansible.builtin.shell: |
+    set -o pipefail && echo $(tr -d '\0' < /proc/device-tree/ibm,partition-uuid)
+  register: __sap_ha_pacemaker_cluster_register_ibmpower_vm_hmc_system_partition_uuid
+  changed_when: false
+  check_mode: false

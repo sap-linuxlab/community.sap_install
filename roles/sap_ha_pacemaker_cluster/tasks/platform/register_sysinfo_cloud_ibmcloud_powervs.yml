@@ -1,9 +1,11 @@
 ---
 # Ansible facts rely on SMBIOS/DMI, which does not exist on ppc64le CPU Architecture.
-# Identify from RSCT binary instead.
-- name: "SAP HA Prepare Pacemaker - IBM Power VS from IBM Cloud - Register instance ID"
+
+# alt command using IBM Power RSCT binary: /opt/rsct/bin/ctgethscid | grep PartitionUUID | cut -d \" -f2
+# alt command using cloud-init data: cat /run/cloud-init/instance-data.json | grep uuid | cut -d \" -f4
+- name: SAP HA Prepare Pacemaker -  IBM Power VS from IBM Cloud - IBM Power Virtual Server instance ID
   ansible.builtin.shell: |
-    /opt/rsct/bin/ctgethscid -value PartitionUUID
-  register: __sap_ha_pacemaker_cluster_register_ibmcloud_powervs_host
+    set -o pipefail && echo $(tr -d '\0' < /proc/device-tree/ibm,partition-name)
+  register: __sap_ha_pacemaker_cluster_register_ibmcloud_powervs_workspace_guid
   changed_when: false
   check_mode: false

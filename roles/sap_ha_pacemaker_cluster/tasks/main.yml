@@ -21,8 +21,8 @@
 # Make sure that all parameters already set for 'ha_cluster' are also inherited.
 # Add to this file a task for EACH parameter which this SAP cluster role
 # supports.
-- name: "SAP HA Prepare Pacemaker - Include tasks for checking 'ha_cluster' predefinitions"
-  ansible.builtin.import_tasks: ascertain_ha_cluster_in_inventory.yml
+- name: "SAP HA Prepare Pacemaker - Include tasks from 'ha_cluster' role definitions"
+  ansible.builtin.import_tasks: import_hacluster_vars_from_inventory.yml
 
 - name: "SAP HA Prepare Pacemaker - Include facts and common variables"
   ansible.builtin.import_tasks: include_vars_common.yml
@@ -53,23 +53,23 @@
   ansible.builtin.include_tasks:
     file: construct_vars_hana_common.yml
   when:
-    - "'hana' in sap_ha_pacemaker_cluster_host_type[0]"
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP HANA Scale-up"
   ansible.builtin.include_tasks:
     file: construct_vars_hana_scaleup.yml
   when:
-    - "'hana_scaleup' in sap_ha_pacemaker_cluster_host_type[0]"
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver common"
   ansible.builtin.include_tasks:
-    file: construct_vars_netweaver_common.yml
+    file: construct_vars_nwas_common.yml
   when:
-    - "'nwas_abap' in sap_ha_pacemaker_cluster_host_type[0]"
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ABAP ASCS/ERS"
   ansible.builtin.include_tasks:
-    file: construct_vars_netweaver_abap_ascs_ers.yml
+    file: construct_vars_nwas_abap_ascs_ers.yml
   loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
   loop_control:
     loop_var: nwas_build_item
@@ -78,7 +78,7 @@
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ABAP PAS/AAS"
   ansible.builtin.include_tasks:
-    file: construct_vars_netweaver_abap_pas_aas.yml
+    file: construct_vars_nwas_abap_pas_aas.yml
   loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
   loop_control:
     loop_var: nwas_build_item
@@ -87,12 +87,23 @@
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver Java SCS/ERS"
   ansible.builtin.include_tasks:
-    file: construct_vars_netweaver_java_scs_ers.yml
+    file: construct_vars_nwas_java_scs_ers.yml
   loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
   loop_control:
     loop_var: nwas_build_item
   when:
     - "'nwas_java' in nwas_build_item"
+
+# All of the SAP HA role constructed parameters must be translated to
+# 'ha_cluster' Linux System Role parameters.
+- name: "SAP HA Prepare Pacemaker - Translate all parameters to 'ha_cluster' input variables"
+  ansible.builtin.include_tasks:
+    file: construct_final_hacluster_vars.yml
+
+
+##########################################################
+# BLOCK which covers actual changes on the target systems
+##########################################################
 
 - name: "SAP HA Install Pacemaker - Block with actual changes"
   block:
@@ -111,6 +122,7 @@
     # for instance cloud-init services on cloud platforms
     - name: "SAP HA Install Pacemaker - Stop and disable services"
       when: sap_ha_pacemaker_cluster_disable_services is defined
+      register: __sap_ha_pacemaker_cluster_disable_services
       ansible.builtin.service:
         name: "{{ service_item }}"
         enabled: false
@@ -119,20 +131,9 @@
       loop_control:
         loop_var: service_item
         label: "{{ service_item }}"
-
-    # Before we are ready to call the ha_cluster role, we want to validate
-    # that the minimum required parameters are defined and not empty.
-    # TODO: make this smarter, currently all these vars are pre-defined anyway
-    - name: "SAP HA Install Pacemaker - Validate parameters for 'ha_cluster' role input"
-      ansible.builtin.assert:
-        that:
-          - __sap_ha_pacemaker_cluster_cluster_properties is defined
-          - __sap_ha_pacemaker_cluster_extra_packages is defined
-          - __sap_ha_pacemaker_cluster_resource_primitives is defined
-          - __sap_ha_pacemaker_cluster_resource_clones is defined
-          - __sap_ha_pacemaker_cluster_constraints_order is defined
-          - __sap_ha_pacemaker_cluster_constraints_colocation is defined
-        fail_msg: "Cluster build parameter construction has failed for this parameter."
+      failed_when:
+        - __sap_ha_pacemaker_cluster_disable_services.failed
+        - '"Could not find the requested service" not in __sap_ha_pacemaker_cluster_disable_services.msg'
 
     - name: "SAP HA Install Pacemaker - Query if CIB already exists"
       ansible.builtin.command:
@@ -162,28 +163,16 @@
         apply:
           tags: ha_cluster
           no_log: true  # some parameters contain secrets
-      no_log: true  # some parameters contain secrets
-      vars:
-        __ha_cluster_repos: "{{ __sap_ha_pacemaker_cluster_repos }}"
-        ha_cluster_cluster_name: "{{ __sap_ha_pacemaker_cluster_cluster_name }}"
-        ha_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order }}"
-        ha_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation }}"
-        ha_cluster_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties }}"
-        ha_cluster_extra_packages: "{{ __sap_ha_pacemaker_cluster_extra_packages }}"
-        ha_cluster_fence_agent_packages: "{{ __sap_ha_pacemaker_cluster_fence_agent_packages }}"
-        ha_cluster_hacluster_password: "{{ __sap_ha_pacemaker_cluster_hacluster_password }}"
-        ha_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties }}"
-        ha_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones }}"
-        ha_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups }}"
-        ha_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives }}"
       tags: ha_cluster
 
-    # Resource defaults can currently not be updated through ha_cluster
-    # role parameters, and thus need to be added.
+    # Resource defaults settings were added to "ha_cluster" in Apr 2023 (GH version 1.9.0)
+    # https://github.com/linux-system-roles/ha_cluster#ha_cluster_resource_defaults
+    # Keeping separate for compatibility with older versions of the ha_cluster role.
+    # TODO: Change resource defaults update to "ha_cluster" native syntax.
     - name: "SAP HA Install Pacemaker - Check resource defaults"
       ansible.builtin.command:
         cmd: |
-          pcs resource defaults config
+          {{ __sap_ha_pacemaker_cluster_command.resource_defaults_show }}
       register: __sap_ha_pacemaker_cluster_check_resource_defaults
       run_once: true
       changed_when: false
@@ -192,10 +181,12 @@
     - name: "SAP HA Install Pacemaker - Update resource default attributes"
       when:
         - item.key ~ '=' ~ item.value not in __sap_ha_pacemaker_cluster_check_resource_defaults.stdout
+        - __sap_ha_pacemaker_cluster_resource_defaults is defined
+        - __sap_ha_pacemaker_cluster_resource_defaults | length > 0
       ansible.builtin.command:
         cmd: |
-          pcs resource defaults update {{ item.key }}={{ item.value }}
-      loop: "{{ sap_ha_pacemaker_cluster_resource_defaults | dict2items }}"
+          {{ __sap_ha_pacemaker_cluster_command.resource_defaults_update }} {{ item.key }}={{ item.value }}
+      loop: "{{ __sap_ha_pacemaker_cluster_resource_defaults | dict2items }}"
       loop_control:
         label: "{{ item.key }}={{ item.value }}"
       run_once: true
@@ -208,6 +199,15 @@
       tags: srhook
       when:
         - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+
+    - name: "SAP HA Install Pacemaker - Include NetWeaver ASCS/ERS post installation"
+      ansible.builtin.include_tasks:
+        file: configure_nwas_ascs_ers_postinstallation.yml
+        apply:
+          tags: nwas_postinst
+      tags: nwas_postinst
+      when:
+        - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap') | length > 0
 
 ### END OF BLOCK: prerequisite changes and cluster setup
 

@@ -2,20 +2,42 @@
 # The following variables are constructed here in order to be provided as
 # input for the included 'ha_cluster' system role.
 
-- name: "SAP HA Prepare Pacemaker - Block when no STONITH resource is defined"
+### Block for disabling stonith when no stonith resource definition is found
+#
+# This block is entered when
+# - no default stonith resource is defined and no custom is defined either
+# - an empty custom is defined to override any default (defined or not)
+- name: "SAP HA Prepare Pacemaker - (STONITH) Block when no STONITH resource is defined"
   when:
-    - sap_ha_pacemaker_cluster_stonith_default is not defined
-      or sap_ha_pacemaker_cluster_stonith_default | length == 0
-    - sap_ha_pacemaker_cluster_stonith_custom is not defined
-      or sap_ha_pacemaker_cluster_stonith_custom | length == 0
+    - (
+        sap_ha_pacemaker_cluster_stonith_custom is defined
+        and
+        (
+          sap_ha_pacemaker_cluster_stonith_custom == ''
+          or sap_ha_pacemaker_cluster_stonith_custom | length == 0
+        )
+      )
+      or
+      (
+        sap_ha_pacemaker_cluster_stonith_custom is not defined
+        and sap_ha_pacemaker_cluster_stonith_default is defined
+        and
+        (
+          sap_ha_pacemaker_cluster_stonith_default == ''
+          or sap_ha_pacemaker_cluster_stonith_default | length == 0
+        )
+      )
+      or
+      (
+        sap_ha_pacemaker_cluster_stonith_custom is not defined
+        and sap_ha_pacemaker_cluster_stonith_default is not defined
+      )
   block:
 
-    - name: "SAP HA Prepare Pacemaker - Set STONITH to disabled when no fencing resource is defined"
+    - name: "SAP HA Prepare Pacemaker - (STONITH) Set to disabled when no fencing resource is defined"
       ansible.builtin.set_fact:
-        __sap_ha_pacemaker_cluster_cluster_properties:
-          - attrs:
-              - name: stonith-enabled
-                value: false
+        sap_ha_pacemaker_cluster_cluster_properties:
+          "{{ sap_ha_pacemaker_cluster_cluster_properties | combine({ 'stonith-enabled': false }) }}"
 
     - name: "SAP HA Prepare Pacemaker - Warn that there is no STONITH configured"
       ansible.builtin.pause:
@@ -27,15 +49,19 @@
           Recommendation: Add a STONITH resource and set cluster property
                           "stonith-enabled=true"
                           before using this cluster for production services.
-# END of block
 
-- name: "SAP HA Prepare Pacemaker - Define cluster stonith properties"
+# END of block for disabling stonith
+
+
+- name: "SAP HA Prepare Pacemaker - (STONITH) Define cluster properties"
   when:
     - sap_ha_pacemaker_cluster_cluster_properties is defined
     - sap_ha_pacemaker_cluster_cluster_properties is iterable
     - sap_ha_pacemaker_cluster_cluster_properties | length > 0
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_cluster_properties:
+    __sap_ha_pacemaker_cluster_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties | default([]) + __stonith_properties }}"
+  vars:
+    __stonith_properties:
       - attrs: |-
           {% set attrs = __sap_ha_pacemaker_cluster_cluster_properties | map(attribute='attrs') | flatten -%}
           {%- for default_cluster_properties in (sap_ha_pacemaker_cluster_cluster_properties | dict2items) -%}
@@ -59,7 +85,7 @@
 # - generic pacemaker fence resource options
 #   (see defaults: sap_ha_pacemaker_cluster_fence_options)
 
-- name: "SAP HA Prepare Pacemaker - Assemble the stonith resource definition from platform default"
+- name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resource definition from platform default"
   when:
     - sap_ha_pacemaker_cluster_stonith_default is defined
     - sap_ha_pacemaker_cluster_stonith_custom is not defined
@@ -93,7 +119,7 @@
               {%- endfor %}
             {{ attrs }}
 
-- name: "SAP HA Prepare Pacemaker - Assemble the stonith resources from custom definition"
+- name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resources from custom definition"
   when:
     - sap_ha_pacemaker_cluster_stonith_custom is defined
   ansible.builtin.set_fact:
@@ -120,7 +146,7 @@
 
 
 # The STONITH resource is an element in the cluster_resource_primitives list
-- name: "SAP HA Prepare Pacemaker - Construct stonith resources definition"
+- name: "SAP HA Prepare Pacemaker - (STONITH) Construct resources definition"
   when:
     - __sap_ha_pacemaker_cluster_stonith_resource is defined
   ansible.builtin.set_fact:

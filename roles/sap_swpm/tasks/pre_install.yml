@@ -20,7 +20,7 @@
     sap_swpm_swpm_command_product_id: "SAPINST_EXECUTE_PRODUCT_ID={{ sap_swpm_product_catalog_id }}"
     # If SWPM is running a normal install Ansible Variable sap_swpm_swpm_command_virtual_hostname is blank
     # IF SWPM is running a HA installation, Ansible Variable sap_swpm_swpm_command_virtual_hostname is set and contains "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }} IS_HOST_LOCAL_USING_STRING_COMPARE=true"
-    # If SWPM is running a MP Stack XML installation, Ansible Variable sap_swpm_swpm_command_mp_stack is set and contains "SAPINST_STACK_XML={{ sap_swpm_mp_stack_path }}/{{ sap_swpm_mp_stack_file_name }}"
+    # If SWPM is running a MP Stack XML installation, Ansible Variable sap_swpm_swpm_command_mp_stack is set and contains "SAPINST_STACK_XML={{ sap_swpm_mp_stack_path }} + '/' (if needed) + {{ sap_swpm_mp_stack_file_name }}"
     sap_swpm_swpm_command_extra_args: "SAPINST_SKIP_DIALOGS=true SAPINST_START_GUISERVER=false {{ sap_swpm_swpm_command_virtual_hostname }} {{ sap_swpm_swpm_command_mp_stack }}"
   tags: sap_swpm_sapinst_commandline
 
@@ -62,7 +62,7 @@
       - " WEBDISP    -   {{ sap_swpm_web_dispatcher_path }}/{{ sap_swpm_web_dispatcher_file_name }} "
       - " SAPCAR     -   {{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }} "
       - " SWPM       -   {{ sap_swpm_swpm_path }}/{{ sap_swpm_swpm_sar_file_name }} "
-      - " MP Stack   -   {{ sap_swpm_mp_stack_path }}/{{ sap_swpm_mp_stack_file_name }} "
+      - " MP Stack   -   {{ (sap_swpm_mp_stack_path | d('', true) + '/' + sap_swpm_mp_stack_file_name | d('', true)) | regex_replace('//*', '/') }}"
       - " Backup     -   {{ sap_swpm_backup_location }} "
 
 - name: SAP SWPM - Installation Process

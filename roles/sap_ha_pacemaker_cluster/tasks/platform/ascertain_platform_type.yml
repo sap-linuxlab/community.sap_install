@@ -46,7 +46,8 @@
 
 - name: "SAP HA Prepare Pacemaker - Check if platform is Amazon Web Services EC2 Virtual Server"
   when:
-    - ansible_system_vendor == 'Amazon EC2'
+    - '"amazon" in ansible_system_vendor | lower
+      or "amazon" in ansible_product_name | lower'
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_platform: cloud_aws_ec2_vs
 
@@ -97,30 +98,18 @@
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_platform: cloud_ibmcloud_powervs
 
-#- name: "SAP HA Prepare Pacemaker - Check if platform is IBM PowerVC"
-#  when:
-#    - ansible_architecture == "ppc64le"
-#    - '"ibmcloud" not in __sap_ha_pacemaker_cluster_power_rsct_hscid.stdout'
-#  ansible.builtin.set_fact:
-#    __sap_ha_pacemaker_cluster_platform: hyp_ibmpower_vm
+- name: "SAP HA Prepare Pacemaker - Check if platform is IBM PowerVM"
+  when:
+    - ansible_architecture == "ppc64le"
+    - '"ibmcloud" not in __sap_ha_pacemaker_cluster_power_rsct_hscid.stdout'
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_platform: hyp_ibmpower_vm
 
 #- name: "SAP HA Prepare Pacemaker - Check if platform is VMware vSphere"
 #  when:
 #    - ansible_virtualization_type == 'VMware'
 #  ansible.builtin.set_fact:
 #    __sap_ha_pacemaker_cluster_platform: hyp_vmware_vsphere_vm
-
-# Call tasks to discover information that is needed as input for any further steps.
-# Run this before including the platform vars in order to build vars based on the
-# discovered data.
-- name: "SAP HA Prepare Pacemaker - Include platform specific information collection"
-  when: __sap_ha_pacemaker_cluster_platform_info is file
-  ansible.builtin.include_tasks:
-    file: "{{ item }}"
-  loop:
-    - "register_sysinfo_{{ __sap_ha_pacemaker_cluster_platform }}.yml"
-  vars:
-    __sap_ha_pacemaker_cluster_platform_info: "{{ role_path }}/tasks/{{ item }}"
 
 - name: "SAP HA Prepare Pacemaker - Include platform specific tasks - MS Azure VM - Ensure socat binary installed"
   ansible.builtin.package:
@@ -137,6 +126,6 @@
   ansible.builtin.include_tasks:
     file: "{{ item }}"
   loop:
-    - "register_sysinfo_{{ __sap_ha_pacemaker_cluster_platform }}.yml"
+    - "platform/register_sysinfo_{{ __sap_ha_pacemaker_cluster_platform }}.yml"
   vars:
     __sap_ha_pacemaker_cluster_platform_info: "{{ role_path }}/tasks/{{ item }}"

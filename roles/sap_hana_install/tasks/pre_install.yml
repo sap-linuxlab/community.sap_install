@@ -83,6 +83,13 @@
         - '/hana/data'
       tags: sap_hana_install_chown_hana_directories
 
+    # SELinux is not currently supported by SAP using SLES4SAP
+    # This is a workaround to avoid change to default to enable SELinux
+    - name: SAP HANA Pre Install - Ensure SELinux does not execute for SLES
+      ansible.builtin.set_fact:
+        sap_hana_install_modify_selinux_labels: false
+      when: ansible_os_family == "Suse"
+
     - name: SAP HANA Pre Install - Configure '/hana' SELinux file contexts
       ansible.builtin.include_role:
         name: '{{ sap_hana_install_system_roles_collection }}.selinux'

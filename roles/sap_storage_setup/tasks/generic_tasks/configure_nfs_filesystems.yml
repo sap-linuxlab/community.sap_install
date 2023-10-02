@@ -94,7 +94,10 @@
 # Put temporary tasks inside a block which will make sure
 # that even in case of failure the temporary mountpoint will be removed
 - name: SAP Storage Setup - Temporary steps for NFS directory structure
-  # Block global parameters
+  ### Block global parameters
+  # Stop execution of tasks after this block for any host, if one host
+  # failed a task in this block.
+  any_errors_fatal: true
   vars:
     attach_item: |
       {{ sap_storage_setup_definition
@@ -110,6 +113,7 @@
       register: sap_storage_setup_tmpnfs_register
 
     - name: SAP Storage Setup - ({{ nfs_item.name }}) Attach NFS host root for subdirectory verification/creation
+      throttle: 1   # avoid NFS request flooding and silent timeout failures (observed on MS Azure Files)
       ansible.posix.mount:
         path: "{{ sap_storage_setup_tmpnfs_register.path }}"
         src: "{{ attach_item.nfs_server | default(sap_storage_setup_nfs_server) }}"
@@ -151,6 +155,7 @@
   always:
 
     - name: SAP Storage Setup - ({{ nfs_item.name }}) Remove temporary NFS mount
+      throttle: 1  # avoid NFS request flooding and silent timeout failures (observed on MS Azure Files)
       ansible.posix.mount:
         path: "{{ sap_storage_setup_tmpnfs_register.path }}"
         state: absent
@@ -172,6 +177,7 @@
 # #####
 
 - name: SAP Storage Setup - ({{ nfs_item.name }}) Mount NFS
+  throttle: 1  # avoid NFS request flooding and silent timeout failures (observed on MS Azure Files)
   ansible.posix.mount:
     path: "{{ mount_item.mountpoint }}"
     src: "{{ nfs_server }}/{{ mount_item.mount_src | regex_replace('^/', '') }}"

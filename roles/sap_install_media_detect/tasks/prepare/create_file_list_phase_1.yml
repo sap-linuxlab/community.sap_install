@@ -4,33 +4,49 @@
 # With implicit initialization (by using the default filter), the variables would be appended again if the role
 # was called more than once in a playbook.
 # See https://github.com/sap-linuxlab/community.sap_install/issues/402 .
-- name: SAP Install Media Detect - Prepare - Initialize fact variables
+- name: SAP Install Media Detect - Prepare - Initialize fact variables, phase 1
   ansible.builtin.set_fact:
-    __sap_install_media_detect_fact_find_result: []
+    __sap_install_media_detect_fact_find_result_phase_1: []
     __sap_install_media_detect_fact_files_without_extension: []
     __sap_install_media_detect_fact_files_without_extension_file_results: []
     __sap_install_media_detect_fact_zip_files_without_extension: []
     __sap_install_media_detect_fact_exe_files_without_extension: []
     __sap_install_media_detect_fact_rar_files_without_extension: []
 
-- name: SAP Install Media Detect - Prepare - Create list of all files on the top level of 'sap_install_media_detect_source_directory'
+- name: SAP Install Media Detect - Prepare - Create initial list of all files on the top level of 'sap_install_media_detect_source_directory'
   ansible.builtin.find:
     paths: "{{ sap_install_media_detect_source_directory }}"
     patterns: '*'
     recurse: false
     use_regex: false
-  register: __sap_install_media_detect_register_find_result
+  register: __sap_install_media_detect_register_find_result_phase_1
 
-- name: SAP Install Media Detect - Prepare - Set fact from find result
+- name: SAP Install Media Detect - Prepare - Set fact from find result, phase 1
   ansible.builtin.set_fact:
-    __sap_install_media_detect_fact_find_result: "{{ __sap_install_media_detect_fact_find_result + [item.path] }}"
-  loop: "{{ __sap_install_media_detect_register_find_result.files }}"
+    __sap_install_media_detect_fact_find_result_phase_1: "{{ __sap_install_media_detect_fact_find_result_phase_1 + [item.path] }}"
+  loop: "{{ __sap_install_media_detect_register_find_result_phase_1.files }}"
+
+# If more than one SAPCAR file is found, we will use the last one.
+- name: SAP Install Media Detect - Prepare - Identify sapcar
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_sapcar_path: "{{ sap_install_media_detect_source_directory }}/{{ line_item | basename }}"
+  loop: "{{ __sap_install_media_detect_fact_find_result_phase_1 }}"
+  loop_control:
+    loop_var: line_item
+  when: line_item is search("SAPCAR")
+
+- name: SAP Install Media Detect - Prepare - Ensure sapcar is executable
+  ansible.builtin.file:
+    path: "{{ __sap_install_media_detect_fact_sapcar_path }}"
+    owner: root
+    group: root
+    mode: '0755'
 
 - name: SAP Install Media Detect - Prepare - Set fact with any file names without extension
   ansible.builtin.set_fact:
     __sap_install_media_detect_fact_files_without_extension: "{{ __sap_install_media_detect_fact_files_without_extension + [item] }}"
   when: (item | splitext)[1] | length == 0
-  loop: "{{ __sap_install_media_detect_fact_find_result }}"
+  loop: "{{ __sap_install_media_detect_fact_find_result_phase_1 }}"
 
 - name: SAP Install Media Detect - Prepare - Iterate over files without extension and determine file type
   ansible.builtin.shell: set -o pipefail && file {{ line_item }} | cut -d ' ' -f 2-
@@ -50,24 +66,35 @@
       file: "{{ item.line_item | basename }}"
       file_type: "{{ item.stdout }}"
 
-- name: SAP Install Media Detect - Prepare - Display the file dict
+- name: SAP Install Media Detect - Prepare - Display the file dict, phase 1
   ansible.builtin.debug:
     var: __sap_install_media_detect_fact_files_without_extension_file_results
 
 - name: SAP Install Media Detect - Prepare - Set fact with file names without extension and of type 'Zip archive data'
   ansible.builtin.set_fact:
     __sap_install_media_detect_fact_zip_files_without_extension: "{{ __sap_install_media_detect_fact_zip_files_without_extension + [item] }}"
-  when: item.file_type is search 'Zip archive data'
+  when: item.file_type is search("Zip archive data")
   loop: "{{ __sap_install_media_detect_fact_files_without_extension_file_results }}"
 
 - name: SAP Install Media Detect - Prepare - Set fact with file names without extension and of type 'RAR self-extracting archive'
   ansible.builtin.set_fact:
     __sap_install_media_detect_fact_exe_files_without_extension: "{{ __sap_install_media_detect_fact_exe_files_without_extension + [item] }}"
-  when: item.file_type is search 'RAR self-extracting archive'
+  when: item.file_type is search("RAR self-extracting archive")
   loop: "{{ __sap_install_media_detect_fact_files_without_extension_file_results }}"
 
 - name: SAP Install Media Detect - Prepare - Set fact with file names without extension and of type 'RAR archive data'
   ansible.builtin.set_fact:
     __sap_install_media_detect_fact_rar_files_without_extension: "{{ __sap_install_media_detect_fact_rar_files_without_extension + [item] }}"
-  when: item.file_type is search 'RAR archive data'
+  when: item.file_type is search("RAR archive data")
   loop: "{{ __sap_install_media_detect_fact_files_without_extension_file_results }}"
+
+- name: SAP Install Media Detect - Prepare - Fail if there is a zip or rar file without extension on read-only file system
+  ansible.builtin.fail:
+    msg: "There is at least one zip or rar file without extension on a read-only file system.
+          The file(s) cannot be renamed on this system, and without ending, the extraction of the such files might fail."
+  when:
+    - sap_install_media_detect_source == 'remote_dir'
+    - not __sap_install_media_detect_source_directory_stat.stat.writeable
+    - (__sap_install_media_detect_fact_zip_files_without_extension | length > 0 or
+       __sap_install_media_detect_fact_exe_files_without_extension | length > 0 or
+       __sap_install_media_detect_fact_rar_files_without_extension | length > 0)
