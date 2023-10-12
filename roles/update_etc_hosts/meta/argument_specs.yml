@@ -1,0 +1,63 @@
+---
+# Requires: ansible 2.11
+# Argument specifications in this separate file maintain backwards compatibility.
+argument_specs:
+
+# For required variables using aliases do not work and fail the argument validation.
+
+  main:
+    short_description: Configure /etc/hosts
+    options:
+      update_etc_hosts_list:
+        type: list
+        description:
+          - List of nodes, ip adresses aliases and comments to define in /etc/hosts
+          - This is required for proper local host configuration.
+        elements: dict
+        options:
+          node_ip:
+            description:
+              - IP address of the node
+          node_name:
+            description:
+              - Hostame of the node
+          node_domain:
+            description:
+              - Domainname of the node
+              - _Optional. Defaults to sap_domain_
+          aliases:
+            type: list
+            description:
+              - List of hostname aliases
+            elements: str
+          alias_mode:
+            type: str
+            default: merge
+            choices:
+              - merge
+              - overwrite
+            description:
+              - merges or overwrites the aliases
+          node_comment:
+            description: String which is appended to line in hosts after comment string
+          state:
+            type: str
+            default: present
+            choices:
+              - present
+              - absent
+            description:
+              - Defines if an entry is added or removed from /etc/hosts
+          example:
+            update_etc_hosts_list:
+              - node_ip: 1.2.3.4
+                node_name: host1
+                node_domain: abc.de
+                aliases:
+                  - alias1
+                  - anotheralias2
+                node_comment: "Here comes text after hashsign"
+                state: present
+              - node_ip: 1.2.3.5
+                node_name: host2
+                state: absent

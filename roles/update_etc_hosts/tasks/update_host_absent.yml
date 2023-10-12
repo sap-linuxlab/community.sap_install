@@ -1,0 +1,38 @@
+---
+- name: Verify that variable node_ip is in the correct format
+  ansible.builtin.assert:
+    that: thishost.node_ip is ansible.utils.ip
+    msg: "Variable 'node_ip' is not an IP adress. Please use the correct format"
+  when: thisnode.node_ip is defined
+
+- name: Ensure that the entry all enries in hosts file are removed with IP {{ thishost.node_ip | d('undefined') }}
+  ansible.builtin.lineinfile:
+    path: "{{ __update_etc_hosts_file }}"
+    regexp: '^{{ thishost.node_ip }}\s'
+    state: absent
+    backup: true
+  when:
+    - thishost.node_ip is defined
+    - not ansible_check_mode
+
+- name: Ensure that the entry all enries in hosts file are removed with name {{ thishost.node_name | d('undefined') }}
+  ansible.builtin.lineinfile:
+    path: "{{ __update_etc_hosts_file }}"
+    regexp: '^.*\s{{ thishost.node_name }}\s'
+    state: absent
+    backup: true
+  when:
+    - thishost.node_name is defined
+    - thishost.node_domain is undefined
+    - not ansible_check_mode
+
+- name: Ensure that the entry all enries in hosts file are removed with FQDN
+  ansible.builtin.lineinfile:
+    path: "{{ __update_etc_hosts_file }}"
+    regexp: '^.*\s{{ thishost.node_name + "." + thishost.node_domain }}\s'
+    state: absent
+    backup: true
+  when:
+    - thishost.node_name is defined
+    - thishost.node_domain is defined
+    - not ansible_check_mode

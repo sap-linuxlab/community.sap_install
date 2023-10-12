@@ -1,0 +1,9 @@
+---
+# tasks file for update_etc_hosts
+- name: Add entry to "{{ __update_etc_hosts_file }}"
+  loop: "{{ update_etc_hosts_list }}"
+  loop_control:
+    label: "{{ thishost.node_name }}"
+    loop_var: thishost
+  ansible.builtin.include_tasks:
+    file: update_host_{{ thishost.state | default('present') }}.yml
