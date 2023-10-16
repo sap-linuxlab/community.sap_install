@@ -1,27 +1,21 @@
 `EXPERIMENTAL`
 
-sap_hypervisor_node_preconfigure
-=======================
+# sap_hypervisor_node_preconfigure
 
 This role will configure the following hypervisors in order to run SAP workloads:
-* Redhat Openshift Virtualization (OCPV)
-* Redhat Enterprise Virtualization (RHV) 
+* Red Hat OpenShift Virtualization (OCPV)
+* Red Hat Enterprise Virtualization (RHV) 
 
-Platform: Redhat Openshift Virtualization
-=========================================
+## Platform: Red Hat OpenShift Virtualization
 
-This role will configure a plain vanilla Openshift cluster so it can be used for SAP workloads. 
+This role will configure a plain vanilla OpenShift cluster so it can be used for SAP workloads. 
 
-Requirements
-------------
-A freshly installed Openshift cluster. 
-The worker nodes should have > 96GB of memory. 
-Storage is required, e.g. via NFS, Openshift Data Foundation  or local storage.
-This role can setup access to a Netapp Filer via Trident storage connector. 
-Point the `KUBECONFIG` environment variable to you `kubeconfig`.
-
-
-Install the packages stated in `requirements.txt` on the host where the role runs.
+### Requirements
+* A freshly installed OpenShift cluster. 
+* The worker nodes should have > 96GB of memory. 
+* Storage is required, e.g. via NFS, OpenShift Data Foundation  or local storage. This role can setup access to a Netapp Filer via Trident storage connector. 
+* `kubeconfig` Point the `KUBECONFIG` environment variable to you `kubeconfig`.
+* Required packages: Install the packages stated in `requirements.txt` on the host where the role runs.
 The required packages are:
 ```
 httpd-tools
@@ -29,15 +23,14 @@ ansible-collection-kubernetes-core
 ```
 
 
-Make the role available in case you didn't install it already in an ansible roles directory, e.g.
+* Make the role available in case you didn't install it already in an ansible roles directory, e.g.
 
 ```
 mkdir -p ~/.ansible/roles/
 ln -sf ~/community.sap_install/roles/sap_hypervisor_node_preconfigure ~/.ansible/roles/
 ```
 
-Role Variables
---------------
+### Role Variables
 General variables are defined in sap_hypervisor_node_preconfigure/vars/platform_defaults_redhat_ocp_virt.yml
 ```
 # Install the trident NFS storage provider
@@ -149,32 +142,13 @@ sap_hypervisor_node_preconfigure_cluster_config:
             type: sriov                        
 ```
 
-Dependencies
-------------
-
+### Dependencies
 A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
 
-Example Playbook
-----------------
+### Example Playbook
+See `playbooks/sample-sap-hypervisor-redhat_ocp_virt-preconfigure.yml` for an example.
 
-See `playbooks/sample-sap-hypervisor-redhat_ocp_virt-preconfigure.yml` for this example:
-
-```
----
-- hosts: all
-  gather_facts: true
-  serial: 1
-  vars:
-    sap_hypervisor_node_platform: redhat_ocp_virt
-
-  tasks:
-    - name: Include Role
-      ansible.builtin.include_role:
-        name: sap_hypervisor_node_preconfigure
-```
-
-Example Usage
--------------
+### Example Usage
 Make sure to set the `KUBECONFIG` environment variable, e.g.
 ```
 export KUBECONFIG=~/.kubeconfig
@@ -185,17 +159,14 @@ ansible-playbook --connection=local -i localhost,  playbooks/sample-sap-hypervis
 ```
 
 
-Platform: RHEL KVM
-===================
-set and check the required settings and parameters for a hypervisor running VMs for SAP HANA.
+## Platform: RHEL KVM
+This Ansible Role allows preconfigure of Red Hat Virtualization (RHV), formerly called Red Hat Enterprise Virtualization (RHEV) prior to version 4.4 release. Red Hat Virtualization (RHV) consists of 'Red Hat Virtualization Manager (RHV-M)' and the 'Red Hat Virtualization Host (RHV-H)' hypervisor nodes that this Ansible Role preconfigures. Please note, Red Hat Virtualization is discontinued and available until mid-2024 in Maintenance support or mid-2026 in Extended Life support.
+This Ansible Role does not preconfigure RHEL KVM (RHEL-KVM) hypervisor nodes. Please note that RHEL KVM is standalone, and does not have Management tooling (previously provided by RHV-M).
 
-Requirements
-------------
-A RHV hypervisor. 
+### Requirements
+* A RHV hypervisor. 
 
-Role Variables
---------------
-
+### Role Variables
 `sap_hypervisor_node_preconfigure_reserved_ram (default: 100)` Reserve memory [GB] for hypervisor host. Depending in the use case should be at least 50-100GB. 
 
 `sap_hypervisor_node_preconfigure_reserve_hugepages (default: static)` Hugepage allocation method: {static|runtime}.
@@ -227,9 +198,7 @@ runtime: done with hugeadm which is faster, but can in some cases not ensure all
 `sap_hypervisor_node_preconfigure_run_grub2_mkconfig (default: yes)` Update the grub2 config.
 
 
-Example Playbook
-----------------
-
+### Example Playbook
 Simple example that just sets the parameters.
 ```
 ---
@@ -258,12 +227,8 @@ Run in assert mode to verify that parameters have been set.
       ansible.builtin.include_role:
         name: sap_hypervisor_node_preconfigure
 ```
-License
--------
-
+### License
 Apache 2.0
 
-Author Information
-------------------
-
+### Author Information
 Nils Koenig (nkoenig@redhat.com)
