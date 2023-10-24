@@ -13,7 +13,7 @@ This role will configure a plain vanilla OpenShift cluster so it can be used for
 ### Requirements
 * A freshly installed OpenShift cluster. 
 * The worker nodes should have > 96GB of memory. 
-* Storage is required, e.g. via NFS, OpenShift Data Foundation  or local storage. This role can setup access to a Netapp Filer via Trident storage connector. 
+* Storage is required, e.g. via NFS, OpenShift Data Foundation or local storage. This role can setup access to a Netapp Filer via Trident storage connector. 
 * Point the `KUBECONFIG` environment variable to your `kubeconfig`.
 * Required packages: Install the packages stated in `requirements.txt` on the host where the role runs.
 The required packages are:
