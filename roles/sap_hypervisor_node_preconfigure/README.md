@@ -142,9 +142,6 @@ sap_hypervisor_node_preconfigure_cluster_config:
             type: sriov                        
 ```
 
-### Dependencies
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
-
 ### Example Playbook
 See `playbooks/sample-sap-hypervisor-redhat_ocp_virt-preconfigure.yml` for an example.
 
