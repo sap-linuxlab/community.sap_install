@@ -46,7 +46,7 @@ sap_hypervisor_node_preconfigure_hypervisor_reserved_ram_host_ge_512: 64 #GB
 # Amount of memory [GB] to be reserved for the hypervisor on hosts < 512GB
 sap_hypervisor_node_preconfigure_hypervisor_reserved_ram_host_lt_512: 32 #GB
 
-# Should the check for the minimal amount of be ignored? Minimal amount is 96 GB
+# Should the check for the minimal amount of memory be ignored? Minimal amount is 96 GB
 # If ignored, the amount of $hostmemory - $reserved is allocated with a lower bound of 0 in case $reserved > $hostmemory
 sap_hypervisor_node_preconfigure_ignore_minimal_memory_check: False
 ```
