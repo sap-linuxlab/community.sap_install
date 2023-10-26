@@ -15,14 +15,7 @@ This role will configure a plain vanilla OpenShift cluster so it can be used for
 * The worker nodes should have > 96GB of memory. 
 * Storage is required, e.g. via NFS, OpenShift Data Foundation or local storage. This role can setup access to a Netapp Filer via Trident storage connector. 
 * Point the `KUBECONFIG` environment variable to your `kubeconfig`.
-* Required packages: Install the packages stated in `requirements.txt` on the host where the role runs.
-The required packages are:
-```
-httpd-tools
-ansible-collection-kubernetes-core
-```
-
-
+* Required packages: This roles uses the kubernetes ansible module, this can be installed via the package`ansible-collection-kubernetes-core`.
 * Make the role available in case you didn't install it already in an ansible roles directory, e.g.
 
 ```
@@ -33,13 +26,14 @@ ln -sf ~/community.sap_install/roles/sap_hypervisor_node_preconfigure ~/.ansible
 ### Role Variables
 General variables are defined in sap_hypervisor_node_preconfigure/vars/platform_defaults_redhat_ocp_virt.yml
 ```
-# Install the trident NFS storage provider
-sap_hypervisor_node_preconfigure_install_trident: False
+# Install the trident NFS storage provider. If yes, expects configuration details under
+# sap_hypervisor_node_preconfigure_cluster_config.trident, see example config.
+sap_hypervisor_node_preconfigure_install_trident: True|False
 # URL of the trident installer package to use
 sap_hypervisor_node_preconfigure_install_trident_url: https://github.com/NetApp/trident/releases/download/v23.01.0/trident-installer-23.01.0.tar.gz
 
 # should SRIOV be enabled for unsupported NICs
-sap_hypervisor_node_preconfigure_sriov_enable_unsupported_nics: True
+sap_hypervisor_node_preconfigure_sriov_enable_unsupported_nics: True|False
 
 # Amount of memory [GB] to be reserved for the hypervisor on hosts >= 512GB
 sap_hypervisor_node_preconfigure_hypervisor_reserved_ram_host_ge_512: 64 #GB
@@ -48,7 +42,12 @@ sap_hypervisor_node_preconfigure_hypervisor_reserved_ram_host_lt_512: 32 #GB
 
 # Should the check for the minimal amount of memory be ignored? Minimal amount is 96 GB
 # If ignored, the amount of $hostmemory - $reserved is allocated with a lower bound of 0 in case $reserved > $hostmemory
-sap_hypervisor_node_preconfigure_ignore_minimal_memory_check: False
+sap_hypervisor_node_preconfigure_ignore_minimal_memory_check: True|False
+
+# Define if the host path provisioner should be installed in order to use a local disk as storage device.
+# Uses the following variable to be set to the storage device to be used, e.g.:
+# sap_hypervisor_node_preconfigure_cluster_config.worker_localstorage_device: /dev/sdb 
+sap_hypervisor_node_preconfigure_install_hpp: True|False
 ```
 
 The following variables are describing the nodes and networks to be used. It can make sense to have them in a seperate file, e.g. see `playbooks/vars/sample-variables-sap-hypervisor-node-preconfigure-rh_ocp_virt.yml` for an example. 
@@ -74,11 +73,14 @@ sap_hypervisor_node_preconfigure_cluster_config:
     storage_driver: ontap-nas
     storage_prefix: ocpv_sap_
 
+  # CPU cores which will be reserved for kubernetes
+  worker_kubernetes_reserved_cpus: "0,1"
+
+  # Storage device used for host path provisioner as local storage.
+  worker_localstorage_device: /dev/vdb
+
   # detailed configuration for every worker that should be configured
   workers:
-      kubernetes_reserved_cpus: "0,1"   # CPU cores reserved for
-                                         # kubernetes
-
       - name: worker-0                   # name must match the node name
         networks:                        # Example network config
           - name: sapbridge              # using a bridge
