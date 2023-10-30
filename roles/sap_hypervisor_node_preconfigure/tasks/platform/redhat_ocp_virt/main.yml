@@ -26,7 +26,7 @@
 - name: Assert that configured nodes are found
   ansible.builtin.assert:
     that: __sap_hypervisor_node_preconfigure_register_nodes is defined
-    fail_msg: No nodes found that match configuration provided in sap_hypervisor_node_preconfigure_cluster
+    fail_msg: No nodes found that match configuration provided in sap_hypervisor_node_preconfigure_cluster_config
     success_msg: Configured nodes found
 
 # Determine available memory on first worker node. 
@@ -59,8 +59,6 @@
   ansible.builtin.set_fact:
     __sap_hypervisor_node_preconfigure_register_worker_reserved_hugepages: "{{ __sap_hypervisor_node_preconfigure_register_worker_memory_gb | int - sap_hypervisor_node_preconfigure_hypervisor_reserved_ram_host_ge_512 }}"
   when: __sap_hypervisor_node_preconfigure_register_worker_memory_gb|int >= 512
-
-# - meta: end_play
 
 - name: Include prepare
   ansible.builtin.include_tasks: prepare.yml
