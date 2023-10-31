@@ -1,9 +1,8 @@
----
-# TODO CHECK/SET Variables
+--- # trunk-ignore(checkov/CKV2_ANSIBLE_3)
 - name: Verify that variable node_ip is set
   ansible.builtin.assert:
     that: not( ( thishost.node_ip is undefined) or ( thishost.node_ip is none) or ( thishost.node_ip | trim == '') )
-    msg: "Variable 'node_ip' is undefined or empty. Please define it your host list"
+    msg: "Variable 'node_ip' is undefined or empty. Please define it in your host list."
 
 - name: Verify that variable node_ip is in the correct format
   ansible.builtin.assert:
@@ -17,15 +16,16 @@
 
 - name: Ensure node_domain is set
   ansible.builtin.set_fact:
-    __update_etc_hosts_domain: "{{ thishost.node_domain | default(sap_domain | default(ansible_domain)) }}"
+    __update_etc_hosts_domain: "{{ thishost.node_domain | default(sap_domain) | default(ansible_domain) }}"
 
+# Necessary, if defaults are both undefined
 - name: Verify that variable domain_name is set
   ansible.builtin.assert:
     that: >
       not( ( __update_etc_hosts_domain is undefined) or
       ( __update_etc_hosts_domain is none) or
       ( __update_etc_hosts_domain | trim == '') )
-    msg: "Variable 'node_name' is undefined or empty. Please define it your host list"
+    msg: "Variable 'domain_name' is undefined or empty. Please define it your host list"
 
 - name: Set default values
   ansible.builtin.set_fact:
@@ -37,6 +37,17 @@
   ansible.builtin.set_fact:
     __update_etc_hosts_comment: "# {{ __update_etc_hosts_comment }}"
 
+# The following block reads the existing aliases of a host from /etc/hosts
+# and merges it with the defined aliases in the struct
+#
+# 1. select the line, where the first entry is the ip-adress thishost.node_ip
+# 2. loop over all hostname entries in the selected line (2 bis NF=last element in line)
+# 3. stop looping when a comment sign is found (because these are comments)
+# 4. print an element, if it is not the hostname or FQDN we want to add
+#
+# => __update_etc_hosts_register_aliases.stdout contains a list of aliases of thishost.node_ip
+#
+# trunk-ignore(checkov/CKV2_ANSIBLE_3)
 - name: Merge existing aliases with new alis list
   when: __update_etc_hosts_alias_mode != "overwrite"
   block:
@@ -50,6 +61,7 @@
         }' "{{ __update_etc_hosts_file }}"
       register: __update_etc_hosts_register_aliases
       changed_when: false
+
     - name: Add defined aliases
       ansible.builtin.set_fact:
         __update_etc_hosts_aliases: "{{ (__update_etc_hosts_register_aliases.stdout.split(' ') + thishost.aliases | d([])) | unique | join(' ') }}"
@@ -101,6 +113,8 @@
   when:
     - not ansible_check_mode
     - __update_etc_hosts_register_duplicate_ip_check.rc == 0
+  become_user: root
+  become: true
 
 - name: Check for duplicate or missing entries of hostname and fqdn in {{ __update_etc_hosts_file }}
   ansible.builtin.shell: |
@@ -111,8 +125,8 @@
       exit 1
     fi
   loop:
-    - '{{ thishost.node_name }}.{{ __update_etc_hosts_domain }}'
-    - '{{ thishost.node_name }}'
+    - "{{ thishost.node_name }}.{{ __update_etc_hosts_domain }}"
+    - "{{ thishost.node_name }}"
   changed_when: false
   loop_control:
     loop_var: line_item
@@ -127,13 +141,14 @@
 
     - name: Display the output of the hosts file completeness check
       ansible.builtin.debug:
-        var: __update_etc_hosts_register_ipv4_fqdn_sap_hostname_once_check.stdout_lines,
-              __update_etc_hosts_register_ipv4_fqdn_sap_hostname_once_check.stderr_lines
+        var:
+          __update_etc_hosts_register_ipv4_fqdn_sap_hostname_once_check.stdout_lines,
+          __update_etc_hosts_register_ipv4_fqdn_sap_hostname_once_check.stderr_lines
 
     - name: Display the expected output of the hosts file completeness check
       ansible.builtin.debug:
         msg:
-          - "Expected:"
+          - "The minimum expected entries in {{ __update_etc_hosts_file }} are:"
           - "{{ thishost.node_ip }} {{ thishost.node_name }}.{{ __update_etc_hosts_domain }} {{ thishost.node_name }}"
       when:
         - __update_etc_hosts_register_ipv4_fqdn_sap_hostname_once_check.stdout != "1"

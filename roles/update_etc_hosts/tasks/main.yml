@@ -1,5 +1,18 @@
 ---
 # tasks file for update_etc_hosts
+- name: Ensure required defaults are read from setup module
+  when: >
+    not ((ansible_hostname is defined) and
+    (ansible_domain is defined) and
+    (ansible_default_ipv4 is defined))
+  ansible.builtin.setup:
+    filter:
+      - 'ansible_hostname'
+      - 'ansible_domain'
+      - 'ansible_default_ipv4'
+
+# TODO: Double Check that list entries with state present do not have duplicate IP adresses
+
 - name: Add entry to "{{ __update_etc_hosts_file }}"
   loop: "{{ update_etc_hosts_list }}"
   loop_control:
