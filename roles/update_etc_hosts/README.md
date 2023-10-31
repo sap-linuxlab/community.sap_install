@@ -41,7 +41,8 @@ If you want to setup/add entries your etc hosts you can use this snippet
                   comment: "Here comes text after hashsign" (defaults to hana_site)
                   state: present
                 - node_ip: 1.2.3.5
-                  node_name: host2
+                  state: absent
+                - node_name: host2
                   state: absent
 ```
 
