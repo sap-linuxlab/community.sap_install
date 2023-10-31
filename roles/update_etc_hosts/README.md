@@ -1,7 +1,7 @@
 Role Name
 =========
 
-This role can be used to reliably update teh /etc/hosts file
+This role can be used to reliably update the /etc/hosts file
 
 <!---
 Requirements
@@ -43,7 +43,7 @@ If you want to setup/add entries your etc hosts you can use this snippet
                   node_name: host2
                   state: absent
 ```
-If you have defined a cluster and the variable `sap_ha_pacemaker_cluster_cluster_nodes` or `sap_hana_cluster_nodes` is set, you can use the follwoing play:
+If you have defined a cluster and the variable `sap_ha_pacemaker_cluster_cluster_nodes` or `sap_hana_cluster_nodes` is set, you can use the following play:
 
 ```[yaml]
 - name: ensure all cluster nodes are in /etc/hosts

@@ -29,7 +29,7 @@
 
 - name: Set default values
   ansible.builtin.set_fact:
-    __update_etc_hosts_comment: "{{ ( thishost.node_comment|d('') + ' ' + thishost.hana_site|d('') ) | trim }}"
+    __update_etc_hosts_comment: "{{ (thishost.node_comment | d('') + ' ' + thishost.hana_site | d('')) | trim }}"
     __update_etc_hosts_alias_mode: "{{ thishost.alias_mode | default('merge') }}"
 
 - name: Prepend Hashtag to comment
@@ -37,7 +37,7 @@
   ansible.builtin.set_fact:
     __update_etc_hosts_comment: "# {{ __update_etc_hosts_comment }}"
 
-- name: merge existing aliases with new alis list
+- name: Merge existing aliases with new alis list
   when: __update_etc_hosts_alias_mode != "overwrite"
   block:
     - name: Get all existing hostname aliases of {{ thishost.node_ip }}
@@ -52,12 +52,12 @@
       changed_when: false
     - name: Add defined aliases
       ansible.builtin.set_fact:
-        __update_etc_hosts_aliases: "{{ (__update_etc_hosts_register_aliases.stdout.split(' ') + thishost.aliases|d([]))|unique|join(' ') }}"
+        __update_etc_hosts_aliases: "{{ (__update_etc_hosts_register_aliases.stdout.split(' ') + thishost.aliases | d([])) | unique | join(' ') }}"
 
 - name: Overwrite existing aliases
   when: __update_etc_hosts_alias_mode == "overwrite"
   ansible.builtin.set_fact:
-    __update_etc_hosts_aliases: "{{ thishost.node_aliases|d([])|unique|join(' ') }}"
+    __update_etc_hosts_aliases: "{{ thishost.node_aliases | d([]) | unique | join(' ') }}"
 
 - name: Display host and domain name, and IP address before the modification
   ansible.builtin.debug:
@@ -90,7 +90,7 @@
       - "More than one line containing {{ thishost.node_ip }}. File {{ __update_etc_hosts_file }} will not be modified."
   when:
     - not ansible_check_mode
-    - __update_etc_hosts_register_duplicate_ip_check.stdout == 'Duplicate IP entry in {{ __update_etc_hosts_file }}!'
+    - __update_etc_hosts_register_duplicate_ip_check.rc == 1
 
 - name: Ensure that the entry in hosts file is correct
   ansible.builtin.lineinfile:
@@ -100,7 +100,7 @@
     backup: true
   when:
     - not ansible_check_mode
-    - __update_etc_hosts_register_duplicate_ip_check.stdout != 'Duplicate IP entry in {{ __update_etc_hosts_file }}!'
+    - __update_etc_hosts_register_duplicate_ip_check.rc == 0
 
 - name: Check for duplicate or missing entries of hostname and fqdn in {{ __update_etc_hosts_file }}
   ansible.builtin.shell: |
