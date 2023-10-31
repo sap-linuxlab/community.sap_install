@@ -104,6 +104,23 @@
     - not ansible_check_mode
     - __update_etc_hosts_register_duplicate_ip_check.rc == 1
 
+- name: Ensure that thisthost.node_name is not part of the localhost entry
+  ansible.builtin.replace:
+    path: "{{ __update_etc_hosts_file }}"
+    regexp: '^(127.0.0.1 .*)\s{{ line_item }}(\s.*)$'
+    replace: '\1\2'
+    backup: true
+  when:
+    - not ansible_check_mode
+    - __update_etc_hosts_register_duplicate_ip_check.rc == 0
+  become_user: root
+  become: true
+  loop:
+    - "{{ thishost.node_name }}.{{ __update_etc_hosts_domain }}"
+    - "{{ thishost.node_name }}"
+  loop_control:
+    loop_var: line_item
+
 - name: Ensure that the entry in hosts file is correct
   ansible.builtin.lineinfile:
     path: "{{ __update_etc_hosts_file }}"
