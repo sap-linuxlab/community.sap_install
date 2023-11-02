@@ -8,7 +8,7 @@ This role will configure the following hypervisors in order to run SAP workloads
 
 ## Platform: Red Hat OpenShift Virtualization
 
-This role will configure a plain vanilla OpenShift cluster so it can be used for SAP workloads. 
+Will configure a plain vanilla OpenShift cluster so it can be used for SAP workloads. 
 
 ### Requirements
 * A freshly installed OpenShift cluster. 
