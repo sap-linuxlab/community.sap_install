@@ -164,8 +164,6 @@ NW_GetMasterPassword.masterPwd = {{ sap_swpm_master_password }}
 # '<sapsid>adm' user
 nwUsers.sidadmPassword = {{ sap_swpm_sap_sidadm_password }}
 
-NW_DDIC_Password.ddic000Password = {{ sap_swpm_ddic_000_password }}
-
 DiagnosticsAgent.dasidAdmPassword = {{ sap_swpm_diagnostics_agent_password }}
 
 # 'sapadm' user of the SAP Host Agent
@@ -250,6 +248,16 @@ HDB_Userstore.useABAPSSFS = false
 # NW_HDB_DBClient.clientPathStrategy = LOCAL
 {% endif %}
 
+{% if 'credentials_syscopy' in sap_swpm_inifile_list %}
+######
+# credentials_syscopy
+######
+# Are the passwords for the DDIC users different from the default value?
+NW_DDIC_Password.needDDICPasswords = true
+NW_DDIC_Password.ddic000Password = {{ sap_swpm_ddic_000_password }}
+#NW_DDIC_Password.ddic001Password =
+{% endif %}
+
 {% if 'db_config_hana' in sap_swpm_inifile_list %}
 ######
 # db_config_hana
@@ -272,7 +280,6 @@ HDB_Schema_Check_Dialogs.validateSchemaName = false
 # db_config_anydb_all
 ######
 NW_ABAP_Import_Dialog.dbCodepage = 4103
-NW_DDIC_Password.needDDICPasswords = true
 {% endif %}
 
 {% if 'db_config_anydb_ibmdb2' in sap_swpm_inifile_list %}
@@ -441,8 +448,10 @@ NW_Recovery_Install_HDB.sidAdmPassword = {{ sap_swpm_db_sidadm_password }}
 # db6.UseDb2SSLClientServerComm = false
 # nwUsers.db6.sapsidUid =
 nwUsers.db6.sapsidPassword = {{ sap_swpm_sapadm_password }}
-NW_DB6_DB.db6.abap.connect.user = sap{{ sap_swpm_db_sid | lower }}
-NW_DB6_DB.db6.abap.schema = sap{{ sap_swpm_db_sid | lower }}
+
+# Database Schema and Database Connect User for ABAP (default is sap<sapsid> and not sap<anydbsid>)
+NW_DB6_DB.db6.abap.connect.user = sap{{ sap_swpm_sid | lower }}
+NW_DB6_DB.db6.abap.schema = sap{{ sap_swpm_sid | lower }}
 {% endif %}
 
 {% if 'db_connection_nw_anydb_oracledb' in sap_swpm_inifile_list %}
@@ -698,17 +707,29 @@ NW_CI_Instance_ABAP_Reports.enableActivateICFService = true
 # SAP INTERNAL USE ONLY
 # NW_CI_Instance_ABAP_Reports.enableTransportsWithoutStackXml = false
 
-# Specify new password of the DDIC user in client 000, different from Master Password
-# NW_CI_Instance_ABAP_Reports.ddic000Password =
-
 # Need specific new password of the DDIC user in client 000, different from Master Password
 # NW_CI_Instance_ABAP_Reports.needNewDDIC000Password = false
+
+# Need specific new password of the DDIC user in client 001, different from Master Password
+# NW_CI_Instance_ABAP_Reports.needNewDDIC001Password = false
 
 # Need specific new password of the SAP* user in client 000, different from Master Password
 # NW_CI_Instance_ABAP_Reports.needNewSapStar000Password = false
 
+# Need specific new password of the SAP* user in client 001, different from Master Password
+# NW_CI_Instance_ABAP_Reports.needNewSapStar001Password = false
+
+# Specify new password of the DDIC user in client 000, different from Master Password
+# NW_CI_Instance_ABAP_Reports.ddic000Password =
+
+# Specify new password of the DDIC user in client 001, different from Master Password
+# NW_CI_Instance_ABAP_Reports.ddic001Password =
+
 # Specify new password of the SAP* user in client 000, different from Master Password
 # NW_CI_Instance_ABAP_Reports.sapStar000Password =
+
+# Specify new password of the SAP* user in client 001, different from Master Password
+# NW_CI_Instance_ABAP_Reports.sapStar001Password =
 {% endif %}
 
 {% if 'nw_config_livecache' in sap_swpm_inifile_list %}
