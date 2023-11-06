@@ -13,7 +13,7 @@ $ cat ./test.hostsfile
 Then you can run the role with
 
 ```[bash]
-ansible-playbook -K test.yml -e _update_etc_hosts_file=./test.hostsfile
+ansible-playbook -K test.yml -e __update_etc_hosts_file=./test.hostsfile
 ```
 
 The result should look like:

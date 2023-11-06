@@ -33,17 +33,17 @@ If you want to setup/add entries your etc hosts you can use this snippet
   include_role: sap_update_etc_hosts
   var:
         update_etc_hosts_list:
+                - node_ip: 1.2.3.5
+                  state: absent
+                - node_name: host2
+                  state: absent
                 - node_ip: 1.2.3.4
                   node_name: host1
                   aliases:
                     - alias1
                     - anotheralias2
-                  comment: "Here comes text after hashsign" (defaults to hana_site)
+                  node_comment: "Here comes text after hashsign" (defaults to hana_site)
                   state: present
-                - node_ip: 1.2.3.5
-                  state: absent
-                - node_name: host2
-                  state: absent
 ```
 
 If you have defined a cluster and the variable `sap_ha_pacemaker_cluster_cluster_nodes` or `sap_hana_cluster_nodes` is set, you can use the following play:
@@ -52,7 +52,7 @@ If you have defined a cluster and the variable `sap_ha_pacemaker_cluster_cluster
 - name: ensure all cluster nodes are in /etc/hosts
   include_role: update_etc_hosts
   var:
-        update_etc_hosts_list: "{{ sap_hana_cluster_nodes }}
+        update_etc_hosts_list: "{{ sap_hana_cluster_nodes }}"
 ```
 
 License

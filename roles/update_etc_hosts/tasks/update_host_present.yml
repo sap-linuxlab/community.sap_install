@@ -48,7 +48,7 @@
 # => __update_etc_hosts_register_aliases.stdout contains a list of aliases of thishost.node_ip
 #
 # trunk-ignore(checkov/CKV2_ANSIBLE_3)
-- name: Merge existing aliases with new alis list
+- name: Merge existing aliases with new alias list
   when: __update_etc_hosts_alias_mode != "overwrite"
   block:
     - name: Get all existing hostname aliases of {{ thishost.node_ip }}
@@ -56,7 +56,7 @@
         awk '( $1 == "{{ thishost.node_ip }}" ) {
           for (i=2; i<=NF; ++i) {
             if ( $i == "#" ) { break }
-            if (( $i != "{{ thishost.node_name }}" ) && ( $i != "{{ thishost.node_name }}.{{ __update_etc_hosts_domain }}" )) { printf " "$i }
+            if (( $i != "{{ thishost.node_name }}" ) && ( $i != "{{ thishost.node_name }}.{{ __update_etc_hosts_domain }}" )) { printf("%s ",$i) }
           }
         }' "{{ __update_etc_hosts_file }}"
       register: __update_etc_hosts_register_aliases
@@ -64,7 +64,7 @@
 
     - name: Add defined aliases
       ansible.builtin.set_fact:
-        __update_etc_hosts_aliases: "{{ (__update_etc_hosts_register_aliases.stdout.split(' ') + thishost.aliases | d([])) | unique | join(' ') }}"
+        __update_etc_hosts_aliases: "{{ (__update_etc_hosts_register_aliases.stdout.split(' ') + thishost.aliases | d([])) | unique | join(' ')| trim }}"
 
 - name: Overwrite existing aliases
   when: __update_etc_hosts_alias_mode == "overwrite"

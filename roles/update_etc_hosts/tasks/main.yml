@@ -1,5 +1,32 @@
 ---
 # tasks file for update_etc_hosts
+#- name: Double check that list entries with state present do not have duplicate IP adresses
+#  ansible.builtin.assert:
+#    that:
+#     - {{ update_etc_hosts_list | selectattr('state') }}
+- name: Get IP address list of hosts to be added
+  ansible.builtin.set_fact:
+    #__update_etc_hosts_present_ip: "{{ update_etc_hosts_list | selectattr('state', 'undefined','state', 'equalto','present' ) | map(attribute='node_ip') | list }}"
+    __update_etc_hosts_present_ip: "{% for node in update_etc_hosts_list %}\
+                                      {% if (node.state is undefined) or (node.state == 'present') %}\
+                                        {{ node.node_ip + '  ' }}\
+                                      {% endif %}\
+                                    {% endfor %}"
+  when: update_etc_hosts_list is defined
+
+- name: Debug list of IPs
+  ansible.builtin.debug:
+    var: __update_etc_hosts_present_ip.split[' ']
+  when:
+    - __update_etc_hosts_present_ip is defined
+
+- name: Ensure no duplicate IPs are in the list
+  ansible.builtin.assert:
+    that: "{{ (__update_etc_hosts_present_ip.split(' ') | length) == (__update_etc_hosts_present_ip.split(' ') | unique | length) }}"
+    msg: "You have defined duplicate ip adresses to create"
+  when:
+    - __update_etc_hosts_present_ip is defined
+
 - name: Ensure required defaults are read from setup module
   when: >
     not ((ansible_hostname is defined) and
@@ -16,7 +43,19 @@
       - 'ansible_domain'
       - 'ansible_default_ipv4'
 
-# TODO: Double Check that list entries with state present do not have duplicate IP adresses
+# when update_etc_hostlist empty, set defaults for local host
+- name: Ensure update_etc_hostlist is not empty
+  when: >
+    ( update_etc_hostlist is undefined) or
+    ( update_etc_hostlist is none) or
+    ( update_etc_hostlist | trim == '') )
+  ansible.builtin.set_fact:
+    update_etc_hosts_list:
+      - node_ip: "{{ ansible_default_ipv4.address }}"
+        node_name: "{{ ansible_hostname }}"
+        node_domain: "{{ sap_domain | default(ansible_domain) }}"
+        node_comment: "managed by ansible update_etc_hosts role"
+        state: present
 
 - name: Add entry to "{{ __update_etc_hosts_file }}"
   loop: "{{ update_etc_hosts_list }}"

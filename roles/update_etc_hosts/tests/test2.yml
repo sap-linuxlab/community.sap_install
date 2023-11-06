@@ -23,8 +23,15 @@
         state: present
       - node_ip: 1.2.3.5
         state: absent
-      - node_name: host2
-        state: absent
 
-  roles:
-    - update_etc_hosts
+  tasks:
+    - name: Remove dictionary entries
+      ansible.builtin.set_fact:
+        mydictlist_filtered: "{{ update_etc_hosts_list | reject('search', 'item.hana_something') | list }}"
+        #mydictlist_filtered: "{{ update_etc_hosts_list |  map('combine', {'node_ip': item.node_ip, 'state': item.state|d('present')}) | list }}"
+      loop: "{{ update_etc_hosts_list }}"
+
+    - name: Debug variable mydictlist_filtered
+      ansible.builtin.debug:
+        var: mydictlist_filtered
+
