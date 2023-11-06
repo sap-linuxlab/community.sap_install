@@ -22,7 +22,6 @@ Will configure a plain vanilla OpenShift cluster so it can be used for SAP workl
 mkdir -p ~/.ansible/roles/
 ln -sf ~/community.sap_install/roles/sap_hypervisor_node_preconfigure ~/.ansible/roles/
 ```
-
 ### Dependencies
 
 Needs the ansible kubernetes module and the python3 kubernetes binding. On a RHEL based system the are named
@@ -55,7 +54,6 @@ sap_hypervisor_node_preconfigure_ignore_minimal_memory_check: True|False
 # sap_hypervisor_node_preconfigure_cluster_config.worker_localstorage_device: /dev/sdb 
 sap_hypervisor_node_preconfigure_install_hpp: True|False
 ```
-
 The following variables are describing the nodes and networks to be used. It can make sense to have them in a seperate file, e.g. see `playbooks/vars/sample-variables-sap-hypervisor-node-preconfigure-rh_ocp_virt.yml` for an example. 
 ```
 sap_hypervisor_node_preconfigure_cluster_config:
@@ -163,9 +161,8 @@ To invoke the example playbook with the example configuration using your localho
 ansible-playbook --connection=local -i localhost,  playbooks/sample-sap-hypervisor-redhat_ocp_virt-preconfigure.yml -e @s/sample-sap-hypervisor-redhat_ocp_virt-preconfigure.yml
 ```
 
-
 ## Platform: RHEL KVM
-This Ansible Role allows preconfigure of Red Hat Virtualization (RHV), formerly called Red Hat Enterprise Virtualization (RHEV) prior to version 4.4 release. Red Hat Virtualization (RHV) consists of 'Red Hat Virtualization Manager (RHV-M)' and the 'Red Hat Virtualization Host (RHV-H)' hypervisor nodes that this Ansible Role preconfigures. Please note, Red Hat Virtualization is discontinued and available until mid-2024 in Maintenance support or mid-2026 in Extended Life support.
+This Ansible Role allows preconfigure of Red Hat Virtualization (RHV), formerly called Red Hat Enterprise Virtualization (RHEV) prior to version 4.4 release. Red Hat Virtualization (RHV) consists of 'Red Hat Virtualization Manager (RHV-M)' and the 'Red Hat Virtualization Host (RHV-H)' hypervisor nodes that this Ansible Role preconfigures. Please note, Red Hat Virtualization is discontinued and maintenance support will end mid-2024. Extended life support for RHV ends mid-2026.
 This Ansible Role does not preconfigure RHEL KVM (RHEL-KVM) hypervisor nodes. Please note that RHEL KVM is standalone, and does not have Management tooling (previously provided by RHV-M).
 
 ### Requirements

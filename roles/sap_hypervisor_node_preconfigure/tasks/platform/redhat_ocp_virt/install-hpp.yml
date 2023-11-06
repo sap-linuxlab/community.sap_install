@@ -1,20 +1,21 @@
+---
 - name: Create systemd files for local storage handling
   kubernetes.core.k8s:
     state: present
     definition:
-        apiVersion: machineconfiguration.openshift.io/v1
-        kind: MachineConfig
-        metadata:
-          annotations:
-          labels:
-            machineconfiguration.openshift.io/role: worker
-          name: 50-hpp-local
-        spec:
-          config:
-            ignition:
-              version: 2.2.0
-            systemd:
-              units:
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfig
+      metadata:
+        annotations:
+        labels:
+          machineconfiguration.openshift.io/role: worker
+        name: 50-hpp-local
+      spec:
+        config:
+          ignition:
+            version: 2.2.0
+          systemd:
+            units:
               - contents: |
                   [Unit]
                   Description=Create mountpoint /var/localstorage and initialize filesystem
@@ -66,8 +67,8 @@
       spec:
         imagePullPolicy: IfNotPresent
         storagePools:
-        - name: localstorage
-          path: /var/localstorage
+          - name: localstorage
+            path: /var/localstorage
       workload:
         nodeSelector:
           kubernetes.io/os: linux
@@ -88,6 +89,3 @@
       volumeBindingMode: WaitForFirstConsumer
       parameters:
         storagePool: localstorage
-
-
-
