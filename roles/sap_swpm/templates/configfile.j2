@@ -183,6 +183,7 @@ storageBasedCopy.hdb.systemPassword = {{ sap_swpm_db_system_password }}
 # credentials_anydb_ibmdb2
 ######
 nwUsers.db6.db2sidPassword = {{ sap_swpm_sap_sidadm_password }}
+# nwUsers.db6.db2sidUid =
 {% endif %}
 
 {% if 'credentials_anydb_oracledb' in sap_swpm_inifile_list %}
@@ -293,6 +294,10 @@ NW_getDBInfoGeneric.dbsid = {{ sap_swpm_db_sid }}
 NW_getUnicode.isUnicode = true
 # db6.useMcod = true
 # db6.useBluSettings = false
+# db6.gid_sysadm =
+# db6.gid_sysctrl =
+# db6.gid_sysmaint =
+# db6.gid_sysmon =
 db6.allowUnsignedDatabaseSoftware = true
 db6.cluster.ClusterType = HADR (High Availability Disaster Recovery)
 db6.createTablespacesUsingSapinst = true
@@ -302,7 +307,6 @@ db6.useAutoStorage = true
 db6.useExtraSapdataSaptmpDirLayout = false
 db6.UseStandardTablespacePool = true
 db6.usesLDAP = false
-# nwUsers.db6.db2sidUid =
 storageBasedCopy.db6.CommunicationPortNumber = 5912
 storageBasedCopy.db6.PortRangeEnd = 5917
 storageBasedCopy.db6.PortRangeStart = 5914
@@ -446,12 +450,17 @@ NW_Recovery_Install_HDB.sidAdmPassword = {{ sap_swpm_db_sidadm_password }}
 # db_connection_nw_anydb_ibmdb2
 ######
 # db6.UseDb2SSLClientServerComm = false
-# nwUsers.db6.sapsidUid =
 nwUsers.db6.sapsidPassword = {{ sap_swpm_sapadm_password }}
+# nwUsers.db6.sapsidUid =
+
+# nwUsers.db6.sapsiddbPassword =
+# nwUsers.db6.sapsiddbUid =
 
 # Database Schema and Database Connect User for ABAP (default is sap<sapsid> and not sap<anydbsid>)
 NW_DB6_DB.db6.abap.connect.user = sap{{ sap_swpm_sid | lower }}
 NW_DB6_DB.db6.abap.schema = sap{{ sap_swpm_sid | lower }}
+# NW_DB6_DB.db6.java.connect.user =
+# NW_DB6_DB.db6.java.schema =
 {% endif %}
 
 {% if 'db_connection_nw_anydb_oracledb' in sap_swpm_inifile_list %}
@@ -836,4 +845,70 @@ InitDeclusteringForImport.decluster = false
 # DiagnosticsAgent.SolMan.PortNumber
 # DiagnosticsAgent.SolMan.UserName
 # DiagnosticsAgent.SolMan.UseSSL
+{% endif %}
+
+
+{% if 'solman_daa_swpm1' in sap_swpm_inifile_list %}
+######
+# syscopy_anydb
+# Not in use by sap_swpm Ansible Role
+######
+# InitDeclusteringForExport.decluster =
+# NW_ABAP_Export_Dialog.customPackageOrder =
+# NW_ABAP_Export_Dialog.customSortOrderFile =
+# NW_ABAP_Export_Dialog.exportTimeFile =
+# NW_ABAP_Export_Dialog.importTimeFile =
+# NW_ABAP_Export_Dialog.jobNumberGroupLarge = 7
+# NW_ABAP_Export_Dialog.jobNumberGroupSmall = 4
+# NW_ABAP_Export_Dialog.migmonComHost =
+# NW_ABAP_Export_Dialog.migmonComPort =
+# NW_ABAP_Export_Dialog.migmonComType = EXCHANGE
+# NW_ABAP_Export_Dialog.migmonDataTransferType = NET
+# NW_ABAP_Export_Dialog.migmonFtpExchangeDir =
+# NW_ABAP_Export_Dialog.migmonFtpExportDir =
+# NW_ABAP_Export_Dialog.migmonFtpHost =
+# NW_ABAP_Export_Dialog.migmonFtpPassword =
+# NW_ABAP_Export_Dialog.migmonFtpUser =
+NW_ABAP_Export_Dialog.migmonJobNum = 3
+NW_ABAP_Export_Dialog.migmonLoadArgs = -stop_on_error
+# NW_ABAP_Export_Dialog.migmonNetExchangeDir =
+# NW_ABAP_Export_Dialog.migmonTaskArgs =
+# NW_ABAP_Export_Dialog.nonStandardAbapObjectsHandlingSkip = false
+NW_ABAP_Export_Dialog.parallelR3szchkExecution = true
+NW_ABAP_Export_Dialog.r3szchkDetermineSizeValue = DB
+# NW_ABAP_Export_Dialog.r3szchkJobNum = 10
+# NW_ABAP_Export_Dialog.repeatExport = COMPLETE
+NW_ABAP_Export_Dialog.splitPackageLimitVal = 5000
+# NW_ABAP_Export_Dialog.splitMaxTableNumVal = 1000
+# NW_ABAP_Export_Dialog.splitTableFile =
+# NW_ABAP_Export_Dialog.splitTableLimitVal = 300
+# NW_ABAP_Export_Dialog.splitTableNumVal = 10
+# NW_ABAP_Export_Dialog.splitUseMaxTableNum = false
+# NW_ABAP_Export_Dialog.splitUsePackageLimit = true
+# NW_ABAP_Export_Dialog.splitUseTableFile = false
+# NW_ABAP_Export_Dialog.splitUseTableLimit = false
+# NW_ABAP_Export_Dialog.splitUseTableNum = true
+# NW_ABAP_Export_Dialog.sqlFileDir =
+NW_ABAP_Export_Dialog.targetHardwarePlatform = LITTLE_ENDIAN
+
+## Target database types for Linux are ADA, HDB, DB6, ORA, SYB
+NW_ABAP_Export_Dialog.targetDbType = {{ sap_swpm_export_target_db_type }}
+
+# NW_ABAP_Export_Dialog.useAdditionalExportHosts = false
+# NW_ABAP_Export_Dialog.useAdvancedUnloadConfig = false
+# NW_ABAP_Export_Dialog.useCustomPackageOrder = false
+# NW_ABAP_Export_Dialog.useCustomSortOrder = false
+# NW_ABAP_Export_Dialog.useMigMonConfig = false
+# NW_ABAP_Export_Dialog.useParallelExportImport = false
+# NW_ABAP_Export_Dialog.useSplit = true
+NW_ABAP_Export_Dialog.useSqlFiles = NOSQL
+# NW_ABAP_Export_Dialog.useUnicodeTargetSystem =
+NW_ABAP_Export_Dialog.useUnsortedUnload = true
+# NW_Export.accessLevel4ExportDir = DEFAULT
+# NW_Export.choiceSepKernel = false
+NW_Export.mainExportDir = {{ sap_swpm_export_files_path }}
+
+# Stop SAP System automatically before data is unloaded
+# NW_getLoadType.importManuallyExecuted: false
+NW_Export.stopRunningSystem = false
 {% endif %}
