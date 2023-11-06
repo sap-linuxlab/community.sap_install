@@ -23,6 +23,12 @@ mkdir -p ~/.ansible/roles/
 ln -sf ~/community.sap_install/roles/sap_hypervisor_node_preconfigure ~/.ansible/roles/
 ```
 
+### Dependencies
+
+Needs the ansible kubernetes module and the python3 kubernetes binding. On a RHEL based system the are named
+* python3-kubernetes
+* ansible-collection-kubernetes-core
+
 ### Role Variables
 General variables are defined in sap_hypervisor_node_preconfigure/vars/platform_defaults_redhat_ocp_virt.yml
 ```
