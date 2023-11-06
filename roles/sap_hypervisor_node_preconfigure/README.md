@@ -28,6 +28,8 @@ Needs the ansible kubernetes module and the python3 kubernetes binding. On a RHE
 * python3-kubernetes
 * ansible-collection-kubernetes-core
 
+Needs `oc` binary available in path.
+
 ### Role Variables
 General variables are defined in sap_hypervisor_node_preconfigure/vars/platform_defaults_redhat_ocp_virt.yml
 ```
