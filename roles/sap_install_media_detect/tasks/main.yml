@@ -47,6 +47,14 @@
       tags: sap_install_media_detect_add_file_extension
   tags: sap_install_media_detect_add_file_extension
 
+- name: SAP Install Media Detect - Move any files from subdirectories to main directory
+  ansible.builtin.include_tasks:
+    file: prepare/move_files_to_main_directory.yml
+    apply:
+      tags: sap_install_media_detect_move_files_to_main_directory
+  tags: sap_install_media_detect_move_files_to_main_directory
+  when: not sap_install_media_detect_file_server_only
+
 - name: SAP Install Media Detect - Create a list of all required files, phase 2
   ansible.builtin.include_tasks:
     file: prepare/create_file_list_phase_2.yml
@@ -87,6 +95,7 @@
   tags: sap_install_media_detect_rar_handling
   when:
     - sap_install_media_detect_rar_package == 'EPEL'
+    - ansible_os_family == 'RedHat'
     - __sap_install_media_detect_register_rpm_q_epel.stdout != 'epel-release'
 
 - name: SAP Install Media Detect - Cleanup - Remove sapfile utility

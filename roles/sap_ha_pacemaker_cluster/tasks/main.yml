@@ -53,23 +53,23 @@
   ansible.builtin.include_tasks:
     file: construct_vars_hana_common.yml
   when:
-    - "'hana' in sap_ha_pacemaker_cluster_host_type[0]"
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP HANA Scale-up"
   ansible.builtin.include_tasks:
     file: construct_vars_hana_scaleup.yml
   when:
-    - "'hana_scaleup' in sap_ha_pacemaker_cluster_host_type[0]"
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver common"
   ansible.builtin.include_tasks:
-    file: construct_vars_netweaver_common.yml
+    file: construct_vars_nwas_common.yml
   when:
-    - "'nwas_abap' in sap_ha_pacemaker_cluster_host_type[0]"
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ABAP ASCS/ERS"
   ansible.builtin.include_tasks:
-    file: construct_vars_netweaver_abap_ascs_ers.yml
+    file: construct_vars_nwas_abap_ascs_ers.yml
   loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
   loop_control:
     loop_var: nwas_build_item
@@ -78,7 +78,7 @@
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ABAP PAS/AAS"
   ansible.builtin.include_tasks:
-    file: construct_vars_netweaver_abap_pas_aas.yml
+    file: construct_vars_nwas_abap_pas_aas.yml
   loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
   loop_control:
     loop_var: nwas_build_item
@@ -87,7 +87,7 @@
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver Java SCS/ERS"
   ansible.builtin.include_tasks:
-    file: construct_vars_netweaver_java_scs_ers.yml
+    file: construct_vars_nwas_java_scs_ers.yml
   loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
   loop_control:
     loop_var: nwas_build_item
@@ -172,7 +172,7 @@
     - name: "SAP HA Install Pacemaker - Check resource defaults"
       ansible.builtin.command:
         cmd: |
-          pcs resource defaults config
+          {{ __sap_ha_pacemaker_cluster_command.resource_defaults_show }}
       register: __sap_ha_pacemaker_cluster_check_resource_defaults
       run_once: true
       changed_when: false
@@ -185,7 +185,7 @@
         - __sap_ha_pacemaker_cluster_resource_defaults | length > 0
       ansible.builtin.command:
         cmd: |
-          pcs resource defaults update {{ item.key }}={{ item.value }}
+          {{ __sap_ha_pacemaker_cluster_command.resource_defaults_update }} {{ item.key }}={{ item.value }}
       loop: "{{ __sap_ha_pacemaker_cluster_resource_defaults | dict2items }}"
       loop_control:
         label: "{{ item.key }}={{ item.value }}"
@@ -202,7 +202,7 @@
 
     - name: "SAP HA Install Pacemaker - Include NetWeaver ASCS/ERS post installation"
       ansible.builtin.include_tasks:
-        file: configure_netweaver_postinstallation.yml
+        file: configure_nwas_ascs_ers_postinstallation.yml
         apply:
           tags: nwas_postinst
       tags: nwas_postinst

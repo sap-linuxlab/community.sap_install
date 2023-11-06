@@ -21,7 +21,7 @@ sap_ha_pacemaker_cluster_system_roles_collection: 'fedora.linux_system_roles'
 # config file.
 # Useful for parameter review or re-use with the 'ha_cluster' LSR.
 sap_ha_pacemaker_cluster_create_config_varfile: false
-sap_ha_pacemaker_cluster_create_config_dest: "{{ sap_ha_pacemaker_cluster_cluster_name }}_resource_config.yml"
+sap_ha_pacemaker_cluster_create_config_dest: "review_resource_config.yml"
 
 # Inherit SAP common (global synonyms) parameters when defined.
 
@@ -105,7 +105,7 @@ sap_ha_pacemaker_cluster_fence_agent_packages: []
 # Mandatory.
 # Either inherit from the 'ha_cluster' LSR variable when defined, but do not set a default.
 # This fails the argument validation when none of the 2 vars are defined.
-sap_ha_pacemaker_cluster_hacluster_password: "{{ ha_cluster_hacluster_password }}"
+sap_ha_pacemaker_cluster_hacluster_user_password: "{{ ha_cluster_hacluster_password }}"
 
 
 ################################################################################
@@ -113,7 +113,8 @@ sap_ha_pacemaker_cluster_hacluster_password: "{{ ha_cluster_hacluster_password }
 ################################################################################
 
 sap_ha_pacemaker_cluster_hana_sid: "{{ sap_hana_sid | default('') }}"
-sap_ha_pacemaker_cluster_hana_instance_number: "{{ sap_hana_instance_number | default('') }}"
+# Keeping 'sap_ha_pacemaker_cluster_hana_instance_number' for the time being for backwards compatibility.
+sap_ha_pacemaker_cluster_hana_instance_nr: "{{ sap_ha_pacemaker_cluster_hana_instance_number | default(sap_hana_instance_number) | default('') }}"
 
 # Optional parameters to customize SAPHana resources
 # AUTOMATED_REGISTER
@@ -125,9 +126,9 @@ sap_ha_pacemaker_cluster_hana_prefer_site_takeover: true
 
 
 # SAP HANA - Resource IDs (names) as convenience parameters.
-sap_ha_pacemaker_cluster_hana_resource_name: "SAPHana_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_number }}"
+sap_ha_pacemaker_cluster_hana_resource_name: "SAPHana_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
 sap_ha_pacemaker_cluster_hana_resource_clone_name: "{{ sap_ha_pacemaker_cluster_hana_resource_name }}-clone"
-sap_ha_pacemaker_cluster_hana_topology_resource_name: "SAPHanaTopology_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_number }}"
+sap_ha_pacemaker_cluster_hana_topology_resource_name: "SAPHanaTopology_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
 sap_ha_pacemaker_cluster_hana_topology_resource_clone_name: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_name }}-clone"
 
 
@@ -136,9 +137,9 @@ sap_ha_pacemaker_cluster_hana_topology_resource_clone_name: "{{ sap_ha_pacemaker
 #
 # Mandatory: primary VIP address definition in HANA scale-up clusters
 sap_ha_pacemaker_cluster_vip_hana_primary_ip_address: ''
-sap_ha_pacemaker_cluster_vip_hana_primary_resource_name: "vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_number }}_primary"
+sap_ha_pacemaker_cluster_vip_hana_primary_resource_name: "vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_primary"
 sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address: ''
-sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name: "vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_number }}_readonly"
+sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name: "vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_readonly"
 
 
 ################################################################################
@@ -147,17 +148,21 @@ sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name: "vip_{{ sap_ha_pacema
 
 # Default will be ENSA2. To configure HA resources for ENSA1,
 # set this parameter to 'true'.
-sap_ha_pacemaker_cluster_netweaver_ascs_ers_ensa1: false
+sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1: false
+
+# Enable/Disable sap_cluster_connector.
+# Ref.: https://access.redhat.com/solutions/3606101
+sap_ha_pacemaker_cluster_enable_cluster_connector: true
 
 # Inherit common synonym NetWeaver parameters when defined.
-sap_ha_pacemaker_cluster_netweaver_sid: "{{ sap_swpm_sid | default('') }}"
-sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number: "{{ sap_swpm_ascs_instance_nr | default('') }}"
-sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number: "{{ sap_swpm_ers_instance_nr | default('') }}"
-sap_ha_pacemaker_cluster_netweaver_abap_pas_instance_number: "{{ sap_swpm_pas_instance_nr | default('') }}"
-sap_ha_pacemaker_cluster_netweaver_abap_aas_instance_number: "{{ sap_swpm_aas_instance_nr | default('') }}"
+sap_ha_pacemaker_cluster_nwas_abap_sid: "{{ sap_swpm_sid | default('') }}"
+sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr: "{{ sap_swpm_ascs_instance_nr | default('') }}"
+sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr: "{{ sap_swpm_ers_instance_nr | default('') }}"
+sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr: "{{ sap_swpm_pas_instance_nr | default('') }}"
+sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr: "{{ sap_swpm_aas_instance_nr | default('') }}"
 # Prepare in case JAVA SCS/ERS will be included later.
-#sap_ha_pacemaker_cluster_netweaver_java_scs_instance_number: "{{ sap_swpm_java_scs_instance_nr | default('') }}"
-#sap_ha_pacemaker_cluster_netweaver_java_ers_instance_number: "{{ sap_swpm_java_ers_instance_nr | default('') }}"
+#sap_ha_pacemaker_cluster_nwas_java_scs_instance_nr: "{{ sap_swpm_java_scs_instance_nr | default('') }}"
+#sap_ha_pacemaker_cluster_nwas_java_ers_instance_nr: "{{ sap_swpm_java_ers_instance_nr | default('') }}"
 
 # Definitions for filesystems resources. Currently limited to NFS filesystems.
 sap_ha_pacemaker_cluster_storage_definition: "{{ sap_storage_setup_definition | default([]) }}"
@@ -170,24 +175,17 @@ sap_ha_pacemaker_cluster_storage_nfs_server: "{{ sap_storage_nfs_server | defaul
 # TODO: review later and move to internal vars in vars/main.yml?
 sap_ha_pacemaker_cluster_resource_filesystem_force_unmount: safe
 
-# The following directories are appended to the 'nfs_path' of the '/usr/sap' storage
-# definition.
-# Therefore, the /usr/sap prefix must be left out of the listed path items.
-sap_ha_pacemaker_cluster_netweaver_abap_ascs_ers_filesystems:
-  - "{{ sap_ha_pacemaker_cluster_netweaver_sid }}/ASCS{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}"
-  - "{{ sap_ha_pacemaker_cluster_netweaver_sid }}/ERS{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}"
-
 
 # Multiple VIP parameters can be defined and will be combined.
 # See tasks/include_construct_vip_resources.yml
-sap_ha_pacemaker_cluster_vip_netweaver_ascs_ip_address: ''
-sap_ha_pacemaker_cluster_vip_netweaver_ascs_resource_name: "vip_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}_ascs"
-sap_ha_pacemaker_cluster_vip_netweaver_ers_ip_address: ''
-sap_ha_pacemaker_cluster_vip_netweaver_ers_resource_name: "vip_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}_ers"
-sap_ha_pacemaker_cluster_vip_netweaver_pas_ip_address: ''
-sap_ha_pacemaker_cluster_vip_netweaver_pas_resource_name: "vip_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_instance_number }}_pas"
-sap_ha_pacemaker_cluster_vip_netweaver_aas_ip_address: ''
-sap_ha_pacemaker_cluster_vip_netweaver_aas_resource_name: "vip_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_instance_number }}_aas"
+sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address: ''
+sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name: "vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}_ascs"
+sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address: ''
+sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name: "vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}_ers"
+sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address: ''
+sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name: "vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}_pas"
+sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address: ''
+sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name: "vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}_aas"
 
 
 # SAP NetWeaver common - Resource IDs (names) as convenience parameters
@@ -195,14 +193,14 @@ sap_ha_pacemaker_cluster_vip_netweaver_aas_resource_name: "vip_{{ sap_ha_pacemak
 # - /sapmnt
 # - /usr/sap/trans
 # - /usr/sap/<<SID>>/SYS
-sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_resource_name: "Filesystem_NWAS_SAPMNT_{{ sap_ha_pacemaker_cluster_netweaver_sid }}"
-sap_ha_pacemaker_cluster_netweaver_transports_filesystem_resource_name: "Filesystem_NWAS_TRANS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}"
-sap_ha_pacemaker_cluster_netweaver_sys_filesystem_resource_name: "Filesystem_NWAS_SYS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}"
+sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name: "Filesystem_NWAS_SAPMNT_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}"
+sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name: "Filesystem_NWAS_TRANS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}"
+sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name: "Filesystem_NWAS_SYS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}"
 
 # The shared filesystems are not required to be configured in the cluster.
 # By default it is assumed that they are mounted by the system and available on all cluster nodes.
 # Set this parameter to "true" to configure the 3 shared filesystems as part of the cluster.
-sap_ha_pacemaker_cluster_netweaver_shared_filesystems_cluster_managed: false
+sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed: false
 
 
 ################################################################################
@@ -210,39 +208,39 @@ sap_ha_pacemaker_cluster_netweaver_shared_filesystems_cluster_managed: false
 ################################################################################
 
 # Name of the instance profile - mandatory to be user-defined
-sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_instance_name: ''
+sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name: ''
 # Full path with instance profile name - mandatory to be user-defined
-sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_start_profile_string: ''
+sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_start_profile_string: ''
 
 # SAP NetWeaver ABAP ASCS/ERS - Resource IDs (names) as convenience parameters.
 # - /usr/sap/<<SID>>/ASCS<<Instance>>
 # - /usr/sap/<<SID>>/ERS<<Instance>>
 
-sap_ha_pacemaker_cluster_netweaver_abap_ascs_filesystem_resource_name: "Filesystem_NWAS_ABAP_ASCS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}"
-sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_ASCS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name }}-clone"
-sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_automatic_recover_bool: false
-sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_stickiness: 5000
-sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_ensa1_migration_threshold: 1
-sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_ensa1_failure_timeout: 60
+sap_ha_pacemaker_cluster_nwas_abap_ascs_filesystem_resource_name: "Filesystem_NWAS_ABAP_ASCS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}"
+sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_ASCS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}"
+#sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name }}-clone"
+sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_automatic_recover_bool: false
+sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_stickiness: 5000
+sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_ensa1_migration_threshold: 1
+sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_ensa1_failure_timeout: 60
 
 # Stickiness of the ASCS group
-sap_ha_pacemaker_cluster_netweaver_abap_ascs_group_stickiness: 3000
+sap_ha_pacemaker_cluster_nwas_abap_ascs_group_stickiness: 3000
 
 ################################################################################
 # ERS resource defaults
 ################################################################################
 
 # Name of the instance profile - mandatory to be user-defined
-sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_instance_name: ''
+sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name: ''
 
 # Full path with instance profile name - mandatory to be user-defined
-sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_start_profile_string: ''
+sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string: ''
 
-sap_ha_pacemaker_cluster_netweaver_abap_ers_filesystem_resource_name: "Filesystem_NWAS_ABAP_ERS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}"
-sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_ERS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name }}-clone"
-sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_automatic_recover_bool: false
+sap_ha_pacemaker_cluster_nwas_abap_ers_filesystem_resource_name: "Filesystem_NWAS_ABAP_ERS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}"
+sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_ERS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}"
+#sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name }}-clone"
+sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_automatic_recover_bool: false
 
 
 ################################################################################
@@ -250,10 +248,10 @@ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_automatic_recover_bool: 
 ################################################################################
 # SAP NetWeaver ABAP PAS/AAS - Resource IDs (names) as convenience parameters.
 # - /usr/sap/<<SID>>/D<<Instance>>
-#sap_ha_pacemaker_cluster_netweaver_abap_pas_filesystem_resource_name: "Filesystem_NWAS_ABAP_PAS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_abap_pas_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_PAS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_pas_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_abap_aas_filesystem_resource_name: "Filesystem_NWAS_ABAP_AAS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_abap_aas_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_AAS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_abap_aas_instance_number }}"
+#sap_ha_pacemaker_cluster_nwas_abap_pas_filesystem_resource_name: "Filesystem_NWAS_ABAP_PAS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
+#sap_ha_pacemaker_cluster_nwas_abap_pas_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_PAS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
+#sap_ha_pacemaker_cluster_nwas_abap_aas_filesystem_resource_name: "Filesystem_NWAS_ABAP_AAS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
+#sap_ha_pacemaker_cluster_nwas_abap_aas_sapinstance_resource_name: "SAPInstance_NWAS_ABAP_AAS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
 
 ################################################################################
 # JAVA SCS/ERS resource defaults
@@ -261,12 +259,12 @@ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_automatic_recover_bool: 
 # SAP NetWeaver JAVA SCS/ERS - Resource IDs (names) as convenience parameters.
 # - /usr/sap/<<SID>>/SCS<<Instance>>
 # - /usr/sap/<<SID>>/ERS<<Instance>>
-#sap_ha_pacemaker_cluster_netweaver_java_scs_filesystem_resource_name: "Filesytem_NWAS_JAVA_SCS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_java_scs_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_resource_name: "SAPInstance_NWAS_JAVA_SCS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_java_scs_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_java_scs_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name }}-clone"
-#sap_ha_pacemaker_cluster_netweaver_java_ers_filesystem_resource_name: "Filesytem_NWAS_JAVA_ERS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_java_ers_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_resource_name: "SAPInstance_NWAS_JAVA_ERS_{{ sap_ha_pacemaker_cluster_netweaver_sid }}_{{ sap_ha_pacemaker_cluster_netweaver_java_ers_instance_number }}"
-#sap_ha_pacemaker_cluster_netweaver_java_ers_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name }}-clone"
+#sap_ha_pacemaker_cluster_nwas_java_scs_filesystem_resource_name: "Filesytem_NWAS_JAVA_SCS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_java_scs_instance_nr }}"
+#sap_ha_pacemaker_cluster_nwas_java_scs_sapinstance_resource_name: "SAPInstance_NWAS_JAVA_SCS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_java_scs_instance_nr }}"
+#sap_ha_pacemaker_cluster_nwas_java_scs_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name }}-clone"
+#sap_ha_pacemaker_cluster_nwas_java_ers_filesystem_resource_name: "Filesytem_NWAS_JAVA_ERS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_java_ers_instance_nr }}"
+#sap_ha_pacemaker_cluster_nwas_java_ers_sapinstance_resource_name: "SAPInstance_NWAS_JAVA_ERS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_java_ers_instance_nr }}"
+#sap_ha_pacemaker_cluster_nwas_java_ers_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name }}-clone"
 
 
 ################################################################################
@@ -276,7 +274,7 @@ sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_automatic_recover_bool: 
 ## Infrastructure Platform variables, shown here for visibility only and should not be given default values
 
 ## AWS platform, EC2 Virtual Servers
-# sap_ha_pacemaker_cluster_aws_vip_update_rt: []
+# sap_ha_pacemaker_cluster_aws_vip_update_rt
 # sap_ha_pacemaker_cluster_aws_access_key_id
 # sap_ha_pacemaker_cluster_aws_secret_access_key
 # sap_ha_pacemaker_cluster_aws_region

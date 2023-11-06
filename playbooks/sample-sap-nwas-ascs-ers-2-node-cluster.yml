@@ -1,0 +1,82 @@
+---
+# This playbook will
+# - install and configure a basic pacemaker cluster
+# - configure the SAP NetWeaver ASCS/ERS resource groups with each
+#   - an instance filesystem
+#   - the instance resource
+#   - an instance service VIP
+
+# To use this playbook in your test environment
+# please update the "vars" parameters with values
+# corresponding to your individual naming standards
+# and infrastructure (e.g. IP definitions matching your network).
+#
+# NOTE:
+# For simplicity the sample password values are plain text. Please make sure to
+# apply security measures to any credentials, for instance using ansible-vault
+# encryption.
+
+- name: "Install and Configure a Pacemaker Cluster on 2 NetWeaver ASCS/ERS nodes"
+  hosts: ascs-node, ers-node
+  become: true
+#  any_error_fatal: true
+
+  vars:
+    ############################################################################
+    ### MANDATORY parameter definitions for a NetWeaver ASCS/ERS cluster setup.
+    ############################################################################
+
+    ### General minimum pacemaker cluster definitions.
+
+    # Cluster name is optional, the default of the 'ha_cluster' Linux System Role
+    # would be applied when missing.
+    # However, for convenience it is defined along with the rest of the mandatory
+    # parameters in this example.
+    sap_ha_pacemaker_cluster_cluster_name: ascs-ers-cluster
+    sap_ha_pacemaker_cluster_hacluster_user_password: my-hacluster-vault-password
+
+    ### NetWeaver specific definitions
+    sap_ha_pacemaker_cluster_storage_nfs_server: "nfs-server1.example.com:/"
+
+    # Underlying filesystems are derived from the parent "/usr/sap" definition.
+    sap_ha_pacemaker_cluster_storage_definition:
+      - name: usr_sap
+        mountpoint: /usr/sap
+        nfs_path: /usr/sap
+        nfs_server: "{{ sap_ha_pacemaker_cluster_storage_nfs_server }}"
+
+      - name: usr_sap_trans
+        mountpoint: /usr/sap/trans
+        nfs_path: /usr/sap/trans
+        nfs_server: "{{ sap_ha_pacemaker_cluster_storage_nfs_server }}"
+
+      - name: sapmnt
+        mountpoint: /sapmnt
+        nfs_path: /sapmnt
+        nfs_server: "{{ sap_ha_pacemaker_cluster_storage_nfs_server }}"
+
+    # SID and Instance Numbers for ASCS and ERS.
+    sap_ha_pacemaker_cluster_nwas_abap_sid: ABC
+    sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr: "02"
+    sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr: "12"
+
+    # Profile name created by the installer, for example: <SID>_ASCS<Instance-Number>_<ASCS-virtual-node-name>
+    sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name: ABC_ASCS02_ascs-node-ha
+    sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_start_profile_string: /sapmnt/ABC/profile/ABC_ASCS02_ascs-node-ha
+
+    sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name: ABC_ERS12_ers-node-ha
+    sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string: /sapmnt/ABC/profile/ABC_ERS12_ers-node-ha
+
+    # Required to go through the configuration flow for a NetWeaver ASCS/ERS cluster.
+    sap_ha_pacemaker_cluster_host_type:
+      - nwas_abap_ascs_ers
+
+    # Virtual IP addresses, one per instance.
+    # These IPs will switch between the nodes together with the instance.
+    sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address: 192.168.10.102
+    sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address: 192.168.10.112
+
+
+  roles:
+
+    - name: sap_ha_pacemaker_cluster

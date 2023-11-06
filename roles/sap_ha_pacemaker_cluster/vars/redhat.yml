@@ -4,3 +4,18 @@
 __sap_ha_pacemaker_cluster_repos:
   - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
     name: High Availability
+
+__sap_ha_pacemaker_cluster_halib_package: sap-cluster-connector
+
+# List of configuration lines that must be added to the instance profiles.
+# Used in tasks/configure_nwas_ascs_ers_postinstallation.yml for SAP HA Interface setup.
+__sap_ha_pacemaker_cluster_connector_config_lines:
+  - "service/halib = $(DIR_EXECUTABLE)/saphascriptco.so"
+  - "service/halib_cluster_connector = /usr/bin/sap_cluster_connector"
+
+# Cluster command to manage resources - pcs commands in Redhat OS family.
+__sap_ha_pacemaker_cluster_command:
+  resource_stop: "pcs resource disable"
+  resource_start: "pcs resource enable"
+  resource_defaults_show: "pcs resource defaults config"
+  resource_defaults_update: "pcs resource defaults update"

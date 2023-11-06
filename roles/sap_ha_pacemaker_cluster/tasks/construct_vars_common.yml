@@ -12,20 +12,19 @@
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_cluster_name: "{{ sap_ha_pacemaker_cluster_cluster_name }}"
 
-# sap_ha_pacemaker_cluster_hacluster_password -> user-defined or default inherited from {{ ha_cluster_hacluster_password }}
+# sap_ha_pacemaker_cluster_hacluster_user_password -> user-defined or default inherited from {{ ha_cluster_hacluster_password }}
 - name: "SAP HA Prepare Pacemaker - Register the 'hacluster' user password"
   when:
-    - __sap_ha_pacemaker_cluster_hacluster_password is not defined
-    - sap_ha_pacemaker_cluster_hacluster_password
+    - __sap_ha_pacemaker_cluster_hacluster_user_password is not defined
+    - sap_ha_pacemaker_cluster_hacluster_user_password
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_hacluster_password: "{{ sap_ha_pacemaker_cluster_hacluster_password }}"
+    __sap_ha_pacemaker_cluster_hacluster_user_password: "{{ sap_ha_pacemaker_cluster_hacluster_user_password }}"
   no_log: true  # secure the credential
 
 
 # sap_ha_pacemaker_cluster_extra_packages             -> user-defined, empty by global default
 # __sap_ha_pacemaker_cluster_sap_extra_packages       -> included from vars/*
 # __sap_ha_pacemaker_cluster_platform_extra_packages  -> included from vars/platform*
-# Empty defaults defined here for optional non-user-facing parameters.
 
 - name: "SAP HA Prepare Pacemaker - Combine extra packages lists"
   ansible.builtin.set_fact:
@@ -33,8 +32,8 @@
       sap_ha_pacemaker_cluster_extra_packages
       + __sap_ha_pacemaker_cluster_sap_extra_packages
       + __sap_ha_pacemaker_cluster_platform_extra_packages
-    ) | unique }}"
-
+    ) | unique | select() }}"
+  # remove duplicates and empty elements
 
 # sap_ha_pacemaker_cluster_fence_agent_minimal_packages -> global default
 # sap_ha_pacemaker_cluster_fence_agent_packages         -> global default

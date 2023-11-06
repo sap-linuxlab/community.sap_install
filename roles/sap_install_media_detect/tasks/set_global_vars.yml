@@ -148,6 +148,13 @@
     sap_swpm_igs_helper_file_name: "{{ sap_swpm_igs_helper_file_name_get.stdout }}"
   when: sap_install_media_detect_igs
 
+- name: SAP Install Media Detect - Detection completed - Set facts for SAP Maintenance Planner Stack XML files
+  ansible.builtin.set_fact:
+    sap_swpm_mp_stack_path: "{{ sap_swpm_software_path }}/"
+    sap_swpm_mp_stack_file_name: "{{ sap_swpm_mp_xml_file_name_get.stdout }}"
+  ignore_errors: true
+  when: sap_install_media_detect_mpstack
+
 - name: SAP Install Media Detect - Detection completed - Set facts for WebDisp
   ansible.builtin.set_fact:
     sap_swpm_web_dispatcher_path: "{{ sap_swpm_software_path }}/"
@@ -241,6 +248,8 @@
     - sap_swpm_kernel_independent_file_name
     - sap_swpm_web_dispatcher_path
     - sap_swpm_web_dispatcher_file_name
+    - sap_swpm_mp_stack_path
+    - sap_swpm_mp_stack_file_name
 
 - name: SAP Install Media Detect - Detection completed - Display result
   ansible.builtin.debug:

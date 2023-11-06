@@ -38,7 +38,7 @@ argument_specs:
           - For RHEL System Roles for SAP, or Red Hat Automation Hub, use 'redhat.rhel_system_roles'.
 
       sap_ha_pacemaker_cluster_create_config_dest:
-        default: <cluster-name>_resource_config.yml
+        default: review_resource_config.yml
         description:
           - The pacemaker cluster resource configuration optionally created by this role will be saved in a Yaml file in the current working directory.
           - Requires `sap_ha_pacemaker_cluster_create_config_varfile` to be enabled for generating the output file.
@@ -246,7 +246,7 @@ argument_specs:
           - Additional fence agent packages to be installed.
           - This is automatically combined with `sap_ha_pacemaker_cluster_fence_agent_minimal_packages`.
 
-      sap_ha_pacemaker_cluster_hacluster_password:
+      sap_ha_pacemaker_cluster_hacluster_user_password:
         description:
           - The password of the `hacluster` user which is created during pacemaker installation.
           - Inherits the value of `ha_cluster_hacluster_password`, when defined.
@@ -265,7 +265,7 @@ argument_specs:
           - Inherits the value of `sap_hana_sid`, when defined.
           - Mandatory for SAP HANA cluster setups.
 
-      sap_ha_pacemaker_cluster_hana_instance_number:
+      sap_ha_pacemaker_cluster_hana_instance_nr:
         description:
           - The instance number of the SAP HANA database which this role will configure in the cluster.
           - Inherits the value of `sap_hana_instance_number`, when defined.
@@ -343,36 +343,43 @@ argument_specs:
       # NetWeaver specific parameters
       ##########################################################################
 
-      sap_ha_pacemaker_cluster_netweaver_ascs_ers_ensa1:
+      sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1:
         type: bool
         default: false
         description:
           - The standard NetWeaver ASCS/ERS cluster will be set up as ENSA2.
           - Set this parameter to 'true' to configure it as ENSA1.
 
-      sap_ha_pacemaker_cluster_netweaver_sid:
+      sap_ha_pacemaker_cluster_enable_cluster_connector:
+        type: bool
+        default: true
+        description:
+          - Enables/Disables the SAP HA Interface for SAP ABAP application server instances, also known as `sap_cluster_connector`.
+          - Set this parameter to 'false' if the SAP HA interface should not be installed and configured.
+
+      sap_ha_pacemaker_cluster_nwas_abap_sid:
         description:
           - SID of the NetWeaver instances.
           - Mandatory for NetWeaver cluster configuration.
           - Uses `sap_swpm_sid` if defined.
           - Mandatory for NetWeaver cluster setups.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ascs_instance_number:
+      sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr:
         description:
           - Instance number of the NetWeaver ABAP ASCS instance.
           - Mandatory for NetWeaver ASCS/ERS cluster configuration.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ers_instance_number:
+      sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr:
         description:
           - Instance number of the NetWeaver ABAP ERS instance.
           - Mandatory for NetWeaver ASCS/ERS cluster configuration.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_pas_instance_number:
+      sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr:
         description:
           - Instance number of the NetWeaver ABAP PAS instance.
           - Mandatory for NetWeaver PAS cluster configuration.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_aas_instance_number:
+      sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr:
         description:
           - Instance number of the NetWeaver ABAP AAS instance.
           - Mandatory for NetWeaver AAS cluster configuration.
@@ -381,39 +388,13 @@ argument_specs:
         type: list
         description:
           - List of filesystem definitions used for filesystem cluster resources.
-          - Uses `sap_storage_setup_definition` when defined.
+          - Options relevant, see example.
+          - Mandatory for SAP NetWeaver HA cluster configurations.
+          - Reuse `sap_storage_setup_definition` if defined.
+          - Reuse `sap_storage_setup_definition` will extract values 'mountpoint', 'nfs_filesystem_type', 'nfs_mount_options', 'nfs_path', 'nfs_server'.
+          - Reuse `sap_storage_setup_definition` all options are documented under Ansible Role `sap_storage_setup`.
+          - Note! For this variable, the argument specification does not list options, to avoid errors during reuse of `sap_storage_setup_definition` if defined.
         elements: dict
-        options:
-          name:
-            description:
-              - Unique name of the filesystem definition entry.
-            required: true
-
-          mountpoint:
-            description:
-              - Path under which the filesystem will be mounted.
-              - Mandatory for all filesystems that have a mountpoint.
-              - Special treatment for a generic "/usr/sap" which will automatically be duplicated into the 2 standard sub-directories "/usr/sap/<SID>/<instance_type><instance_number>" and "/usr/sap/<SID>/SYS".
-            required: false  # for compatibility with definitions that contain swap filesystems as well (sap_storage_setup role input)
-
-          nfs_filesystem_type:
-            default: <sap_ha_pacemaker_cluster_storage_nfs_filesytem_type>
-            description:
-              - NFS filesystem type used to mount this filesystem.
-
-          nfs_mount_options:
-            default: <sap_ha_pacemaker_cluster_storage_nfs_mount_options>
-            description:
-              - Mount options to be used for this specific filesystem.
-
-          nfs_path:
-            description:
-              - Path to the filesystem source directory on the NFS server.
-
-          nfs_server:
-            default: <sap_ha_pacemaker_cluster_storage_nfs_server>
-            description:
-              - Name of the NFS server for this particular filesystem.
 
         example:
           sap_ha_pacemaker_cluster_storage_definition:
@@ -447,76 +428,68 @@ argument_specs:
         description:
           - Default address of the NFS server, if not defined individually by filesystem.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ascs_ers_filesystems:
-        type: list
-        default:
-          - <SID>/ASCS<ascs_instance_number>
-          - <SID>/ERS<ers_instance_number>
-        description:
-          - Standard NetWeaver paths in "/usr/sap" and automatically appended to the configuration, when "/usr/sap" is in the list of `sap_ha_pacemaker_cluster_storage_definition`.
-
-      sap_ha_pacemaker_cluster_vip_netweaver_ascs_ip_address:
+      sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address:
         description:
           - Virtual IP of the NetWeaver ASCS instance.
           - Mandatory for NetWeaver ASCS/ERS cluster setup.
 
-      sap_ha_pacemaker_cluster_vip_netweaver_ascs_resource_name:
+      sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name:
         default: vip_<SID>_<ASCS-instance-number>_ascs
         description:
           - Name of the SAPInstance resource for NetWeaver ASCS.
 
-      sap_ha_pacemaker_cluster_vip_netweaver_ers_ip_address:
+      sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address:
         description:
           - Virtual IP of the NetWeaver ERS instance.
           - Mandatory for NetWeaver ASCS/ERS cluster setup.
 
-      sap_ha_pacemaker_cluster_vip_netweaver_ers_resource_name:
+      sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name:
         default: vip_<SID>_<ERS-instance-number>_ers
         description:
           - Name of the SAPInstance resource for NetWeaver ERS.
 
-      sap_ha_pacemaker_cluster_vip_netweaver_pas_ip_address:
+      sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address:
         description:
           - Virtual IP of the NetWeaver PAS instance.
           - Mandatory for NetWeaver PAS cluster setup.
 
-      sap_ha_pacemaker_cluster_vip_netweaver_pas_resource_name:
+      sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name:
         default: vip_<SID>_<PAS-instance-number>_pas
         description:
           - Name of the SAPInstance resource for NetWeaver PAS.
 
-      sap_ha_pacemaker_cluster_vip_netweaver_aas_ip_address:
+      sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address:
         description:
           - Virtual IP of the NetWeaver AAS instance.
           - Mandatory for NetWeaver AAS cluster setup.
 
-      sap_ha_pacemaker_cluster_vip_netweaver_aas_resource_name:
+      sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name:
         default: vip_<SID>_<AAS-instance-number>_aas
         description:
           - Name of the SAPInstance resource for NetWeaver AAS.
 
-      sap_ha_pacemaker_cluster_netweaver_sapmnt_filesystem_resource_name:
+      sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name:
         default: Filesystem_NWAS_SAPMNT_<SID>
         description:
           - Filesystem resource name for the shared filesystem /sapmnt.
           - Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.
-          - Enable this resource setup using `sap_ha_pacemaker_cluster_netweaver_shared_filesystems_cluster_managed`.
+          - Enable this resource setup using `sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed`.
 
-      sap_ha_pacemaker_cluster_netweaver_transports_filesystem_resource_name:
+      sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name:
         default: Filesystem_NWAS_TRANS_<SID>
         description:
           - Filesystem resource name for the transports filesystem /usr/sap/trans.
           - Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.
-          - Enable this resource setup using `sap_ha_pacemaker_cluster_netweaver_shared_filesystems_cluster_managed`.
+          - Enable this resource setup using `sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed`.
 
-      sap_ha_pacemaker_cluster_netweaver_sys_filesystem_resource_name:
+      sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name:
         default: Filesystem_NWAS_SYS_<SID>
         description:
           - Filesystem resource name for the transports filesystem /usr/sap/<SID>/SYS.
           - Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.
-          - Enable this resource setup using `sap_ha_pacemaker_cluster_netweaver_shared_filesystems_cluster_managed`.
+          - Enable this resource setup using `sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed`.
 
-      sap_ha_pacemaker_cluster_netweaver_shared_filesystems_cluster_managed:
+      sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed:
         type: bool
         default: false
         description:
@@ -527,50 +500,50 @@ argument_specs:
       # NetWeaver ASCS specific parameters
       ##########################################################################
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_instance_name:
+      sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name:
         description:
           - The name of the ASCS instance, typically the profile name.
           - Mandatory for the NetWeaver ASCS/ERS cluster setup
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_start_profile_string:
+      sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_start_profile_string:
         description:
           - The full path and name of the ASCS instance profile.
           - Mandatory for the NetWeaver ASCS/ERS cluster setup.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ascs_filesystem_resource_name:
+      sap_ha_pacemaker_cluster_nwas_abap_ascs_filesystem_resource_name:
         default: Filesystem_NWAS_ABAP_ASCS_<SID>_<ASCS-instance-number>
         description:
           - Name of the filesystem resource for the ASCS instance.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_name:
+      sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name:
         default: SAPInstance_NWAS_ABAP_ASCS_<SID>_<ASCS-instance-number>
         description:
           - Name of the ASCS instance resource.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_automatic_recover_bool:
+      sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_automatic_recover_bool:
         type: bool
         default: false
         description:
           - NetWeaver ASCS instance resource option "AUTOMATIC_RECOVER".
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_resource_stickiness:
+      sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_stickiness:
         default: 5000
         description:
           - NetWeaver ASCS instance resource stickiness attribute.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_ensa1_migration_threshold:
+      sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_ensa1_migration_threshold:
         default: 1
         description:
           - NetWeaver ASCS instance migration-threshold setting attribute.
-          - Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_netweaver_ascs_ers_ensa1`). Default setup is ENSA2.
+          - Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1`). Default setup is ENSA2.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ascs_sapinstance_ensa1_failure_timeout:
+      sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_ensa1_failure_timeout:
         default: 60
         description:
           - NetWeaver ASCS instance failure-timeout attribute.
-          - Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_netweaver_ascs_ers_ensa1`). Default setup is ENSA2.
+          - Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1`). Default setup is ENSA2.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ascs_group_stickiness:
+      sap_ha_pacemaker_cluster_nwas_abap_ascs_group_stickiness:
         default: 3000
         description:
           - NetWeaver ASCS resource group stickiness to prefer the ASCS group to stay on the node it was started on.
@@ -580,28 +553,28 @@ argument_specs:
       # NetWeaver ERS specific parameters
       ##########################################################################
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_instance_name:
+      sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name:
         description:
           - The name of the ERS instance, typically the profile name.
           - Mandatory for the NetWeaver ASCS/ERS cluster setup.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_start_profile_string:
+      sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string:
         description:
           - The full path and name of the ERS instance profile.
           - Mandatory for the NetWeaver ASCS/ERS cluster.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_automatic_recover_bool:
+      sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_automatic_recover_bool:
         type: bool
         default: false
         description:
           - NetWeaver ERS instance resource option "AUTOMATIC_RECOVER".
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ers_filesystem_resource_name:
+      sap_ha_pacemaker_cluster_nwas_abap_ers_filesystem_resource_name:
         default: Filesystem_NWAS_ABAP_ERS_<SID>_<ERS-instance-number>
         description:
           - Name of the filesystem resource for the ERS instance.
 
-      sap_ha_pacemaker_cluster_netweaver_abap_ers_sapinstance_resource_name:
+      sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name:
         default: SAPInstance_NWAS_ABAP_ERS_<SID>_<ERS-instance-number>
         description:
           - Name of the ERS instance resource.
@@ -625,9 +598,9 @@ argument_specs:
       ##########################################################################
 
       sap_ha_pacemaker_cluster_aws_vip_update_rt:
-        type: list
         description:
           - List one more routing table IDs for managing Virtual IP failover through routing table changes.
+          - Multiple routing tables must be defined as a comma-separated string (no spaces).
           - Mandatory for the VIP resource configuration in AWS EC2 environments.
 
       sap_ha_pacemaker_cluster_aws_region:
