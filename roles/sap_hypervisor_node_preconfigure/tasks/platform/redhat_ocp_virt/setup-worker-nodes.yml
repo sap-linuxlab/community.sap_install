@@ -17,10 +17,26 @@
         labels:
           custom-kubelet: cpumanager-enabled
 
+- name: Delete kubletconfig for cpumanager
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: KubeletConfig
+      metadata:
+        name: cpumanager-enabled
+      spec:
+        machineConfigPoolSelector:
+          matchLabels:
+            custom-kubelet: cpumanager-enabled
+        kubeletConfig:
+          cpuManagerPolicy: static
+          cpuManagerReconcilePeriod: 5s
+
 - name: Create kubletconfig for cpumanager worker with CPUs reserved for kubernetes
   when: sap_hypervisor_node_preconfigure_cluster_config.worker_kubernetes_reserved_cpus is defined
   kubernetes.core.k8s:
-    state: absent
+    state: present
     definition:
       apiVersion: machineconfiguration.openshift.io/v1
       kind: KubeletConfig
