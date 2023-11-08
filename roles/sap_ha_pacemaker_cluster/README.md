@@ -421,7 +421,7 @@ Mandatory for the cluster setup on IBM Cloud Virtual Server instances or IBM Pow
 - _Type:_ `string`
 
 IBM Power Virtual Server API Endpoint type (public or private) dependent on network interface attachments for the target instances.<br>
-['Mandatory for the cluster setup on IBM Power Virtual Server from IBM Cloud.']<br>
+Mandatory for the cluster setup on IBM Power Virtual Server from IBM Cloud.<br>
 
 ### sap_ha_pacemaker_cluster_ibmcloud_powervs_forward_proxy_url
 
