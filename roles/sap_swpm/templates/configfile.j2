@@ -877,7 +877,7 @@ NW_ABAP_Export_Dialog.migmonLoadArgs = -stop_on_error
 NW_ABAP_Export_Dialog.parallelR3szchkExecution = true
 NW_ABAP_Export_Dialog.r3szchkDetermineSizeValue = DB
 # NW_ABAP_Export_Dialog.r3szchkJobNum = 10
-# NW_ABAP_Export_Dialog.repeatExport = COMPLETE
+NW_ABAP_Export_Dialog.repeatExport = COMPLETE
 NW_ABAP_Export_Dialog.splitPackageLimitVal = 5000
 # NW_ABAP_Export_Dialog.splitMaxTableNumVal = 1000
 # NW_ABAP_Export_Dialog.splitTableFile =
@@ -904,22 +904,28 @@ NW_ABAP_Export_Dialog.targetDbType = {{ sap_swpm_export_target_db_type }}
 NW_ABAP_Export_Dialog.useSqlFiles = NOSQL
 # NW_ABAP_Export_Dialog.useUnicodeTargetSystem =
 NW_ABAP_Export_Dialog.useUnsortedUnload = true
-# NW_Export.accessLevel4ExportDir = DEFAULT
-# NW_Export.choiceSepKernel = false
+
+NW_Export.accessLevel4ExportDir = DEFAULT
+NW_Export.choiceSepKernel = false
 NW_Export.mainExportDir = {{ sap_swpm_export_files_path }}
 
-# Stop SAP System automatically before data is unloaded, not performing stop or manually importing
-# is not possible with SAP SWPM Unattended Mode and will fail on step mainExportParameters
-# NW_getLoadType.importManuallyExecuted: false
+# Do not stop SAP System before data is unloaded
+# SAP SWPM is unable to automatically stop the SAP System (i.e. DB, ASCS, PAS instances),
+# if stop is true then SAP SWPM Unattended will fail on step mainExportParameters
 NW_Export.stopRunningSystem = true
+
+NW_readProfileDir.profileDir = /sapmnt/{{ sap_swpm_sid | upper }}/profile
+
+NW_getLoadType.loadType = {{ sap_swpm_load_type }}
+NW_getLoadType.importManuallyExecuted = false
 {% endif %}
+
 
 {% if 'syscopy_import_anydb_ibmdb2' in sap_swpm_inifile_list %}
 ######
 # syscopy_import_anydb_ibmdb2
 # Not in use by sap_swpm Ansible Role
 ######
-db6.usingSystemCopyBRforHADR = true
 # db6.Additional_DbServer =
 # db6.cluster.HADRPort1 =
 # db6.cluster.HADRPort2 =
@@ -937,6 +943,17 @@ db6.usingSystemCopyBRforHADR = true
 # db6.UseDb2NativeEncryption = false
 # NW_adaptProfile.templateFiles =
 # NW_CreateDBandLoad.movePVCforUsagePiAndDi =
-# NW_getLoadType.importManuallyExecuted = false
+db6.allowUnsignedDatabaseSoftware = true
+db6.cluster.ClusterType = HADR (High Availability Disaster Recovery)
+db6.usingSystemCopyBRforHADR = true
+NW_getDBInfoGeneric.dbhost = {{ sap_swpm_db_host }}
+NW_getDBInfoGeneric.dbsid = {{ sap_swpm_db_sid }}
+NW_getLoadType.loadType = {{ sap_swpm_load_type }}
+NW_getLoadType.importManuallyExecuted = false
+NW_getUnicode.isUnicode = true
+# NW_getDBInfoGeneric.strictDbSidCheck = true
+storageBasedCopy.db6.CommunicationPortNumber = 5912
+storageBasedCopy.db6.PortRangeEnd = 5917
+storageBasedCopy.db6.PortRangeStart = 5914
 # storageBasedCopy.db6.db6updatedbpath =
 {% endif %}
