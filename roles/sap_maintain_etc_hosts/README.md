@@ -1,4 +1,4 @@
-# Role Name: update_etc_hosts
+# Role Name: sap_maintain_etc_hosts
 
 This role can be used to reliably update the /etc/hosts file.
 
@@ -11,11 +11,11 @@ Requirements
 
 ## Role Input Parameters
 
-This role requires the dictonary `update_etc_hosts_list` which contains the parameters for the hostfile. The default value is the definition of the cluster nodes like in the role `sap_ha_pacemaker_cluster`. If the value `sap_hana_cluster_nodes`or `sap_ha_pacemaker_cluster_cluster_nodes` is not defined the role creates a default value from `ansible_facts`.
+This role requires the dictonary `sap_maintain_etc_hosts_list` which contains the parameters for the hostfile. The default value is the definition of the cluster nodes like in the role `sap_ha_pacemaker_cluster`. If the value `sap_hana_cluster_nodes`or `sap_ha_pacemaker_cluster_cluster_nodes` is not defined the role creates a default value from `ansible_facts`.
 
 Caution: If you want to use this role to remove entries from /etc/hosts it is a good practise to do this before adding entries. The adding/removal is done in the order the entries are listed.
 
-### update_etc_hosts_list
+### sap_maintain_etc_hosts_list
 
 - _Type:_ `list`
 
@@ -68,7 +68,7 @@ Caution: If you want to use this role to remove entries from /etc/hosts it is a 
 
 - _Type:_ `string`
   
-    default: managed by ansible update_etc_hosts role`
+    default: managed by ansible sap_maintain_etc_hosts role`
     String which is appended to line in hosts after comment string
     Not used when state is absent
 
@@ -106,9 +106,9 @@ If you want to setup/add entries your etc hosts you can use this snippet
 
 ```[yaml]
 - name: Ensure /etc/hosts is updated
-  include_role: sap_update_etc_hosts
+  include_role: sap_sap_maintain_etc_hosts
   var:
-        update_etc_hosts_list:
+        sap_maintain_etc_hosts_list:
                 - node_ip: 1.2.3.5
                   state: absent
                 - node_name: host2
@@ -126,9 +126,9 @@ If you have defined a cluster and the variable `sap_ha_pacemaker_cluster_cluster
 
 ```[yaml]
 - name: ensure all cluster nodes are in /etc/hosts
-  include_role: update_etc_hosts
+  include_role: sap_maintain_etc_hosts
   var:
-        update_etc_hosts_list: "{{ sap_hana_cluster_nodes }}"
+        sap_maintain_etc_hosts_list: "{{ sap_hana_cluster_nodes }}"
 ```
 
 License
