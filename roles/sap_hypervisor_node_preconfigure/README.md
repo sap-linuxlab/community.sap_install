@@ -11,9 +11,10 @@ This role will configure the following hypervisors in order to run SAP workloads
 Will configure a plain vanilla OpenShift cluster so it can be used for SAP workloads. 
 
 ### Requirements
-* A freshly installed OpenShift cluster. 
+* An OpenShift cluster, best without any previous customization. 
 * The worker nodes should have > 96GB of memory. 
 * Storage is required, e.g. via NFS, OpenShift Data Foundation or local storage. This role can setup access to a Netapp Filer via Trident storage connector. 
+Local storage will be configures using host path provisioner.
 * Point the `KUBECONFIG` environment variable to your `kubeconfig`.
 * Required packages: This roles uses the kubernetes ansible module, this can be installed via the package`ansible-collection-kubernetes-core`.
 * Make the role available in case you didn't install it already in an ansible roles directory, e.g.
