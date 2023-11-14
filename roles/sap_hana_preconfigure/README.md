@@ -159,10 +159,11 @@ For the RHEL System Roles for SAP, or for Red Hat Automation Hub, use 'redhat.rh
 
 ### sap_hana_preconfigure_min_rhel_release_check
 - _Type:_ `bool`
-- _Default:_ `true`
+- _Default:_ `false`
 
-Check the RHEL release against a predefined list of known SAP HANA supported RHEL minor releases.<br>
-If this parameter is set to `false`, the role will *not* perform this check.<br>
+Check the RHEL release against parameter `sap_hana_preconfigure_supported_rhel_minor_releases`, which is a list of<br>
+known SAP HANA supported RHEL minor releases. By default, the role will display a message and continue running if<br>
+the RHEL release is not part of that list. If set to `true`, the role will fail in such a case.<br>
 
 ### sap_hana_preconfigure_supported_rhel_minor_releases
 - _Type:_ `list` with elements of type `str`
