@@ -69,6 +69,23 @@
        line_item.archive_type == 'sapcar' or
        line_item.archive_type == 'xml')
 
+- name: SAP Install Media Detect - Organize all files - Create SWPM target directories
+  ansible.builtin.file:
+    path: "{{ line_item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm"
+    - "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm_download_basket"
+  loop_control:
+    loop_var: line_item
+    label: "{{ line_item.file }}"
+  when:
+    - sap_install_media_detect_move_or_copy_archives
+    - sap_install_media_detect_swpm
+
 - name: SAP Install Media Detect - Organize all files - Create target directory 'sap_hana'
   ansible.builtin.file:
     path: "{{ __sap_install_media_detect_software_main_directory }}/sap_hana"
@@ -76,30 +93,9 @@
     owner: root
     group: root
     mode: '0755'
-  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
-  loop_control:
-    loop_var: line_item
-    label: "{{ line_item.file }}"
   when:
     - sap_install_media_detect_move_or_copy_archives
     - sap_install_media_detect_db | d('') == 'saphana'
-    - line_item.target_dir == 'auto'
-
-- name: SAP Install Media Detect - Organize all files - Create target directory 'sap_swpm_download_basket'
-  ansible.builtin.file:
-    path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm_download_basket"
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
-  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
-  loop_control:
-    loop_var: line_item
-    label: "{{ line_item.file }}"
-  when:
-    - sap_install_media_detect_move_or_copy_archives
-    - sap_install_media_detect_swpm
-    - line_item.target_dir == 'auto'
 
 - name: SAP Install Media Detect - Organize all files - Extract zip export archive files to separate subdirectories
   ansible.builtin.shell: "set -o pipefail && unzip {{ line_item.file }} -d {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}/{{ (line_item.file | splitext)[0] }}"
