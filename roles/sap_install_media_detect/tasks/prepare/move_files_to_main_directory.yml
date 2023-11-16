@@ -8,7 +8,9 @@
 # Reason for noqa: When using pipefail and there is no result from the grep -v, this tail will fail but it should never fail
 - name: SAP Install Media Detect - Prepare - Find the relevant non-extract subdirectories # noqa risky-shell-pipe
   ansible.builtin.shell:
-    cmd: ls -d sap_hana sap_swpm_download_basket $({{ __sap_install_media_detect_sapfile_path }} -s) 2>/dev/null | awk '{print ("'{{ __sap_install_media_detect_software_main_directory }}'/"$0"/")}'
+    cmd: >
+      ls -d sap_hana sap_swpm_download_basket $({{ __sap_install_media_detect_sapfile_path }} -s) 2>/dev/null |
+      awk '{print ("'{{ __sap_install_media_detect_software_main_directory }}'/"$0"/")}'
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   register: __sap_install_media_detect_register_subdirectories_phase_1b
   changed_when: false
