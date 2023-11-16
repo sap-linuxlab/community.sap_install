@@ -5,6 +5,7 @@
     state: present
     name: "{{ __sap_netweaver_preconfigure_packages }}"
 
+# 12Nov2023_itdose2023: Add when Statement
 #The use of zypper here allows exact saptune version to be declared and used.
 - name: Ensure saptune is installed
   community.general.zypper:
@@ -12,3 +13,15 @@
     name: "saptune={{ sap_netweaver_preconfigure_saptune_version }}"
     state: present
     force: yes
+  when:
+    __sap_netweaver_preconfigure_run_saptune
+
+# 12Nov2023_itdose2023: Add sapconf Section
+- name: Ensure sapconf is installed
+  community.general.zypper:
+    type: package
+    name: "sapconf"
+    state: present
+    force: yes
+  when:
+    not __sap_netweaver_preconfigure_run_saptune
