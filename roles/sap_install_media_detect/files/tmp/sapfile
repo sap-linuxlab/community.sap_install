@@ -18,7 +18,7 @@
 set -o nounset
 set -o pipefail
 
-usage () {
+usage() {
    echo "sapfile: Determine and display SAP file type. If unknown, call the file command."
    echo "Usage: sapfile [OPTION...] [FILE...]"
    echo "Determine and display type of SAP FILEs, optionally followed by additional information."
@@ -26,6 +26,7 @@ usage () {
    echo "  -H|--header                display a column header"
    echo "  -l|--long                  long listing: also display the file type, taken from the output of the file command"
    echo "  -e|--extra-long            extra long listing: display all information required by role sap_install_media_detect"
+   echo "  -s|--show-file-types       show all supported file types"
    echo "  --lsar_file=<FILE>         the name of the program to list the content of a RAR file, if different from 'lsar',"
    echo "                               either as the name of a file in one of the PATH directories or as an FQPN."
    echo "                               When specifying the 'unrar' program, it will be called with option 'lb'."
@@ -36,6 +37,11 @@ usage () {
    echo "- lsar (program to list the content of a RAR package, e.g. as part of the 'unar' package from the EPEL RHEL repo)"
    echo "- zipinfo (contained in the unzip RHEL package)"
    echo "- sapcar (SAP program to handle sapcar files; typical filename: SAPCAR_1115-70006178.EXE)"
+}
+
+show_file_types() {
+   awk '!/BEGIN/&&!/END/&&/_sap_file_type=/{gsub (" ", ""); gsub ("\\{_sap_file_type=\"", ": "); gsub ("\"\\}", ""); print $NF}' $0 | \
+     sort | uniq
 }
 
 # defaults:
@@ -53,7 +59,7 @@ if [[ ${#} == 0 ]]; then
    exit 1
 fi
 
-options=":leHh-:"
+options=":leHsh-:"
 while getopts "$options" opt; do
    case ${opt} in
       -)
@@ -63,6 +69,10 @@ while getopts "$options" opt; do
                ;;
             extra-long)
                _DISPLAY_ALL_INFO="y"
+               ;;
+            show-file-types)
+               show_file_types
+               exit 0
                ;;
             header)
                _DISPLAY_HEADER="y"
@@ -108,6 +118,10 @@ while getopts "$options" opt; do
          ;;
       e)
          _DISPLAY_ALL_INFO="y"
+         ;;
+      s)
+         show_file_types
+         exit 0
          ;;
       H)
          _DISPLAY_HEADER="y"
