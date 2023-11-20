@@ -249,17 +249,28 @@
 # - ASCS VIP
 # The order of the resources in the group define the order in which they are
 # started - resources are stopped in reverse order.
+#
+# Only resources that were defined as resources to be configured will be
+# added to the group.
 
 - name: "SAP HA Prepare Pacemaker - Add resource group for ASCS resources"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__ascs_group] }}"
   vars:
     __ascs_group:
-      id: "{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ASCS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}_group"
-      resource_ids:
-        - "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_filesystem_resource_name }}"
-        - "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name }}"
-        - "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name }}"
+      id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name }}"
+      resource_ids: |
+        {% set resource_ids_list = [] %}
+        {%- for resource in
+          sap_ha_pacemaker_cluster_nwas_abap_ascs_filesystem_resource_name,
+          sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name,
+          sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name %}
+          {%- if resource | length > 0
+            and resource not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')) %}
+            {%- set ids = resource_ids_list.append(resource) %}
+          {%- endif %}
+        {%- endfor %}
+        {{ resource_ids_list }}
       meta_attrs:
         - attrs:
             - name: resource-stickiness
@@ -273,17 +284,28 @@
 # - ERS VIP
 # The order of the resources in the group define the order in which they are
 # started - resources are stopped in reverse order.
+#
+# Only resources that were defined as resources to be configured will be
+# added to the group.
 
 - name: "SAP HA Prepare Pacemaker - Add resource group for ERS resources"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__ers_group] }}"
   vars:
     __ers_group:
-      id: "{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ERS{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}_group"
-      resource_ids:
-        - "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_filesystem_resource_name }}"
-        - "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name }}"
-        - "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name }}"
+      id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name }}"
+      resource_ids: |
+        {% set resource_ids_list = [] %}
+        {%- for resource in
+          sap_ha_pacemaker_cluster_nwas_abap_ers_filesystem_resource_name,
+          sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name,
+          sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name %}
+          {%- if resource | length > 0
+            and resource not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')) %}
+            {%- set ids = resource_ids_list.append(resource) %}
+          {%- endif %}
+        {%- endfor %}
+        {{ resource_ids_list }}
   when:
     - __ers_group.id is not in (__sap_ha_pacemaker_cluster_resource_groups | map(attribute='id'))
 
