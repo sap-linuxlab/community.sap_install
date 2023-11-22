@@ -67,7 +67,7 @@
   when:
     - __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent != 'service:haproxy'
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
-    - vip_list_item.value != ''
+    - vip_list_item.value | length > 0
 
 # When the load balancer / haxproxy setup is free of VIP configuration on OS level
 # it must not enter the above VIP constraints setup, but add constraints for haproxy instead.
@@ -82,3 +82,4 @@
   when:
     - __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent == 'service:haproxy'
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+    - vip_list_item.value | length > 0
