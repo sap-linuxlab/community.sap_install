@@ -1,0 +1,30 @@
+---
+# you can run 'ansible-playbook test.yml -K -e __sap_maintain_etc_hosts_file=./test.hosts' for testing this role
+- name: Test play
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    sap_maintain_etc_hosts_list:
+      - node_ip: 1.2.3.5
+        state: absent
+      - node_name: host1
+        state: absent
+      - node_ip: 1.2.3.5
+        node_name: host1
+        node_domain: abc.de
+        node_role: primary
+        hana_site: DC1
+      - node_ip: 1.2.3.7
+        node_name: host2
+        node_domain: abc.de
+      - node_ip: 1.2.3.4
+        node_name: host3
+        node_domain: abc.de
+        aliases:
+          - alias1
+          - anotheralias2
+        node_comment: "Here comes text after hashsign"
+        state: present
+  roles:
+    - sap_maintain_etc_hosts
