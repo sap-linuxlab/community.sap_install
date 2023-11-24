@@ -11,6 +11,11 @@
 # Determine Installation Type
 ################
 
+# Ignore Product IDs for SAP NetWeaver 7.5 Java standalone:
+# - Advanced Adapter Engine (AE) with .AE .AEHA
+# - Advanced Adapter Engine Extended (AEX) with .AEX .AEXHA
+# - Process Integration / Process Orchestration (PI/PO) with .PI .PIHA .PIABAP .PIABAPHA .PIJAVA .PIJAVAHA
+
 #- name: SAP SWPM Pre Install - Check if general SAP Software installation
 #  ansible.builtin.set_fact:
 #    sap_swpm_swpm_installation_type: "general"
@@ -31,7 +36,7 @@
     sap_swpm_swpm_installation_type: "ha"
     sap_swpm_swpm_installation_header: "High Availability Installation using virtual hostname"
   when:
-    - "'.ABAPHA' in sap_swpm_product_catalog_id"
+    - "'.ABAPHA' in sap_swpm_product_catalog_id or '.HA' in sap_swpm_product_catalog_id or '.HACP' in sap_swpm_product_catalog_id"
 
 - name: SAP SWPM Pre Install - Check if installation using SAP Maintenance Planner
   ansible.builtin.set_fact:
