@@ -1,49 +1,38 @@
 ---
 # 12Nov2023_itdose2023: Add when Statement
-- name: Ensure saptune is running and enabled
-  ansible.builtin.systemd:
-    name: saptune
-    state: started
-    enabled: yes
-  when: 
-    __sap_netweaver_preconfigure_run_saptune
+# 29Nov2023_itdose2023: create block "marcelmamula: redundant when conditionals should be replaced by blocks with single when condition to remove clutter"
+- name: saptune tasks
+  block:
+    - name: Ensure saptune is running and enabled
 
-# 12Nov2023_itdose2023: Add when Statement
-- name: Ensure saptune_check executes correctly
-  ansible.builtin.command: saptune_check
-  changed_when: no
-  when: 
-    __sap_netweaver_preconfigure_run_saptune
+      ansible.builtin.systemd:
+        name: saptune
+        state: started
+        enabled: yes
 
-# 12Nov2023_itdose2023: Add when Statement
-- name: Discover active solution
-  ansible.builtin.command: saptune solution enabled
-  register: __sap_netweaver_preconfigure_register_saptune_status
-  changed_when: no
-  when: 
-    __sap_netweaver_preconfigure_run_saptune
+    - name: Ensure saptune_check executes correctly
+      ansible.builtin.command: saptune_check
+      changed_when: no
 
-# 12Nov2023_itdose2023: Add when Statement
-- name: Make sure that sapconf and tuned are stopped and disabled
-  ansible.builtin.command: "saptune service takeover"
-  register: __sap_saptune_takeover
-  changed_when: __sap_saptune_takeover.rc == 0
-  when: 
-    __sap_netweaver_preconfigure_run_saptune
+    - name: Discover active solution
+      ansible.builtin.command: saptune solution enabled
+      register: __sap_netweaver_preconfigure_register_saptune_status
+      changed_when: no
 
-# 12Nov2023_itdose2023: Add when Statement
-- name: Set fact for active solution
-  ansible.builtin.set_fact:
-    __sap_netweaver_preconfigure_fact_solution_configured: "{{ (__sap_netweaver_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}" # Capture the first block on none whitespace
-  when: 
-    __sap_netweaver_preconfigure_run_saptune
+    - name: Make sure that sapconf and tuned are stopped and disabled
+      ansible.builtin.command: "saptune service takeover"
+      register: __sap_saptune_takeover
+      changed_when: __sap_saptune_takeover.rc == 0
 
-# 12Nov2023_itdose2023: Add when Statement
-- name: Check if saptune solution needs to be applied
-  ansible.builtin.command: "saptune solution verify {{ sap_netweaver_preconfigure_saptune_solution }}"
-  register: __sap_netweaver_preconfigure_register_saptune_verify
-  changed_when: no # We're only checking, not changing!
-  failed_when: no # We expect this to fail if it has not previously been applied
+    - name: Set fact for active solution
+      ansible.builtin.set_fact:
+        __sap_netweaver_preconfigure_fact_solution_configured: "{{ (__sap_netweaver_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}" # Capture the first block on none whitespace
+
+    - name: Check if saptune solution needs to be applied
+      ansible.builtin.command: "saptune solution verify {{ sap_netweaver_preconfigure_saptune_solution }}"
+      register: __sap_netweaver_preconfigure_register_saptune_verify
+      changed_when: no # We're only checking, not changing!
+      failed_when: no # We expect this to fail if it has not previously been applied
   when: 
     __sap_netweaver_preconfigure_run_saptune
 

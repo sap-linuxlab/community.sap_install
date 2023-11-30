@@ -5,6 +5,21 @@
     state: present
     name: "{{ __sap_netweaver_preconfigure_packages }}"
 
+# 29Nov2023_itdose2023: Add recommendation to set variable based on installed OS
+- name: Get contents of /etc/products.d/baseproduct
+  ansible.builtin.stat:
+    path: /etc/products.d/baseproduct
+  register: sles_baseproduct
+  when: ansible_os_family == 'Suse'
+
+- name: Setfact if baseproduct contains SLES without SLES_SAP
+  ansible.builtin.set_fact:
+    __sap_netweaver_preconfigure_run_saptune: false
+  when: 
+    - '"SLES_SAP" not in sles_baseproduct.stat.lnk_target'
+    - '"SLES" in sles_baseproduct.stat.lnk_target'
+    - ansible_os_family == 'Suse'
+
 # 12Nov2023_itdose2023: Add when Statement
 #The use of zypper here allows exact saptune version to be declared and used.
 - name: Ensure saptune is installed

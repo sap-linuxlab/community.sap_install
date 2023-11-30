@@ -10,23 +10,49 @@
     name: "*"
   when: sap_hana_preconfigure_update | bool
 
-# 12Nov2023_itdose2023: add when Statement for saptune because sap-hana is not available on Standard SLES
-- name: Ensure saphana pattern is installed
-  community.general.zypper:
-    type: pattern
-    name: sap-hana
-    state: present
-    force: yes
-  when: 
-    __sap_hana_preconfigure_run_saptune
+# -----------
+# 29Nov2023_itdose2023: Add recommendation to set variable based on installed OS
+- name: Get contents of /etc/products.d/baseproduct
+  ansible.builtin.stat:
+    path: /etc/products.d/baseproduct
+  register: sles_baseproduct
+  when: ansible_os_family == 'Suse'
 
-# 12Nov2023_itdose2023: add when Statement for saptune
-- name: Ensure saptune is installed
-  community.general.zypper:
-    type: package
-    name: "saptune={{ sap_hana_preconfigure_saptune_version }}"
-    state: present
-    force: yes
+- name: Setfact if baseproduct contains SLES without SLES_SAP
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_run_saptune: false
+  when: 
+    - '"SLES_SAP" not in sles_baseproduct.stat.lnk_target'
+    - '"SLES" in sles_baseproduct.stat.lnk_target'
+    - ansible_os_family == 'Suse'
+
+- name: Output
+  ansible.builtin.debug: 
+    msg:
+      - "OS Familiy: {{ ansible_os_family }}"
+      - "saptune: {{ __sap_hana_preconfigure_run_saptune }}" 
+      - "link: {{ sles_baseproduct.stat.lnk_target }}"
+# -----------
+
+
+# 29Nov2023_itdose2023: create block "marcelmamula: redundant when conditionals should be replaced by blocks with single when condition to remove clutter"
+- name: prepare saptune
+  block:
+    # 12Nov2023_itdose2023: add when Statement for saptune because sap-hana is not available on Standard SLES
+    - name: Ensure saphana pattern is installed
+      community.general.zypper:
+        type: pattern
+        name: sap-hana
+        state: present
+        force: yes
+
+    # 12Nov2023_itdose2023: add when Statement for saptune
+    - name: Ensure saptune is installed
+      community.general.zypper:
+        type: package
+        name: "saptune={{ sap_hana_preconfigure_saptune_version }}"
+        state: present
+        force: yes
   when: 
     __sap_hana_preconfigure_run_saptune
 
