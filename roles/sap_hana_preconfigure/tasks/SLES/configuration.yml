@@ -5,40 +5,33 @@
 #    verbosity: "{{ debuglevel }}"
 #
 
-# 29Nov2023_itdose2023: create block "marcelmamula: redundant when conditionals should be replaced by blocks with single when condition to remove clutter"
 - name: prepare saptune
   block:
-    # 12Nov2023_itdose2023: add when Statement for saptune
     - name: Ensure saptune is running and enabled
       ansible.builtin.systemd:
         name: saptune
         state: started
         enabled: yes
         
-    # 12Nov2023_itdose2023: add when Statement for saptune
     - name: Ensure saptune_check executes correctly
       ansible.builtin.command: saptune_check
       changed_when: no
-
-    # 12Nov2023_itdose2023: Add this section for sapconf:  
+ 
     - name: Discover active solution
       ansible.builtin.command: saptune solution enabled
       register: __sap_hana_preconfigure_register_saptune_status
       changed_when: no
 
-    # 12Nov2023_itdose2023: Add this section for sapconf:
     - name: Set fact for active solution
       ansible.builtin.set_fact:
         __sap_hana_preconfigure_fact_solution_configured: "{{ (__sap_hana_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}" # Capture the first block on none whitespace
 
-    # 12Nov2023_itdose2023: Add this section for sapconf:
     - name: Show configured solution
       ansible.builtin.debug:
         var: __sap_hana_preconfigure_fact_solution_configured
   when: 
     __sap_hana_preconfigure_run_saptune
 
-# 12Nov2023_itdose2023: Add this section for sapconf:
 - name: Ensure sapconf is running and enabled
   ansible.builtin.systemd:
     name: sapconf
@@ -90,12 +83,11 @@
     - __sap_hana_preconfigure_run_saptune
     - __sap_hana_preconfigure_register_saptune_verify.rc != 0
 
-# 29Nov2023_itdose2023: create block "marcelmamula: redundant when conditionals should be replaced by blocks with single when condition to remove clutter"
 - name: saptune verification
   block:
     - name: Ensure solution was successful
       ansible.builtin.command: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
-      changed_when: no # We're only checking, not changing!
+      changed_when: no
 
     - name: Make sure that sapconf and tuned are stopped and disabled
       ansible.builtin.command: "saptune service takeover"
@@ -104,7 +96,6 @@
   when: 
     - __sap_hana_preconfigure_run_saptune
 
-# 12Nov2023_itdose2023: In case sapconf is used (Standard SLES), start Service
 - name: restart sapconf service 
   ansible.builtin.systemd:
     name: sapconf

@@ -11,7 +11,6 @@
   when: sap_hana_preconfigure_update | bool
 
 # -----------
-# 29Nov2023_itdose2023: Add recommendation to set variable based on installed OS
 - name: Get contents of /etc/products.d/baseproduct
   ansible.builtin.stat:
     path: /etc/products.d/baseproduct
@@ -34,11 +33,8 @@
       - "link: {{ sles_baseproduct.stat.lnk_target }}"
 # -----------
 
-
-# 29Nov2023_itdose2023: create block "marcelmamula: redundant when conditionals should be replaced by blocks with single when condition to remove clutter"
 - name: prepare saptune
   block:
-    # 12Nov2023_itdose2023: add when Statement for saptune because sap-hana is not available on Standard SLES
     - name: Ensure saphana pattern is installed
       community.general.zypper:
         type: pattern
@@ -46,7 +42,6 @@
         state: present
         force: yes
 
-    # 12Nov2023_itdose2023: add when Statement for saptune
     - name: Ensure saptune is installed
       community.general.zypper:
         type: package
@@ -56,7 +51,6 @@
   when: 
     __sap_hana_preconfigure_run_saptune
 
-# 12Nov2023_itdose2023: Add this section for sapconf:
 - name: Ensure sapconf is installed
   community.general.zypper:
     type: package

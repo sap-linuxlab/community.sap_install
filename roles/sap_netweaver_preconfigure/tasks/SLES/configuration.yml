@@ -1,10 +1,8 @@
 ---
-# 12Nov2023_itdose2023: Add when Statement
-# 29Nov2023_itdose2023: create block "marcelmamula: redundant when conditionals should be replaced by blocks with single when condition to remove clutter"
+
 - name: saptune tasks
   block:
     - name: Ensure saptune is running and enabled
-
       ansible.builtin.systemd:
         name: saptune
         state: started
@@ -36,7 +34,6 @@
   when: 
     __sap_netweaver_preconfigure_run_saptune
 
-# 12Nov2023_itdose2023: Add when Statement
 - name: Ensure no solution is currently applied
   ansible.builtin.command: "saptune solution revert {{ __sap_netweaver_preconfigure_fact_solution_configured }}"
   when:
@@ -44,21 +41,19 @@
     - __sap_netweaver_preconfigure_fact_solution_configured != 'NONE'
     - __sap_netweaver_preconfigure_register_saptune_verify.rc != 0
 
-# 12Nov2023_itdose2023: Add when Statement
 - name: Ensure saptune solution is applied
   ansible.builtin.command: "saptune solution apply {{ sap_netweaver_preconfigure_saptune_solution }}"
   when: 
     - __sap_netweaver_preconfigure_run_saptune
     - __sap_netweaver_preconfigure_register_saptune_verify.rc != 0
 
-# 12Nov2023_itdose2023: Add when Statement
 - name: Ensure solution was successful
   ansible.builtin.command: "saptune solution verify {{ sap_netweaver_preconfigure_saptune_solution }}"
   changed_when: no # We're only checking, not changing!
   when: 
     __sap_netweaver_preconfigure_run_saptune
 
-# 12Nov2023_itdose2023: restart sapconf service
+# restart sapconf service
 - name: restart sapconf service
   ansible.builtin.systemd:
     name: sapconf
