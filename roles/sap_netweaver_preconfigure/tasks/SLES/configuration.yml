@@ -1,6 +1,8 @@
 ---
 
-- name: saptune tasks
+- name: saptune 
+  when: 
+    __sap_netweaver_preconfigure_run_saptune
   block:
     - name: Ensure saptune is running and enabled
       ansible.builtin.systemd:
@@ -31,8 +33,6 @@
       register: __sap_netweaver_preconfigure_register_saptune_verify
       changed_when: no # We're only checking, not changing!
       failed_when: no # We expect this to fail if it has not previously been applied
-  when: 
-    __sap_netweaver_preconfigure_run_saptune
 
 - name: Ensure no solution is currently applied
   ansible.builtin.command: "saptune solution revert {{ __sap_netweaver_preconfigure_fact_solution_configured }}"

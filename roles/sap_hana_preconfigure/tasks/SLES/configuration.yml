@@ -6,6 +6,8 @@
 #
 
 - name: prepare saptune
+  when: 
+    __sap_hana_preconfigure_run_saptune
   block:
     - name: Ensure saptune is running and enabled
       ansible.builtin.systemd:
@@ -29,8 +31,6 @@
     - name: Show configured solution
       ansible.builtin.debug:
         var: __sap_hana_preconfigure_fact_solution_configured
-  when: 
-    __sap_hana_preconfigure_run_saptune
 
 - name: Ensure sapconf is running and enabled
   ansible.builtin.systemd:
@@ -84,6 +84,8 @@
     - __sap_hana_preconfigure_register_saptune_verify.rc != 0
 
 - name: saptune verification
+  when: 
+    - __sap_hana_preconfigure_run_saptune
   block:
     - name: Ensure solution was successful
       ansible.builtin.command: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
@@ -93,8 +95,6 @@
       ansible.builtin.command: "saptune service takeover"
       register: __sap_saptune_takeover
       changed_when: __sap_saptune_takeover.rc == 0
-  when: 
-    - __sap_hana_preconfigure_run_saptune
 
 - name: restart sapconf service 
   ansible.builtin.systemd:
