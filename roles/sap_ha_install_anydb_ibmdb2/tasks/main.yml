@@ -16,12 +16,26 @@
 # See Installation documentation for IBM Db2 with Integrated Cluster Manager (Linux Pacemaker) - https://www.ibm.com/docs/en/db2/11.5?topic=manager-installing-pacemaker-cluster
 
 
+- name: SAP HA AnyDB - IBM Db2 HADR - Confirm IBM Db2 installation media is available
+  ansible.builtin.find:
+    paths: "{{ sap_ha_install_anydb_ibmdb2_software_directory }}"
+    recurse: true
+    file_type: file
+    patterns: db2installPCMK
+    excludes: bin
+  register: __sap_ha_install_anydb_ibmdb2_check_install_media
+
+- name: SAP HA AnyDB - IBM Db2 HADR - Fail if IBM Db2 installation media is not available
+  ansible.builtin.fail:
+    msg: IBM Db2 installation media is not available, cannot find file db2installPCMK
+  when: not (__sap_ha_install_anydb_ibmdb2_check_install_media.files | length > 0)
+
 # Determine if we are on a cloud platform.
 - name: SAP HA AnyDB - IBM Db2 HADR - Include tasks for platform detection
   ansible.builtin.import_tasks: platform/ascertain_platform_type.yml
 
 # See IBM Db2 documentation 'HADR and network address translation (NAT) support' - https://www.ibm.com/docs/en/db2/11.5?topic=support-hadr-nat
- SAP HA AnyDB - IBM Db2 HADR -- name: Append IBM Db2 HA Ports to /etc/services
+- name: SAP HA AnyDB - IBM Db2 HADR - Append IBM Db2 HA Ports to /etc/services
   ansible.builtin.lineinfile:
     path: /etc/services
     line: "{{ item }}"
@@ -62,14 +76,14 @@
 
     - name: SAP HA AnyDB - IBM Db2 HADR - Install all IBM Db2 'Integrated Linux Pacemaker' RPMs for RHEL
       ansible.builtin.dnf:
-        name: "{{ __sap_ha_install_anydb_ibmdb2_pcmk_rpm_files.files | map(attribute='path') | list}}"
+        name: "{{ __sap_ha_install_anydb_ibmdb2_pcmk_rpm_files.files | map(attribute='path') | list }}"
         state: present
         disable_gpg_check: true
       when: ansible_os_family == 'RedHat'
 
     - name: SAP HA AnyDB - IBM Db2 HADR - Install all IBM Db2 'Integrated Linux Pacemaker' RPMs for SLES
       community.general.zypper:
-        name: "{{ __sap_ha_install_anydb_ibmdb2_pcmk_rpm_files.files | map(attribute='path') | list}}"
+        name: "{{ __sap_ha_install_anydb_ibmdb2_pcmk_rpm_files.files | map(attribute='path') | list }}"
         state: present
         disable_gpg_check: true
       when: ansible_os_family == 'Suse'
@@ -111,7 +125,7 @@
 
     - name: SAP HA AnyDB - IBM Db2 HADR - Execute db2installPCMK shell script
       ansible.builtin.shell: |
-        {{__sap_ha_install_anydb_ibmdb2_pcmk.files[0].path}} -i
+        {{ __sap_ha_install_anydb_ibmdb2_pcmk.files[0].path }} -i
 
 
 - name: SAP HA AnyDB - IBM Db2 HADR - Ansible Task Block to create Linux Pacemaker cluster from AnyDB Primary node
