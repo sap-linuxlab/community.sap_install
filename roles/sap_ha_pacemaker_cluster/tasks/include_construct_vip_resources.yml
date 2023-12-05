@@ -59,8 +59,6 @@
 #     hc_vip___pas: 0
 #     hc_vip___aas: 0
 
-# TODO: convert that dict to a list for easier looping?
-
 - name: "SAP HA Prepare Pacemaker - Combine VIP parameters"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_vip_resource_definition:
@@ -100,11 +98,12 @@
     loop_var: vip_list_item
     label: "{{ vip_list_item.key }} - {{ vip_list_item.value }}"
   when:
-    - __sap_ha_pacemaker_cluster_platform | length == 0
+    - __sap_ha_pacemaker_cluster_platform != 'cloud_gcp_ce_vm'        # custom IPaddr2 task per platform
+    - __sap_ha_pacemaker_cluster_platform != 'cloud_ibmcloud_powervs' # custom IPaddr2 task per platform
+    - __sap_ha_pacemaker_cluster_platform != 'cloud_ibmcloud_vs'      # no IPaddr2 resource creation, even when an IP is defined
     - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
 
-# Platform VIP and/or health check resources creation.
-# Platform tasks must cover the VIP resource group creation, when applicable.
+# Platform custom VIP and/or health check resources creation.
 - name: "SAP HA Prepare Pacemaker - Include variable construction for platform VIP methods"
   ansible.builtin.include_tasks: "platform/construct_vars_vip_resources_{{ __sap_ha_pacemaker_cluster_platform }}.yml"
   loop: "{{ query('dict', __sap_ha_pacemaker_cluster_vip_resource_definition) }}"
@@ -115,38 +114,9 @@
   when:
     - __sap_ha_pacemaker_cluster_platform | length > 0
 
-
-# Group VIP and healthcheck resources when both exist.
+# Group VIP and healthcheck resources if applicable.
 - name: "SAP HA Prepare Pacemaker - Include VIP and healthcheck group creation"
   ansible.builtin.include_tasks:
     file: construct_vars_vip_groups.yml
-
-
-# TODO: careful separation of different VIP methods and the depending constraints configuration
-
-# Constraints either are done for single VIP resources or for grouped VIP/HC resources.
-- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP Hana VIP constraints"
-  ansible.builtin.include_tasks:
-    file: construct_vars_vip_constraints_hana.yml
-  loop: "{{ query('dict', __sap_ha_pacemaker_cluster_vip_resource_definition) }}"
-  loop_control:
-    index_var: loop_index
-    loop_var: vip_list_item
-    label: "{{ vip_list_item.key }} - {{ vip_list_item.value }}"
   when:
-    - __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent != 'service:haproxy'
-    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
-
-# When the load balancer / haxproxy setup is free of VIP configuration on OS level
-# it must not enter the above VIP constraints setup, but add constraints for haproxy instead.
-- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP Hana 'haproxy' constraints"
-  ansible.builtin.include_tasks:
-    file: construct_vars_haproxy_constraints_hana.yml
-  loop: "{{ query('dict', __sap_ha_pacemaker_cluster_vip_resource_definition) }}"
-  loop_control:
-    index_var: loop_index
-    loop_var: vip_list_item
-    label: "{{ vip_list_item.key }} - {{ vip_list_item.value }}"
-  when:
-    - __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent == 'service:haproxy'
-    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0

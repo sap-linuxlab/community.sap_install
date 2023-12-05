@@ -8,7 +8,7 @@
 # {{ vip_list_item.key }}   => vip_SID_00_primary
 # {{ vip_list_item.value }} => 192.168.1.10
 
-- name: "SAP HA Prepare Pacemaker - ipaddr resource agent - Add resource: OS network interface Virtual IP"
+- name: "SAP HA Prepare Pacemaker - GCP CE - Add resource: OS network interface Virtual IP: {{ vip_list_item.key }} (IPaddr2)"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
   vars:
@@ -25,17 +25,17 @@
               value: "{{ sap_ha_pacemaker_cluster_vip_client_interface }}"
   when:
     - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
-    - (sap_ha_pacemaker_cluster_vip_method == 'ipaddr') or
+    - sap_ha_pacemaker_cluster_vip_method == 'ipaddr' or
       (__sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with is defined and
-      'ipaddr' in __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with)
+      __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with == 'ipaddr')
     - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
 
-- name: "SAP HA Prepare Pacemaker - haproxy resource agent - Add resource: Google Cloud Load Balancing Internal passthrough Network Load Balancer (NLB L-4) for VIP routing"
+- name: "SAP HA Prepare Pacemaker - GCP CE - Add resource: Google Cloud Load Balancing Internal passthrough Network Load Balancer (NLB L-4) for VIP routing: {{ vip_list_item.key }} (haproxy)"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__health_check] }}"
   vars:
     __health_check:
-      id: "hc_{{ vip_list_item.key }}"
+      id: "{{ vip_list_item.key }}"
       agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
       operations:
         - action: monitor

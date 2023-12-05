@@ -13,7 +13,7 @@
 # {{ vip_list_item.value }} => 62600
 
 
-- name: "SAP HA Prepare Pacemaker - IBM Cloud VS - haproxy resource agent - Add resource: IBM Cloud Load Balancer Private ALB L-7 (or NLB L-4) for VIP routing"
+- name: "SAP HA Prepare Pacemaker - IBM Cloud VS - Add resource: IBM Cloud Load Balancer Private ALB L-7 (or NLB L-4) for VIP routing: {{ vip_list_item.key }} (haproxy)"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__health_check] }}"
   vars:
@@ -30,6 +30,7 @@
   when:
     - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - vip_list_item.key in __sap_ha_pacemaker_cluster_healthcheck_resource_list
+    - __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent == 'service:haproxy'
 
 # IBM Cloud Load Balancer will own and control the Virtual IP (VIP) routing and failover
 # When Linux Pacemaker failover to secondary occurs, the primary will cease Health Check response to IBM Cloud Load Balancer,

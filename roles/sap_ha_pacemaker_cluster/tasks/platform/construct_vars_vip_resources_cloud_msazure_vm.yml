@@ -15,37 +15,19 @@
 # Azure requires 2 resources for the floating IP setup.
 #
 # 1) resource type "IPaddr2"
+#   => is already created through construct_vars_vip_resources_default.yml
 
-- name: "SAP HA Prepare Pacemaker - ipaddr resource agent - Add resource: OS network interface Virtual IP"
-  ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
-  vars:
-    __resource_vip:
-      id: "{{ vip_list_item.key }}"
-      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents['ipaddr'].agent }}"
-      instance_attrs:
-        - attrs:
-            - name: ip
-              value: "{{ vip_list_item.value }}"
-            - name: nic
-              value: "{{ sap_ha_pacemaker_cluster_vip_client_interface }}"
-  when:
-    - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
-    - (sap_ha_pacemaker_cluster_vip_method == 'ipaddr') or
-      (__sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with is defined and
-      'ipaddr' in __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with)
-    - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
 
 # 2) resource type "azure_lb" (requires 'socat')
 
-- name: "SAP HA Prepare Pacemaker - azure_lb resource agent - Verify socat binary path"
+- name: "SAP HA Prepare Pacemaker - MS Azure - Verify socat binary path"
   ansible.builtin.shell: |
     which socat
   register: __sap_ha_pacemaker_cluster_register_socat_path
   changed_when: false
 
 # Hint: the 'vip_list_item's will only be the ones matching the cluster host type.
-- name: "SAP HA Prepare Pacemaker - azure_lb resource agent - Add resource: Azure Load Balancer (NLB L-4) for VIP routing"
+- name: "SAP HA Prepare Pacemaker - MS Azure - Add resource: Azure Load Balancer (NLB L-4) for VIP routing: {{ vip_list_item.key }} (azure_lb)"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__health_check] }}"
   vars:
@@ -62,3 +44,5 @@
     - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_method == 'azure_lb'
     - vip_list_item.key in __sap_ha_pacemaker_cluster_healthcheck_resource_list
+    - __sap_ha_pacemaker_cluster_register_socat_path.stdout is defined
+    - __sap_ha_pacemaker_cluster_register_socat_path.stdout | length > 0

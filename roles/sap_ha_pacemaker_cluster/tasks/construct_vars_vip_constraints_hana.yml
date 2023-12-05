@@ -1,13 +1,5 @@
 ---
-# Reminder: This file is included in a loop over a dictionary.
-# Included in: tasks/include_construct_vip_resources.yml
-#
-# file loop var: vip_list_item
-#
-# Example:
-# {{ vip_list_item.key }}   => vip_SID_00_primary
-# {{ vip_list_item.value }} => 192.168.1.10
-
+# Included in: tasks/main.yml
 
 # Start the VIP(s) only after the HANA resource has been promoted
 - name: "SAP HA Prepare Pacemaker - Add order constraint: Primary VIP starts after DB is promoted"
@@ -19,10 +11,32 @@
         id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
         action: promote
       resource_then:
-        id: "{{ vip_list_item.key }}"
+        id: "{{ __res_or_grp }}"
         action: start
+
+    # Check if there is
+    # - a group for the hana_primary VIP/HC resources
+    # - otherwise check if the VIP resource for hana_primary is defined
+    # - otherwise check for a HC resource for hana_primary
+    # and use the found resource in the constraint.
+    __res_or_grp: |-
+      {% if sap_ha_pacemaker_cluster_vip_group_prefix | length > 0 and
+        __sap_ha_pacemaker_cluster_resource_groups | map(attribute='id')
+        | select('match', sap_ha_pacemaker_cluster_vip_group_prefix + sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
+        {{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}
+      {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
+        | select('match', sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
+        {{ sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}
+      {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
+        | select('match', sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name) -%}
+        {{ sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name }}
+      {%- else -%}
+        none_found
+      {%- endif -%}
+
   when:
     - __constraint_order_vip.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))
+    - __res_or_grp != 'none_found'  # fallback skip if there was neither a group nor any VIP/HC resources found
 
 # The primary VIP only runs where HANA is promoted
 - name: "SAP HA Prepare Pacemaker - Add colocation constraint: Primary VIP runs where HANA is promoted"
@@ -34,12 +48,34 @@
         id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
         role: promoted
       resource_follower:
-        id: "{{ sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}"
+        id: "{{ __res_or_grp }}"
       options:
         - name: score
           value: 2000
+
+    # Check if there is
+    # - a group for the hana_primary VIP/HC resources
+    # - otherwise check if the VIP resource for hana_primary is defined
+    # - otherwise check for a HC resource for hana_primary
+    # and use the found resource in the constraint.
+    __res_or_grp: |-
+      {% if sap_ha_pacemaker_cluster_vip_group_prefix | length > 0 and
+        __sap_ha_pacemaker_cluster_resource_groups | map(attribute='id')
+        | select('match', sap_ha_pacemaker_cluster_vip_group_prefix + sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
+        {{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}
+      {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
+        | select('match', sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
+        {{ sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}
+      {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
+        | select('match', sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name) -%}
+        {{ sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name }}
+      {%- else -%}
+        none_found
+      {%- endif -%}
+
   when:
     - __constraint_colo_vip.resource_follower not in (__sap_ha_pacemaker_cluster_constraints_colocation | map(attribute='resource_follower'))
+    - __res_or_grp != 'none_found'  # fallback skip if there was neither a group nor any VIP/HC resources found
 
 # The secondary VIP only runs where HANA is UNpromoted
 - name: "SAP HA Prepare Pacemaker - Add colocation constraint: Read-only VIP runs where HANA is not promoted"
@@ -51,11 +87,33 @@
         id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
         role: unpromoted
       resource_follower:
-        id: "{{ sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}"
+        id: "{{ __res_or_grp }}"
       options:
         - name: score
           value: 2000
+
+    # Check if there is
+    # - a group for the hana_secondary VIP/HC resources
+    # - otherwise check if the VIP resource for hana_secondary is defined
+    # - otherwise check for a HC resource for hana_secondary
+    # and use the found resource in the constraint.
+    __res_or_grp: |-
+      {% if sap_ha_pacemaker_cluster_vip_group_prefix | length > 0 and
+        __sap_ha_pacemaker_cluster_resource_groups | map(attribute='id')
+        | select('match', sap_ha_pacemaker_cluster_vip_group_prefix + sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name) -%}
+        {{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}
+      {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
+        | select('match', sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name) -%}
+        {{ sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}
+      {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
+        | select('match', sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name) -%}
+        {{ sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name }}
+      {%- else -%}
+        none_found
+      {%- endif -%}
+
   when:
     - __constraint_colo_vip.resource_follower not in (__sap_ha_pacemaker_cluster_constraints_colocation | map(attribute='resource_follower'))
     - sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address is defined
     - sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address != ''
+    - __res_or_grp != 'none_found'  # fallback skip if there was neither a group nor any VIP/HC resources found

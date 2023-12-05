@@ -1,4 +1,5 @@
 ---
+# Currently this is only used for HANA scenarios.
 - name: "SAP HA Prepare Pacemaker - Group the related VIP and healthcheck resources together"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__vip_group] }}"
@@ -35,7 +36,19 @@
   loop: "{{ __instance }}"
   loop_control:
     loop_var: group_item
-    label: "{{ group_item.name }}"
+    label: "{{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ group_item.name }}"
   when:
     - group_item.vip_hc_resources | difference(__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')) | length == 0
-  # Only create the group when all resources in the 'vip_hc_resources' sub-list are part of the cluster resource definition
+    - sap_ha_pacemaker_cluster_vip_group_prefix | length > 0
+    - __vip_group.id not in __sap_ha_pacemaker_cluster_resource_groups | map(attribute='id')
+# Only create the group when
+# - all resources in the 'vip_hc_resources' sub-list are part of the cluster resource definition
+# - a group name prefix has been set (default = '')
+# - the group resource does not exist yet in the definition (by group name)
+
+- name: "SAP HA Prepare Pacemaker - Display VIP resource group definition if any were built"
+  ansible.builtin.debug:
+    var: __sap_ha_pacemaker_cluster_resource_groups
+  when:
+    - __sap_ha_pacemaker_cluster_resource_groups is defined
+    - __sap_ha_pacemaker_cluster_resource_groups | length > 0

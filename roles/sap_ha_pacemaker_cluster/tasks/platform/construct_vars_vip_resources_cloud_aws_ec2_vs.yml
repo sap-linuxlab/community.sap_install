@@ -8,27 +8,31 @@
 # {{ vip_list_item.key }}   => vip_SID_00_primary
 # {{ vip_list_item.value }} => 192.168.1.10
 
-- name: "SAP HA Prepare Pacemaker - ipaddr resource agent - Add resource: OS network interface Virtual IP (dev/test only)"
-  ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
-  vars:
-    __resource_vip:
-      id: "{{ vip_list_item.key }}"
-      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
-      instance_attrs:
-        - attrs:
-            - name: ip
-              value: "{{ vip_list_item.value }}"
-            - name: nic
-              value: "{{ sap_ha_pacemaker_cluster_vip_client_interface }}"
-  when:
-    - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
-    - (sap_ha_pacemaker_cluster_vip_method == 'ipaddr') or
-      (__sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with is defined and
-      'ipaddr' in __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with)
- #   - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
+# 1. Using the IPaddr2 resource agent is not recommended nor supported
+# 2. IPaddr2 resources would be created by construct_vars_vip_resources_default.yml
+#
+#- name: "SAP HA Prepare Pacemaker - ipaddr resource agent - Add resource: OS network interface Virtual IP (dev/test only)"
+#  ansible.builtin.set_fact:
+#    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
+#  vars:
+#    __resource_vip:
+#      id: "{{ vip_list_item.key }}"
+#      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
+#      instance_attrs:
+#        - attrs:
+#            - name: ip
+#              value: "{{ vip_list_item.value }}"
+#            - name: nic
+#              value: "{{ sap_ha_pacemaker_cluster_vip_client_interface }}"
+#  when:
+#    - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+#    - (sap_ha_pacemaker_cluster_vip_method == 'ipaddr') or
+#      (__sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with is defined and
+#      'ipaddr' in __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with)
 
-- name: "SAP HA Prepare Pacemaker - awsvip resource agent - Add resource: AWS floating IP (dev/test only)"
+# Using 'awsvip' is also not recommended or supported officially for SAP setups.
+# This is for testing purpose only and works together with the standard IPaddr2 resource.
+- name: "SAP HA Prepare Pacemaker - AWS EC2 VS - Add resource: AWS floating IP: {{ vip_list_item.key }} (awsvip - dev/test only!)"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
   vars:
@@ -42,9 +46,9 @@
   when:
     - ('pri_' ~ vip_list_item.key) not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_method == 'awsvip'
-#    - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
 
-- name: "SAP HA Prepare Pacemaker - awsvip resource agent - Add resource group for VIP resources (dev/test only)"
+- name: "SAP HA Prepare Pacemaker - AWS EC2 VS - Add resource group for VIP resources (dev/test only)"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__vip_group] }}"
   vars:
@@ -56,9 +60,10 @@
   when:
     - __vip_group.id is not in (__sap_ha_pacemaker_cluster_resource_groups | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_method in ['awsvip']
-#    - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
 
-- name: "SAP HA Prepare Pacemaker - aws_vpc_move_ip resource agent - Add resource: AWS VIP OverlayIP"
+# The following is the officially recommended and supported method for VIP resources on AWS EC2.
+- name: "SAP HA Prepare Pacemaker - AWS EC2 VS - Add resource: AWS VIP OverlayIP: {{ vip_list_item.key }} (aws_vpc_move_ip)"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
   vars:
@@ -76,4 +81,4 @@
   when:
     - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_method == 'aws_vpc_move_ip'
- #   - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
