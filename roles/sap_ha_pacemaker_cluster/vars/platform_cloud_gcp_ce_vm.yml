@@ -29,9 +29,10 @@ sap_ha_pacemaker_cluster_vip_method: gcp_nlb_reserved_ip_haproxy # gcp_vpc_move_
 sap_ha_pacemaker_cluster_vip_group_prefix: group_
 
 # For HAPROXY an non-empty port default is required to enter the resource creation flow.
-# TODO: task logic that configures actual haproxy listening ports, otherwise pairs like ASCS/ERS will conflict
+# TODO: task logic that configures actual haproxy listening ports,
+# otherwise pairs like ASCS/ERS will conflict
 sap_ha_pacemaker_cluster_healthcheck_hana_primary_port: '0'
-#sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port
+# sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port
 sap_ha_pacemaker_cluster_healthcheck_hana_nwas_abap_ascs_port: '0'
 sap_ha_pacemaker_cluster_healthcheck_hana_nwas_abap_ers_port: '0'
 sap_ha_pacemaker_cluster_healthcheck_hana_nwas_abap_pas_port: '0'
@@ -42,13 +43,26 @@ __sap_ha_pacemaker_cluster_available_vip_agents:
   ipaddr:
     agent: "ocf:heartbeat:IPaddr2"
 
-  # Recommended method is to use an internal passthrough Network Load Balancer (NLB for TCP/UDP) and Reserved Static Internal IP Address, with host health check response using socat or HAProxy
-  # Alternative method is to use static route Virtual IP (outside VPC Subnet ranges) using VPC Routing Table
-  # Refer to Google Cloud Compute Engine Reserved Static Internal IP Address, https://cloud.google.com/compute/docs/ip-addresses/reserve-static-internal-ip-address
-  # Refer to Google Cloud Load Balancing - Internal passthrough Network Load Balancer overview, https://cloud.google.com/load-balancing/docs/internal
-  # Refer to SAP HANA guidance 1, https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#virtual_ip_address
-  # Refer to SAP HANA guidance 2, https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#vip_implementation
-  # Refer to SAP NetWeaver guidance, https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#virtual_ip_address
+  # Recommended method is to use an internal passthrough Network Load Balancer (NLB for TCP/UDP)
+  # and Reserved Static Internal IP Address, with host health check response using socat or HAProxy.
+  #
+  # Alternative method is to use static route Virtual IP (outside VPC Subnet ranges) using
+  # VPC Routing Table.
+  #
+  # Refer to Google Cloud Compute Engine Reserved Static Internal IP Address:
+  # https://cloud.google.com/compute/docs/ip-addresses/reserve-static-internal-ip-address
+  #
+  # Refer to Google Cloud Load Balancing - Internal passthrough Network Load Balancer overview:
+  # https://cloud.google.com/load-balancing/docs/internal
+  #
+  # Refer to SAP HANA guidance 1:
+  # https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#virtual_ip_address
+  #
+  # Refer to SAP HANA guidance 2:
+  # https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#vip_implementation
+  #
+  # Refer to SAP NetWeaver guidance:
+  # https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#virtual_ip_address
 
   # Recommended method
   # Use Linux Pacemaker resource class/standard (pcs resource standards) as
@@ -58,12 +72,14 @@ __sap_ha_pacemaker_cluster_available_vip_agents:
     agent: "service:haproxy"
     with: ipaddr
 
-  # Alternative method
+  # Alternative method:
   # Move Virtual/Floating IP, must be outside of the VPC Subnet Range, by replacing
   # (temporary route, delete, create, delete temp.)
   # the VPC Routing Table record with next-hop as the VM Instance's ID.
+  #
   # Execution via Python urllib to GCP Compute Engine API and GCP Metadata Server API
-  # heartbeat:gcp-vpc-move-route is the replacement of heartbeat:gcp-vpc-move-ip (which uses execution via GCloud CLI, and is itself a fork of external/gcp:route)
+  # heartbeat:gcp-vpc-move-route is the replacement of heartbeat:gcp-vpc-move-ip
+  # (which uses execution via GCloud CLI, and is itself a fork of external/gcp:route)
   gcp_vpc_move_route:
     agent: "ocf:heartbeat:gcp-vpc-move-route"
     with: ipaddr

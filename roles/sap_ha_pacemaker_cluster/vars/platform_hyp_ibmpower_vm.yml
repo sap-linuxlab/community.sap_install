@@ -6,8 +6,8 @@
 sap_ha_pacemaker_cluster_fence_agent_packages:
   - fence-agents-lpar
 
-#__sap_ha_pacemaker_cluster_platform_extra_packages:
-#  -
+# __sap_ha_pacemaker_cluster_platform_extra_packages:
+#   -
 
 __sap_ha_pacemaker_cluster_repos:
   - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
@@ -30,8 +30,11 @@ sap_ha_pacemaker_cluster_stonith_default:
     username: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_login }}"
     password: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_login_password }}"
     hmc_version: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_version | default('4') }}"
-    managed: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_system_host_mtms }}" # Identified during execution initial tasks, populated when variables are imported
-    #plug: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_system_partition_name }}" # Unnecessary when using pcmk_host_map. Identified during execution initial tasks, populated when variables are imported
+    managed: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_system_host_mtms }}"
+    # Identified during execution initial tasks, populated when variables are imported
+
+    # plug: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_system_partition_name }}"
+    # Unnecessary when using pcmk_host_map. Identified during execution initial tasks, populated when variables are imported
 
 sap_ha_pacemaker_cluster_fence_options:
   pcmk_reboot_retries: 4
@@ -43,11 +46,12 @@ sap_ha_pacemaker_cluster_fence_options:
 
 # Platform specific VIP handling
 sap_ha_pacemaker_cluster_vip_method: ipaddr
-#sap_ha_pacemaker_cluster_vip_group_prefix: '' # single VIP resource, no group
 
 __sap_ha_pacemaker_cluster_available_vip_agents:
 
-  # IPaddr2 requires a Virtual IP within a common Network (i.e. 1 VLAN / 1 VPC / 1 VNet), one or more Subnets may be used
-  # With this design restriction, IPaddr2 is only to be used for High Availability within a single location (i.e. 1 Availability Zone / Datacenter / Location within 1 Region)
+  # IPaddr2 requires a Virtual IP within a common Network (i.e. 1 VLAN / 1 VPC / 1 VNet),
+  # one or more Subnets may be used
+  # With this design restriction, IPaddr2 is only to be used for High Availability within
+  # a single location (i.e. 1 Availability Zone / Datacenter / Location within 1 Region)
   ipaddr:
     agent: "ocf:heartbeat:IPaddr2"

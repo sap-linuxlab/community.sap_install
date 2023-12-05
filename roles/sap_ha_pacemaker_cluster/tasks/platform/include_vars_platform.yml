@@ -22,8 +22,11 @@
 
 - name: "SAP HA Prepare Pacemaker - IBM Power VS from IBM Cloud - Set variable for fencing agent"
   ansible.builtin.set_fact:
-    sap_ha_pacemaker_cluster_ibmcloud_powervs_host_guid: "{{ __sap_ha_pacemaker_cluster_register_ibmcloud_powervs_host }}"
-    sap_ha_pacemaker_cluster_ibmcloud_powervs_workspace_guid: '{{ sap_ha_pacemaker_cluster_ibmcloud_powervs_workspace_crn | replace("::", "") | regex_replace(".*\:") }}'
+    sap_ha_pacemaker_cluster_ibmcloud_powervs_host_guid: >-
+      "{{ __sap_ha_pacemaker_cluster_register_ibmcloud_powervs_host }}"
+    sap_ha_pacemaker_cluster_ibmcloud_powervs_workspace_guid: >-
+      '{{ sap_ha_pacemaker_cluster_ibmcloud_powervs_workspace_crn
+      | replace("::", "") | regex_replace(".*\:") }}'
   when: __sap_ha_pacemaker_cluster_platform == "cloud_ibmcloud_powervs"
 
 # pcmk_host_map format: <hostname1>:<host1-id>;<hostname2>:<host2-id>...
@@ -39,8 +42,10 @@
 
 - name: "SAP HA Prepare Pacemaker - IBM PowerVM - Set variable for fencing agent"
   ansible.builtin.set_fact:
-    sap_ha_pacemaker_cluster_ibmpower_vm_hmc_system_partition_name: "{{ __sap_ha_pacemaker_cluster_register_ibmpower_vm_hmc_system_partition_name.stdout }}"
-    sap_ha_pacemaker_cluster_ibmpower_vm_hmc_system_host_mtms: "{{ __sap_ha_pacemaker_cluster_register_ibmpower_vm_hmc_system_host_mtms_gui_string.stdout }}"
+    sap_ha_pacemaker_cluster_ibmpower_vm_hmc_system_partition_name: >-
+      "{{ __sap_ha_pacemaker_cluster_register_ibmpower_vm_hmc_system_partition_name.stdout }}"
+    sap_ha_pacemaker_cluster_ibmpower_vm_hmc_system_host_mtms: >-
+      "{{ __sap_ha_pacemaker_cluster_register_ibmpower_vm_hmc_system_host_mtms_gui_string.stdout }}"
 
   when: __sap_ha_pacemaker_cluster_platform == "hyp_ibmpower_vm"
 

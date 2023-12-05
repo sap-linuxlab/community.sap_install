@@ -791,6 +791,13 @@ Name of the SAPInstance resource for NetWeaver AAS.<br>
 Virtual IP of the NetWeaver ASCS instance.<br>
 Mandatory for NetWeaver ASCS/ERS cluster setup.<br>
 
+### sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name
+
+- _Type:_ `string`
+- _Default:_ `<SID>_ASCS<ASCS-instance-number>_group`
+
+Name of the NetWeaver ASCS resource group.<br>
+
 ### sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name
 
 - _Type:_ `string`
@@ -804,6 +811,13 @@ Name of the SAPInstance resource for NetWeaver ASCS.<br>
 
 Virtual IP of the NetWeaver ERS instance.<br>
 Mandatory for NetWeaver ASCS/ERS cluster setup.<br>
+
+### sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name
+
+- _Type:_ `string`
+- _Default:_ `<SID>_ERS<ERS-instance-number>_group`
+
+Name of the NetWeaver ERS resource group.<br>
 
 ### sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name
 

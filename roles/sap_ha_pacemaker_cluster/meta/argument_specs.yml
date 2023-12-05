@@ -40,19 +40,28 @@ argument_specs:
       sap_ha_pacemaker_cluster_create_config_dest:
         default: review_resource_config.yml
         description:
-          - The pacemaker cluster resource configuration optionally created by this role will be saved in a Yaml file in the current working directory.
-          - Requires `sap_ha_pacemaker_cluster_create_config_varfile` to be enabled for generating the output file.
+          - The pacemaker cluster resource configuration optionally created by this role will be
+            saved in a Yaml file in the current working directory.
+          - Requires `sap_ha_pacemaker_cluster_create_config_varfile` to be enabled for generating
+            the output file.
           - Specify a path/filename to save the file in a custom location.
-          - The file can be used as input vars file for an Ansible playbook running the 'ha_cluster' Linux System Role.
+          - The file can be used as input vars file for an Ansible playbook running the 'ha_cluster'
+            Linux System Role.
 
       sap_ha_pacemaker_cluster_create_config_varfile:
         type: bool
         default: false
         description:
-          - When enabled, all cluster configuration parameters this role constructs for executing the 'ha_cluster' Linux System role will be written into a file in Yaml format.
-          - This allows using the output file later as input file for additional custom steps using the 'ha_cluster' role and covering the resource configuration in a cluster that was set up using this 'sap_ha_pacemaker_cluster' role.
-          - When enabled this parameters file is also created when the playbook is run in check_mode (`--check`) and can be used to review the configuration parameters without executing actual changes on the target nodes.
-          - WARNING! This report may include sensitive details like secrets required for certain cluster resources!
+          - When enabled, all cluster configuration parameters this role constructs for executing
+            the 'ha_cluster' Linux System role will be written into a file in Yaml format.
+          - This allows using the output file later as input file for additional custom steps using
+            the 'ha_cluster' role and covering the resource configuration in a cluster that was set
+            up using this 'sap_ha_pacemaker_cluster' role.
+          - When enabled this parameters file is also created when the playbook is run in check_mode
+            (`--check`) and can be used to review the configuration parameters without executing
+            actual changes on the target nodes.
+          - WARNING! This report may include sensitive details like secrets required for certain
+            cluster resources!
 
       sap_ha_pacemaker_cluster_cluster_nodes:
         type: list
@@ -142,9 +151,11 @@ argument_specs:
           power_timeout: 240
         description:
           - STONITH resource common parameters that apply to most fencing agents.
-          - These options are applied to fencing resources this role uses automatically for pre-defined platforms (like AWS EC2 VS, IBM Cloud VS).
+          - These options are applied to fencing resources this role uses automatically for
+            pre-defined platforms (like AWS EC2 VS, IBM Cloud VS).
           - The listed options are set by default.
-          - Additional options can be added by defining this parameter in dictionary format and adding the defaults plus any valid stonith resource key-value pair.
+          - Additional options can be added by defining this parameter in dictionary format
+            and adding the defaults plus any valid stonith resource key-value pair.
 
         example:
           sap_ha_pacemaker_cluster_fence_options:
@@ -176,7 +187,8 @@ argument_specs:
           options:
             description:
               - The resource options listed in dictionary format, one option per line.
-              - Requires the mandatory options for the particular stonith resource agent to be defined, otherwise the setup will fail.
+              - Requires the mandatory options for the particular stonith resource agent to be
+                defined, otherwise the setup will fail.
             required: true
 
         example:
@@ -197,7 +209,8 @@ argument_specs:
           stonith-timeout: 900
           concurrent-fencing: true
         description:
-          - Standard pacemaker cluster properties are configured with recommended settings for cluster node fencing.
+          - Standard pacemaker cluster properties are configured with recommended settings for
+            cluster node fencing.
           - When no STONITH resource is defined, STONITH will be disabled and a warning displayed.
 
         example:
@@ -217,7 +230,8 @@ argument_specs:
           - The `ha_cluster` LSR native parameter `ha_cluster` can be used as a synonym.
           - Optional _**host_vars**_ parameter - if defined it must be set for each node.
           - Dictionary that can contain various node options for the pacemaker cluster configuration.
-          - Supported options can be reviewed in the `ha_cluster` Linux System Role [https://github.com/linux-system-roles/ha_cluster/blob/master/README.md].
+          - Supported options can be reviewed in the `ha_cluster` Linux System Role
+            [https://github.com/linux-system-roles/ha_cluster/blob/master/README.md].
           - If not defined, the `ha_cluster` Linux System Role default will be used.
 
         example:
@@ -238,7 +252,8 @@ argument_specs:
         type: list
         description:
           - Additional extra packages to be installed, for instance specific resource packages.
-          - For SAP clusters configured by this role, the relevant standard packages for the target scenario are automatically included.
+          - For SAP clusters configured by this role, the relevant standard packages for the target
+            scenario are automatically included.
 
       sap_ha_pacemaker_cluster_fence_agent_packages:
         type: list
@@ -284,8 +299,10 @@ argument_specs:
         description:
           - Parameter for the 'SAPHana' cluster resource.
           - Time difference needed between to primary time stamps, if a dual-primary situation occurs.
-          - If the time difference is less than the time gap, then the cluster holds one or both instances in a "WAITING" status.
-          - This is to give an admin a chance to react on a failover. A failed former primary will be registered after the time difference is passed.
+          - If the time difference is less than the time gap, then the cluster holds one or both
+            instances in a "WAITING" status.
+          - This is to give an admin a chance to react on a failover. A failed former primary will
+            be registered after the time difference is passed.
 
       sap_ha_pacemaker_cluster_hana_prefer_site_takeover:
         type: bool
@@ -336,7 +353,8 @@ argument_specs:
       sap_ha_pacemaker_cluster_vip_secondary_resource_name:
         default: "vip_<SID><Instance Number>"
         description:
-          - Customize the name of the resource managing the Virtual IP of read-only access to the secondary HANA instance.
+          - Customize the name of the resource managing the Virtual IP of read-only access to the
+            secondary HANA instance.
 
 
       ##########################################################################
@@ -354,7 +372,8 @@ argument_specs:
         type: bool
         default: true
         description:
-          - Enables/Disables the SAP HA Interface for SAP ABAP application server instances, also known as `sap_cluster_connector`.
+          - Enables/Disables the SAP HA Interface for SAP ABAP application server instances, also
+            known as `sap_cluster_connector`.
           - Set this parameter to 'false' if the SAP HA interface should not be installed and configured.
 
       sap_ha_pacemaker_cluster_nwas_abap_sid:
@@ -391,9 +410,12 @@ argument_specs:
           - Options relevant, see example.
           - Mandatory for SAP NetWeaver HA cluster configurations.
           - Reuse `sap_storage_setup_definition` if defined.
-          - Reuse `sap_storage_setup_definition` will extract values 'mountpoint', 'nfs_filesystem_type', 'nfs_mount_options', 'nfs_path', 'nfs_server'.
-          - Reuse `sap_storage_setup_definition` all options are documented under Ansible Role `sap_storage_setup`.
-          - Note! For this variable, the argument specification does not list options, to avoid errors during reuse of `sap_storage_setup_definition` if defined.
+          - Reuse `sap_storage_setup_definition` will extract values 'mountpoint',
+            'nfs_filesystem_type', 'nfs_mount_options', 'nfs_path', 'nfs_server'.
+          - Reuse `sap_storage_setup_definition` all options are documented under Ansible Role
+            `sap_storage_setup`.
+          - Note! For this variable, the argument specification does not list options, to avoid
+            errors during reuse of `sap_storage_setup_definition` if defined.
         elements: dict
 
         example:
@@ -472,28 +494,32 @@ argument_specs:
         default: Filesystem_NWAS_SAPMNT_<SID>
         description:
           - Filesystem resource name for the shared filesystem /sapmnt.
-          - Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.
+          - Optional, this is typically managed by the OS, but can as well be added to the cluster
+            configuration.
           - Enable this resource setup using `sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed`.
 
       sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name:
         default: Filesystem_NWAS_TRANS_<SID>
         description:
           - Filesystem resource name for the transports filesystem /usr/sap/trans.
-          - Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.
+          - Optional, this is typically managed by the OS, but can as well be added to the cluster
+            configuration.
           - Enable this resource setup using `sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed`.
 
       sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name:
         default: Filesystem_NWAS_SYS_<SID>
         description:
           - Filesystem resource name for the transports filesystem /usr/sap/<SID>/SYS.
-          - Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.
+          - Optional, this is typically managed by the OS, but can as well be added to the cluster
+            configuration.
           - Enable this resource setup using `sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed`.
 
       sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed:
         type: bool
         default: false
         description:
-          - Change this parameter to 'true' if the 3 shared filesystems `/usr/sap/trans`, `/usr/sap/<SID>/SYS` and '/sapmnt' shall be configured as cloned cluster resources.
+          - Change this parameter to 'true' if the 3 shared filesystems `/usr/sap/trans`,
+            `/usr/sap/<SID>/SYS` and '/sapmnt' shall be configured as cloned cluster resources.
 
       sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name:
         default: <SID>_ASCS<ASCS-instance-number>_group
@@ -544,18 +570,21 @@ argument_specs:
         default: 1
         description:
           - NetWeaver ASCS instance migration-threshold setting attribute.
-          - Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1`). Default setup is ENSA2.
+          - Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1`).
+            Default setup is ENSA2.
 
       sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_ensa1_failure_timeout:
         default: 60
         description:
           - NetWeaver ASCS instance failure-timeout attribute.
-          - Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1`). Default setup is ENSA2.
+          - Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1`).
+            Default setup is ENSA2.
 
       sap_ha_pacemaker_cluster_nwas_abap_ascs_group_stickiness:
         default: 3000
         description:
-          - NetWeaver ASCS resource group stickiness to prefer the ASCS group to stay on the node it was started on.
+          - NetWeaver ASCS resource group stickiness to prefer the ASCS group to stay on the node
+            it was started on.
 
 
       ##########################################################################
@@ -649,13 +678,16 @@ argument_specs:
 
       sap_ha_pacemaker_cluster_ibmcloud_api_key:
         description:
-          - The API key which is required to allow the control of instances (for example for fencing operations).
-          - Mandatory for the cluster setup on IBM Cloud Virtual Server instances or IBM Power Virtual Server on IBM Cloud.
+          - The API key which is required to allow the control of instances (for example for fencing
+            operations).
+          - Mandatory for the cluster setup on IBM Cloud Virtual Server instances or IBM Power
+            Virtual Server on IBM Cloud.
 
       sap_ha_pacemaker_cluster_ibmcloud_region:
         description:
           - The IBM Cloud VS region name in which the instances are running.
-          - Mandatory for the cluster setup on IBM Cloud Virtual Server instances or IBM Power Virtual Server on IBM Cloud.
+          - Mandatory for the cluster setup on IBM Cloud Virtual Server instances or IBM Power
+            Virtual Server on IBM Cloud.
 
 
       ##########################################################################
@@ -664,19 +696,23 @@ argument_specs:
 
       sap_ha_pacemaker_cluster_ibmcloud_powervs_workspace_crn:
         description:
-          - IBM Power Virtual Server Workspace service cloud resource name (CRN) identifier which contains the target instances
+          - IBM Power Virtual Server Workspace service cloud resource name (CRN) identifier which
+            contains the target instances
           - Mandatory for the cluster setup on IBM Power Virtual Server from IBM Cloud.
 
       sap_ha_pacemaker_cluster_ibmcloud_powervs_api_type:
         description:
-          - IBM Power Virtual Server API Endpoint type (public or private) dependent on network interface attachments for the target instances.
+          - IBM Power Virtual Server API Endpoint type (public or private) dependent on network
+            interface attachments for the target instances.
           - Mandatory for the cluster setup on IBM Power Virtual Server from IBM Cloud.
 
       sap_ha_pacemaker_cluster_ibmcloud_powervs_forward_proxy_url:
         description:
-          - IBM Power Virtual Server forward proxy url when IBM Power Virtual Server API Endpoint type is set to private.
+          - IBM Power Virtual Server forward proxy url when IBM Power Virtual Server API Endpoint
+            type is set to private.
           - When public network interface, can be ignored.
-          - When private network interface, mandatory for the cluster setup on IBM Power Virtual Server from IBM Cloud.
+          - When private network interface, mandatory for the cluster setup on IBM Power Virtual
+            Server from IBM Cloud.
 
 
       ##########################################################################

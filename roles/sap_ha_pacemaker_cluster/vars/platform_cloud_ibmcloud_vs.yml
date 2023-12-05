@@ -6,8 +6,8 @@
 sap_ha_pacemaker_cluster_fence_agent_packages:
   - fence-agents-ibm-vpc
 
-#__sap_ha_pacemaker_cluster_platform_extra_packages:
-#  -
+# __sap_ha_pacemaker_cluster_platform_extra_packages:
+#   -
 
 __sap_ha_pacemaker_cluster_repos:
   - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
@@ -29,33 +29,31 @@ sap_ha_pacemaker_cluster_stonith_default:
 
 # Platform specific VIP handling
 sap_ha_pacemaker_cluster_vip_method: ibmcloud_alb_haproxy
-#sap_ha_pacemaker_cluster_vip_group_prefix: '' # single VIP/HC resource, no group
 
 # For HAPROXY an non-empty port default is required to enter the resource creation flow.
-# TODO: task logic that configures actual haproxy listening ports, otherwise pairs like ASCS/ERS will conflict
+# TODO: task logic that configures actual haproxy listening ports,
+# otherwise pairs like ASCS/ERS will conflict
 sap_ha_pacemaker_cluster_healthcheck_hana_primary_port: '0'
-#sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port
+# sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port
 sap_ha_pacemaker_cluster_healthcheck_hana_nwas_abap_ascs_port: '0'
 sap_ha_pacemaker_cluster_healthcheck_hana_nwas_abap_ers_port: '0'
 sap_ha_pacemaker_cluster_healthcheck_hana_nwas_abap_pas_port: '0'
 sap_ha_pacemaker_cluster_healthcheck_hana_nwas_abap_aas_port: '0'
 
-# Prefix haproxy health check resource names
-#sap_ha_pacemaker_cluster_vip_hana_primary_resource_name: "hc_vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_primary"
-#sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name: "hc_vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_readonly"
-#sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name: "hc_vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}_ascs"
-#sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name: "hc_vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}_ers"
-#sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name: "hc_vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}_pas"
-#sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name: "hc_vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}_aas"
-
 
 __sap_ha_pacemaker_cluster_available_vip_agents:
 
-  # Refer to IBM Cloud Load Balancer - Private Network Load Balancer (NLB Layer 4) for HA within 1 AZ of 1 Region, https://cloud.ibm.com/docs/vpc?topic=vpc-network-load-balancers
-  # Refer to IBM Cloud Load Balancer - Private Application Load Balancer (ALB Layer 7) for HA across 2 AZ of 1 Region, https://cloud.ibm.com/docs/vpc?topic=vpc-load-balancers-about
-  # The IBM Cloud Load Balancer's Back-end Pool Health Check will poll for connection response from a host listening port (using a designated OS process such as netcat, socat or HAProxy)
+  # Refer to IBM Cloud Load Balancer - Private Network Load Balancer (NLB Layer 4)
+  # for HA within 1 AZ of 1 Region: https://cloud.ibm.com/docs/vpc?topic=vpc-network-load-balancers
+  #
+  # Refer to IBM Cloud Load Balancer - Private Application Load Balancer (ALB Layer 7)
+  # for HA across 2 AZ of 1 Region: https://cloud.ibm.com/docs/vpc?topic=vpc-load-balancers-about
+  #
+  # The IBM Cloud Load Balancer's Back-end Pool Health Check will poll for connection response
+  # from a host listening port (using a designated OS process such as netcat, socat or HAProxy).
 
-  # Use haproxy daemon to listen for and respond to health check probe monitoring private network requests from IBM Cloud Application Load Balancer (ALB),
-  # if failure to respond then the Load Balancer will perform failover activities
+  # Use haproxy daemon to listen for and respond to health check probe monitoring private network
+  # requests from IBM Cloud Application Load Balancer (ALB),
+  # if failure to respond then the Load Balancer will perform failover activities.
   ibmcloud_alb_haproxy:
     agent: "service:haproxy"

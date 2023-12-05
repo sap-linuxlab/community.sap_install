@@ -6,8 +6,8 @@
 sap_ha_pacemaker_cluster_fence_agent_packages:
   - fence-agents-ibm-powervs
 
-#__sap_ha_pacemaker_cluster_platform_extra_packages:
-#  -
+# __sap_ha_pacemaker_cluster_platform_extra_packages:
+#   -
 
 __sap_ha_pacemaker_cluster_repos:
   - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
@@ -28,10 +28,20 @@ sap_ha_pacemaker_cluster_stonith_default:
     token: "{{ sap_ha_pacemaker_cluster_ibmcloud_api_key }}"
     region: "{{ sap_ha_pacemaker_cluster_ibmcloud_region }}"
     crn: "{{ sap_ha_pacemaker_cluster_ibmcloud_powervs_workspace_crn }}"
-    instance: "{{ sap_ha_pacemaker_cluster_ibmcloud_powervs_workspace_guid }}"  # Identified during execution initial tasks, populated when variables are imported
-    plug: "{{ sap_ha_pacemaker_cluster_ibmcloud_powervs_instance_id }}"  # Identified during execution initial tasks, populated when variables are imported
-    api-type: "{{ sap_ha_pacemaker_cluster_ibmcloud_powervs_api_type | default('public') }}"  # Dependent on network interface attachments, if no public network interface then 'private' value must be provided.
-    proxy: "{{ sap_ha_pacemaker_cluster_ibmcloud_powervs_forward_proxy_url | default('') }}"  # Dependent on network interface attachments, if no public network interface then a valid HTTP Proxy URL value must be provided.
+
+    # Identified during execution initial tasks, populated when variables are imported
+    instance: "{{ sap_ha_pacemaker_cluster_ibmcloud_powervs_workspace_guid }}"
+
+    # Identified during execution initial tasks, populated when variables are imported
+    plug: "{{ sap_ha_pacemaker_cluster_ibmcloud_powervs_instance_id }}"
+
+    # Dependent on network interface attachments, if no public network interface
+    # then 'private' value must be provided.
+    api-type: "{{ sap_ha_pacemaker_cluster_ibmcloud_powervs_api_type | default('public') }}"
+
+    # Dependent on network interface attachments, if no public network interface
+    # then a valid HTTP Proxy URL value must be provided.
+    proxy: "{{ sap_ha_pacemaker_cluster_ibmcloud_powervs_forward_proxy_url | default('') }}"
 
 sap_ha_pacemaker_cluster_fence_options:
   pcmk_reboot_retries: 4
@@ -43,11 +53,12 @@ sap_ha_pacemaker_cluster_fence_options:
 
 # Platform specific VIP handling
 sap_ha_pacemaker_cluster_vip_method: ipaddr_custom
-#sap_ha_pacemaker_cluster_vip_group_prefix: '' # single VIP/HC resource, no group
 
 __sap_ha_pacemaker_cluster_available_vip_agents:
 
-  # IPaddr2 requires a Virtual IP within a common Network (i.e. 1 VLAN / 1 VPC / 1 VNet), one or more Subnets may be used
-  # With this design restriction, IPaddr2 is only to be used for High Availability within a single location (i.e. 1 Availability Zone / Datacenter / Location within 1 Region)
+  # IPaddr2 requires a Virtual IP within a common Network (i.e. 1 VLAN / 1 VPC / 1 VNet),
+  # one or more Subnets may be used.
+  # With this design restriction, IPaddr2 is only to be used for High Availability within
+  # a single location (i.e. 1 Availability Zone / Datacenter / Location within 1 Region).
   ipaddr_custom:
     agent: "ocf:heartbeat:IPaddr2"

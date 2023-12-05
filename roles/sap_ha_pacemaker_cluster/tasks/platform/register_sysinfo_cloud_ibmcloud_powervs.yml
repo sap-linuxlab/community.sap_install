@@ -6,7 +6,7 @@
 # alt command using IBM Power RSCT binary: /opt/rsct/bin/ctgethscid | grep PartitionUUID | cut -d \" -f2
 # alt command using cloud-init data: cat /run/cloud-init/instance-data.json | grep uuid | cut -d \" -f4
 # alt command using cloud-init data: cat /run/cloud-init/instance-data.json | grep instance_id | cut -d \" -f4
-- name: SAP HA Prepare Pacemaker -  IBM Power VS from IBM Cloud - IBM Power Virtual Server UUID
+- name: "SAP HA Prepare Pacemaker -  IBM Cloud Power VS - IBM Power Virtual Server UUID"
   ansible.builtin.shell: |
     set -o pipefail && echo $(tr -d '\0' < /proc/device-tree/ibm,partition-uuid)
   register: __sap_ha_pacemaker_cluster_register_ibmcloud_powervs_host
@@ -19,9 +19,12 @@
       - ipcalc
     state: present
 
-- name: "SAP HA Prepare Pacemaker - Calculate network interface subnet CIDR"
+- name: "SAP HA Prepare Pacemaker - IBM Cloud PowerVS - Calculate network interface subnet CIDR"
   ansible.builtin.shell: |
-    set -o pipefail && ipcalc --prefix {{ ansible_facts[sap_ha_pacemaker_cluster_vip_client_interface].ipv4.network + '/' + ansible_facts[sap_ha_pacemaker_cluster_vip_client_interface].ipv4.netmask }} | sed 's|PREFIX=||'
+    set -o pipefail && ipcalc --prefix \
+     {{ ansible_facts[sap_ha_pacemaker_cluster_vip_client_interface].ipv4.network
+     + '/' + ansible_facts[sap_ha_pacemaker_cluster_vip_client_interface].ipv4.netmask }} \
+     | sed 's|PREFIX=||'
   register: __sap_ha_pacemaker_cluster_vip_client_interface_subnet_cidr
   changed_when: false
   check_mode: false
