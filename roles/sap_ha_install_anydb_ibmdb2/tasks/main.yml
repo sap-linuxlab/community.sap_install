@@ -17,11 +17,11 @@
 
 
 # Determine if we are on a cloud platform.
-- name: "SAP HA Prepare Pacemaker - Include tasks for platform detection"
+- name: SAP HA AnyDB - IBM Db2 HADR - Include tasks for platform detection
   ansible.builtin.import_tasks: platform/ascertain_platform_type.yml
 
 # See IBM Db2 documentation 'HADR and network address translation (NAT) support' - https://www.ibm.com/docs/en/db2/11.5?topic=support-hadr-nat
-- name: Append IBM Db2 HA Ports to /etc/services
+ SAP HA AnyDB - IBM Db2 HADR -- name: Append IBM Db2 HA Ports to /etc/services
   ansible.builtin.lineinfile:
     path: /etc/services
     line: "{{ item }}"
@@ -31,11 +31,11 @@
     - "{{ sap_ha_install_anydb_ibmdb2_sid }}_HADR_2\t55002/tcp\t# DB2 HA Port 2" # DB2 HADR remote service (env var db2hadrremotesvc / HADR_REMOTE_SVC)
   when: (sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short) or (sap_ha_install_anydb_ibmdb2_hostname_secondary == inventory_hostname_short)
 
-- name: "SAP HA Prepare Pacemaker - Include tasks for Passwordless SSH"
+- name: SAP HA AnyDB - IBM Db2 HADR - Include tasks for Passwordless SSH
   ansible.builtin.import_tasks: passwordless_ssh.yml
 
 
-- name: Ansible Task Block for IBM Db2 “Integrated Linux Pacemaker” configuration
+- name: SAP HA AnyDB - IBM Db2 HADR - Ansible Task Block for IBM Db2 “Integrated Linux Pacemaker” configuration
   when: (sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short) or (sap_ha_install_anydb_ibmdb2_hostname_secondary == inventory_hostname_short)
   block:
 
@@ -43,7 +43,7 @@
     # Default install file is /install_media/LINUXX86_64/ESE/disk1/db2/linuxamd64/pcmk/db2installPCMK
     # Default RPM directory is /install_media/LINUXX86_64/ESE/disk1/db2/linuxamd64/pcmk/Linux
     # Default SRPM (Source) directory is /install_media/LINUXX86_64/ESE/disk1/db2/linuxamd64/pcmk/Linux/SRPMS
-    - name: Identify IBM Db2 installation media with 'Integrated Linux Pacemaker' RPMs subdirectory
+    - name: SAP HA AnyDB - IBM Db2 HADR - Identify IBM Db2 installation media with 'Integrated Linux Pacemaker' RPMs subdirectory
       ansible.builtin.find:
         paths: "{{ sap_ha_install_anydb_ibmdb2_software_directory }}"
         recurse: true
@@ -52,7 +52,7 @@
         excludes: bin
       register: __sap_ha_install_anydb_ibmdb2_pcmk
 
-    - name: List all IBM Db2 'Integrated Linux Pacemaker' RPMs in subdirectory
+    - name: SAP HA AnyDB - IBM Db2 HADR - List all IBM Db2 'Integrated Linux Pacemaker' RPMs in subdirectory
       ansible.builtin.find:
         paths: "{{ (__sap_ha_install_anydb_ibmdb2_pcmk.files[0].path | dirname) + '/Linux/' + ('rhel' if ansible_os_family == 'RedHat' else 'suse' if ansible_os_family == 'Suse') }}"
         recurse: true
@@ -60,14 +60,14 @@
         patterns: "*.rpm"
       register: __sap_ha_install_anydb_ibmdb2_pcmk_rpm_files
 
-    - name: Install all IBM Db2 'Integrated Linux Pacemaker' RPMs for RHEL
+    - name: SAP HA AnyDB - IBM Db2 HADR - Install all IBM Db2 'Integrated Linux Pacemaker' RPMs for RHEL
       ansible.builtin.dnf:
         name: "{{ __sap_ha_install_anydb_ibmdb2_pcmk_rpm_files.files | map(attribute='path') | list}}"
         state: present
         disable_gpg_check: true
       when: ansible_os_family == 'RedHat'
 
-    - name: Install all IBM Db2 'Integrated Linux Pacemaker' RPMs for SLES
+    - name: SAP HA AnyDB - IBM Db2 HADR - Install all IBM Db2 'Integrated Linux Pacemaker' RPMs for SLES
       community.general.zypper:
         name: "{{ __sap_ha_install_anydb_ibmdb2_pcmk_rpm_files.files | map(attribute='path') | list}}"
         state: present
@@ -75,18 +75,18 @@
       when: ansible_os_family == 'Suse'
 
     # SAP Note 3100287 - DB6: Db2 Support for Pacemaker Cluster Software
-    - name: Verify IBM Db2 'Integrated Linux Pacemaker' is installed
+    - name: SAP HA AnyDB - IBM Db2 HADR - Verify IBM Db2 'Integrated Linux Pacemaker' is installed
       register: __sap_ha_install_anydb_ibmdb2_pcmk_version_check
       ansible.builtin.shell: |
         rpm -q corosync | grep -I db2pcmk
         rpm -q pacemaker | grep -I db2pcmk
         rpm -q crmsh | grep -I db2pcmk
 
-    - name: Display IBM Db2 'Integrated Linux Pacemaker' installation details
+    - name: SAP HA AnyDB - IBM Db2 HADR - Display IBM Db2 'Integrated Linux Pacemaker' installation details
       ansible.builtin.debug:
         msg: "{{ __sap_ha_install_anydb_ibmdb2_pcmk_version_check.stdout_lines }}"
 
-    - name: Identify IBM Db2 cluster manager (db2cm) utility
+    - name: SAP HA AnyDB - IBM Db2 HADR - Identify IBM Db2 cluster manager (db2cm) utility
       ansible.builtin.find:
         paths: /db2
         recurse: true
@@ -94,32 +94,32 @@
         patterns: db2cm
       register: __sap_anydb_ibmdb2_db2cm
 
-    - name: Ensure directory for db2cm binary
+    - name: SAP HA AnyDB - IBM Db2 HADR - Ensure directory for db2cm binary
       ansible.builtin.file:
         path: /db2/db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}/sqllib/bin
         mode: "0755"
         state: directory
 
-    - name: Copy db2cm binary to binary path
+    - name: SAP HA AnyDB - IBM Db2 HADR - Copy db2cm binary to binary path
       ansible.builtin.copy:
         src: "{{ __sap_anydb_ibmdb2_db2cm.files[0].path }}"
         remote_src: true
         dest: /db2/db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}/sqllib/bin
         mode: '0755'
 
-    # - name: Verify /usr/lib/ocf/resource.d/heartbeat contains Db2agents (db2hadr, db2inst, db2ethmon)
+    # - name: SAP HA AnyDB - IBM Db2 HADR - Verify /usr/lib/ocf/resource.d/heartbeat contains Db2agents (db2hadr, db2inst, db2ethmon)
 
-    - name: Execute db2installPCMK shell script
+    - name: SAP HA AnyDB - IBM Db2 HADR - Execute db2installPCMK shell script
       ansible.builtin.shell: |
         {{__sap_ha_install_anydb_ibmdb2_pcmk.files[0].path}} -i
 
 
-- name: Ansible Task Block to create Linux Pacemaker cluster from AnyDB Primary node
+- name: SAP HA AnyDB - IBM Db2 HADR - Ansible Task Block to create Linux Pacemaker cluster from AnyDB Primary node
   when: sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
   block:
 
     # db2cm script must run as root
-    - name: Create Linux Pacemaker cluster using db2cm
+    - name: SAP HA AnyDB - IBM Db2 HADR - Create Linux Pacemaker cluster using db2cm
       register: __sap_ha_install_anydb_ibmdb2_config
       ansible.builtin.shell: |
         export ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
@@ -135,17 +135,17 @@
         /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -instance $ibmdb2_instance -host $anydb_secondary
         /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -db $ibmdb2_sid -instance $ibmdb2_instance
 
-    # - name: Configure Linux Pacemaker infrastructure platform resources using db2cm
+    # - name: SAP HA AnyDB - IBM Db2 HADR - Configure Linux Pacemaker infrastructure platform resources using db2cm
     #   ansible.builtin.include_tasks: "platform/execute_db2cm_{{ __sap_ha_install_anydb_ibmdb2_platform }}.yml"
 
 
 # db2cm script must run as root
-- name: Verify AnyDB HA Linux Pacemaker initialisation
+- name: SAP HA AnyDB - IBM Db2 HADR - Verify AnyDB HA Linux Pacemaker initialisation
   register: __sap_ha_install_anydb_ibmdb2_init_check
   ansible.builtin.shell: |
     export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -list
 
-- name: Display AnyDB HA config
+- name: SAP HA AnyDB - IBM Db2 HADR - Display AnyDB HA config
   ansible.builtin.debug:
     msg: "{{ __sap_ha_install_anydb_ibmdb2_init_check.stdout_lines }}"
