@@ -1,5 +1,12 @@
 ---
 # Reminder: This file is included in a loop over a dictionary.
+# Included in: tasks/include_construct_vip_resources.yml
+#
+# file loop var: vip_list_item
+#
+# Example:
+# {{ vip_list_item.key }}   => vip_SID_00_primary
+# {{ vip_list_item.value }} => 192.168.1.10
 
 - name: "SAP HA Prepare Pacemaker - ipaddr resource agent - Add resource: OS network interface Virtual IP (dev/test only)"
   ansible.builtin.set_fact:
@@ -19,6 +26,7 @@
     - (sap_ha_pacemaker_cluster_vip_method == 'ipaddr') or
       (__sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with is defined and
       'ipaddr' in __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with)
+ #   - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
 
 - name: "SAP HA Prepare Pacemaker - awsvip resource agent - Add resource: AWS floating IP (dev/test only)"
   ansible.builtin.set_fact:
@@ -34,19 +42,21 @@
   when:
     - ('pri_' ~ vip_list_item.key) not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_method == 'awsvip'
+#    - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
 
 - name: "SAP HA Prepare Pacemaker - awsvip resource agent - Add resource group for VIP resources (dev/test only)"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__vip_group] }}"
   vars:
     __vip_group:
-      id: "{{ sap_ha_pacemaker_cluster_vip_resource_group_name }}_{{ vip_list_item.key }}"
+      id: "{{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ vip_list_item.key }}"
       resource_ids:
         - "{{ vip_list_item.key }}"
         - "pri_{{ vip_list_item.key }}"
   when:
     - __vip_group.id is not in (__sap_ha_pacemaker_cluster_resource_groups | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_method in ['awsvip']
+#    - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
 
 - name: "SAP HA Prepare Pacemaker - aws_vpc_move_ip resource agent - Add resource: AWS VIP OverlayIP"
   ansible.builtin.set_fact:
@@ -66,3 +76,4 @@
   when:
     - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_method == 'aws_vpc_move_ip'
+ #   - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list

@@ -8,36 +8,90 @@
           sap_ha_pacemaker_cluster_vip_hana_primary_resource_name:
             sap_ha_pacemaker_cluster_vip_hana_primary_ip_address | regex_replace('/.*', ''),
           sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name:
-            sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | regex_replace('/.*', '')
+            sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | regex_replace('/.*', ''),
+          sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_hana_primary_port,
+          sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port
         } }}"
       nwas_abap_ascs_ers: "{{
         {
           sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name:
             sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address | regex_replace('/.*', ''),
           sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name:
-            sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address | regex_replace('/.*', '')
+            sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address | regex_replace('/.*', ''),
+          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_hana_nwas_abap_ascs_port,
+          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_hana_nwas_abap_ers_port
         } }}"
       nwas_abap_pas_aas: "{{
         {
           sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name:
             sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address | regex_replace('/.*', ''),
           sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name:
-            sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address | regex_replace('/.*', '')
+            sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address | regex_replace('/.*', ''),
+          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_hana_nwas_abap_pas_port,
+          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_hana_nwas_abap_aas_port
         } }}"
+
+### Maintenance note
+#
+# The above task returns the following structure with a definition for HANA and ASCS/ERS,
+# example for platform "MS Azure":
+#
+# __sap_ha_pacemaker_cluster_all_vip_fact:
+#   hana_scaleup_perf:
+#     vip_HAN_10_primary: 192.168.1.10
+#     vip_HAN_10_readonly:
+#     hc_vip_HAN_10_primary: 62610
+#     hc_vip_HAN_10_readonly: 0
+#   nwas_abap_ascs_ers:
+#     vip_NW1_20_ascs: 192.168.2.20
+#     vip_NW2_30_ers: 192.168.2.30
+#     hc_vip_NW1_20_ascs: 62620
+#     hc_vip_NW2_30_ers: 62630
+#   nwas_abap_pas_aas:
+#     vip___pas:
+#     vip___aaas:
+#     hc_vip___pas: 0
+#     hc_vip___aas: 0
+
+# TODO: convert that dict to a list for easier looping?
 
 - name: "SAP HA Prepare Pacemaker - Combine VIP parameters"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_vip_resource_definition:
       "{{ __sap_ha_pacemaker_cluster_vip_resource_definition | default({})
-        | combine(__sap_ha_pacemaker_cluster_all_vip_fact[vip_item]) }}"
+        | combine(__sap_ha_pacemaker_cluster_all_vip_fact[vip_item])
+        | dict2items | rejectattr('value', 'equalto', '') | list | items2dict }}"
   loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
   loop_control:
     loop_var: vip_item
+
+
+### Maintenance note
+#
+# The above task reduces the previous dictionary to the contents matching the target
+# host type definition. It reduces the VIP/HC resources list to only those with values.
+# Example for NW ASCS/ERS:
+#
+# __sap_ha_pacemaker_cluster_vip_resource_definition:
+#   nwas_abap_ascs_ers:
+#     vip_NW1_20_ascs: 192.168.2.20
+#     vip_NW2_30_ers: 192.168.2.30
+#     hc_vip_NW1_20_ascs: 62620
+#     hc_vip_NW2_30_ers: 62630
+
 
 # The VIP resource construction files are included in a loop to allow
 # for multiple IPs to be configured in cluster resources
 
 # Repeat the VIP resource definition in a loop over the above combined possible parameters.
+# Applies to systems with no particular platform detected.
+# VIP resources creation only.
 - name: "SAP HA Prepare Pacemaker - Include variable construction for standard VIP resources"
   ansible.builtin.include_tasks: construct_vars_vip_resources_default.yml
   loop: "{{ query('dict', __sap_ha_pacemaker_cluster_vip_resource_definition) }}"
@@ -46,10 +100,11 @@
     loop_var: vip_list_item
     label: "{{ vip_list_item.key }} - {{ vip_list_item.value }}"
   when:
-    - sap_ha_pacemaker_cluster_vip_method == 'ipaddr'
-    - vip_list_item.value | length > 0
+    - __sap_ha_pacemaker_cluster_platform | length == 0
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
 
-
+# Platform VIP and/or health check resources creation.
+# Platform tasks must cover the VIP resource group creation, when applicable.
 - name: "SAP HA Prepare Pacemaker - Include variable construction for platform VIP methods"
   ansible.builtin.include_tasks: "platform/construct_vars_vip_resources_{{ __sap_ha_pacemaker_cluster_platform }}.yml"
   loop: "{{ query('dict', __sap_ha_pacemaker_cluster_vip_resource_definition) }}"
@@ -58,11 +113,18 @@
     loop_var: vip_list_item
     label: "{{ vip_list_item.key }} - {{ vip_list_item.value }}"
   when:
-    - sap_ha_pacemaker_cluster_vip_method != 'ipaddr'
-    - vip_list_item.value | length > 0
+    - __sap_ha_pacemaker_cluster_platform | length > 0
+
+
+# Group VIP and healthcheck resources when both exist.
+- name: "SAP HA Prepare Pacemaker - Include VIP and healthcheck group creation"
+  ansible.builtin.include_tasks:
+    file: construct_vars_vip_groups.yml
+
 
 # TODO: careful separation of different VIP methods and the depending constraints configuration
 
+# Constraints either are done for single VIP resources or for grouped VIP/HC resources.
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP Hana VIP constraints"
   ansible.builtin.include_tasks:
     file: construct_vars_vip_constraints_hana.yml
@@ -74,7 +136,6 @@
   when:
     - __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent != 'service:haproxy'
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
-    - vip_list_item.value | length > 0
 
 # When the load balancer / haxproxy setup is free of VIP configuration on OS level
 # it must not enter the above VIP constraints setup, but add constraints for haproxy instead.
@@ -89,4 +150,3 @@
   when:
     - __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent == 'service:haproxy'
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
-    - vip_list_item.value | length > 0

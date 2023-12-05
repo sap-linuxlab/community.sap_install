@@ -1,14 +1,21 @@
 ---
 # Reminder: This file is included in a loop over a dictionary.
+# Included in: tasks/include_construct_vip_resources.yml
+#
+# file loop var: vip_list_item
+#
+# Example:
+# {{ vip_list_item.key }}   => vip_SID_00_primary
+# {{ vip_list_item.value }} => 192.168.1.10
 
 # VIP resource definition itself
-- name: "SAP HA Prepare Pacemaker - Add resource: VIP {{ vip_list_item.key }} ({{ sap_ha_pacemaker_cluster_vip_resource_agent }})"
+- name: "SAP HA Prepare Pacemaker - Add resource: VIP {{ vip_list_item.key }} ({{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }})"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
   vars:
     __resource_vip:
       id: "{{ vip_list_item.key }}"
-      agent: "{{ sap_ha_pacemaker_cluster_vip_resource_agent }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
       instance_attrs:
         - attrs:
             - name: ip
@@ -17,4 +24,4 @@
               value: "{{ sap_ha_pacemaker_cluster_vip_client_interface }}"
   when:
     - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
-    - '"IPaddr2" in sap_ha_pacemaker_cluster_vip_resource_agent'
+    - sap_ha_pacemaker_cluster_vip_method == 'ipaddr'

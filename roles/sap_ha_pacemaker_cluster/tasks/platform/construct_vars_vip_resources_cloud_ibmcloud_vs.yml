@@ -1,7 +1,18 @@
 ---
 # Reminder: This file is included in a loop over a dictionary.
+# Included in: tasks/include_construct_vip_resources.yml
+#
+# file loop var: vip_list_item
+#
+# Example for VIP definition:
+# {{ vip_list_item.key }}   => vip_SID_00_primary
+# {{ vip_list_item.value }} => 192.168.1.10
+#
+# Example for HC definition:
+# {{ vip_list_item.key }}   => hc_vip_SID_00_primary
+# {{ vip_list_item.value }} => 62600
 
-# id: "hc_vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_{{ ansible_hostname | replace('-','_') }}"
+
 - name: "SAP HA Prepare Pacemaker - IBM Cloud VS - haproxy resource agent - Add resource: IBM Cloud Load Balancer Private ALB L-7 (or NLB L-4) for VIP routing"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__health_check] }}"
@@ -17,7 +28,8 @@
             - name: timeout
               value: 20
   when:
-    - __health_check.id is not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+    - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_healthcheck_resource_list
 
 # IBM Cloud Load Balancer will own and control the Virtual IP (VIP) routing and failover
 # When Linux Pacemaker failover to secondary occurs, the primary will cease Health Check response to IBM Cloud Load Balancer,

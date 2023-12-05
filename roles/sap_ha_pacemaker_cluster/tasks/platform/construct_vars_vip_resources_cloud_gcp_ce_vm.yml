@@ -1,5 +1,12 @@
 ---
 # Reminder: This file is included in a loop over a dictionary.
+# Included in: tasks/include_construct_vip_resources.yml
+#
+# file loop var: vip_list_item
+#
+# Example:
+# {{ vip_list_item.key }}   => vip_SID_00_primary
+# {{ vip_list_item.value }} => 192.168.1.10
 
 - name: "SAP HA Prepare Pacemaker - ipaddr resource agent - Add resource: OS network interface Virtual IP"
   ansible.builtin.set_fact:
@@ -21,8 +28,9 @@
     - (sap_ha_pacemaker_cluster_vip_method == 'ipaddr') or
       (__sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with is defined and
       'ipaddr' in __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with)
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
 
-- name: "SAP HA Prepare Pacemaker - haproxy resource agent - Add resource: Google Cloud Load Balancing Internal passthrough Network Load Balancer (NLB L-4) for VIP routing when SAP HANA scale-up HA"
+- name: "SAP HA Prepare Pacemaker - haproxy resource agent - Add resource: Google Cloud Load Balancing Internal passthrough Network Load Balancer (NLB L-4) for VIP routing"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__health_check] }}"
   vars:
@@ -37,7 +45,6 @@
             - name: timeout
               value: 20
   when:
-    - __health_check.id is not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
-    - ('hc_' + vip_list_item.key) not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+    - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_method == 'gcp_nlb_reserved_ip_haproxy'
-    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_healthcheck_resource_list
