@@ -13,12 +13,13 @@ Will configure a plain vanilla OpenShift cluster so it can be used for SAP workl
 ### Requirements
 * An OpenShift cluster, best without any previous customization. 
 * The worker nodes should have > 96GB of memory. 
+* Worker nodes need to have Intel CPUs that provide TSX feature.
 * Storage is required, e.g. via NFS, OpenShift Data Foundation or local storage. This role can setup access to a Netapp Filer via Trident storage connector. 
 Local storage will be configures using host path provisioner.
 * Point the `KUBECONFIG` environment variable to your `kubeconfig`.
-* Required packages: This roles uses the kubernetes ansible module, this can be installed via the package`ansible-collection-kubernetes-core`.
 * Make the role available in case you didn't install it already in an ansible roles directory, e.g.
-
+* Make sure to install the dependencies mentioned below are installed.
+* To ensure your local checkout it found by ansible:
 ```
 mkdir -p ~/.ansible/roles/
 ln -sf ~/community.sap_install/roles/sap_hypervisor_node_preconfigure ~/.ansible/roles/
@@ -150,7 +151,6 @@ sap_hypervisor_node_preconfigure_cluster_config:
             interface: ens2f0            # network IF name
             type: sriov                        
 ```
-
 ### Example Playbook
 See `playbooks/sample-sap-hypervisor-redhat_ocp_virt-preconfigure.yml` for an example.
 

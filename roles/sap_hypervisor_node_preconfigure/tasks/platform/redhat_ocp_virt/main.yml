@@ -36,28 +36,28 @@
     __sap_hypervisor_node_preconfigure_register_worker_name:
       "{{ __sap_hypervisor_node_preconfigure_register_nodes[0]['metadata']['labels']['kubernetes.io/hostname'] }}"
 
-- name: Get memory of worker node
+- name: Get memory of first worker node (will be used for all worker nodes later on)
   ansible.builtin.set_fact:
-    __sap_hypervisor_node_preconfigure_register_worker_memory_gb:
+    __sap_hypervisor_node_preconfigure_register_worker_memory_gib:
       "{{ (__sap_hypervisor_node_preconfigure_register_nodes[0]['status']['capacity']['memory'] | replace('Ki', '') | int / 1048576) | int }}"
 
-- name: Check if host has minimal amount of memory (96Gb)
+- name: Check if host has minimal amount of memory (96GiB)
   ansible.builtin.assert:
-    that: __sap_hypervisor_node_preconfigure_register_worker_memory_gb|int >= 96
+    that: __sap_hypervisor_node_preconfigure_register_worker_memory_gib >= 96
     fail_msg: "Not enough memory on node {{ __sap_hypervisor_node_preconfigure_register_worker_name }}"
     success_msg: "Enough memory on node {{ __sap_hypervisor_node_preconfigure_register_worker_name }}"
   ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_minimal_memory_check }}"
 
 # calculate memory to be allocated as hugepages
-# if system < 512GB memory use 32GB as upper boundary, 64GB otherwise as upper boundary
-- name: Calculate amount of hugepages to reserve (host memory < 512 Gb)
+# if system < 512GiB memory use 32GiB as upper boundary, 64GB otherwise as upper boundary
+- name: Calculate amount of hugepages to reserve (host memory < 512 GiB)
   ansible.builtin.set_fact:
-    __sap_hypervisor_node_preconfigure_register_worker_reserved_hugepages: "{{ __sap_hypervisor_node_preconfigure_register_worker_memory_gb | int - sap_hypervisor_node_preconfigure_hypervisor_reserved_ram_host_lt_512 }}"
-  when: __sap_hypervisor_node_preconfigure_register_worker_memory_gb|int < 512
+    __sap_hypervisor_node_preconfigure_register_worker_reserved_hugepages: "{{ __sap_hypervisor_node_preconfigure_register_worker_memory_gib | int - sap_hypervisor_node_preconfigure_hypervisor_reserved_ram_host_lt_512 }}"
+  when: __sap_hypervisor_node_preconfigure_register_worker_memory_gib|int < 512
 
-- name: Calculate amount of hugepages to reserve (host memory >= 512 Gb)
+- name: Calculate amount of hugepages to reserve (host memory >= 512 GiB)
   ansible.builtin.set_fact:
-    __sap_hypervisor_node_preconfigure_register_worker_reserved_hugepages: "{{ __sap_hypervisor_node_preconfigure_register_worker_memory_gb | int - sap_hypervisor_node_preconfigure_hypervisor_reserved_ram_host_ge_512 }}"
+    __sap_hypervisor_node_preconfigure_register_worker_reserved_hugepages: "{{ __sap_hypervisor_node_preconfigure_register_worker_memory_gib | int - sap_hypervisor_node_preconfigure_hypervisor_reserved_ram_host_ge_512 }}"
   when: __sap_hypervisor_node_preconfigure_register_worker_memory_gb|int >= 512
 
 - name: Include prepare
