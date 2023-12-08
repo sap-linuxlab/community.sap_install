@@ -1,30 +1,41 @@
 ---
-#- name: Label nodes
-#  ansible.builtin.command: "oc label node {{ __sap_hypervisor_node_preconfigure_register_worker.name }} cpumanager=true --overwrite=true"
-#  register: __sap_hypervisor_node_preconfigure_label_node_result
-#  changed_when: __sap_hypervisor_node_preconfigure_label_node_result.rc != 0
+- name: Label nodes
+  ansible.builtin.command: "oc label node {{ __sap_hypervisor_node_preconfigure_register_worker.name }} cpumanager=true --overwrite=true"
+  register: __sap_hypervisor_node_preconfigure_label_node_result
+  changed_when: __sap_hypervisor_node_preconfigure_label_node_result.rc != 0
 
-- name: Label the node with cpumanager=true
-  ansible.builtin.k8s:
+#- name: Label the node with cpumanager=true
+#  ansible.builtin.k8s:
+#    definition:
+#      apiVersion: v1
+#      kind: Node
+#      metadata:
+#        name: "{{ __sap_hypervisor_node_preconfigure_register_worker.name }}"
+#        labels:
+#          cpumanager: true
+#    state: present
+#
+#- name: Label the node with invtsc=true
+#  ansible.builtin.k8s:
+#    definition:
+#      apiVersion: v1
+#      kind: Node
+#      metadata:
+#        name: "{{ __sap_hypervisor_node_preconfigure_register_worker.name }}"
+#        labels:
+#          invtsc: true
+#    state: present
+
+- name: Label worker with invtsc flag
+  kubernetes.core.k8s:
+    state: present
     definition:
       apiVersion: v1
-      kind: Node
+      kind: Namespace
       metadata:
-        name: {{ __sap_hypervisor_node_preconfigure_register_worker.name }}
+        name: default
         labels:
-          cpumanager: true
-    state: present
-
-- name: Label the node with invtsc=true
-  ansible.builtin.k8s:
-    definition:
-      apiVersion: v1
-      kind: Node
-      metadata:
-        name: {{ __sap_hypervisor_node_preconfigure_register_worker.name }}
-        labels:
-          invtsc: true
-    state: present
+          'feature.node.kubernetes.io/cpu-feature-invtsc': enabled
 
 - name: Include node network
   ansible.builtin.include_tasks: node-network.yml
