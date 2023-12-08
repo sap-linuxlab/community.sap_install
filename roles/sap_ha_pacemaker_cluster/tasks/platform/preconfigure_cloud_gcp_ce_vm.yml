@@ -1,39 +1,178 @@
 ---
-# Requirement to enable the fencing resource to function.
 
-- name: "SAP HA Prepare Pacemaker - GCP Compute VM - haproxy package install"
+- name: "SAP HA Install Pacemaker - GCP CE VM - Install haproxy"
   ansible.builtin.package:
-    name: "haproxy"
+    name: haproxy
     state: present
 
-- name: "SAP HA Prepare Pacemaker - GCP Compute VM - haproxy listener configuration"
-  ansible.builtin.blockinfile:
-    state: present
-    insertafter: EOF
-    dest: /etc/haproxy/haproxy.cfg
-    marker_begin: "---- haproxy health check listener for SAP HANA ----"
-    marker_end: "----"
-    content: |
-      listen healthcheck_vip_hana
-        bind *:60000
+- name: "SAP HA Install Pacemaker - GCP CE VM - Check if haproxy service template exists"
+  ansible.builtin.stat:
+    path: /etc/systemd/system/haproxy@.service
+  register: __sap_ha_pacemaker_cluster_register_haproxy_template
+
+- name: "SAP HA Install Pacemaker - GCP CE VM - Create haproxy service template"
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/haproxy@.service
+    remote_src: true
+    src: /usr/lib/systemd/system/haproxy.service
+    mode: '0644'
   when:
-    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+    - not __sap_ha_pacemaker_cluster_register_haproxy_template.stat.exists
 
-- name: "SAP HA Prepare Pacemaker - GCP Compute VM - haproxy service start and enable"
+- name: "SAP HA Install Pacemaker - GCP CE VM - Update haproxy service template description"
+  ansible.builtin.lineinfile:
+    backup: true
+    path: /etc/systemd/system/haproxy@.service
+    regexp: '^Description='
+    line: 'Description=HAProxy Load Balancer %i'
+    state: present
+    insertafter: '^[Unit]$'
+    insertbefore: '^[Service]$'
+  register: __sap_ha_pacemaker_cluster_register_haproxy_desc_update
+
+- name: "SAP HA Install Pacemaker - GCP CE VM - Update haproxy service template environment"
+  ansible.builtin.lineinfile:
+    backup: true
+    path: /etc/systemd/system/haproxy@.service
+    regexp: '^Environment='
+    line: 'Environment="CONFIG=/etc/haproxy/haproxy-%i.cfg" "PIDFILE=/run/haproxy-%i.pid"'
+    state: present
+    insertafter: '^[Service]$'
+  register: __sap_ha_pacemaker_cluster_register_haproxy_env_update
+
+- name: "SAP HA Install Pacemaker - GCP CE VM - Reload systemd services"
   ansible.builtin.service:
-    name: "haproxy"
-    state: started
-
-- name: "SAP HA Prepare Pacemaker - haproxy resource agent - Verify haproxy binary path"
-  ansible.builtin.shell: |
-    which haproxy
-  register: __sap_ha_pacemaker_cluster_register_haproxy_path
-  changed_when: false
-
-- name: "SAP HA Prepare Pacemaker - haproxy resource agent - Verify haproxy config file listener (/etc/haproxy/haproxy.cfg) for SAP HANA"
-  ansible.builtin.shell: |
-    grep 'listen healthcheck_vip_hana' /etc/haproxy/haproxy.cfg
-  register: __sap_ha_pacemaker_cluster_register_haproxy_config
-  changed_when: false
+    name: systemd
+    state: reloaded
   when:
-    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+    - __sap_ha_pacemaker_cluster_register_haproxy_desc_update.changed or
+      __sap_ha_pacemaker_cluster_register_haproxy_env_update.changed
+
+- name: "SAP HA Install Pacemaker - GCP CE VM - Define healthcheck details for HANA"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_healthcheck_list_hana:
+      - name: "{{ sap_ha_pacemaker_cluster_hana_sid + 'prim' }}"
+        port: >-
+          {% if sap_ha_pacemaker_cluster_healthcheck_hana_primary_port | length > 0 -%}
+            {{ sap_ha_pacemaker_cluster_healthcheck_hana_primary_port }}
+          {% else -%}
+            600{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
+          {% endif %}
+    # If no custom port is defined, calculate the port for the secondary
+    # by adding 10, to avoid a conflict with the port for the primary hc port.
+      - name: "{{ sap_ha_pacemaker_cluster_hana_sid + 'ro' }}"
+        port: >-
+          {% if sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port | length > 0 -%}
+            {{ sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port }}
+          {% else -%}
+            600{{ sap_ha_pacemaker_cluster_hana_instance_nr | int + 10 }}
+          {% endif %}
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
+
+- name: "SAP HA Install Pacemaker - GCP CE VM - Define healthcheck details for NW ASCS/ERS"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_healthcheck_list_ascs:
+      - name: "{{ sap_ha_pacemaker_cluster_nwas_abap_sid + 'ascs' }}"
+        port: >-
+          {% if sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_port | length > 0 -%}
+            {{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_port }}
+          {% else -%}
+            600{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
+          {% endif %}
+      - name: "{{ sap_ha_pacemaker_cluster_nwas_abap_sid + 'ers' }}"
+        port: >-
+          {% if sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port | length > 0 -%}
+            {{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port }}
+          {% else -%}
+            600{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}
+          {% endif %}
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs') | length > 0
+
+
+- name: "SAP HA Install Pacemaker - GCP CE VM - Create haproxy config for HANA instances"
+  ansible.builtin.blockinfile:
+    create: true
+    path: "/etc/haproxy/haproxy-{{ haproxy_item.name }}.cfg"
+    mode: "0644"
+    owner: root
+    group: root
+    marker: "{mark} Created by Ansible role sap_ha_pacemaker_cluster"
+    block: |
+      global
+          chroot      /var/lib/haproxy
+          pidfile     /var/run/haproxy-%i.pid
+          user        haproxy
+          group       haproxy
+          daemon
+
+      defaults
+          mode                    tcp
+          log                     global
+          option                  dontlognull
+          option                  redispatch
+          retries                 3
+          timeout queue           1m
+          timeout connect         10s
+          timeout client          1m
+          timeout server          1m
+          timeout check           10s
+          maxconn                 3000
+
+      # Listener for SAP healthcheck
+      listen healthcheck
+           bind *:{{ haproxy_item.port }}
+  loop: "{{ __sap_ha_pacemaker_cluster_healthcheck_list_hana }}"
+  loop_control:
+    loop_var: haproxy_item
+    label: "{{ haproxy_item.name }}: {{ haproxy_item.port }}"
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
+
+
+- name: "SAP HA Install Pacemaker - GCP CE VM - Create haproxy config for NWAS ASCS/ERS instances"
+  ansible.builtin.blockinfile:
+    create: true
+    path: "/etc/haproxy/haproxy-{{ haproxy_item.name }}.cfg"
+    mode: "0644"
+    owner: root
+    group: root
+    marker: "{mark} Created by Ansible role sap_ha_pacemaker_cluster"
+    block: |
+      global
+          chroot      /var/lib/haproxy
+          pidfile     /var/run/haproxy-%i.pid
+          user        haproxy
+          group       haproxy
+          daemon
+
+      defaults
+          mode                    tcp
+          log                     global
+          option                  dontlognull
+          option                  redispatch
+          retries                 3
+          timeout queue           1m
+          timeout connect         10s
+          timeout client          1m
+          timeout server          1m
+          timeout check           10s
+          maxconn                 3000
+
+      # Listener for SAP healthcheck
+      listen healthcheck
+           bind *:{{ haproxy_item.port }}
+  loop: "{{ __sap_ha_pacemaker_cluster_healthcheck_list_ascs }}"
+  loop_control:
+    loop_var: haproxy_item
+    label: "{{ haproxy_item.name }}: {{ haproxy_item.port }}"
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs') | length > 0
+
+
+- name: "SAP HA Install Pacemaker - GCP CE VM - Ensure that haproxy service is running"
+  ansible.builtin.service:
+    name: haproxy
+    enabled: true
+    state: started

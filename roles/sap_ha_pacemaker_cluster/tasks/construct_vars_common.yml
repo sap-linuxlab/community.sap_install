@@ -46,3 +46,25 @@
       + sap_ha_pacemaker_cluster_fence_agent_packages
       + __sap_ha_pacemaker_cluster_fence_agent_packages)
       | unique }}"
+
+- name: "SAP HA Prepare Pacemaker - Add default corosync totem settings"
+  when:
+    - sap_ha_pacemaker_cluster_totem is defined
+    - sap_ha_pacemaker_cluster_totem | length > 0
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_totem:
+      options: "{{ __sap_ha_pacemaker_cluster_totem.options + __totem_settings }}"
+  vars:
+    __totem_settings: >-
+      {% set new_opts = [] %}
+      {% for setting in sap_ha_pacemaker_cluster_totem | dict2items -%}
+        {% if __sap_ha_pacemaker_cluster_totem.options
+          | map(attribute='name') | select('match', setting.key) | length == 0 -%}
+          {% set add_opts = new_opts.extend([
+            {
+              'name': setting.key,
+              'value': setting.value
+            }]) %}
+        {%- endif %}
+      {%- endfor %}
+      {{ new_opts }}
