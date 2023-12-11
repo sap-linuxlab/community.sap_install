@@ -1,0 +1,89 @@
+---
+- name: Create systemd files for local storage handling
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfig
+      metadata:
+        annotations:
+        labels:
+          machineconfiguration.openshift.io/role: worker
+        name: 50-hpp-local
+      spec:
+        config:
+          ignition:
+            version: 2.2.0
+          systemd:
+            units:
+              - contents: |
+                  [Unit]
+                  Description=Create mountpoint /var/localstorage and initialize filesystem
+                  Before=var-localstorage.mount
+                  [Service]
+                  Type=oneshot
+                  ExecStart=/bin/bash -c "if [[ $(lsblk -o FSTYPE {{ sap_hypervisor_node_preconfigure_cluster_config.worker_localstorage_device }} --noheadings) != 'xfs' ]]; then mkfs.xfs -f {{ sap_hypervisor_node_preconfigure_cluster_config.worker_localstorage_device }}; fi"
+                  ExecStart=/bin/mkdir -p /var/localstorage
+                enabled: true
+                name: create-mountpoint-var-localstorage.service
+              - contents: |
+                  [Unit]
+                  After=create-mountpoint-var-localstorage.service
+                  Requires=create-mountpoint-var-localstorage.service
+                  [Mount]
+                  What={{ sap_hypervisor_node_preconfigure_cluster_config.worker_localstorage_device }}
+                  Where=/var/localstorage
+                  Type=xfs
+                  [Install]
+                  WantedBy=local-fs.target
+                enabled: true
+                name: var-localstorage.mount
+              - contents: |
+                  [Unit]
+                  Description=Set SELinux chcon for hostpath provisioner
+                  Before=kubelet.service
+                  After=var-localstorage.mount
+                  [Service]
+                  ExecStart=/usr/bin/chcon -Rt container_file_t /var/localstorage
+                  [Install]
+                  WantedBy=multi-user.target
+                enabled: true
+                name: hostpath-provisioner.service
+
+- name: Wait for mountpoint to be ready
+  ansible.builtin.pause:
+    minutes: 3
+
+- name: Create hostpath provisioner (HPP)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: hostpathprovisioner.kubevirt.io/v1beta1
+      kind: HostPathProvisioner
+      metadata:
+        name: hostpath-provisioner
+      spec:
+        imagePullPolicy: IfNotPresent
+        storagePools:
+          - name: localstorage
+            path: /var/localstorage
+      workload:
+        nodeSelector:
+          kubernetes.io/os: linux
+          machineconfiguration.openshift.io/role: worker
+
+- name: Create storage class for HPP
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: local
+        annotations:
+          storageclass.kubernetes.io/is-default-class: "true"
+      provisioner: kubevirt.io.hostpath-provisioner
+      reclaimPolicy: Delete
+      volumeBindingMode: WaitForFirstConsumer
+      parameters:
+        storagePool: localstorage
