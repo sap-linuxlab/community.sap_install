@@ -1,2 +1,80 @@
 ---
 # Requirement to enable the fencing resource to function.
+
+- name: "SAP HA Prepare Pacemaker - IBM Cloud VS - haproxy package install"
+  ansible.builtin.package:
+    name: "haproxy"
+    state: present
+
+- name: "SAP HA Prepare Pacemaker - IBM Cloud VS - Create haproxy log directory for rsyslog"
+  ansible.builtin.file:
+    path: /var/log/haproxy
+    state: directory
+    mode: '0755'
+
+- name: "SAP HA Prepare Pacemaker - IBM Cloud VS - Create haproxy config for rsyslog"
+  ansible.builtin.copy:
+    dest: /etc/rsyslog.d/haproxy.conf
+    mode: '0644'
+    content: |
+      # Additional socket in haproxy's chroot
+      # to allow logging via /dev/log to chroot'ed HAProxy processes
+      $AddUnixListenSocket /var/lib/haproxy/dev/log
+
+      # Send HAProxy messages to a dedicated logfile
+      :programname,startswith,"haproxy" /var/log/haproxy/haproxy.log
+
+- name: "SAP HA Prepare Pacemaker - IBM Cloud VS - rsyslog service restart"
+  ansible.builtin.service:
+    name: rsyslog
+    state: restarted
+    enabled: true
+
+- name: "SAP HA Prepare Pacemaker - IBM Cloud VS - haproxy listener configuration"
+  ansible.builtin.blockinfile:
+    state: present
+    insertafter: EOF
+    dest: /etc/haproxy/haproxy.cfg
+    marker_begin: "---- haproxy health check listener ----"
+    marker_end: "----"
+    content: |
+      listen healthcheck_vip
+          mode tcp
+          bind *:60000
+          option tcplog
+          option log-health-checks
+          log /dev/log local0
+  # when:
+  #   - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+
+- name: "SAP HA Prepare Pacemaker - IBM Cloud VS - haproxy service start (without enable on boot)"
+  ansible.builtin.service:
+    name: haproxy
+    state: started
+    enabled: false # Do not start on boot
+  # Add when: primary node only, the secondary should not start the service
+
+- name: "SAP HA Prepare Pacemaker - IBM Cloud VS - haproxy resource agent - Verify haproxy binary path"
+  ansible.builtin.shell: |
+    which haproxy
+  register: __sap_ha_pacemaker_cluster_register_haproxy_path
+  changed_when: false
+
+- name: "SAP HA Prepare Pacemaker - IBM Cloud VS - haproxy resource agent - Verify haproxy config file listener (/etc/haproxy/haproxy.cfg)"
+  ansible.builtin.shell: |
+    grep 'listen healthcheck_vip' /etc/haproxy/haproxy.cfg
+  register: __sap_ha_pacemaker_cluster_register_haproxy_config
+  changed_when: false
+  # when:
+  #   - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+
+- name: "SAP HA Prepare Pacemaker - IBM Cloud VS - service_facts"
+  ansible.builtin.service_facts:
+  register: __register_services_state
+
+- name: "SAP HA Prepare Pacemaker - IBM Cloud VS - Assert that haproxy is running/active"
+  ansible.builtin.assert:
+    that: "__register_services_state.ansible_facts.services['haproxy.service']['state'] == 'running'"
+    fail_msg: "FAIL: Service haproxy is not running!"
+    success_msg: "PASS: Service haproxy is running."
+  # Add when: primary node only, the secondary should not start the service

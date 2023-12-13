@@ -162,7 +162,7 @@
         name: "{{ sap_ha_pacemaker_cluster_system_roles_collection }}.ha_cluster"
         apply:
           tags: ha_cluster
-          no_log: true  # some parameters contain secrets
+          no_log: "{{ __sap_ha_pacemaker_cluster_no_log }}"  # some parameters contain secrets
       tags: ha_cluster
 
     # Resource defaults settings were added to "ha_cluster" in Apr 2023 (GH version 1.9.0)
@@ -190,6 +190,7 @@
       loop_control:
         label: "{{ item.key }}={{ item.value }}"
       run_once: true
+      changed_when: true
 
     - name: "SAP HA Install Pacemaker - Include srHook configuration"
       ansible.builtin.include_tasks:
