@@ -1,0 +1,47 @@
+---
+# defaults file for sap_maintain_etc_hosts
+# BEGIN: Default Variables for sap_maintain_etc_hosts
+
+# sap_maintain_etc_hosts_list: (not defined by default)
+# List of nodes to be added or removed in /etc/hosts
+# Possible options:
+# - node_ip:
+#      IP address of the node.
+#      It is required for adding a node.
+#      When deleting a node use only when node_name and node_domain are not defined
+# - node_name
+#      Hostname of the node
+#      It is required for adding a node.
+#      When deleting a node use only when node_ip is not defined
+# - node_domain
+#      Domainname of the node
+#      Defaults to sap_domain, if set, otherwise ansible_domain is the default
+#      When deleting a node use only when node_name is defined
+# - aliases
+#      List of aliases for the node
+#      Not used when state is absent
+# - alias_mode
+#     `merge` : merges the list of aliases with the exiting aliases of the node. (default)
+#     `overwrite`: overwrites the aliases of the node.
+#      Not used when state is absent
+# - node_comment
+#      default: managed by ansible sap_maintain_etc_hosts role`
+#      String which is appended to line in hosts after comment string
+#      Not used when state is absent
+# - hana_site
+#      if set (e.g. for configuring cluster) it is appended to the comment
+#      Not used when state is absent
+# - node_role
+#      Not used. For compatibility reason only.
+# - state
+#   default: present
+#   Defines, if an entry is added or removed from /etc/hosts
+#
+# Example: See README.md
+
+# END: Default Variables for sap_maintain_etc_hosts
+
+# Default Value is the definition of the cluster nodes in sap_ha_pacemaker_cluster. If that is not defined
+# the role creates a default value from ansible_facts
+
+sap_maintain_etc_hosts_list: "{{ sap_hana_cluster_nodes | default(sap_ha_pacemaker_cluster_cluster_nodes) | default(omit) }}"

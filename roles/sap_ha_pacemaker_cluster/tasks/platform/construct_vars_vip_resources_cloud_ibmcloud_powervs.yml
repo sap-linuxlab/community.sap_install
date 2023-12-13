@@ -7,15 +7,17 @@
   vars:
     __resource_vip:
       id: "{{ vip_list_item.key }}"
-      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents['ipaddr'].agent }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents['ipaddr_custom'].agent }}"
       instance_attrs:
         - attrs:
             - name: ip
               value: "{{ vip_list_item.value }}"
+            - name: cidr_netmask
+              value: "{{ __sap_ha_pacemaker_cluster_vip_client_interface_subnet_cidr.stdout | int }}"
             - name: nic
               value: "{{ sap_ha_pacemaker_cluster_vip_client_interface }}"
   when:
     - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
-    - (sap_ha_pacemaker_cluster_vip_method == 'ipaddr') or
+    - (sap_ha_pacemaker_cluster_vip_method == 'ipaddr_custom') or
       (__sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with is defined and
-      'ipaddr' in __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with)
+      'ipaddr_custom' in __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with)
