@@ -163,12 +163,9 @@
     # Cluster installation and configuration through the dedicated
     # linux system role 'ha_cluster'
     - name: "SAP HA Install Pacemaker - Include System Role 'ha_cluster'"
-      ansible.builtin.include_role:
+      ansible.builtin.import_role:
         name: "{{ sap_ha_pacemaker_cluster_system_roles_collection }}.ha_cluster"
-        apply:
-          tags: ha_cluster
-          no_log: "{{ __sap_ha_pacemaker_cluster_no_log }}"  # some parameters contain secrets
-      tags: ha_cluster
+      no_log: "{{ __sap_ha_pacemaker_cluster_no_log }}"  # some parameters contain secrets
 
     # Resource defaults settings were added to "ha_cluster" in Apr 2023 (GH version 1.9.0)
     # https://github.com/linux-system-roles/ha_cluster#ha_cluster_resource_defaults
@@ -196,6 +193,36 @@
         label: "{{ item.key }}={{ item.value }}"
       run_once: true
       changed_when: true
+
+    # Corosync post-inst
+    - name: "SAP HA Install Pacemaker - Make sure corosync systemd directory exists"
+      ansible.builtin.file:
+        path: /etc/systemd/system/corosync.service.d
+        state: directory
+        mode: '0755'
+      when:
+        - __sap_ha_pacemaker_cluster_platform == 'cloud_gcp_ce_vm'
+
+    - name: "SAP HA Install Pacemaker - Corosync systemd configuration"
+      ansible.builtin.copy:
+        backup: true
+        content: |-
+          [Service]
+          ExecStartPre=/bin/sleep 60
+
+        dest: /etc/systemd/system/corosync.service.d/override.conf
+        group: root
+        owner: root
+        mode: '0644'
+      register: __sap_ha_pacemaker_cluster_register_corosync_override
+      when:
+        - __sap_ha_pacemaker_cluster_platform == 'cloud_gcp_ce_vm'
+
+    - name: "SAP HA Install Pacemaker - Reload systemd services"
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when:
+        - __sap_ha_pacemaker_cluster_register_corosync_override.changed
 
     - name: "SAP HA Install Pacemaker - Include srHook configuration"
       ansible.builtin.include_tasks:

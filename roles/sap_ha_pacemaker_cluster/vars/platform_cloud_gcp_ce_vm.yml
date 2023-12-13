@@ -17,23 +17,37 @@ __sap_ha_pacemaker_cluster_repos:
 __sap_ha_pacemaker_cluster_gcp_hosts: []
 
 sap_ha_pacemaker_cluster_stonith_default:
-  id: "res_fence_gce_{{ ansible_hostname }}"
+  id: "res_fence_gce"
   agent: "stonith:fence_gce"
   options:
     project: "{{ sap_ha_pacemaker_cluster_gcp_project }}"
     zone: "{{ sap_ha_pacemaker_cluster_gcp_region_zone }}"
-    port: "{{ ansible_hostname }}"
+    pcmk_reboot_timeout: 300
+    pcmk_monitor_retries: 4
+    pcmk_delay_max: 30
 
 # Platform specific VIP handling
 sap_ha_pacemaker_cluster_vip_method: gcp_nlb_reserved_ip_haproxy # gcp_vpc_move_route
 sap_ha_pacemaker_cluster_vip_group_prefix: group_
 
+# GCP needs haproxy and ports defined
+sap_ha_pacemaker_cluster_healthcheck_hana_primary_port: "620{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port: >-
+  {% if sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | length > 0 -%}
+    600{{ sap_ha_pacemaker_cluster_hana_instance_nr | int + 1 }}
+  {%- else %}{% endif %}
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
+
 # Platform corosync totem configuration
 sap_ha_pacemaker_cluster_corosync_totem:
-  token: 20000
-  token_retransmits_before_loss_const: 10
-  join: 60
-  max_messages: 20
+  options:
+    token: 20000
+    token_retransmits_before_loss_const: 10
+    join: 60
+    max_messages: 20
 
 __sap_ha_pacemaker_cluster_available_vip_agents:
 

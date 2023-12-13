@@ -85,25 +85,37 @@
 # - generic pacemaker fence resource options
 #   (see defaults: sap_ha_pacemaker_cluster_fence_options)
 
+# Note: the 'ha_cluster' LSR only calls the stonith creation for ONE host
+#       -> the definition must contain the resources for all hosts, if multiple
+
 - name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resource definition from platform default"
   when:
     - sap_ha_pacemaker_cluster_stonith_default is defined
     - sap_ha_pacemaker_cluster_stonith_default | length > 0
     - sap_ha_pacemaker_cluster_stonith_custom is not defined
+    - __stonith_resource_element.id not in (__sap_ha_pacemaker_cluster_stonith_resource | default([])| map(attribute='id'))
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_stonith_resource: "{{ __sap_ha_pacemaker_cluster_stonith_resource | default([]) + [__stonith_resource_element] }}"
   vars:
     __stonith_resource_element:
-      id: "{{ sap_ha_pacemaker_cluster_stonith_default.id }}"
+      id: "{{ sap_ha_pacemaker_cluster_stonith_default.id + __plug_suffix }}"
       agent: "{{ sap_ha_pacemaker_cluster_stonith_default.agent }}"
       instance_attrs:
-        - attrs: |-
+        - attrs: >-
             {% set attrs = [] -%}
-            {% set map = attrs.extend([
-              {
-                'name': 'pcmk_host_map',
-                'value': __sap_ha_pacemaker_cluster_pcmk_host_map
-              }]) -%}
+            {% if __sap_ha_pacemaker_cluster_pcmk_host_map | length > 0 -%}
+              {% set map = attrs.extend([
+                {
+                  'name': 'pcmk_host_map',
+                  'value': __sap_ha_pacemaker_cluster_pcmk_host_map
+                }]) -%}
+            {%- else -%}
+              {% set map = attrs.extend([
+                {
+                  'name': 'plug',
+                  'value': stonith_host_item
+                }]) -%}
+            {%- endif %}
             {%- for agent_opt in (sap_ha_pacemaker_cluster_stonith_default.options | default({}) | dict2items) -%}
               {% set aopts = attrs.extend([
                 {
@@ -111,18 +123,33 @@
                   'value': agent_opt.value
                 }]) -%}
             {%- endfor %}
-            {%- for fence_opt in (sap_ha_pacemaker_cluster_fence_options | dict2items) -%}
-              {% set fopts = attrs.extend([
-                {
-                  'name': fence_opt.key,
-                  'value': fence_opt.value
-                }]) -%}
-              {%- endfor %}
+            {%- if sap_ha_pacemaker_cluster_stonith_default.options is not defined
+                or sap_ha_pacemaker_cluster_stonith_default.options | length == 0 -%}
+              {%- for fence_opt in (sap_ha_pacemaker_cluster_fence_options | dict2items) -%}
+                {% set fopts = attrs.extend([
+                  {
+                    'name': fence_opt.key,
+                    'value': fence_opt.value
+                  }]) -%}
+                {%- endfor %}
+              {%- endif -%}
             {{ attrs }}
+
+    __plug_suffix: >-
+      {%- if __sap_ha_pacemaker_cluster_pcmk_host_map | length == 0 -%}
+        _{{ stonith_host_item }}
+      {%- else %}{% endif -%}
+
+  loop: "{{ ansible_play_hosts_all }}"
+  loop_control:
+    loop_var: stonith_host_item
+    label: "{{ stonith_host_item }}"
+
 
 - name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resources from custom definition"
   when:
     - sap_ha_pacemaker_cluster_stonith_custom is defined
+    - __stonith_resource_element.id not in (__sap_ha_pacemaker_cluster_stonith_resource | default([]) | map(attribute='id'))
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_stonith_resource: "{{ __sap_ha_pacemaker_cluster_stonith_resource | default([]) + [__stonith_resource_element] }}"
   vars:

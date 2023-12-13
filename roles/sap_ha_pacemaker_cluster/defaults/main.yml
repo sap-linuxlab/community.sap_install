@@ -81,6 +81,10 @@ sap_ha_pacemaker_cluster_cluster_properties:
   stonith-timeout: 900
   concurrent-fencing: true
 
+### Constraints:
+# score is dynamic and automatically increased for groups
+sap_ha_pacemaker_cluster_constraint_colo_base_score: 2000
+
 ################################################################################
 # Inherit from 'ha_cluster' Linux System Role parameters when defined
 ################################################################################
@@ -119,7 +123,6 @@ sap_ha_pacemaker_cluster_hana_duplicate_primary_timeout: 900
 # PREFER_SITE_TAKEOVER
 sap_ha_pacemaker_cluster_hana_prefer_site_takeover: true
 
-
 # SAP HANA - Resource IDs (names) as convenience parameters.
 sap_ha_pacemaker_cluster_hana_resource_name: >-
   SAPHana_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
@@ -141,6 +144,13 @@ sap_ha_pacemaker_cluster_vip_hana_primary_resource_name: >-
 sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address: ''
 sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name: >-
   vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_readonly
+
+sap_ha_pacemaker_cluster_healthcheck_hana_primary_id: "{{ sap_ha_pacemaker_cluster_hana_sid + 'prim' }}"
+sap_ha_pacemaker_cluster_healthcheck_hana_secondary_id: "{{ sap_ha_pacemaker_cluster_hana_sid + 'ro' }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_id: "{{ sap_ha_pacemaker_cluster_nwas_abap_sid + 'ascs' }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_id: "{{ sap_ha_pacemaker_cluster_nwas_abap_sid + 'ers' }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_id: "{{ sap_ha_pacemaker_cluster_nwas_abap_sid + 'pas' }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_id: "{{ sap_ha_pacemaker_cluster_nwas_abap_sid + 'aas' }}"
 
 
 ################################################################################
