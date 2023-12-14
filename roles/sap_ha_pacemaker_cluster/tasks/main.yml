@@ -214,15 +214,9 @@
         group: root
         owner: root
         mode: '0644'
-      register: __sap_ha_pacemaker_cluster_register_corosync_override
       when:
         - __sap_ha_pacemaker_cluster_platform == 'cloud_gcp_ce_vm'
-
-    - name: "SAP HA Install Pacemaker - Reload systemd services"
-      ansible.builtin.systemd_service:
-        daemon_reload: true
-      when:
-        - __sap_ha_pacemaker_cluster_register_corosync_override.changed
+      notify: "Reload systemd daemon"
 
     - name: "SAP HA Install Pacemaker - Include srHook configuration"
       ansible.builtin.include_tasks:
