@@ -3,7 +3,7 @@
 - name: "Check if server is booted in BIOS or UEFI mode"
   ansible.builtin.stat:
     path: /sys/firmware/efi
-    get_checksum: no
+    get_checksum: false
   register: __sap_hana_preconfigure_register_stat_sys_firmware_efi
   listen: __sap_hana_preconfigure_regenerate_grub2_conf_handler
   when:
@@ -19,6 +19,7 @@
 - name: "Run grub-mkconfig (BIOS mode)"
   ansible.builtin.command: grub2-mkconfig -o /boot/grub2/grub.cfg
   register: __sap_hana_preconfigure_register_grub2_mkconfig_bios_mode
+  changed_when: true
   listen: __sap_hana_preconfigure_regenerate_grub2_conf_handler
   notify: __sap_hana_preconfigure_reboot_handler
   when:
@@ -51,6 +52,7 @@
 - name: "Run grub-mkconfig (UEFI mode)"
   ansible.builtin.command: "grub2-mkconfig -o {{ __sap_hana_preconfigure_uefi_boot_dir }}"
   register: __sap_hana_preconfigure_register_grub2_mkconfig_uefi_mode
+  changed_when: true
   listen: __sap_hana_preconfigure_regenerate_grub2_conf_handler
   notify: __sap_hana_preconfigure_reboot_handler
   when:
@@ -69,6 +71,7 @@
 - name: "Run grubby for enabling TSX"
   ansible.builtin.command: grubby --args="tsx=on" --update-kernel=ALL
   register: __sap_hana_preconfigure_register_grubby_update
+  changed_when: true
   listen: __sap_hana_preconfigure_grubby_update_handler
   notify: __sap_hana_preconfigure_reboot_handler
 
