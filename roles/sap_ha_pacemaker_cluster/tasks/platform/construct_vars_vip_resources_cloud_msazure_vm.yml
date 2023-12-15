@@ -41,8 +41,8 @@
             - name: nc
               value: "{{ __sap_ha_pacemaker_cluster_register_socat_path.stdout }}"
   when:
-    - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_method == 'azure_lb'
-    - vip_list_item.key in __sap_ha_pacemaker_cluster_healthcheck_resource_list
+    - __health_check.id in __sap_ha_pacemaker_cluster_healthcheck_resource_list
+    - __health_check.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - __sap_ha_pacemaker_cluster_register_socat_path.stdout is defined
     - __sap_ha_pacemaker_cluster_register_socat_path.stdout | length > 0
