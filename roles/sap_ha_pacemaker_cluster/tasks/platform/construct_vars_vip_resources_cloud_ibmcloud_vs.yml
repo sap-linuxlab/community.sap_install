@@ -19,7 +19,7 @@
   vars:
     __health_check:
       id: "{{ vip_list_item.key }}"
-      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent + '@' + __haproxy_id }}"
       operations:
         - action: monitor
           attrs:
@@ -27,10 +27,29 @@
               value: 10
             - name: timeout
               value: 20
+
+    __haproxy_id: >-
+      {% if vip_list_item.key == sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name -%}
+        {{ sap_ha_pacemaker_cluster_healthcheck_hana_primary_id }}
+      {%- elif vip_list_item.key == sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name
+        and sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port | length > 4 -%}
+        {{ sap_ha_pacemaker_cluster_healthcheck_hana_secondary_id }}
+      {%- elif vip_list_item.key == sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_resource_name -%}
+        {{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_id }}
+      {%- elif vip_list_item.key == sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_resource_name -%}
+        {{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_id }}
+      {%- elif vip_list_item.key == sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_resource_name -%}
+        {{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_id }}
+      {%- elif vip_list_item.key == sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_resource_name -%}
+        {{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_id }}
+      {%- else -%}
+      {%- endif %}
+
   when:
+    - __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent == 'service:haproxy'
     - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - vip_list_item.key in __sap_ha_pacemaker_cluster_healthcheck_resource_list
-    - __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent == 'service:haproxy'
+    - __haproxy_id | length > 0
 
 # IBM Cloud Load Balancer will own and control the Virtual IP (VIP) routing and failover
 # When Linux Pacemaker failover to secondary occurs, the primary will cease Health Check response to IBM Cloud Load Balancer,
