@@ -39,6 +39,7 @@
 - name: SELinux - Call Reboot handler if necessary
   ansible.builtin.command: /bin/true
   notify: __sap_general_preconfigure_reboot_handler
+  changed_when: false
   when: __sap_general_preconfigure_fact_selinux_mode != sap_general_preconfigure_selinux_state
 
 - name: Set or unset SELinux kernel parameter, RHEL 8 and RHEL 9
@@ -50,7 +51,7 @@
   block:
 
     - name: SELinux - Examine grub entries
-      ansible.builtin.shell: grubby --info=ALL | awk 'BEGIN{a=0;b=0}/^args/{a++}/selinux=0/{b++}END{print a, b}'
+      ansible.builtin.shell: set -o pipefail && grubby --info=ALL | awk 'BEGIN{a=0;b=0}/^args/{a++}/selinux=0/{b++}END{print a, b}'
       register: __sap_general_preconfigure_register_grubby_info_all_selinux
       check_mode: no
       changed_when: false
