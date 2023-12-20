@@ -9,9 +9,14 @@
   ignore_errors: yes
   when: __sap_hana_preconfigure_register_etc_sysctl_netapp_hana_conf_assert.stat.exists
 
+# needed because line_item.value is not evaluated correctly in the that: statement
+- name: 3024346 - Set fact for line_item.value
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_sysctl_value_3024346: "{{ line_item.value }}"
+
 - name: 3024346 - Assert that {{ line_item.name }} is set correctly in {{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}
   ansible.builtin.assert:
-    that: "__sap_hana_preconfigure_register_sysctl_netapp_hana_conf_network_parameter_assert.stdout == '{{ line_item.value }}'"
+    that: __sap_hana_preconfigure_register_sysctl_netapp_hana_conf_network_parameter_assert.stdout == __sap_hana_preconfigure_sysctl_value_3024346
     fail_msg: "FAIL: The value of '{{ line_item.name }}' in '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}' is
                '{{ __sap_hana_preconfigure_register_sysctl_netapp_hana_conf_network_parameter_assert.stdout }}' but the expected value is 'line_item.value'!"
     success_msg: "PASS: The value of '{{ line_item.name }}' in '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}' is
@@ -27,7 +32,7 @@
 
 - name: 3024346 - Assert that {{ line_item.name }} is set correctly as per sysctl
   ansible.builtin.assert:
-    that: "__sap_hana_preconfigure_register_sysctl_netapp_hana_network_parameter_assert.stdout == '{{ line_item.value }}'"
+    that: __sap_hana_preconfigure_register_sysctl_netapp_hana_network_parameter_assert.stdout == __sap_hana_preconfigure_sysctl_value_3024346
     fail_msg: "FAIL: The current value of '{{ line_item.name }}' as per sysctl is
                '{{ __sap_hana_preconfigure_register_sysctl_netapp_hana_network_parameter_assert.stdout }}' but the expected value is '{{ line_item.value }}'!"
     success_msg: "PASS: The current value of '{{ line_item.name }}' as per sysctl is
