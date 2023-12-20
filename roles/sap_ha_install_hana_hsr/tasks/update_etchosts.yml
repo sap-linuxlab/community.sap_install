@@ -1,7 +1,9 @@
 ---
 - name: "SAP HSR - Check /etc/hosts for conflicting entries"
   ansible.builtin.shell: |
-    awk '(/{{ "( |\t)" + item.node_name + "($| |\t)" }}/ && !/^{{ item.node_ip + "( |\t)" }}/) || (/^{{ item.node_ip + "( |\t)" }}/ && !/{{ "( |\t)" + item.node_name + "($| |\t)" }}/)' /etc/hosts
+    awk '(/{{ "( |\t)" + item.node_name + "($| |\t)" }}/ && !/^{{ item.node_ip + "( |\t)" }}/) \
+    || (/^{{ item.node_ip + "( |\t)" }}/ \
+    && !/{{ "( |\t)" + item.node_name + "($| |\t)" }}/)' /etc/hosts
   register: etchosts_conflict
   changed_when: false
   failed_when: etchosts_conflict.stdout != ''
@@ -17,7 +19,7 @@
     create: true
     mode: '0644'
     state: present
-    backup: yes
+    backup: true
     line: "{{ item.node_ip }}\t{{ item.node_name.split('.')[0] }}.{{ item.node_name.split('.')[1:] | join('.') or sap_ha_install_hana_hsr_fqdn }}\t{{ item.node_name.split('.')[0] }}"
     regexp: (?i)^\s*{{ item.node_ip }}\s+{{ item.node_name.split('.')[0] }}
   loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
