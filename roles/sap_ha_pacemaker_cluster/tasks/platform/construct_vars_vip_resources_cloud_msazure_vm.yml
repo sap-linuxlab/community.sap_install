@@ -20,11 +20,11 @@
 
 # 2) resource type "azure_lb" (requires 'socat')
 
-- name: "SAP HA Prepare Pacemaker - MS Azure - Verify socat binary path"
-  ansible.builtin.shell: |
-    which socat
-  register: __sap_ha_pacemaker_cluster_register_socat_path
-  changed_when: false
+#- name: "SAP HA Prepare Pacemaker - MS Azure - Verify socat binary path"
+#  ansible.builtin.shell: |
+#    which socat
+#  register: __sap_ha_pacemaker_cluster_register_socat_path
+#  changed_when: false
 
 # Hint: the 'vip_list_item's will only be the ones matching the cluster host type.
 - name: "SAP HA Prepare Pacemaker - MS Azure - Add resource: Azure Load Balancer (NLB L-4) for VIP routing: {{ vip_list_item.key }} (azure_lb)"
@@ -38,11 +38,11 @@
         - attrs:
             - name: port
               value: "{{ vip_list_item.value }}"
-            - name: nc
-              value: "{{ __sap_ha_pacemaker_cluster_register_socat_path.stdout }}"
+#            - name: nc
+#              value: "{{ __sap_ha_pacemaker_cluster_register_socat_path.stdout }}"
   when:
     - sap_ha_pacemaker_cluster_vip_method == 'azure_lb'
     - __health_check.id in __sap_ha_pacemaker_cluster_healthcheck_resource_list
     - __health_check.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
-    - __sap_ha_pacemaker_cluster_register_socat_path.stdout is defined
-    - __sap_ha_pacemaker_cluster_register_socat_path.stdout | length > 0
+#    - __sap_ha_pacemaker_cluster_register_socat_path.stdout is defined
+#    - __sap_ha_pacemaker_cluster_register_socat_path.stdout | length > 0
