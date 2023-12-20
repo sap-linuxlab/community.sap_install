@@ -19,7 +19,7 @@
 
 - name: Configure - Get initial status of KSM
   ansible.builtin.command: cat /sys/kernel/mm/ksm/run
-  check_mode: no
+  check_mode: false
   register: __sap_hana_preconfigure_register_ksm_status_before
   ignore_errors: true
   changed_when: false
@@ -27,6 +27,7 @@
 - name: Disable KSM on the running system
   ansible.builtin.shell: echo 0 > /sys/kernel/mm/ksm/run
   register: __sap_hana_preconfigure_register_disable_ksm
+  changed_when: true
   when: __sap_hana_preconfigure_register_ksm_status_before.stdout != '0'
 
 - name: Configure - Get status of KSM

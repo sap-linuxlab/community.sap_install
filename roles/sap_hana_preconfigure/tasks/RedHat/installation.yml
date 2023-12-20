@@ -55,6 +55,7 @@
 
 - name: Set the minor RHEL release
   ansible.builtin.command: subscription-manager release --set="{{ ansible_distribution_version }}"
+  changed_when: true
   when:
     - sap_hana_preconfigure_set_minor_release
     - __sap_hana_preconfigure_register_subscription_manager_release.stdout != ansible_distribution_version
@@ -94,6 +95,7 @@
 
 - name: Accept the license for the IBM Service and Productivity Tools
   ansible.builtin.shell: LESS=+q /opt/ibm/lop/configure <<<'y'
+  changed_when: true
   when:
     - ansible_architecture == "ppc64le"
     - sap_hana_preconfigure_install_ibm_power_tools | d(true)
@@ -131,7 +133,8 @@
     - __sap_hana_preconfigure_min_pkgs | d([])
   block:
 
-    - name: Create a list of minimum required package versions to be installed
+# Reason for noqa: We can safely fail at the last command in the pipeline.
+    - name: Create a list of minimum required package versions to be installed # noqa risky-shell-pipe
 # How does it work?
 # 1 - Print the required package name and version with a prefix "1" followed by a space.
 # 2 - In the same output sequence, list all installed versions of this package with a prefix "2" followed by a space.
@@ -237,9 +240,11 @@
 - name: Call reboot handler if necessary as per role sap_general_preconfigure
   ansible.builtin.command: /bin/true
   notify: __sap_hana_preconfigure_reboot_handler
+  changed_when: true
   when: sap_general_preconfigure_fact_reboot_required | d(false)
 
 - name: Call reboot handler if necessary as per this role
   ansible.builtin.command: /bin/true
   notify: __sap_hana_preconfigure_reboot_handler
+  changed_when: true
   when: __sap_hana_preconfigure_register_needs_restarting is failed
