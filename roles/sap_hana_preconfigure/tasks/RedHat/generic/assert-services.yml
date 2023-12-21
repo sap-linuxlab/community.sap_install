@@ -9,25 +9,30 @@
       ansible.builtin.debug:
         msg: "INFO: Package '{{ __sap_hana_preconfigure_packages_and_services[line_item].pkg }}' is installed."
 
+    - name: Define a new variable for the assertion of the service status
+      ansible.builtin.set_fact:
+        __sap_hana_preconfigure_service_item_status: ansible_facts.services['{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}.service'].status
+
     - name: Assert that service {{ __sap_hana_preconfigure_packages_and_services[line_item].svc }} is
               {{ __sap_hana_preconfigure_packages_and_services[line_item].svc_status }}
       ansible.builtin.assert:
-        that: ansible_facts.services['{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}.service'].status ==
-              __sap_hana_preconfigure_packages_and_services[line_item].svc_status
+        that: __sap_hana_preconfigure_service_item_status == __sap_hana_preconfigure_packages_and_services[line_item].svc_status
         fail_msg: "FAIL: Service '{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}' is not
                      {{ __sap_hana_preconfigure_packages_and_services[line_item].svc_status }}!"
         success_msg: "PASS: Service '{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}' is
                        {{ __sap_hana_preconfigure_packages_and_services[line_item].svc_status }}."
       ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
+    - name: Define a new variable for the assertion of the service state
+      ansible.builtin.set_fact:
+        __sap_hana_preconfigure_service_item_state: ansible_facts.services['{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}.service'].state
+
     - name: Assert that service {{ __sap_hana_preconfigure_packages_and_services[line_item].svc }} is
               {{ __sap_hana_preconfigure_packages_and_services[line_item].svc_state }} or
               {{ __sap_hana_preconfigure_packages_and_services[line_item].systemd_state }}
       ansible.builtin.assert:
-        that: (ansible_facts.services['{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}.service'].state ==
-               __sap_hana_preconfigure_packages_and_services[line_item].svc_state) or
-              (ansible_facts.services['{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}.service'].state ==
-               __sap_hana_preconfigure_packages_and_services[line_item].systemd_state)
+        that: (__sap_hana_preconfigure_service_item_state == __sap_hana_preconfigure_packages_and_services[line_item].svc_state) or
+              (__sap_hana_preconfigure_service_item_state == __sap_hana_preconfigure_packages_and_services[line_item].systemd_state)
         fail_msg: "FAIL: Service '{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}' is not
                      {{ __sap_hana_preconfigure_packages_and_services[line_item].svc_state }}!"
         success_msg: "PASS: Service '{{ __sap_hana_preconfigure_packages_and_services[line_item].svc }}' is
