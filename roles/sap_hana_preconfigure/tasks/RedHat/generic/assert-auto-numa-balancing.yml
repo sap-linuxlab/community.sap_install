@@ -4,7 +4,14 @@
 - name: Assert that service numad is disabled, and inactive or stopped, if tuned is not to be used
   ansible.builtin.include_tasks: assert-services.yml
   vars:
-    line_item: numad
+    __sap_hana_preconfigure_service_status: "{{ ansible_facts.services['numad.service'].status }}"
+    __sap_hana_preconfigure_service_state: "{{ ansible_facts.services['numad.service'].state }}"
+    __sap_hana_preconfigure_packages_and_services_pkg: "{{ __sap_hana_preconfigure_packages_and_services['numad']['pkg'] }}"
+    __sap_hana_preconfigure_packages_and_services_svc: "{{ __sap_hana_preconfigure_packages_and_services['numad']['svc'] }}"
+    __sap_hana_preconfigure_packages_and_services_svc_status: "{{ __sap_hana_preconfigure_packages_and_services['numad']['svc_status'] }}"
+    __sap_hana_preconfigure_packages_and_services_svc_state: "{{ __sap_hana_preconfigure_packages_and_services['numad']['svc_state'] }}"
+    __sap_hana_preconfigure_packages_and_services_systemd_enabled: "{{ __sap_hana_preconfigure_packages_and_services['numad']['systemd_enabled'] }}"
+    __sap_hana_preconfigure_packages_and_services_systemd_state: "{{ __sap_hana_preconfigure_packages_and_services['numad']['systemd_state'] }}"
 
   when: not sap_hana_preconfigure_use_tuned or
         sap_hana_preconfigure_assert_all_config|d(false)
