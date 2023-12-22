@@ -5,6 +5,15 @@ community.sap_install Release Notes
 .. contents:: Topics
 
 
+v1.3.3
+======
+
+Release Summary
+---------------
+
+| Release Date: 2023-12-22
+collection: Make the preconfigure and sap_hana_install roles compatible with CVE-2023-5764
+
 v1.3.2
 ======
 
