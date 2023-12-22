@@ -4,12 +4,23 @@
   ansible.builtin.setup:
     gather_subset: distribution_version
 
-- name: Ensure that the system is running a RHEL release which is supported for SAP HANA
+- name: Report if the system is running a RHEL release which is supported for SAP HANA
+  ansible.builtin.debug:
+    msg:
+      - "WARN: The RHEL release '{{ ansible_distribution_version }}' may not (yet) be supported for SAP HANA. Please check SAP note 2235581!"
+      - "      If necessary, adapt role parameter `sap_hana_preconfigure_supported_rhel_minor_releases` accordingly."
+  when:
+    - not sap_hana_preconfigure_min_rhel_release_check
+    - ansible_distribution_version not in sap_hana_preconfigure_supported_rhel_minor_releases
+
+- name: Fail if the system is running a RHEL release which may not be supported for SAP HANA
   ansible.builtin.assert:
     that: ansible_distribution_version in sap_hana_preconfigure_supported_rhel_minor_releases
-    fail_msg: "The RHEL release {{ ansible_distribution_version }} is not supported for SAP HANA!"
-    success_msg: "The RHEL release {{ ansible_distribution_version }} is supported for SAP HANA."
-  ignore_errors: "{{ not sap_hana_preconfigure_min_rhel_release_check }}"
+    fail_msg:
+      - "The RHEL release '{{ ansible_distribution_version }}' may not (yet) be supported for SAP HANA. Please check SAP note 2235581!"
+      - "If necessary, adapt role parameter `sap_hana_preconfigure_supported_rhel_minor_releases` accordingly."
+    success_msg: "The RHEL release '{{ ansible_distribution_version }}' is supported for SAP HANA."
+  when: sap_hana_preconfigure_min_rhel_release_check
 
 - name: Perform steps for enabling repos for SAP HANA
   when: sap_hana_preconfigure_enable_sap_hana_repos
@@ -44,6 +55,7 @@
 
 - name: Set the minor RHEL release
   ansible.builtin.command: subscription-manager release --set="{{ ansible_distribution_version }}"
+  changed_when: true
   when:
     - sap_hana_preconfigure_set_minor_release
     - __sap_hana_preconfigure_register_subscription_manager_release.stdout != ansible_distribution_version
@@ -83,6 +95,7 @@
 
 - name: Accept the license for the IBM Service and Productivity Tools
   ansible.builtin.shell: LESS=+q /opt/ibm/lop/configure <<<'y'
+  changed_when: true
   when:
     - ansible_architecture == "ppc64le"
     - sap_hana_preconfigure_install_ibm_power_tools | d(true)
@@ -120,7 +133,8 @@
     - __sap_hana_preconfigure_min_pkgs | d([])
   block:
 
-    - name: Create a list of minimum required package versions to be installed
+# Reason for noqa: We can safely fail at the last command in the pipeline.
+    - name: Create a list of minimum required package versions to be installed # noqa risky-shell-pipe
 # How does it work?
 # 1 - Print the required package name and version with a prefix "1" followed by a space.
 # 2 - In the same output sequence, list all installed versions of this package with a prefix "2" followed by a space.
@@ -226,9 +240,11 @@
 - name: Call reboot handler if necessary as per role sap_general_preconfigure
   ansible.builtin.command: /bin/true
   notify: __sap_hana_preconfigure_reboot_handler
+  changed_when: true
   when: sap_general_preconfigure_fact_reboot_required | d(false)
 
 - name: Call reboot handler if necessary as per this role
   ansible.builtin.command: /bin/true
   notify: __sap_hana_preconfigure_reboot_handler
+  changed_when: true
   when: __sap_hana_preconfigure_register_needs_restarting is failed

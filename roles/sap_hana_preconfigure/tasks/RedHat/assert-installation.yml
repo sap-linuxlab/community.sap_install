@@ -1,9 +1,11 @@
 ---
 
-- name: Assert that the RHEL release is supported for SAP HANA
+- name: Assert that the system is running a RHEL release which is supported for SAP HANA
   ansible.builtin.assert:
     that: ansible_distribution_version in "{{ sap_hana_preconfigure_supported_rhel_minor_releases }}"
-    fail_msg: "FAIL: The RHEL release {{ ansible_distribution_version }} is not supported for SAP HANA!"
+    fail_msg:
+      - "FAIL: The RHEL release '{{ ansible_distribution_version }}' may not (yet) be supported for SAP HANA. Please check SAP note 2235581!"
+      - "NOTE: If necessary, adapt role parameter `sap_hana_preconfigure_supported_rhel_minor_releases` accordingly."
     success_msg: "PASS: The RHEL release {{ ansible_distribution_version }} is supported for SAP HANA."
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
   when: sap_hana_preconfigure_min_rhel_release_check
@@ -11,7 +13,9 @@
 - name: Report if the RHEL release is supported for SAP HANA
   ansible.builtin.assert:
     that: ansible_distribution_version in "{{ sap_hana_preconfigure_supported_rhel_minor_releases }}"
-    fail_msg: "WARN: The RHEL release {{ ansible_distribution_version }} is not supported for SAP HANA!"
+    fail_msg:
+      - "WARN: The RHEL release '{{ ansible_distribution_version }}' may not (yet) be supported for SAP HANA. Please check SAP note 2235581!"
+      - "NOTE: If necessary, adapt role parameter `sap_hana_preconfigure_supported_rhel_minor_releases` accordingly."
     success_msg: "INFO: The RHEL release {{ ansible_distribution_version }} is supported for SAP HANA."
   ignore_errors: yes
   when: not sap_hana_preconfigure_min_rhel_release_check
@@ -108,7 +112,8 @@
     - sap_hana_preconfigure_assert_ignore_errors | d(false)
   block:
 
-    - name: Assert - Create a list of minimum required package versions to be installed
+# Reason for noqa: We can safely fail at the last command in the pipeline.
+    - name: Assert - Create a list of minimum required package versions to be installed # noqa risky-shell-pipe
 # How does it work?
 # 1 - Print the required package name and version with a prefix "1" followed by a space.
 # 2 - In the same output sequence, list all installed versions of this package with a prefix "2" followed by a space.

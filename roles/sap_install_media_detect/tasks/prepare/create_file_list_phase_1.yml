@@ -35,6 +35,11 @@
     loop_var: line_item
   when: line_item is search("SAPCAR")
 
+- name: SAP Install Media Detect - Prepare - Assert the presence of SAPCAR
+  ansible.builtin.assert:
+    that: __sap_install_media_detect_fact_sapcar_path | d('') | length > 0
+    fail_msg: "There is no file with file name pattern '*SAPCAR*' in '{{ sap_install_media_detect_source_directory }}'."
+
 - name: SAP Install Media Detect - Prepare - Ensure sapcar is executable
   ansible.builtin.file:
     path: "{{ __sap_install_media_detect_fact_sapcar_path }}"

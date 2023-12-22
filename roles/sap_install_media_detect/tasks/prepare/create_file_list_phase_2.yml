@@ -89,6 +89,15 @@
     (sap_install_media_detect_export == 'sapecc' and item.stdout.split(';')[1] == 'sap_export_ecc') or
     (sap_install_media_detect_export == 'sapecc_ides' and item.stdout.split(';')[1] == 'sap_export_ecc_ides')
 
+- name: SAP Install Media Detect - Prepare - Set fact for subsets of the sapfile results
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_target_directories: "{{ __sap_install_media_detect_fact_files_sapfile_results | map(attribute='target_dir') | unique | reject('equalto', 'auto') }}"
+    __sap_install_media_detect_fact_extraction_directories: "{{ __sap_install_media_detect_fact_files_sapfile_results | map(attribute='extraction_dir') | unique | reject('equalto', 'none') }}"
+    __sap_install_media_detect_fact_files_sapfile_results_extract_zip: "{{ __sap_install_media_detect_fact_files_sapfile_results | selectattr('archive_type', 'search', 'zip') | selectattr('extract_archive', 'search', 'y') }}"
+    __sap_install_media_detect_fact_files_sapfile_results_extract_rarexe: "{{ __sap_install_media_detect_fact_files_sapfile_results | selectattr('archive_type', 'search', 'rarexe') | selectattr('extract_archive', 'search', 'y') }}"
+    __sap_install_media_detect_fact_files_sapfile_results_extract_sapcar_hana: "{{ __sap_install_media_detect_fact_files_sapfile_results | selectattr('archive_type', 'search', 'sapcar') | selectattr('extract_archive', 'search', 'y') | selectattr('sap_file_type', 'search', 'saphana') }}"
+    __sap_install_media_detect_fact_files_sapfile_results_extract_sapcar_nonhana: "{{ __sap_install_media_detect_fact_files_sapfile_results | selectattr('archive_type', 'search', 'sapcar') | selectattr('extract_archive', 'search', 'y') | rejectattr('sap_file_type', 'search', 'saphana') }}"
+
 - name: SAP Install Media Detect - Prepare - Asserts
   when:
     - sap_install_media_detect_assert_after_sapfile | d(true)

@@ -1,0 +1,81 @@
+---
+- name: Include configure worker
+  ansible.builtin.include_tasks: configure-worker-node.yml
+  with_items: "{{ sap_hypervisor_node_preconfigure_cluster_config.workers }}"
+  loop_control:
+    loop_var: __sap_hypervisor_node_preconfigure_register_worker
+    index_var: __sap_hypervisor_node_preconfigure_register_worker_nr
+
+- name: Enable CPU Manager by patching MCP worker
+  kubernetes.core.k8s:
+    state: patched
+    definition:
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfigPool
+      metadata:
+        name: worker
+        labels:
+          custom-kubelet: cpumanager-enabled
+
+- name: Delete kubletconfig for cpumanager
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: KubeletConfig
+      metadata:
+        name: cpumanager-enabled
+      spec:
+        machineConfigPoolSelector:
+          matchLabels:
+            custom-kubelet: cpumanager-enabled
+        kubeletConfig:
+          cpuManagerPolicy: static
+          cpuManagerReconcilePeriod: 5s
+
+- name: Create kubletconfig for cpumanager worker with CPUs reserved for kubernetes
+  when: sap_hypervisor_node_preconfigure_cluster_config.worker_kubernetes_reserved_cpus is defined
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: KubeletConfig
+      metadata:
+        name: cpumanager-enabled
+      spec:
+        machineConfigPoolSelector:
+          matchLabels:
+            custom-kubelet: cpumanager-enabled
+        kubeletConfig:
+          cpuManagerPolicy: static
+          cpuManagerReconcilePeriod: 5s
+          reservedSystemCPUs: "{{ sap_hypervisor_node_preconfigure_cluster_config.worker_kubernetes_reserved_cpus }}"
+
+- name: Create kubletconfig for cpumanager worker
+  when: sap_hypervisor_node_preconfigure_cluster_config.worker_kubernetes_reserved_cpus is not defined
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: KubeletConfig
+      metadata:
+        name: cpumanager-enabled
+        machineconfiguration.openshift.io/role: worker
+      spec:
+        machineConfigPoolSelector:
+          matchLabels:
+            custom-kubelet: cpumanager-enabled
+        kubeletConfig:
+          cpuManagerPolicy: static
+          cpuManagerReconcilePeriod: 5s
+
+- name: Render template
+  ansible.builtin.template:
+    src: 99-kargs-worker.yml.j2
+    dest: "{{ __sap_hypervisor_node_preconfigure_register_tmpdir.path }}/99-kargs-worker.yml"
+    mode: "0644"
+
+- name: Enable hugepages
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ __sap_hypervisor_node_preconfigure_register_tmpdir.path }}/99-kargs-worker.yml"
