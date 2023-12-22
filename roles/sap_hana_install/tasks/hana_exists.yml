@@ -140,9 +140,14 @@
       changed_when: no
       failed_when: no
 
+    - name: SAP HANA Checks - Define new variable for the assertion
+      ansible.builtin.set_fact:
+        __sap_hana_install_existing_sapsys_gid: "{{ __sap_hana_install_register_getent_group_sapsys.stdout.split(':')[2] }}"
+      when: __sap_hana_install_register_getent_group_sapsys.rc == 0
+
     - name: SAP HANA Checks - In case there is a group 'sapsys', assert that its group ID is identical to 'sap_hana_install_groupid'
       ansible.builtin.assert:
-        that: "{{ __sap_hana_install_register_getent_group_sapsys.stdout.split(':')[2] }} == {{ sap_hana_install_groupid }}"
+        that: (__sap_hana_install_existing_sapsys_gid | int) == (sap_hana_install_groupid | int)
         success_msg: "PASS: The group ID of 'sapsys' is identical to the value of variable
                       sap_hana_install_groupid, which is '{{ sap_hana_install_groupid }}'"
         fail_msg: "FAIL: Group 'sapsys' exists but with a different group ID than '{{ sap_hana_install_groupid }}'
