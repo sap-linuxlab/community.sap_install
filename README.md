@@ -30,6 +30,27 @@ This Ansible Collection executes various SAP Software installations for differen
   - Install Linux Pacemaker, configure Pacemaker Fencing Agents and Pacemaker Resource Agents
   - Set HA/DR with distributed SAP System installations (i.e. ERS)
 
+### Note
+
+Starting with `ansible-core` versions 2.16.1, 2.15.8, and 2.14.12, templating operations inside the `that` statement of `assert` tasks
+are no longer allowed.
+
+A typical error message is:
+```
+fatal: [host01]: FAILED! =>
+  msg: 'The conditional check ''13 <= 128'' failed. The error was: Conditional is marked as unsafe, and cannot be evaluated.'
+```
+
+This version of the collection ensures the compatibility with the above mentioned versions of `ansible-core` for the following roles:
+- sap_general_preconfigure
+- sap_netweaver_preconfigure
+- sap_hana_preconfigure
+- sap_hana_install
+
+When running the preconfigure roles with the above mentioned versions of `ansible-core` and with the parameters
+`sap_general_preconfigure_assert`, `sap_netweaver_preconfigure_assert`, or `sap_hana_preconfigure_assert`, the roles will abort
+in the first `assert` task which contains a templating operation.
+
 ## Contents
 
 An Ansible Playbook can call either an Ansible Role, or the individual Ansible Modules:
