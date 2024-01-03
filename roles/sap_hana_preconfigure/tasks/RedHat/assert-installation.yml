@@ -2,7 +2,7 @@
 
 - name: Assert that the system is running a RHEL release which is supported for SAP HANA
   ansible.builtin.assert:
-    that: ansible_distribution_version in "{{ sap_hana_preconfigure_supported_rhel_minor_releases }}"
+    that: ansible_distribution_version in sap_hana_preconfigure_supported_rhel_minor_releases
     fail_msg:
       - "FAIL: The RHEL release '{{ ansible_distribution_version }}' may not (yet) be supported for SAP HANA. Please check SAP note 2235581!"
       - "NOTE: If necessary, adapt role parameter `sap_hana_preconfigure_supported_rhel_minor_releases` accordingly."
@@ -12,7 +12,7 @@
 
 - name: Report if the RHEL release is supported for SAP HANA
   ansible.builtin.assert:
-    that: ansible_distribution_version in "{{ sap_hana_preconfigure_supported_rhel_minor_releases }}"
+    that: ansible_distribution_version in sap_hana_preconfigure_supported_rhel_minor_releases
     fail_msg:
       - "WARN: The RHEL release '{{ ansible_distribution_version }}' may not (yet) be supported for SAP HANA. Please check SAP note 2235581!"
       - "NOTE: If necessary, adapt role parameter `sap_hana_preconfigure_supported_rhel_minor_releases` accordingly."
@@ -33,7 +33,7 @@
 
 - name: Assert that all required repos are enabled
   ansible.builtin.assert:
-    that: "'{{ line_item }}' in __sap_hana_preconfigure_register_enabled_repos_assert.stdout_lines"
+    that: line_item in __sap_hana_preconfigure_register_enabled_repos_assert.stdout_lines
     fail_msg: "FAIL: Repository '{{ line_item }}' is not enabled!"
     success_msg: "PASS: Repository '{{ line_item }}' is enabled."
   with_items:
@@ -54,7 +54,7 @@
 
 - name: Assert that the RHEL release is locked correctly
   ansible.builtin.assert:
-    that: "__sap_hana_preconfigure_register_subscription_manager_release_assert.stdout == '{{ ansible_distribution_version }}'"
+    that: __sap_hana_preconfigure_register_subscription_manager_release_assert.stdout == ansible_distribution_version
     fail_msg: "FAIL: The RHEL release lock status is '{{ __sap_hana_preconfigure_register_subscription_manager_release_assert.stdout }}'
                but the expected value is '{{ ansible_distribution_version }}'!"
     success_msg: "PASS: The RHEL release is correctly locked to '{{ ansible_distribution_version }}'."
@@ -69,7 +69,7 @@
 
 - name: Assert that all required packages are installed
   ansible.builtin.assert:
-    that: "'{{ line_item }}' in ansible_facts.packages"
+    that: line_item in ansible_facts.packages
     fail_msg: "FAIL: Package '{{ line_item }}' is not installed!"
     success_msg: "PASS: Package '{{ line_item }}' is installed."
   with_items:
@@ -95,7 +95,7 @@
 
 - name: Assert that all required IBM packages are installed
   ansible.builtin.assert:
-    that: "'{{ line_item }}' in __sap_hana_preconfigure_register_required_ppc64le_packages_assert.stdout_lines"
+    that: line_item in __sap_hana_preconfigure_register_required_ppc64le_packages_assert.stdout_lines
     fail_msg: "FAIL: Package '{{ line_item }}' is not installed!"
     success_msg: "PASS: Package '{{ line_item }}' is installed."
   with_items:
