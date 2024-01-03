@@ -6,7 +6,7 @@ to create a test file in the host file format, like the following:
 ```[bash]
 $ cat ./test.hostsfile
 127.0.0.1 localhost host1 localhost.localdomain host1.abc.de
-1.2.3.5 thishost.to.be.deleteted
+1.2.3.5 thishost.to.be.deleted
 1.2.3.6 host2
 ```
 

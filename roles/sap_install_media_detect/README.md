@@ -3,7 +3,7 @@
 Ansible Role for detection and extraction of SAP Software installation media
 
 This role is used to prepare for installation of SAP Software, by searching a given directory for SAP installation media (e.g. SAR files),
-moving files to subdirectories (i.e. `/sap_hana` and `/sap_swpm`) with the directory/file ownership permissons, then extracting the detected files.
+moving files to subdirectories (i.e. `/sap_hana` and `/sap_swpm`) with the directory/file ownership permissions, then extracting the detected files.
 
 Detection of installation media is available for SAP HANA and the various key installation files when using SAP SWPM to install
 SAP Business Applications based upon SAP NetWeaver (e.g. SAP S/4HANA, SAP BW/4HANA, SAP ECC, SAP BW, SAP WebDispatcher etc).

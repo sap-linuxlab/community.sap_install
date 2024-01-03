@@ -104,7 +104,7 @@ Describes the filesystems to be configured.<br>
 - **nfs_server**<br>
     When defining an NFS filesystem, this is the address of the NFS server.<br>The address must contain the root path, in which the mount directories exist or will be created.<br>For example, `192.168.1.100:/`.
 - **swap_path**<br>
-    The path to the swap file.<br>When this option is defined for a swap filesystem definition, it will create a swap file on an existing filesytem.
+    The path to the swap file.<br>When this option is defined for a swap filesystem definition, it will create a swap file on an existing filesystem.
 
 Example:
 

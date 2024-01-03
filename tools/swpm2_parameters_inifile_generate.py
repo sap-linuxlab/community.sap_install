@@ -117,7 +117,7 @@ def control_xml_to_inifile_params(filepath):
     #
     # All parameters are commented-out, each hash # before the parameter is removed to activate the parameter.
     # When running SWPM in Unattended Mode, the activated parameters will create a new SWPM file in the sapinst directory.
-    # If any parameter is marked as 'encode', the plaintext value will be coverted to DES hash for this parameter
+    # If any parameter is marked as 'encode', the plaintext value will be converted to DES hash for this parameter
     # in the new SWPM file (in the sapinst directory).
     #
     # An inifile.params is otherwise obtained after running SWPM as GUI or Unattended install,
@@ -151,7 +151,7 @@ def control_xml_to_inifile_params(filepath):
             if component_parameter_key_inifile_name is not None:
                 inifile_output.write("\n# %s" % (component_parameter_contents_doclong_text))
                 if component_parameter_key_encode == "true":
-                    inifile_output.write("\n# Encoded parameter. Plaintext values will be coverted to DES hash")
+                    inifile_output.write("\n# Encoded parameter. Plaintext values will be converted to DES hash")
                 inifile_output.write("\n# %s = %s\n" % (component_parameter_key_inifile_name, component_parameter_key_defval))
 
     inifile_output.close()
