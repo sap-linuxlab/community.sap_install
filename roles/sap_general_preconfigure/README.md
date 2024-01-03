@@ -256,7 +256,7 @@ List of SAP directories to be created.<br>
 - _Type:_ `bool`
 - _Default:_ `true`
 
-Set to `false` if you do not want to modify the SELinux labels for the SAP directores set<br>
+Set to `false` if you do not want to modify the SELinux labels for the SAP directories set<br>
 in variable `sap_general_preconfigure_sap_directories`.<br>
 
 ### sap_general_preconfigure_size_of_tmpfs_gb

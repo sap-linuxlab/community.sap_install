@@ -58,7 +58,7 @@ sap_hypervisor_node_preconfigure_ignore_minimal_memory_check: True|False
 # sap_hypervisor_node_preconfigure_cluster_config.worker_localstorage_device: /dev/sdb 
 sap_hypervisor_node_preconfigure_install_hpp: True|False
 ```
-The following variables are describing the nodes and networks to be used. It can make sense to have them in a seperate file, e.g. see `playbooks/vars/sample-variables-sap-hypervisor-node-preconfigure-rh_ocp_virt.yml` for an example. 
+The following variables are describing the nodes and networks to be used. It can make sense to have them in a separate file, e.g. see `playbooks/vars/sample-variables-sap-hypervisor-node-preconfigure-rh_ocp_virt.yml` for an example. 
 ```
 sap_hypervisor_node_preconfigure_cluster_config:
   # URL under which the OCP cluster is reachable

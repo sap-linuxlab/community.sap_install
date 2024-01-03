@@ -84,7 +84,7 @@ In addition, the following network ports must be available:
 
 | **SAP Technical Application and Component** | **Port** |
 | --- | --- |
-| **_SAP HANA Sytem Replication_** | |
+| **_SAP HANA System Replication_** | |
 | hdbnameserver<br/><sub> used for log and data shipping from a primary site to a secondary site.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_no>`01 |
 | hdbnameserver<br/><sub> unencrypted metadata communication between sites.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_no>`02 |
 | hdbnameserver<br/><sub> used for encrypted metadata communication between sites.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_no>`06 |
@@ -95,7 +95,7 @@ In addition, the following network ports must be available:
 | **_Linux Pacemaker_** | |
 | pcsd<br/><sub> cluster nodes requirement for node-to-node communication</sub> | 2224 (TCP)|
 | pacemaker<br/><sub> cluster nodes requirement for Pacemaker Remote service daemon</sub> | 3121 (TCP) |
-| corosync<br/><sub> cluster nodes requirement for node-to-node communcation</sub> | 5404-5412 (UDP) |
+| corosync<br/><sub> cluster nodes requirement for node-to-node communication</sub> | 5404-5412 (UDP) |
 
 ## Execution Flow
 

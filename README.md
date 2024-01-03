@@ -110,7 +110,7 @@ The logic has been separated to support a flexible execution of the different st
 
 ## Execution examples
 
-There are various methods to execute the Ansible Collection, dependant on the use case. For more information, see [Execution examples with code samples](./docs/getting_started) and the summary below:
+There are various methods to execute the Ansible Collection, dependent on the use case. For more information, see [Execution examples with code samples](./docs/getting_started) and the summary below:
 
 | Execution Scenario | Use Case | Target |
 | ---- | ---- | ---- |

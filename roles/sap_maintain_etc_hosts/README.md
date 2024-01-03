@@ -11,7 +11,7 @@ Requirements
 
 ## Role Input Parameters
 
-This role requires the dictonary `sap_maintain_etc_hosts_list` which contains the parameters for the hostfile. The default value is the definition of the cluster nodes like in the role `sap_ha_pacemaker_cluster`. If the value `sap_hana_cluster_nodes`or `sap_ha_pacemaker_cluster_cluster_nodes` is not defined the role creates a default value from `ansible_facts`.
+This role requires the dictionary `sap_maintain_etc_hosts_list` which contains the parameters for the hostfile. The default value is the definition of the cluster nodes like in the role `sap_ha_pacemaker_cluster`. If the value `sap_hana_cluster_nodes`or `sap_ha_pacemaker_cluster_cluster_nodes` is not defined the role creates a default value from `ansible_facts`.
 
 Caution: If you want to use this role to remove entries from /etc/hosts it is a good practise to do this before adding entries. The adding/removal is done in the order the entries are listed.
 

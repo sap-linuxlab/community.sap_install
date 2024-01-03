@@ -48,7 +48,7 @@ It is also important that your disks are setup according to the [SAP storage req
 |sap_hostagent_rpm_remote_path|Local directory path where RPM file is located|yes, unless `sap_hostagent_rpm_local_path` is used|
 |sap_hostagent_rpm_file_name|Local RPM file name|yes|
 |sap_hostagent_agent_tmp_directory|Temporary directory path that will be created on the target host|no (defaulted in the role)|
-|sap_hostagent_clean_tmp_directory|Boolean variable to indicate if the temporary directory will be removed or not afer the installation| no (defaulted in the role)|
+|sap_hostagent_clean_tmp_directory|Boolean variable to indicate if the temporary directory will be removed or not after the installation| no (defaulted in the role)|
 
 ### SAR based installations (content on ansible control node)
 
@@ -60,7 +60,7 @@ It is also important that your disks are setup according to the [SAP storage req
 |sap_hostagent_sapcar_local_path|Local directory path where SAPCAR tool file is located|yes|
 |sap_hostagent_sapcar_file_name|Local SAPCAR tool file name|yes|
 |sap_hostagent_agent_tmp_directory|Temporary directory path that will be created on the target host|no (defaulted in the role)|
-|sap_hostagent_clean_tmp_directory|Boolean variable to indicate if the temporary directory will be removed or not afer the installation| no (defaulted in the role)|
+|sap_hostagent_clean_tmp_directory|Boolean variable to indicate if the temporary directory will be removed or not after the installation| no (defaulted in the role)|
 
 ### SAR based installations (with content existing on target node)
 
@@ -72,7 +72,7 @@ It is also important that your disks are setup according to the [SAP storage req
 |sap_hostagent_sapcar_remote_path|Remote directory path of SAR archive|yes|
 |sap_hostagent_sapcar_file_name|Remote file name of SAR archive|yes|
 |sap_hostagent_agent_tmp_directory|Temporary directory path that will be created on the target host|no (defaulted in the role)|
-|sap_hostagent_clean_tmp_directory|Boolean variable to indicate if the temporary directory will be removed or not afer the installation| no (defaulted in the role)|
+|sap_hostagent_clean_tmp_directory|Boolean variable to indicate if the temporary directory will be removed or not after the installation| no (defaulted in the role)|
 
 
 ### SAP Bundle based installations
@@ -82,7 +82,7 @@ It is also important that your disks are setup according to the [SAP storage req
 |sap_hostagent_installation_type|Source type of the installation for SAPHOSTAGENT|yes with `bundle` value|
 |sap_hostagent_bundle_path|Target host directory path where SAP Installation Bundle has been unarchived|
 |sap_hostagent_agent_tmp_directory|Temporary directory path that will be created on the target host|no (defaulted in the role)|
-|sap_hostagent_clean_tmp_directory|Boolean variable to indicate if the temporary directory will be removed or not afer the installation| no (defaulted in the role)|
+|sap_hostagent_clean_tmp_directory|Boolean variable to indicate if the temporary directory will be removed or not after the installation| no (defaulted in the role)|
 
 ### SSL Configuration
 
@@ -99,7 +99,7 @@ Right now the role will configure the PSE and create a CSR. Adding signed certif
 
 Before using this role ensure your system has been configured properly to run SAP applications.
 
-You can use the supported role `sap_general_preconfigure` comming with RHEL 7 and 8 with RHEL for SAP Solutions Subscription
+You can use the supported role `sap_general_preconfigure` coming with RHEL 7 and 8 with RHEL for SAP Solutions Subscription
 
 The upstream version of this role can be found [here](https://github.com/linux-system-roles/sap_general_preconfigure)
 

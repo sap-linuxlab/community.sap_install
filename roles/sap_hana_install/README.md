@@ -267,7 +267,7 @@ These checks are only performed if `sap_hana_install_force` is set to `true`. It
 
     - If file `hdblcm` is found, skip the next step and proceed with the `hdblcm` existence check.
 
-    - If file `hdblcm` ist not found, proceed with the next step.
+    - If file `hdblcm` is not found, proceed with the next step.
 
 - Prepare SAR files for `hdblcm`:
 
