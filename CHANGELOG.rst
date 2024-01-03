@@ -5,6 +5,15 @@ community.sap_install Release Notes
 .. contents:: Topics
 
 
+v1.3.3
+======
+
+Release Summary
+---------------
+
+| Release Date: 2023-12-22
+| collection: Make the preconfigure and sap_hana_install roles compatible with CVE-2023-5764
+
 v1.3.2
 ======
 
@@ -12,26 +21,26 @@ Release Summary
 ---------------
 
 | Release Date: 2023-09-29
-sap_general_preconfigure: Update to latest SAP documentation for RHEL 9 package libxcrypt-compat
-sap_general_preconfigure: Bug fix for directory creation and SELinux Labels
-sap_ha_pacemaker_cluster: Bug fix for AWS EC2 Virtual Servers
-sap_ha_pacemaker_cluster: Bug fix for Google Cloud Compute Engine VM netmask lock on Virtual IP
-sap_ha_pacemaker_cluster: Feature add for improved SAP NetWeaver HA compatibility
-sap_ha_pacemaker_cluster: Feature add for ENSA1 compatibility
-sap_ha_pacemaker_cluster: Feature add for SAP HA Interface Cluster Connector after cluster init
-sap_ha_pacemaker_cluster: Feature add for IBM PowerVM hypervisor
-sap_ha_pacemaker_cluster: Feature add for multiple network interfaces with Virtual IP
-sap_hana_install: Bug fix for SELinux disable when SLES4SAP
-sap_install_media_detect: Feature add for NFS compatibility
-sap_install_media_detect: Feature add for idempotency
-sap_install_media_detect: Feature add for new file detection after code restructure
-sap_install_media_detect: Bug fix for setting SAP Maintenance Planner Stack XML path
-sap_storage_setup: Feature add for Multipathing detection
-sap_storage_setup: Bug fix for NFS throttle from customer test on MS Azure
-sap_storage_setup: Bug fix for packages on SLES and Google Cloud
-sap_swpm: Bug fix for RDBMS var name
-sap_swpm: Bug fix for SAP HANA Client hdbuserstore connection
-sap_swpm: Bug fix for SAP Maintenance Planner Stack XML path
+| sap_general_preconfigure: Update to latest SAP documentation for RHEL 9 package libxcrypt-compat
+| sap_general_preconfigure: Bug fix for directory creation and SELinux Labels
+| sap_ha_pacemaker_cluster: Bug fix for AWS EC2 Virtual Servers
+| sap_ha_pacemaker_cluster: Bug fix for Google Cloud Compute Engine VM netmask lock on Virtual IP
+| sap_ha_pacemaker_cluster: Feature add for improved SAP NetWeaver HA compatibility
+| sap_ha_pacemaker_cluster: Feature add for ENSA1 compatibility
+| sap_ha_pacemaker_cluster: Feature add for SAP HA Interface Cluster Connector after cluster init
+| sap_ha_pacemaker_cluster: Feature add for IBM PowerVM hypervisor
+| sap_ha_pacemaker_cluster: Feature add for multiple network interfaces with Virtual IP
+| sap_hana_install: Bug fix for SELinux disable when SLES4SAP
+| sap_install_media_detect: Feature add for NFS compatibility
+| sap_install_media_detect: Feature add for idempotency
+| sap_install_media_detect: Feature add for new file detection after code restructure
+| sap_install_media_detect: Bug fix for setting SAP Maintenance Planner Stack XML path
+| sap_storage_setup: Feature add for Multipathing detection
+| sap_storage_setup: Bug fix for NFS throttle from customer test on MS Azure
+| sap_storage_setup: Bug fix for packages on SLES and Google Cloud
+| sap_swpm: Bug fix for RDBMS var name
+| sap_swpm: Bug fix for SAP HANA Client hdbuserstore connection
+| sap_swpm: Bug fix for SAP Maintenance Planner Stack XML path
 
 v1.3.1
 ======
