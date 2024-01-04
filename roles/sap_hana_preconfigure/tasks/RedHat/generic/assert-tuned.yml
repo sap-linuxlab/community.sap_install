@@ -70,7 +70,7 @@
            sap_hana_preconfigure_assert_all_config)"
 
 - name: Get active tuned profile
-  ansible.builtin.shell: /usr/sbin/tuned-adm active | grep ":" | cut -d ":" -f 2 | awk '{$1=$1;print}'
+  ansible.builtin.shell: set -o pipefail && /usr/sbin/tuned-adm active | awk '/:/{print $NF}'
   check_mode: no
   register: __sap_hana_preconfigure_register_current_tuned_profile_assert
   ignore_errors: yes
