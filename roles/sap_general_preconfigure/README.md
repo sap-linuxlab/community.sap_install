@@ -14,6 +14,7 @@ make sure that the required collections are installed, for example by using the 
 To use this role, your system needs to be installed according to:
 - RHEL 7: SAP note 2002167, Red Hat Enterprise Linux 7.x: Installation and Upgrade, section "Installing Red Hat Enterprise Linux 7"
 - RHEL 8: SAP note 2772999, Red Hat Enterprise Linux 8.x: Installation and Configuration, section "Installing Red Hat Enterprise Linux 8".
+- RHEL 9: SAP note 3108316, Red Hat Enterprise Linux 9.x: Installation and Configuration, section "Installing Red Hat Enterprise Linux 9".
 
 Note
 ----
