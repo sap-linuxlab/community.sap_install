@@ -13,7 +13,7 @@ system time, before or after running role sap_netweaver_preconfigure.
 
 Note 
 ----
-On RHEL, as per SAP notes 2002167 and 2772999, the role will switch to tuned profile sap-netweaver no matter if another tuned profile
+On RHEL, as per SAP notes 2002167, 2772999, and 3108316, the role will switch to tuned profile sap-netweaver no matter if another tuned profile
 (e.g. virtual-guest) had been active before or not.
 
 On SLES, this role will switch the saptune solution to the one specified by the configuration and will override any previously set solution.
