@@ -3,7 +3,7 @@
 #- name: Double check that list entries with state present do not have duplicate IP addresses
 #  ansible.builtin.assert:
 #    that:
-#     - {{ sap_maintain_etc_hosts_list | selectattr('state') }}
+#     - sap_maintain_etc_hosts_list | selectattr('state')
 - name: Get list of hosts to be added with no state definition
   ansible.builtin.set_fact:
     __sap_maintain_etc_hosts_present: "{{ sap_maintain_etc_hosts_list | selectattr('state', 'undefined') | list }}"
@@ -25,8 +25,8 @@
 - name: Ensure no duplicate IPs are in the list for adding to hosts
   ansible.builtin.assert:
     that:
-      "{{ (__sap_maintain_etc_hosts_present | map(attribute='node_ip') | length) ==
-      (__sap_maintain_etc_hosts_present | map(attribute='node_ip') | unique | length) }}"
+      (__sap_maintain_etc_hosts_present | map(attribute='node_ip') | length) ==
+      (__sap_maintain_etc_hosts_present | map(attribute='node_ip') | unique | length)
     msg: "You have defined duplicate ip addresses to create"
   when:
     - __sap_maintain_etc_hosts_present is defined
@@ -34,8 +34,8 @@
 - name: Ensure no duplicate hostnames are in the list for adding to hosts
   ansible.builtin.assert:
     that:
-      "{{ (__sap_maintain_etc_hosts_present | map(attribute='node_name') | length) ==
-      (__sap_maintain_etc_hosts_present | map(attribute='node_name') | unique | length) }}"
+      (__sap_maintain_etc_hosts_present | map(attribute='node_name') | length) ==
+      (__sap_maintain_etc_hosts_present | map(attribute='node_name') | unique | length)
     msg: "You have defined duplicate hostnames to create"
   when:
     - __sap_maintain_etc_hosts_present is defined
