@@ -26,7 +26,6 @@
   become: true
   become_user: root
 
-
 - name: "Debug grub-mkconfig BIOS mode"
   ansible.builtin.debug:
     var: __sap_hypervisor_node_preconfigure_register_grub2_mkconfig_bios_mode.stdout_lines,
@@ -39,12 +38,14 @@
 - name: "Set the grub.cfg location RHEL"
   ansible.builtin.set_fact:
     __sap_hypervisor_node_preconfigure_uefi_boot_dir: /boot/efi/EFI/redhat/grub.cfg
+  listen: __sap_hypervisor_node_preconfigure_regenerate_grub2_conf_handler
   when:
     - ansible_distribution == 'RedHat'
 
 - name: "Set the grub.cfg location SLES"
   ansible.builtin.set_fact:
     __sap_hypervisor_node_preconfigure_uefi_boot_dir: /boot/efi/EFI/BOOT/grub.cfg
+  listen: __sap_hypervisor_node_preconfigure_regenerate_grub2_conf_handler
   when:
     - ansible_distribution == 'SLES' or ansible_distribution == 'SLES_SAP'
 
@@ -59,7 +60,6 @@
   become: true
   become_user: root
 
-
 - name: "Debug grub-mkconfig UEFI"
   ansible.builtin.debug:
     var: __sap_hypervisor_node_preconfigure_register_grub2_mkconfig_uefi_mode.stdout_lines,
@@ -68,12 +68,6 @@
   when:
     - __sap_hypervisor_node_preconfigure_register_stat_sys_firmware_efi.stat.exists
     - sap_hypervisor_node_preconfigure_run_grub2_mkconfig|d(true)
-
-- name: "Run grubby for enabling TSX"
-  ansible.builtin.command: grubby --args="tsx=on" --update-kernel=ALL
-  register: __sap_hypervisor_node_preconfigure_register_grubby_update
-  listen: __sap_hypervisor_node_preconfigure_grubby_update_handler
-  notify: __sap_hypervisor_node_preconfigure_reboot_handler
 
 - name: Reboot the managed node
   ansible.builtin.reboot:
