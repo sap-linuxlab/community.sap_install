@@ -170,6 +170,7 @@ This Ansible Role does not preconfigure RHEL KVM (RHEL-KVM) hypervisor nodes. Pl
 
 ### Requirements
 * A RHV hypervisor. 
+* Latest ansible version, there is a bug with include_tasks in the handler file: https://github.com/ansible/ansible/issues/81722
 
 ### Role Variables
 `sap_hypervisor_node_preconfigure_reserved_ram (default: 100)` Reserve memory [GB] for hypervisor host. Depending in the use case should be at least 50-100GB. 
