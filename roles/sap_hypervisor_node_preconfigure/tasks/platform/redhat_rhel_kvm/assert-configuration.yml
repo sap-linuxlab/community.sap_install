@@ -70,16 +70,16 @@
       ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"
 
 - name: Assert - check sap_hypervisor_node_preconfigure_nx_huge_pages
-  when: sap_hypervisor_node_preconfigure_nx_huge_pages is defined
+  when: sap_hypervisor_node_preconfigure_kvm_nx_huge_pages is defined
   block:
     - name: Set fact for sap_hypervisor_node_preconfigure_register_assert_nx_huge_pages
       ansible.builtin.set_fact: 
-        sap_hypervisor_node_preconfigure_register_assert_nx_huge_pages: "__sap_hypervisor_node_preconfigure_kernelcmdline_assert.stdout | regex_search('kvm.nx_huge_pages=(\\d+)', '\\1') }}"
-    - name: "Assert - Check kvm.nx_huge_pages is {{ sap_hypervisor_node_preconfigure_nx_huge_pages }}"
+        sap_hypervisor_node_preconfigure_register_assert_nx_huge_pages: "{{ __sap_hypervisor_node_preconfigure_kernelcmdline_assert.stdout | regex_search('kvm.nx_huge_pages=(.+)', '\\1') | first }}"
+    - name: "Assert - Check kvm.nx_huge_pages is {{ sap_hypervisor_node_preconfigure_kvm_nx_huge_pages }}"
       ansible.builtin.assert:
-        that: sap_hypervisor_node_preconfigure_register_assert_nx_huge_pages == sap_hypervisor_node_preconfigure_nx_huge_pages 
-        fail_msg: "FAIL: kvm.nx_huge_pages is not {{ sap_hypervisor_node_preconfigure_nx_huge_pages }}"
-        success_msg: "PASS: kvm.nx_huge_pages is {{ sap_hypervisor_node_preconfigure_nx_huge_pages }}"
+        that: sap_hypervisor_node_preconfigure_register_assert_nx_huge_pages == sap_hypervisor_node_preconfigure_kvm_nx_huge_pages 
+        fail_msg: "FAIL: kvm.nx_huge_pages is not {{ sap_hypervisor_node_preconfigure_kvm_nx_huge_pages }}"
+        success_msg: "PASS: kvm.nx_huge_pages is {{ sap_hypervisor_node_preconfigure_kvm_nx_huge_pages }}"
       ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"
 
 - name: Assert - check seccomp_sandbox=0
