@@ -106,7 +106,7 @@
 
     - name: "Check that at least {{ sap_hypervisor_node_preconfigure_reserved_ram }} GB are available for the hypervisor and the rest are 1G hugepages"
       ansible.builtin.assert:
-        that: ((ansible_memtotal_mb / 1024) | int - sap_hypervisor_node_preconfigure_reserved_ram)  >= (__sap_hypervisor_node_preconfigure_1g_hugepages_assert.stdout | int)"
+        that: ((ansible_memtotal_mb / 1024) | int - sap_hypervisor_node_preconfigure_reserved_ram | int)  >= (__sap_hypervisor_node_preconfigure_1g_hugepages_assert.stdout | int)
         fail_msg: "FAIL: Not enough memory reserved for hypervisor"
         success_msg: "PASS: Enough memory reserved for hypervisor"
       ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"
@@ -127,10 +127,9 @@
         success_msg: "PASS: iommu=pt on Kernel command line"
       ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"
 
-    # XXX shouldn't tsx be on?
-    - name: Ensure tsx is off
+    - name: Ensure tsx is on
       ansible.builtin.assert:
-        that: "'tsx=off' in __sap_hypervisor_node_preconfigure_kernelcmdline_assert.stdout"
-        fail_msg: "FAIL: tsx=off not on Kernel command line"
-        success_msg: "PASS: tsx=off on Kernel command line"
+        that: "'tsx=on' in __sap_hypervisor_node_preconfigure_kernelcmdline_assert.stdout"
+        fail_msg: "FAIL: tsx=on not in Kernel command line"
+        success_msg: "PASS: tsx=on in Kernel command line"
       ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"
