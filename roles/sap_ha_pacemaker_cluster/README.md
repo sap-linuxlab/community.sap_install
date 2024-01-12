@@ -269,25 +269,6 @@ The minimal set of fence agent packages that will be installed.<br>
 Additional fence agent packages to be installed.<br>
 This is automatically combined with `sap_ha_pacemaker_cluster_fence_agent_minimal_packages`.<br>
 
-### sap_ha_pacemaker_cluster_fence_options
-
-- _Type:_ `dict`
-- _Default:_ `{'pcmk_reboot_retries': 4, 'pcmk_reboot_timeout': 400, 'power_timeout': 240}`
-
-STONITH resource common parameters that apply to most fencing agents.<br>
-These options are applied to fencing resources this role uses automatically for pre-defined platforms (like AWS EC2 VS, IBM Cloud VS).<br>
-The listed options are set by default.<br>
-Additional options can be added by defining this parameter in dictionary format and adding the defaults plus any valid stonith resource key-value pair.<br>
-
-Example:
-
-```yaml
-sap_ha_pacemaker_cluster_fence_options:
-  pcmk_reboot_retries: 4
-  pcmk_reboot_timeout: 400
-  power_timeout: 240
-```
-
 ### sap_ha_pacemaker_cluster_gcp_project
 
 - _Type:_ `string`
@@ -791,6 +772,13 @@ Name of the SAPInstance resource for NetWeaver AAS.<br>
 Virtual IP of the NetWeaver ASCS instance.<br>
 Mandatory for NetWeaver ASCS/ERS cluster setup.<br>
 
+### sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name
+
+- _Type:_ `string`
+- _Default:_ `<SID>_ASCS<ASCS-instance-number>_group`
+
+Name of the NetWeaver ASCS resource group.<br>
+
 ### sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name
 
 - _Type:_ `string`
@@ -804,6 +792,13 @@ Name of the SAPInstance resource for NetWeaver ASCS.<br>
 
 Virtual IP of the NetWeaver ERS instance.<br>
 Mandatory for NetWeaver ASCS/ERS cluster setup.<br>
+
+### sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name
+
+- _Type:_ `string`
+- _Default:_ `<SID>_ERS<ERS-instance-number>_group`
+
+Name of the NetWeaver ERS resource group.<br>
 
 ### sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name
 
