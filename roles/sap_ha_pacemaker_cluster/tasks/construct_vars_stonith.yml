@@ -116,13 +116,16 @@
                   'value': stonith_host_item
                 }]) -%}
             {%- endif %}
-            {%- for agent_opt in (sap_ha_pacemaker_cluster_stonith_default.options | default({}) | dict2items) -%}
-              {% set aopts = attrs.extend([
-                {
-                  'name': agent_opt.key,
-                  'value': agent_opt.value
-                }]) -%}
-            {%- endfor %}
+            {%- if sap_ha_pacemaker_cluster_stonith_default.options is defined
+                and sap_ha_pacemaker_cluster_stonith_default.options | length > 0 -%}
+              {%- for agent_opt in (sap_ha_pacemaker_cluster_stonith_default.options | default({}) | dict2items) -%}
+                {% set aopts = attrs.extend([
+                  {
+                    'name': agent_opt.key,
+                    'value': agent_opt.value
+                  }]) -%}
+              {%- endfor %}
+            {%- endif -%}
             {{ attrs }}
 
     __plug_suffix: >-
