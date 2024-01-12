@@ -29,6 +29,7 @@
     - name: SAP Storage Setup - (swap file) Allocate space
       ansible.builtin.shell: |
         fallocate -l {{ swap_file.disk_size | int * 1024 }}MB {{ swap_file.swap_path }}
+      changed_when: true
       when:
         - not check_swapfile.stat.exists
 
@@ -41,6 +42,7 @@
       ansible.builtin.shell: |
         mkswap {{ swap_file.swap_path }}
         swapon {{ swap_file.swap_path }}
+      changed_when: true
       when:
         - not check_swapfile.stat.exists
 
@@ -80,7 +82,7 @@
 
     - name: SAP Storage Setup - Check if swap partition exists
       ansible.builtin.shell: |
-        lsblk | grep SWAP || echo "no active swap"
+        set -o pipefail && lsblk | grep SWAP || echo "no active swap"
       register: check_swap_partition
       changed_when: false
 
@@ -95,6 +97,7 @@
     - name: SAP Storage Setup - Enable swap
       ansible.builtin.shell: |
         swapon /dev/{{ swap_volume.lvm_vg_name | default('vg_swap') }}/{{ swap_volume.lvm_lv_name | default('lv_swap') }}
+      changed_when: true
       when:
         - not ansible_check_mode
         - swap_volume.lvm_lv_name | default("lv_swap") not in check_swap_partition.stdout
