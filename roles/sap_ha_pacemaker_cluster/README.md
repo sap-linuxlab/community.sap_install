@@ -269,25 +269,6 @@ The minimal set of fence agent packages that will be installed.<br>
 Additional fence agent packages to be installed.<br>
 This is automatically combined with `sap_ha_pacemaker_cluster_fence_agent_minimal_packages`.<br>
 
-### sap_ha_pacemaker_cluster_fence_options
-
-- _Type:_ `dict`
-- _Default:_ `{'pcmk_reboot_retries': 4, 'pcmk_reboot_timeout': 400, 'power_timeout': 240}`
-
-STONITH resource common parameters that apply to most fencing agents.<br>
-These options are applied to fencing resources this role uses automatically for pre-defined platforms (like AWS EC2 VS, IBM Cloud VS).<br>
-The listed options are set by default.<br>
-Additional options can be added by defining this parameter in dictionary format and adding the defaults plus any valid stonith resource key-value pair.<br>
-
-Example:
-
-```yaml
-sap_ha_pacemaker_cluster_fence_options:
-  pcmk_reboot_retries: 4
-  pcmk_reboot_timeout: 400
-  power_timeout: 240
-```
-
 ### sap_ha_pacemaker_cluster_gcp_project
 
 - _Type:_ `string`
