@@ -2,7 +2,7 @@
 
 ## Errors with missing signature files for installation media
 
-After SWPM 1.0 SP22 and SAP SWPM 2.0 SP00, all SAP Software installation media requires a seperate signature file (SIGNATURE.SMF). The signature file is missing in older installation media.
+After SWPM 1.0 SP22 and SAP SWPM 2.0 SP00, all SAP Software installation media requires a separate signature file (SIGNATURE.SMF). The signature file is missing in older installation media.
 
 For example, IDES for SAP ECC 6.0 EhP8. See the following error message and SAP Note 2622019 - "EXPORT_1 is not signed" error during IDES installation.
 ```shell

@@ -1,5 +1,4 @@
 ---
-
 - name: "Check if server is booted in BIOS or UEFI mode"
   ansible.builtin.stat:
     path: /sys/firmware/efi
@@ -40,14 +39,14 @@
 - name: "Set the grub.cfg location RHEL"
   ansible.builtin.set_fact:
     __sap_hypervisor_node_preconfigure_uefi_boot_dir: /boot/efi/EFI/redhat/grub.cfg
-  when: 
+  when:
     - ansible_distribution == 'RedHat'
 
 - name: "Set the grub.cfg location SLES"
   ansible.builtin.set_fact:
     __sap_hypervisor_node_preconfigure_uefi_boot_dir: /boot/efi/EFI/BOOT/grub.cfg
-  when: 
-    - ansible_distribution == 'SLES' or ansible_distribution == 'SLES_SAP'    
+  when:
+    - ansible_distribution == 'SLES' or ansible_distribution == 'SLES_SAP'
 
 - name: "Run grub-mkconfig (UEFI mode)"
   ansible.builtin.command: "grub2-mkconfig -o {{ __sap_hypervisor_node_preconfigure_uefi_boot_dir }}"

@@ -39,19 +39,21 @@
   when: "'tuned-profiles-sap' in ansible_facts.packages"
 
 - name: Get active tuned profile
-  ansible.builtin.shell: set -o pipefail && /usr/sbin/tuned-adm active | grep ":" | cut -d ":" -f 2 | awk '{$1=$1;print}'
-  check_mode: no
+  ansible.builtin.shell: set -o pipefail && /usr/sbin/tuned-adm active | awk '/:/{print $NF}'
+  check_mode: false
   register: __sap_netweaver_preconfigure_register_current_tuned_profile
+  ignore_errors: true
   changed_when: false
 
 - name: Assert - Display the output of the tuned-adm active command
   ansible.builtin.debug:
     var: __sap_netweaver_preconfigure_register_current_tuned_profile.stdout_lines,
          __sap_netweaver_preconfigure_register_current_tuned_profile.stderr_lines
+  ignore_errors: true
 
-- name: Assert that tuned profile sap-netweaver is currently active
+- name: Assert that tuned profile 'sap-netweaver' is currently active
   ansible.builtin.assert:
-    that: "__sap_netweaver_preconfigure_register_current_tuned_profile.stdout == 'sap-netweaver'"
+    that: __sap_netweaver_preconfigure_register_current_tuned_profile.stdout == 'sap-netweaver'
     fail_msg: "FAIL: The tuned profile 'sap-netweaver' is currently not active!
       Currently active profile: '{{ __sap_netweaver_preconfigure_register_current_tuned_profile.stdout }}'."
     success_msg: "PASS: The tuned profile 'sap-netweaver' is currently active."

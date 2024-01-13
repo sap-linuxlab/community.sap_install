@@ -1,0 +1,55 @@
+---
+- name: Verify that variable node_ip is in the correct format
+  ansible.builtin.assert:
+    that: thishost.node_ip is ansible.utils.ip
+    msg: "Variable 'node_ip' is not an IP address. Please use the correct format"
+  when: thisnode.node_ip is defined
+
+- name: Ensure that either IP address or hostname is defined
+  ansible.builtin.assert:
+    that: >
+      ((thishost.node_ip is defined) and (thishost.node_name is undefined) and (thishost.node_domain is undefined)) or
+      ((thishost.node_ip is undefined) and (thishost.node_name is defined))
+    msg: "Invalid delete item. Please define either node_ip only or node_name. In the latter case node_domain is optional."
+
+- name: Ensure that the entry all entries in hosts file are removed with IP {{ thishost.node_ip | d('undefined') }}
+  ansible.builtin.lineinfile:
+    path: "{{ __sap_maintain_etc_hosts_file }}"
+    regexp: '^{{ thishost.node_ip }}\s'
+    state: absent
+    backup: true
+  when:
+    - thishost.node_ip is defined
+    - thishost.node_name is undefined
+    - not ansible_check_mode
+  become_user: root
+  become: true
+
+- name: Ensure that the entry all entries in hosts file are removed with name {{ thishost.node_name | d('undefined') }}
+  ansible.builtin.lineinfile:
+    path: "{{ __sap_maintain_etc_hosts_file }}"
+    regexp: '^.*\s{{ thishost.node_name }}\s'
+    state: absent
+    backup: true
+  when:
+    - thishost.node_name is defined
+    - (thishost.node_domain is undefined) or (thishost.node_domain | length == 0)
+    - thishist.node_ip is undefined
+    - not ansible_check_mode
+  become_user: root
+  become: true
+
+- name: Ensure that the entry all enries in hosts file are removed with FQDN
+  ansible.builtin.lineinfile:
+    path: "{{ __sap_maintain_etc_hosts_file }}"
+    regexp: '^.*\s{{ thishost.node_name + "." + thishost.node_domain }}\s'
+    state: absent
+    backup: true
+  when:
+    - thishost.node_name is defined
+    - thishost.node_domain is defined
+    - thishost.node_domain | length > 0
+    - thishist.node_ip is undefined
+    - not ansible_check_mode
+  become_user: root
+  become: true

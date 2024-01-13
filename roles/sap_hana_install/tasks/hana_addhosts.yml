@@ -23,7 +23,8 @@
   when: not ansible_check_mode
   block:
 
-    - name: SAP HANA Add Hosts - Run 'hdblcm --list_systems'
+# Reason for noqa: We can safely fail at the last command in the pipeline.
+    - name: SAP HANA Add Hosts - Run 'hdblcm --list_systems' # noqa risky-shell-pipe
       ansible.builtin.shell: |
         ./hdblcm --list_systems | awk '/\/hana\/shared\/{{ sap_hana_install_sid }}/{a=1}
           /hosts:/{if (a==1){
@@ -32,7 +33,7 @@
       args:
         chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
       register: __sap_hana_install_register_hdblcm_list_systems
-      changed_when: no
+      changed_when: false
 
     - name: SAP HANA Add Hosts - Show the output of hdblcm --list_systems
       ansible.builtin.debug:
@@ -40,7 +41,7 @@
 
     - name: SAP HANA Add Hosts - Assert that the additional hosts are not shown in hdblcm --list_systems
       ansible.builtin.assert:
-        that: "'{{ line_item }}' not in __sap_hana_install_register_hdblcm_list_systems.stdout"
+        that: line_item not in __sap_hana_install_register_hdblcm_list_systems.stdout
         fail_msg:
           - "FAIL: Host '{{ line_item }}' is already part of system '{{ sap_hana_install_sid }}'"
           - "Because of this, the addhost operation will not be performed."
@@ -88,7 +89,7 @@
   args:
     chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
   register: __sap_hana_install_register_addhosts_result
-  changed_when: no
+  changed_when: false
   when: not ansible_check_mode
 
 - name: SAP HANA Add Hosts - Show the HANA version and hosts

@@ -24,14 +24,17 @@
     - not sap_general_preconfigure_fail_if_reboot_required|d(true)
     - not sap_general_preconfigure_reboot_ok|d(false)
 
-# Reason for noqa: We want to avoid non-ansible.builtin modules where possible
-- name: Remount /dev/shm # noqa command-instead-of-module
+# Reasons for noqa:
+# - command-instead-of-module: We want to avoid non-ansible.builtin modules where possible
+# - no-changed-when: Remounting does not do any harm and does not affect idempotency.
+- name: Remount /dev/shm # noqa command-instead-of-module no-changed-when
   ansible.builtin.command: mount -o remount /dev/shm
   listen: __sap_general_preconfigure_mount_tmpfs_handler
 
 - name: Check if /dev/shm is available
   ansible.builtin.command: df -h /dev/shm
   register: __sap_general_preconfigure_command_df_shm_result
+  changed_when: false
   listen: __sap_general_preconfigure_mount_tmpfs_handler
 
 - name: Show the result of df -h /dev/shm

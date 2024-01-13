@@ -3,12 +3,14 @@
   ansible.builtin.file:
     path: /usr/lib/tuned/sap-hana-kvm-host
     state: directory
+    mode: "0755"
   become: true
   become_user: root
 
 - name: Create sap-hana-kvm-host tuned profile
   ansible.builtin.copy:
     dest: "/usr/lib/tuned/sap-hana-kvm-host/tuned.conf"
+    mode: "0644"
     content: |
         #
         # tuned configuration
@@ -36,5 +38,7 @@
 
 - name: Activate tuned profile
   ansible.builtin.command: tuned-adm profile sap-hana-kvm-host
+  register: __sap_hypervisor_node_preconfigre_register_tuned_activation_output
   become: true
   become_user: root
+  changed_when: __sap_hypervisor_node_preconfigre_register_tuned_activation_output.rc != 0

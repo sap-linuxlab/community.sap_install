@@ -19,7 +19,8 @@
         msg: "SAP note {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2055470$') | first).number }}
               (version {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2055470$') | first).version }}): SAP HANA on POWER settings"
 
-    - name: Ensure MTU size is 9000 on all interfaces
+# Reason for noqa: Failing early can cause unpredictable outputs.
+    - name: Ensure MTU size is 9000 on all interfaces # noqa risky-shell-pipe
       ansible.builtin.shell: |
         mtu=$(nmcli conn show {{ line_item }} | grep 802-3-ethernet.mtu | awk -F: '{printf("%d", $2)}')
         if [ "$mtu" != "9000" ]; then

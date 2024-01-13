@@ -1,0 +1,103 @@
+---
+- name: Print network
+  ansible.builtin.debug:
+    var: __sap_hypervisor_node_preconfigure_register_worker_network
+
+- name: "Create NodeNetworkConfigurationPolicy\
+         {{ __sap_hypervisor_node_preconfigure_register_worker_network.name }} on \
+         {{ __sap_hypervisor_node_preconfigure_register_worker.name }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: nmstate.io/v1
+      kind: NodeNetworkConfigurationPolicy
+      metadata:
+        name: "{{ __sap_hypervisor_node_preconfigure_register_worker_network.name }}-{{ __sap_hypervisor_node_preconfigure_register_worker.name }}"
+      spec:
+        nodeSelector:
+          kubernetes.io/hostname: "{{ __sap_hypervisor_node_preconfigure_register_worker.name }}"
+        desiredState:
+          interfaces:
+            - "{{ __sap_hypervisor_node_preconfigure_register_worker_network }}"
+  when: __sap_hypervisor_node_preconfigure_register_worker_network.type == 'linux-bridge'
+
+- name: "Create NetworkAttachmentDefinition {{ __sap_hypervisor_node_preconfigure_register_worker_network.name }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: "k8s.cni.cncf.io/v1"
+      kind: NetworkAttachmentDefinition
+      metadata:
+        namespace: "{{ sap_hypervisor_node_preconfigure_cluster_config.vm_namespace }}"
+        name: "{{ __sap_hypervisor_node_preconfigure_register_worker_network.name }}-network-definition"
+        annotations:
+          k8s.v1.cni.cncf.io/resourceName: "bridge.network.kubevirt.io/{{ __sap_hypervisor_node_preconfigure_register_worker_network.name }}"
+      spec:
+        config: '{
+          "cniVersion": "0.3.1",
+          "name": "sapbridge-network-definition",
+          "type": "cnv-bridge",
+          "bridge": "sapbridge",
+          "macspoofchk": true
+        }'
+  when: __sap_hypervisor_node_preconfigure_register_worker_network.type == 'linux-bridge'
+
+- name: Label the node with feature.node.kubernetes.io/network-sriov.capable=true
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: Node
+      metadata:
+        name: "{{ __sap_hypervisor_node_preconfigure_register_worker.name }}"
+        labels:
+          feature.node.kubernetes.io/network-sriov.capable: "true"
+    state: present
+  when: __sap_hypervisor_node_preconfigure_register_worker_network.type == 'sriov'
+
+- name: "Create SRIOV NodeNetworkConfigurationPolicy \
+         {{ __sap_hypervisor_node_preconfigure_register_worker_network.name }} on \
+         {{ __sap_hypervisor_node_preconfigure_register_worker.name }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: sriovnetwork.openshift.io/v1
+      kind: SriovNetworkNodePolicy
+      metadata:
+        name: "iface-{{ __sap_hypervisor_node_preconfigure_register_worker_network.name }}-sriov-{{ __sap_hypervisor_node_preconfigure_register_worker.name }}"
+        namespace: openshift-sriov-network-operator
+      spec:
+        resourceName: "iface{{ __sap_hypervisor_node_preconfigure_register_worker_network.name }}sriov"
+        nodeSelector:
+          feature.node.kubernetes.io/network-sriov.capable: "true"
+          kubernetes.io/hostname: "{{ __sap_hypervisor_node_preconfigure_register_worker.name }}"
+        priority: 5
+        mtu: 9000
+        numVfs: 8
+        nicSelector:
+          pfNames: ['{{ __sap_hypervisor_node_preconfigure_register_worker_network.interface }}#0-7']
+        deviceType: vfio-pci
+        isRdma: false
+  when: __sap_hypervisor_node_preconfigure_register_worker_network.type == "sriov"
+
+- name: "Create SriovNetwork Attachment Definition {{ __sap_hypervisor_node_preconfigure_register_worker_network.name }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: sriovnetwork.openshift.io/v1
+      kind: SriovNetwork
+      metadata:
+        name: "iface-{{ __sap_hypervisor_node_preconfigure_register_worker_network.name }}-sriov"
+        namespace: openshift-sriov-network-operator
+      spec:
+        ipam: |
+          {
+            "type": "host-local",
+            "subnet": "192.168.1.0/24",
+            "rangeStart": "192.168.1.200",
+            "rangeEnd": "192.168.1.210"
+          }
+        networkNamespace: openshift-sriov-network-operator
+        resourceName: "iface{{ __sap_hypervisor_node_preconfigure_register_worker_network.name }}sriov"
+        spoofChk: "off"
+        trust: "on"
+  when: __sap_hypervisor_node_preconfigure_register_worker_network.type == "sriov"

@@ -2,16 +2,18 @@
 
 # Remove Existing inifile.params
 - name: SAP SWPM advanced mode - Ensure 'inifile.params' exists
-  ansible.builtin.file:
-    path: "{{ sap_swpm_tmpdir.path }}/inifile.params"
-    state: touch
+  ansible.builtin.copy:
+    dest: "{{ sap_swpm_tmpdir.path }}/inifile.params"
     mode: '0640'
+    content: |
+      ### inifile.params generated for SWPM Catalog Product ID is {{ sap_swpm_product_catalog_id }}
   tags: sap_swpm_generate_inifile
 
 - name: SAP SWPM advanced mode - Loop over the dictionary and output to file
   ansible.builtin.lineinfile:
     path: "{{ sap_swpm_tmpdir.path }}/inifile.params"
     state: present
+    insertafter: EOF
     line: "{{ item.key }} = {{ item.value }}"
   with_dict: "{{ sap_swpm_inifile_custom_values_dictionary }}"
   tags: sap_swpm_generate_inifile
@@ -26,6 +28,7 @@
       tags: sap_swpm_generate_inifile
   tags: sap_swpm_generate_inifile
 
+# Requires variables - sap_swpm_software_path (e.g. /software/download_basket), sap_swpm_sapcar_path (e.g. /software/sapcar), sap_swpm_swpm_path (e.g. /software/swpm)
 # Prepare Software
 - name: SAP SWPM advanced mode - Prepare Software
   ansible.builtin.include_tasks: prepare_software.yml

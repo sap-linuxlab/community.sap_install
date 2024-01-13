@@ -2,6 +2,7 @@
 # ansible-lint:
 # become_user string is deduced from a variable + suffix with no spaces
 - name: "SAP HSR - Check if hdbuserstore exists"
+  become: true
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   ansible.builtin.command: |
     /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbuserstore \
@@ -15,6 +16,7 @@
 # ansible-lint:
 # become_user string is deduced from a variable + suffix with no spaces
 - name: "SAP HSR - Create and Store Connection Info in hdbuserstore"
+  become: true
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   ansible.builtin.command: |
     /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbuserstore \
@@ -22,3 +24,4 @@
     {{ ansible_hostname }}:3{{ sap_ha_install_hana_hsr_instance_number }}13 \
     SYSTEM '{{ sap_ha_install_hana_hsr_db_system_password }}'
   when: sap_ha_install_hana_hsr_hdbuserstore.rc != '0'
+  changed_when: true

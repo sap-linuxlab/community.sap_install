@@ -1,18 +1,18 @@
 ---
 ## Striped volume
-#- name: SAP Storage Preparation - {{ sap_storage_cloud_type | upper }} - {{ sap_storage_az_vmsize }} - {{ item.value.name }} - Striped
+#- name: SAP Storage Preparation - {{ sap_storage_setup_cloud_type | upper }} - {{ sap_storage_setup_az_vmsize }} - {{ item.value.name }} - Striped
 #  block:
 #
 #    # Get LUNs from metadata
-#    - name: SAP Storage Preparation - {{ sap_storage_cloud_type | upper }} - {{ sap_storage_az_vmsize }} - {{ item.value.name }} Get LUNs from metadata
+#    - name: SAP Storage Preparation - {{ sap_storage_setup_cloud_type | upper }} - {{ sap_storage_setup_az_vmsize }} - {{ item.value.name }} Get LUNs from metadata
 #      shell: |
 #        for i in {1..{{ item.value.numluns }}}
 #        do
-#          {{ item.value.vg }}${i}lun="{{ sap_storage_az_lun }} \
+#          {{ item.value.vg }}${i}lun="{{ sap_storage_setup_az_lun }} \
 #            `awk '/caching/ { r=""; f=1 } f { r = (r ? r ORS : "") $0 } \
 #            /writeAcceleratorEnabled/ \
 #            { if (f && r ~ /{{ item.value.name }}${i}/) print r; f=0 }' \
-#            {{ sap_storage_az_imds_json }} \
+#            {{ sap_storage_setup_az_imds_json }} \
 #            | grep lun | sed 's/[^0-9]*//g'`"
 #          echo ${{ item.value.vg }}${i}lun
 #        done
@@ -24,14 +24,14 @@
 #        pvs_list: "{{ pvs_reg.stdout.split() }}"
 #
 #    # Create Volume Group
-#    - name: SAP Storage Preparation - {{ sap_storage_cloud_type | upper }} - {{ sap_storage_az_vmsize }} - {{ item.value.name }} Volume Group Striped
+#    - name: SAP Storage Preparation - {{ sap_storage_setup_cloud_type | upper }} - {{ sap_storage_setup_az_vmsize }} - {{ item.value.name }} Volume Group Striped
 #      lvg:
 #        vg: "{{ item.value.vg }}"
 #        pvs: "{{ pvs_list | join(',') }}"
 #        force: yes
 #
 #    # Create Logical Group
-#    - name: SAP Storage Preparation - {{ sap_storage_cloud_type | upper }} - {{ sap_storage_az_vmsize }} - {{ item.value.name }} Logical Volume - Striped
+#    - name: SAP Storage Preparation - {{ sap_storage_setup_cloud_type | upper }} - {{ sap_storage_setup_az_vmsize }} - {{ item.value.name }} Logical Volume - Striped
 #      lvol:
 #        vg: "{{ item.value.vg }}"
 #        lv: "{{ item.value.lv }}"
@@ -42,17 +42,17 @@
 #    - "item.value.numluns != '1'"
 #
 ## Single volume
-#- name: SAP Storage Preparation - {{ sap_storage_cloud_type | upper }} - {{ sap_storage_az_vmsize }} - {{ item.value.name }} - Single Volume
+#- name: SAP Storage Preparation - {{ sap_storage_setup_cloud_type | upper }} - {{ sap_storage_setup_az_vmsize }} - {{ item.value.name }} - Single Volume
 #  block:
 #
 #    # Get LUNs from metadata
-#    - name: SAP Storage Preparation - {{ sap_storage_cloud_type | upper }} - {{ sap_storage_az_vmsize }} - {{ item.value.name }} Get LUNs from metadata
+#    - name: SAP Storage Preparation - {{ sap_storage_setup_cloud_type | upper }} - {{ sap_storage_setup_az_vmsize }} - {{ item.value.name }} Get LUNs from metadata
 #      shell: |
-#        {{ item.value.vg }}lun="{{ sap_storage_az_lun }} \
+#        {{ item.value.vg }}lun="{{ sap_storage_setup_az_lun }} \
 #          `awk '/caching/ { r=""; f=1 } f { r = (r ? r ORS : "") $0 } \
 #          /writeAcceleratorEnabled/ \
 #          { if (f && r ~ /{{ item.value.name }}/) print r; f=0 }' \
-#          {{ sap_storage_az_imds_json }} \
+#          {{ sap_storage_setup_az_imds_json }} \
 #          | grep lun | sed 's/[^0-9]*//g'`"
 #        echo ${{ item.value.vg }}lun
 #      args:
@@ -63,14 +63,14 @@
 #        pvs_one: "{{ pvs_reg.stdout }}"
 #
 #    # Create Volume Group
-#    - name: SAP Storage Preparation - {{ sap_storage_cloud_type | upper }} - {{ sap_storage_az_vmsize }} - {{ item.value.name }} Volume Group One
+#    - name: SAP Storage Preparation - {{ sap_storage_setup_cloud_type | upper }} - {{ sap_storage_setup_az_vmsize }} - {{ item.value.name }} Volume Group One
 #      lvg:
 #        vg: "{{ item.value.vg }}"
 #        pvs: "{{ pvs_one }}"
 #        force: yes
 #
 #    # Create Logical Group
-#    - name: SAP Storage Preparation - {{ sap_storage_cloud_type | upper }} - {{ sap_storage_az_vmsize }} - {{ item.value.name }} Logical Volume - One
+#    - name: SAP Storage Preparation - {{ sap_storage_setup_cloud_type | upper }} - {{ sap_storage_setup_az_vmsize }} - {{ item.value.name }} Logical Volume - One
 #      lvol:
 #        vg: "{{ item.value.vg }}"
 #        lv: "{{ item.value.lv }}"
@@ -80,13 +80,13 @@
 #    - "item.value.numluns == '1'"
 #
 ## Create Filesystem
-#- name: SAP Storage Preparation - {{ sap_storage_cloud_type | upper }} - {{ sap_storage_az_vmsize }} - {{ item.value.name }} Filesystem
+#- name: SAP Storage Preparation - {{ sap_storage_setup_cloud_type | upper }} - {{ sap_storage_setup_az_vmsize }} - {{ item.value.name }} Filesystem
 #  filesystem:
 #    fstype: xfs
 #    dev: "/dev/{{ item.value.vg }}/{{ item.value.lv }}"
 #
 ## Mount Filesystem
-#- name: SAP Storage Preparation - {{ sap_storage_cloud_type | upper }} - {{ sap_storage_az_vmsize }} - {{ item.value.name }} Mount
+#- name: SAP Storage Preparation - {{ sap_storage_setup_cloud_type | upper }} - {{ sap_storage_setup_az_vmsize }} - {{ item.value.name }} Mount
 #  mount:
 #    path: "{{ item.value.directory }}"
 #    fstype: xfs

@@ -1,0 +1,16 @@
+---
+- name: Gather Facts
+  ansible.builtin.gather_facts:
+
+- name: Create Tempdir
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: "_sap_hypervisor_node_preconfigure"
+  register: __sap_hypervisor_node_preconfigure_register_tmpdir
+
+- name: "Create VM namespace {{ sap_hypervisor_node_preconfigure_cluster_config.vm_namespace }}"
+  kubernetes.core.k8s:
+    name: "{{ sap_hypervisor_node_preconfigure_cluster_config.vm_namespace }}"
+    api_version: v1
+    kind: Namespace
+    state: present

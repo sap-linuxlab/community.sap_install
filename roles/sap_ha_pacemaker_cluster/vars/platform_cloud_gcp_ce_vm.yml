@@ -17,29 +17,63 @@ __sap_ha_pacemaker_cluster_repos:
 __sap_ha_pacemaker_cluster_gcp_hosts: []
 
 sap_ha_pacemaker_cluster_stonith_default:
-  id: "res_fence_gce_{{ ansible_hostname }}"
+  id: "res_fence_gce"
   agent: "stonith:fence_gce"
   options:
     project: "{{ sap_ha_pacemaker_cluster_gcp_project }}"
     zone: "{{ sap_ha_pacemaker_cluster_gcp_region_zone }}"
-    port: "{{ ansible_hostname }}"
+    pcmk_reboot_timeout: 300
+    pcmk_monitor_retries: 4
+    pcmk_delay_max: 30
 
 # Platform specific VIP handling
 sap_ha_pacemaker_cluster_vip_method: gcp_nlb_reserved_ip_haproxy # gcp_vpc_move_route
-sap_ha_pacemaker_cluster_vip_resource_group_name: vipgroup
+sap_ha_pacemaker_cluster_vip_group_prefix: group_
+
+# GCP needs haproxy and ports defined
+sap_ha_pacemaker_cluster_healthcheck_hana_primary_port: "620{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port: >-
+  {% if sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | length > 0 -%}
+    620{{ sap_ha_pacemaker_cluster_hana_instance_nr | int + 1 }}
+  {%- else %}{% endif %}
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
+
+# Platform corosync totem configuration
+sap_ha_pacemaker_cluster_corosync_totem:
+  options:
+    token: 20000
+    token_retransmits_before_loss_const: 10
+    join: 60
+    max_messages: 20
 
 __sap_ha_pacemaker_cluster_available_vip_agents:
 
   ipaddr:
     agent: "ocf:heartbeat:IPaddr2"
 
-  # Recommended method is to use an internal passthrough Network Load Balancer (NLB for TCP/UDP) and Reserved Static Internal IP Address, with host health check response using socat or HAProxy
-  # Alternative method is to use static route Virtual IP (outside VPC Subnet ranges) using VPC Routing Table
-  # Refer to Google Cloud Compute Engine Reserved Static Internal IP Address, https://cloud.google.com/compute/docs/ip-addresses/reserve-static-internal-ip-address
-  # Refer to Google Cloud Load Balancing - Internal passthrough Network Load Balancer overview, https://cloud.google.com/load-balancing/docs/internal
-  # Refer to SAP HANA guidance 1, https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#virtual_ip_address
-  # Refer to SAP HANA guidance 2, https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#vip_implementation
-  # Refer to SAP NetWeaver guidance, https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#virtual_ip_address
+  # Recommended method is to use an internal passthrough Network Load Balancer (NLB for TCP/UDP)
+  # and Reserved Static Internal IP Address, with host health check response using socat or HAProxy.
+  #
+  # Alternative method is to use static route Virtual IP (outside VPC Subnet ranges) using
+  # VPC Routing Table.
+  #
+  # Refer to Google Cloud Compute Engine Reserved Static Internal IP Address:
+  # https://cloud.google.com/compute/docs/ip-addresses/reserve-static-internal-ip-address
+  #
+  # Refer to Google Cloud Load Balancing - Internal passthrough Network Load Balancer overview:
+  # https://cloud.google.com/load-balancing/docs/internal
+  #
+  # Refer to SAP HANA guidance 1:
+  # https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#virtual_ip_address
+  #
+  # Refer to SAP HANA guidance 2:
+  # https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#vip_implementation
+  #
+  # Refer to SAP NetWeaver guidance:
+  # https://cloud.google.com/solutions/sap/docs/sap-hana-ha-planning-guide#virtual_ip_address
 
   # Recommended method
   # Use Linux Pacemaker resource class/standard (pcs resource standards) as
@@ -49,12 +83,14 @@ __sap_ha_pacemaker_cluster_available_vip_agents:
     agent: "service:haproxy"
     with: ipaddr
 
-  # Alternative method
+  # Alternative method:
   # Move Virtual/Floating IP, must be outside of the VPC Subnet Range, by replacing
   # (temporary route, delete, create, delete temp.)
   # the VPC Routing Table record with next-hop as the VM Instance's ID.
+  #
   # Execution via Python urllib to GCP Compute Engine API and GCP Metadata Server API
-  # heartbeat:gcp-vpc-move-route is the replacement of heartbeat:gcp-vpc-move-ip (which uses execution via GCloud CLI, and is itself a fork of external/gcp:route)
+  # heartbeat:gcp-vpc-move-route is the replacement of heartbeat:gcp-vpc-move-ip
+  # (which uses execution via GCloud CLI, and is itself a fork of external/gcp:route)
   gcp_vpc_move_route:
     agent: "ocf:heartbeat:gcp-vpc-move-route"
     with: ipaddr

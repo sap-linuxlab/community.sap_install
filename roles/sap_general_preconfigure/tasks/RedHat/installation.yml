@@ -97,7 +97,8 @@
     - sap_general_preconfigure_set_minor_release
     - __sap_general_preconfigure_register_subscription_manager_release.stdout == ansible_distribution_version
 
-- name: Set the minor RHEL release
+# Reason for noqa: Finding out if the minor release has already been set would require one more task.
+- name: Set the minor RHEL release # noqa no-changed-when
   ansible.builtin.command: subscription-manager release --set="{{ ansible_distribution_version }}"
   when:
     - sap_general_preconfigure_set_minor_release
@@ -113,7 +114,8 @@
 #       Because the installation of an environment or package group is not guaranteed to avoid package updates,
 #       and because of bug 2011426 (for which the fix is not available in the RHEL 8.1 ISO image), a RHEL 8.1
 #       system might not boot after installing environment group Server.
-- name: Ensure that the required package groups are installed, RHEL 8 and RHEL 9 # noqa command-instead-of-module
+# Reason for noqa: Finding out if packages already are installed would require one more task.
+- name: Ensure that the required package groups are installed, RHEL 8 and RHEL 9 # noqa command-instead-of-module no-changed-when
   ansible.builtin.command: "yum install {{ sap_general_preconfigure_packagegroups | join(' ') }} --nobest --exclude=kernel* -y"
   register: __sap_general_preconfigure_register_yum_group_install
   when: ansible_distribution_major_version == '8' or ansible_distribution_major_version == '9'
@@ -144,6 +146,7 @@
 
 - name: Accept the license for the IBM Service and Productivity Tools
   ansible.builtin.shell: LESS=+q /opt/ibm/lop/configure <<<'y'
+  changed_when: true
   when:
     - ansible_architecture == "ppc64le"
     - sap_general_preconfigure_install_ibm_power_tools | d(true)
@@ -164,7 +167,8 @@
     - __sap_general_preconfigure_min_pkgs | d([])
   block:
 
-    - name: Create a list of minimum required package versions to be installed
+# Reason for noqa: We can safely fail at the last command in the pipeline.
+    - name: Create a list of minimum required package versions to be installed # noqa risky-shell-pipe
 # How does it work?
 # 1 - Print the required package name and version with a prefix "1" followed by a space.
 # 2 - In the same output sequence, list all installed versions of this package with a prefix "2" followed by a space.
@@ -275,4 +279,5 @@
 - name: Call Reboot handler if necessary
   ansible.builtin.command: /bin/true
   notify: __sap_general_preconfigure_reboot_handler
+  changed_when: false
   when: __sap_general_preconfigure_register_needs_restarting is failed

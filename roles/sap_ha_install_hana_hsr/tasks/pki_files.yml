@@ -5,6 +5,8 @@
 # control node.
 
 - name: "SAP HSR - Direct connection handling to primary"
+  become: true
+  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
   block:
 
     - name: "SAP HSR - Create .ssh if missing"
@@ -35,8 +37,8 @@
 
     - name: "SAP HSR - Authorize pub key on primary node"
       ansible.builtin.lineinfile:
-        backup: yes
-        create: yes
+        backup: true
+        create: true
         line: "{{ __sap_ha_install_hana_hsr_pubkey.stdout }}"
         mode: "0600"
         path: ~/.ssh/authorized_keys
@@ -123,6 +125,3 @@
         - __sap_ha_install_hana_hsr_create_ssh_prim.changed is defined
         - __sap_ha_install_hana_hsr_create_ssh_prim.changed
       delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node }}"
-
-  become: true
-  become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"

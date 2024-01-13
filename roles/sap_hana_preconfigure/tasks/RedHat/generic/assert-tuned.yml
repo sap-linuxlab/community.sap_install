@@ -17,7 +17,7 @@
 
 - name: "Assert that tuned is enabled - use_tuned: yes"
   ansible.builtin.assert:
-    that: "ansible_facts.services['tuned.service']['status'] == 'enabled'"
+    that: ansible_facts.services['tuned.service']['status'] == 'enabled'
     fail_msg: "FAIL: Service 'tuned' is not enabled!"
     success_msg: "PASS: Service 'tuned' is enabled."
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
@@ -27,7 +27,7 @@
 
 - name: "Assert that tuned is active - use_tuned: yes"
   ansible.builtin.assert:
-    that: "ansible_facts.services['tuned.service']['state'] == 'running'"
+    that: ansible_facts.services['tuned.service']['state'] == 'running'
     fail_msg: "FAIL: Service 'tuned' is not active!"
     success_msg: "PASS: Service 'tuned' is active."
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
@@ -44,7 +44,7 @@
 
 - name: "Assert that tuned is disabled - use_tuned: no"
   ansible.builtin.assert:
-    that: "ansible_facts.services['tuned.service']['status'] == 'disabled'"
+    that: ansible_facts.services['tuned.service']['status'] == 'disabled'
     fail_msg: "FAIL: Service 'tuned' is not disabled!"
     success_msg: "PASS: Service 'tuned' is disabled."
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
@@ -54,7 +54,7 @@
 
 - name: "Assert that tuned is inactive - use_tuned: no"
   ansible.builtin.assert:
-    that: "ansible_facts.services['tuned.service']['state'] == 'inactive'"
+    that: ansible_facts.services['tuned.service']['state'] == 'inactive'
     fail_msg: "FAIL: Service 'tuned' is not inactive!"
     success_msg: "PASS: Service 'tuned' is inactive."
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
@@ -70,7 +70,7 @@
            sap_hana_preconfigure_assert_all_config)"
 
 - name: Get active tuned profile
-  ansible.builtin.shell: /usr/sbin/tuned-adm active | grep ":" | cut -d ":" -f 2 | awk '{$1=$1;print}'
+  ansible.builtin.shell: set -o pipefail && /usr/sbin/tuned-adm active | awk '/:/{print $NF}'
   check_mode: no
   register: __sap_hana_preconfigure_register_current_tuned_profile_assert
   ignore_errors: yes
@@ -88,7 +88,7 @@
 
 - name: Assert that tuned profile '{{ sap_hana_preconfigure_tuned_profile }}' is currently active
   ansible.builtin.assert:
-    that: "__sap_hana_preconfigure_register_current_tuned_profile_assert.stdout == '{{ sap_hana_preconfigure_tuned_profile }}'"
+    that: __sap_hana_preconfigure_register_current_tuned_profile_assert.stdout == sap_hana_preconfigure_tuned_profile
     fail_msg: "FAIL: The tuned profile '{{ sap_hana_preconfigure_tuned_profile }}' is currently not active!
       Currently active profile: '{{ __sap_hana_preconfigure_register_current_tuned_profile_assert.stdout }}'."
     success_msg: "PASS: The tuned profile '{{ sap_hana_preconfigure_tuned_profile }}' is currently active."

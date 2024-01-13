@@ -26,10 +26,10 @@ According to SAP Note the command is: saphostexec -upgrade
 - get the installable Version
 - install/upgrade if required
 
-### Important Steps from the documention:
+### Important Steps from the documentation:
 
  - requires root
- - Optional Paramter: `-pf <ProfilePath>` defaults to /usr/sap/exe
+ - Optional Parameter: `-pf <ProfilePath>` defaults to /usr/sap/exe
 
 1. Install Host agent (from unpacked directory)
 ```

@@ -13,16 +13,16 @@
       ansible.builtin.systemd:
         name: saptune
         state: started
-        enabled: yes
+        enabled: true
         
     - name: Ensure saptune_check executes correctly
       ansible.builtin.command: saptune_check
-      changed_when: no
+      changed_when: false
  
     - name: Discover active solution
       ansible.builtin.command: saptune solution enabled
       register: __sap_hana_preconfigure_register_saptune_status
-      changed_when: no
+      changed_when: false
 
     - name: Set fact for active solution
       ansible.builtin.set_fact:
@@ -47,8 +47,8 @@
 - name: Disable TCP timestamps, recycle & reuse
   ansible.builtin.blockinfile:
     path: /etc/saptune/override/2382421
-    create: yes
-    backup: yes
+    create: true
+    backup: true
     owner: root
     group: root
     mode: '0640'
@@ -64,13 +64,14 @@
 - name: Check if saptune solution needs to be applied
   ansible.builtin.command: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
   register: __sap_hana_preconfigure_register_saptune_verify
-  changed_when: no # We're only checking, not changing!
-  failed_when: no # We expect this to fail if it has not previously been applied
+  changed_when: false # We're only checking, not changing!
+  failed_when: false # We expect this to fail if it has not previously been applied
   when: 
     __sap_hana_preconfigure_run_saptune
 
 - name: Ensure no solution is currently applied
   ansible.builtin.command: "saptune solution revert {{ __sap_hana_preconfigure_fact_solution_configured }}"
+  changed_when: true
   when:
     - __sap_hana_preconfigure_run_saptune
     - __sap_hana_preconfigure_fact_solution_configured != 'NONE'
@@ -79,17 +80,16 @@
 
 - name: Ensure saptune solution is applied
   ansible.builtin.command: "saptune solution apply {{ sap_hana_preconfigure_saptune_solution }}"
+  #changed_when: true
   when: 
     - __sap_hana_preconfigure_run_saptune
     - __sap_hana_preconfigure_register_saptune_verify.rc != 0
-
-- name: saptune verification
-  when: 
-    - __sap_hana_preconfigure_run_saptune
   block:
+
     - name: Ensure solution was successful
       ansible.builtin.command: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
-      changed_when: no
+      changed_when: false # We're only checking, not changing!
+
 
     - name: Make sure that sapconf and tuned are stopped and disabled
       ansible.builtin.command: "saptune service takeover"

@@ -16,7 +16,7 @@ This role has been tested and working for the following scenarios
 -   Dual Host Installation
 -   Distributed Installation
 -   System Restore
--   High Avalability Installation
+-   High Availability Installation
 
 This role has been tested and working for the following SAP products
 -   SAP S/4HANA 1809, 1909, 2020, 2021

@@ -30,6 +30,27 @@ This Ansible Collection executes various SAP Software installations for differen
   - Install Linux Pacemaker, configure Pacemaker Fencing Agents and Pacemaker Resource Agents
   - Set HA/DR with distributed SAP System installations (i.e. ERS)
 
+### Note
+
+Starting with `ansible-core` versions 2.16.1, 2.15.8, and 2.14.12, templating operations inside the `that` statement of `assert` tasks
+are no longer allowed.
+
+A typical error message is:
+```
+fatal: [host01]: FAILED! =>
+  msg: 'The conditional check ''13 <= 128'' failed. The error was: Conditional is marked as unsafe, and cannot be evaluated.'
+```
+
+This version of the collection ensures the compatibility with the above mentioned versions of `ansible-core` for the following roles:
+- sap_general_preconfigure
+- sap_netweaver_preconfigure
+- sap_hana_preconfigure
+- sap_hana_install
+
+When running the preconfigure roles with the above mentioned versions of `ansible-core` and with the parameters
+`sap_general_preconfigure_assert`, `sap_netweaver_preconfigure_assert`, or `sap_hana_preconfigure_assert`, the roles will abort
+in the first `assert` task which contains a templating operation.
+
 ## Contents
 
 An Ansible Playbook can call either an Ansible Role, or the individual Ansible Modules:
@@ -75,7 +96,7 @@ The logic has been separated to support a flexible execution of the different st
 | [sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_install) | [![Ansible Lint for sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint-sap_hana_install.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint-sap_hana_install.yml) |
 | [sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_preconfigure) | [![Ansible Lint for sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint-sap_hana_preconfigure.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint-sap_hana_preconfigure.yml) |
 | [sap_hostagent](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hostagent) | N/A |
-| [sap_hypervisor_node_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hypervisor_node_preconfigure) | N/A |
+| [sap_hypervisor_node_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hypervisor_node_preconfigure) | [![Ansible Lint for sap_hypervisor_node_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint-sap_hypervisor_node_preconfigure.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint-sap_hypervisor_node_preconfigure.yml) |
 | [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect) | N/A |
 | [sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_netweaver_preconfigure) | [![Ansible Lint for sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint-sap_netweaver_preconfigure.yml/badge.svg)](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint-sap_netweaver_preconfigure.yml) |
 | [sap_storage_setup](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_storage_setup) | N/A |
@@ -89,7 +110,7 @@ The logic has been separated to support a flexible execution of the different st
 
 ## Execution examples
 
-There are various methods to execute the Ansible Collection, dependant on the use case. For more information, see [Execution examples with code samples](./docs/getting_started) and the summary below:
+There are various methods to execute the Ansible Collection, dependent on the use case. For more information, see [Execution examples with code samples](./docs/getting_started) and the summary below:
 
 | Execution Scenario | Use Case | Target |
 | ---- | ---- | ---- |

@@ -1,0 +1,19 @@
+---
+- name: Label nodes
+  ansible.builtin.command: "oc label node {{ __sap_hypervisor_node_preconfigure_register_worker.name }} cpumanager=true --overwrite=true"
+  register: __sap_hypervisor_node_preconfigure_label_node_result
+  changed_when: __sap_hypervisor_node_preconfigure_label_node_result.rc != 0
+
+- name: Include node network
+  ansible.builtin.include_tasks: node-network.yml
+  with_items: "{{ __sap_hypervisor_node_preconfigure_register_worker.networks }}"
+  loop_control:
+    loop_var: __sap_hypervisor_node_preconfigure_register_worker_network
+    index_var: __sap_hypervisor_node_preconfigure_register_worker_network_nr
+  when: __sap_hypervisor_node_preconfigure_register_worker.networks is defined
+
+# How to wait for node to be scheduleable? (NodeSchedulable)
+- name: Wait for all k8s nodes to be ready
+  ansible.builtin.command: oc wait --for=condition=Ready nodes --all --timeout=3600s
+  register: __sap_hypervisor_node_preconfigure_register_nodes_ready
+  changed_when: __sap_hypervisor_node_preconfigure_register_nodes_ready.rc != 0
