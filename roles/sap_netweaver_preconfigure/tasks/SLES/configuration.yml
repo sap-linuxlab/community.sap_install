@@ -1,8 +1,8 @@
 ---
 
-- name: saptune 
-  when: 
-    __sap_netweaver_preconfigure_run_saptune
+- name: Configure saptune
+  when:
+    - __sap_netweaver_preconfigure_run_saptune
   block:
 
     - name: Ensure saptune is running and enabled
@@ -14,7 +14,6 @@
     - name: Ensure saptune_check executes correctly
       ansible.builtin.command: saptune_check
       changed_when: false
-
 
     - name: Discover active solution
       ansible.builtin.command: saptune solution enabled
@@ -48,23 +47,23 @@
 - name: Ensure saptune solution is applied
   ansible.builtin.command: "saptune solution apply {{ sap_netweaver_preconfigure_saptune_solution }}"
   #changed_when: true
-  when: 
+  when:
     - __sap_netweaver_preconfigure_run_saptune
     - __sap_netweaver_preconfigure_register_saptune_verify.rc != 0
 
 - name: Ensure solution was successful
   ansible.builtin.command: "saptune solution verify {{ sap_netweaver_preconfigure_saptune_solution }}"
   changed_when: false # We're only checking, not changing!
-  when: 
-    __sap_netweaver_preconfigure_run_saptune
+  when:
+    - __sap_netweaver_preconfigure_run_saptune
 
 # restart sapconf service
-- name: restart sapconf service
+- name: Restart sapconf service
   ansible.builtin.systemd:
     name: sapconf
     state: restarted
   when:
-    not __sap_netweaver_preconfigure_run_saptune
+    - not __sap_netweaver_preconfigure_run_saptune
 
 - name: Warn if not enough swap space is configured
   ansible.builtin.fail:

@@ -17,46 +17,46 @@
   register: sles_baseproduct
   when: ansible_os_family == 'Suse'
 
-- name: Setfact if baseproduct contains SLES without SLES_SAP
+- name: Set fact if baseproduct contains SLES without SLES_SAP
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_run_saptune: false
-  when: 
+  when:
     - '"SLES_SAP" not in sles_baseproduct.stat.lnk_target'
     - '"SLES" in sles_baseproduct.stat.lnk_target'
     - ansible_os_family == 'Suse'
 
 - name: Output
-  ansible.builtin.debug: 
+  ansible.builtin.debug:
     msg:
-      - "OS Familiy: {{ ansible_os_family }}"
-      - "saptune: {{ __sap_hana_preconfigure_run_saptune }}" 
+      - "OS Family: {{ ansible_os_family }}"
+      - "saptune: {{ __sap_hana_preconfigure_run_saptune }}"
       - "link: {{ sles_baseproduct.stat.lnk_target }}"
 # -----------
 
-- name: prepare saptune
+- name: Prepare saptune
+  when:
+    - __sap_hana_preconfigure_run_saptune
   block:
+
     - name: Ensure saphana pattern is installed
       community.general.zypper:
         type: pattern
         name: sap-hana
         state: present
-        force: yes
+        force: true
 
     - name: Ensure saptune is installed
       community.general.zypper:
         type: package
         name: "saptune={{ sap_hana_preconfigure_saptune_version }}"
         state: present
-        force: yes
-  when: 
-    __sap_hana_preconfigure_run_saptune
+        force: true
 
 - name: Ensure sapconf is installed
   community.general.zypper:
     type: package
     name: "sapconf"
     state: present
-    force: yes
-  when: 
-    not __sap_hana_preconfigure_run_saptune
-    
+    force: true
+  when:
+    - not __sap_hana_preconfigure_run_saptune
