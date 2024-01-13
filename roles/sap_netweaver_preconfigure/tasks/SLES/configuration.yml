@@ -1,49 +1,70 @@
 ---
-- name: Ensure saptune is running and enabled
-  ansible.builtin.systemd:
-    name: saptune
-    state: started
-    enabled: true
 
-- name: Ensure saptune_check executes correctly
-  ansible.builtin.command: saptune_check
-  changed_when: false
+- name: saptune 
+  when: 
+    __sap_netweaver_preconfigure_run_saptune
+  block:
 
-- name: Discover active solution
-  ansible.builtin.command: saptune solution enabled
-  register: __sap_netweaver_preconfigure_register_saptune_status
-  changed_when: false
+    - name: Ensure saptune is running and enabled
+      ansible.builtin.systemd:
+        name: saptune
+        state: started
+        enabled: true
 
-- name: Make sure that sapconf and tuned are stopped and disabled
-  ansible.builtin.command: "saptune service takeover"
-  register: __sap_saptune_takeover
-  changed_when: __sap_saptune_takeover.rc == 0
+    - name: Ensure saptune_check executes correctly
+      ansible.builtin.command: saptune_check
+      changed_when: false
 
-- name: Set fact for active solution
-  ansible.builtin.set_fact:
-    __sap_netweaver_preconfigure_fact_solution_configured: "{{ (__sap_netweaver_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}" # Capture the first block on none whitespace
 
-- name: Check if saptune solution needs to be applied
-  ansible.builtin.command: "saptune solution verify {{ sap_netweaver_preconfigure_saptune_solution }}"
-  register: __sap_netweaver_preconfigure_register_saptune_verify
-  changed_when: false # We're only checking, not changing!
-  failed_when: false # We expect this to fail if it has not previously been applied
+    - name: Discover active solution
+      ansible.builtin.command: saptune solution enabled
+      register: __sap_netweaver_preconfigure_register_saptune_status
+      changed_when: false
+
+    - name: Make sure that sapconf and tuned are stopped and disabled
+      ansible.builtin.command: "saptune service takeover"
+      register: __sap_saptune_takeover
+      changed_when: __sap_saptune_takeover.rc == 0
+
+    - name: Set fact for active solution
+      ansible.builtin.set_fact:
+        __sap_netweaver_preconfigure_fact_solution_configured: "{{ (__sap_netweaver_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}" # Capture the first block on none whitespace
+
+    - name: Check if saptune solution needs to be applied
+      ansible.builtin.command: "saptune solution verify {{ sap_netweaver_preconfigure_saptune_solution }}"
+      register: __sap_netweaver_preconfigure_register_saptune_verify
+      changed_when: false # We're only checking, not changing!
+      failed_when: false # We expect this to fail if it has not previously been applied
+
 
 - name: Ensure no solution is currently applied
   ansible.builtin.command: "saptune solution revert {{ __sap_netweaver_preconfigure_fact_solution_configured }}"
   changed_when: true
   when:
+    - __sap_netweaver_preconfigure_run_saptune
     - __sap_netweaver_preconfigure_fact_solution_configured != 'NONE'
     - __sap_netweaver_preconfigure_register_saptune_verify.rc != 0
 
 - name: Ensure saptune solution is applied
   ansible.builtin.command: "saptune solution apply {{ sap_netweaver_preconfigure_saptune_solution }}"
-  changed_when: true
-  when: __sap_netweaver_preconfigure_register_saptune_verify.rc != 0
+  #changed_when: true
+  when: 
+    - __sap_netweaver_preconfigure_run_saptune
+    - __sap_netweaver_preconfigure_register_saptune_verify.rc != 0
 
 - name: Ensure solution was successful
   ansible.builtin.command: "saptune solution verify {{ sap_netweaver_preconfigure_saptune_solution }}"
   changed_when: false # We're only checking, not changing!
+  when: 
+    __sap_netweaver_preconfigure_run_saptune
+
+# restart sapconf service
+- name: restart sapconf service
+  ansible.builtin.systemd:
+    name: sapconf
+    state: restarted
+  when:
+    not __sap_netweaver_preconfigure_run_saptune
 
 - name: Warn if not enough swap space is configured
   ansible.builtin.fail:
