@@ -36,6 +36,7 @@ Within this Ansible Collection, there are various Ansible Roles and no custom An
 | [sap_hostagent](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hostagent) | install SAP Host Agent |
 | [sap_hypervisor_node_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hypervisor_node_preconfigure) | configure a hypervisor running VMs for SAP HANA |
 | [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect) | detect and extract SAP Software installation media |
+| [sap_maintain_etc_hosts](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_maintain_etc_hosts) | maintain the /etc/hosts file of an SAP software host |
 | [sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_netweaver_preconfigure) | configure settings for SAP NetWeaver application server |
 | [sap_storage_setup](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_storage_setup) | configure storage for SAP HANA, with LVM partitions and XFS filesystem |
 | [sap_swpm](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_swpm) | install SAP Software via SWPM |
