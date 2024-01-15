@@ -100,7 +100,7 @@ This Ansible Collection was designed for maximum backwards compatibility, with f
 
 **Note 1:** Ansible 2.9 was the last release before the Ansible project was split into Ansible Core and Ansible Community Edition, and was before Ansible Collections functionality was introduced. This Ansible Collection should execute when Ansible 2.9 is used, but it is not recommended and errors should be expected (and will not be resolved).
 
-**Note 2:** Ansible Core versions preceeding 2.14.12 , 2.15.8 , and 2.16.1 where `CVE-2023-5764` (templating inside `that` statement of `assert` Ansible Tasks) security fix was addressed, will work after `v1.3.4` of this Ansible Collection. Otherwise an error similar to the following will occur:
+**Note 2:** Ansible Core versions prior to 2.14.12 , 2.15.8 , and 2.16.1 where `CVE-2023-5764` (templating inside `that` statement of `assert` Ansible Tasks) security fix was addressed, will work after `v1.3.4` of this Ansible Collection. Otherwise an error similar to the following will occur:
 
 ```yaml
 fatal: [host01]: FAILED! =>
