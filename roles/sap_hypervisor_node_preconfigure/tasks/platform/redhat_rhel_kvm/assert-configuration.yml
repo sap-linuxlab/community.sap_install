@@ -70,16 +70,19 @@
       ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"
 
 - name: Assert - check sap_hypervisor_node_preconfigure_nx_huge_pages
-  when: sap_hypervisor_node_preconfigure_nx_huge_pages is defined
+  when: sap_hypervisor_node_preconfigure_kvm_nx_huge_pages is defined
   block:
-    - name: "Assert - Check kvm.nx_huge_pages is {{ sap_hypervisor_node_preconfigure_nx_huge_pages }}"
+    - name: Set fact for sap_hypervisor_node_preconfigure_register_assert_nx_huge_pages
+      ansible.builtin.set_fact:
+        sap_hypervisor_node_preconfigure_register_assert_nx_huge_pages: "{{ __sap_hypervisor_node_preconfigure_kernelcmdline_assert.stdout | regex_search('kvm.nx_huge_pages=(.+)', '\\1') | first }}"
+    - name: "Assert - Check kvm.nx_huge_pages is {{ sap_hypervisor_node_preconfigure_kvm_nx_huge_pages }}"
       ansible.builtin.assert:
-        that: "'kvm.nx_huge_pages={{ sap_hypervisor_node_preconfigure_nx_huge_pages }}' in __sap_hypervisor_node_preconfigure_kernelcmdline_assert.stdout"
-        fail_msg: "FAIL: kvm.nx_huge_pages is not {{ sap_hypervisor_node_preconfigure_nx_huge_pages }}"
-        success_msg: "PASS: kvm.nx_huge_pages is {{ sap_hypervisor_node_preconfigure_nx_huge_pages }}"
+        that: sap_hypervisor_node_preconfigure_register_assert_nx_huge_pages == sap_hypervisor_node_preconfigure_kvm_nx_huge_pages
+        fail_msg: "FAIL: kvm.nx_huge_pages is not {{ sap_hypervisor_node_preconfigure_kvm_nx_huge_pages }}"
+        success_msg: "PASS: kvm.nx_huge_pages is {{ sap_hypervisor_node_preconfigure_kvm_nx_huge_pages }}"
       ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"
 
-- name: Assert - check seccomp_sanbox=0
+- name: Assert - check seccomp_sandbox=0
   block:
     - name: Get seccomp setting
       ansible.builtin.command: grep -E '^seccomp_sandbox\s+=\s+0.*$' /etc/libvirt/qemu.conf
@@ -87,9 +90,9 @@
       ignore_errors: yes
       changed_when: __sap_hypervisor_node_preconfigure_seccomp_assert.rc != 0
 
-    - name: "Assert - Check seccomp_sanbox=0 is in /etc/libvirt/qemu.conf"
+    - name: "Assert - Check seccomp_sandbox=0 is in /etc/libvirt/qemu.conf"
       ansible.builtin.assert:
-        that: "{{ __sap_hypervisor_node_preconfigure_seccomp_assert.rc }} == 0"
+        that: __sap_hypervisor_node_preconfigure_seccomp_assert is success
         fail_msg: "FAIL: seccomp_sandbox != 0"
         success_msg: "PASS: seccomp_sanbox == 0"
       ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"
@@ -103,7 +106,7 @@
 
     - name: "Check that at least {{ sap_hypervisor_node_preconfigure_reserved_ram }} GB are available for the hypervisor and the rest are 1G hugepages"
       ansible.builtin.assert:
-        that: "{{ (ansible_memtotal_mb / 1024) | int - sap_hypervisor_node_preconfigure_reserved_ram }} >= {{ __sap_hypervisor_node_preconfigure_1g_hugepages_assert.stdout }}"
+        that: ((ansible_memtotal_mb / 1024) | int - sap_hypervisor_node_preconfigure_reserved_ram | int)  >= (__sap_hypervisor_node_preconfigure_1g_hugepages_assert.stdout | int)
         fail_msg: "FAIL: Not enough memory reserved for hypervisor"
         success_msg: "PASS: Enough memory reserved for hypervisor"
       ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"
@@ -124,10 +127,9 @@
         success_msg: "PASS: iommu=pt on Kernel command line"
       ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"
 
-    # XXX shouldn't tsx be on?
-    - name: Ensure tsx is off
+    - name: Ensure tsx is on
       ansible.builtin.assert:
-        that: "'tsx=off' in __sap_hypervisor_node_preconfigure_kernelcmdline_assert.stdout"
-        fail_msg: "FAIL: tsx=off not on Kernel command line"
-        success_msg: "PASS: tsx=off on Kernel command line"
+        that: "'tsx=on' in __sap_hypervisor_node_preconfigure_kernelcmdline_assert.stdout"
+        fail_msg: "FAIL: tsx=on not in Kernel command line"
+        success_msg: "PASS: tsx=on in Kernel command line"
       ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_failed_assertion }}"
