@@ -1,12 +1,14 @@
 ---
 - name: Create tuned profile directory /usr/lib/tuned/sap-hana
-  file:
+  ansible.builtin.file:
     path: /usr/lib/tuned/sap-hana
     state: directory
+    mode: "0755"
 
 - name: Create sap-hana tuned profile
-  copy:
+  ansible.builtin.copy:
     dest: "/usr/lib/tuned/sap-hana/tuned.conf"
+    mode: "0644"
     content: |
         #
         # tuned configuration
@@ -34,14 +36,15 @@
 
 
 - name: Create tuned profile directory /usr/lib/tuned/sap-hana-kvm-guest
-  file:
+  ansible.builtin.file:
     path: /usr/lib/tuned/sap-hana-kvm-guest
+    mode: "0755"
     state: directory
 
 - name: Add haltpoll.sh for tuned sap-hana-kvm-guest
-  copy:
+  ansible.builtin.copy:
     dest: "/usr/lib/tuned/sap-hana-kvm-guest/haltpoll.sh"
-    mode: 0744
+    mode: "0744"
     content: |
         #!/bin/bash
 
@@ -53,8 +56,9 @@
 
 
 - name: Create sap-hana-kvm-guest tuned profile
-  copy:
+  ansible.builtin.copy:
     dest: "/usr/lib/tuned/sap-hana-kvm-guest/tuned.conf"
+    mode: "0644"
     content: |
         #
         # tuned configuration
@@ -82,4 +86,6 @@
         cmdline_saphana=skew_tick=1
 
 - name: Activate tuned profile
-  command: tuned-adm profile sap-hana-kvm-guest
+  ansible.builtin.command: tuned-adm profile sap-hana-kvm-guest
+  register: __sap_provision_vm_register_tuned_sap_hana_kvm_guest_status
+  changed_when: __sap_provision_vm_register_tuned_sap_hana_kvm_guest_status.rc != 0
