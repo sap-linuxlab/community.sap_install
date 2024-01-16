@@ -66,7 +66,7 @@ Ansible Playbook
 
 There are various methods to execute the Ansible Collection, dependent on the use case.
 
-For more information, see [Getting started](./docs/getting_started) and edit the [sample Ansible Playbooks in `/playbooks`](../playbooks/).
+For more information, see [Getting started](./getting_started#readme) and edit the [sample Ansible Playbooks in `/playbooks`](../playbooks/).
 
 
 ## Requirements and Dependencies
