@@ -41,13 +41,16 @@
 
 # TODO: detection based on multiple facts and providing one standard
 # name for use as platform type in related include files
-# cloud_aliyun_ecs_vm, cloud_aws_ec2_vs, cloud_gcp_ce_vm, cloud_ibmcloud_powervs, cloud_ibmcloud_vs, cloud_msazure_vm, hyp_ibmpower_vm, hyp_redhat_ocp_virt_vm, hyp_redhat_rhel_kvm_vm, hyp_vmware_vsphere_vm
+# cloud_aliyun_ecs_vm, cloud_aws_ec2_vs, cloud_gcp_ce_vm, cloud_ibmcloud_powervs, cloud_ibmcloud_vs,
+# cloud_msazure_vm, hyp_ibmpower_vm, hyp_redhat_ocp_virt_vm, hyp_redhat_rhel_kvm_vm,
+# hyp_vmware_vsphere_vm
 
 
 - name: "SAP HA Prepare Pacemaker - Check if platform is Amazon Web Services EC2 Virtual Server"
   when:
     - '"amazon" in ansible_system_vendor | lower
-      or "amazon" in ansible_product_name | lower'
+      or "amazon" in ansible_product_name | lower
+      or "amazon" in ansible_product_version | lower'
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_platform: cloud_aws_ec2_vs
 
@@ -74,6 +77,7 @@
   ansible.builtin.shell: |
     set -o pipefail && rpm -qa | grep -E -e "rsct.basic"
   register: __sap_ha_pacemaker_cluster_power_rsct_check
+  changed_when: false
   when: ansible_architecture == "ppc64le"
 
 - name: "SAP HA Prepare Pacemaker - Check if platform is IBM Power - RSCT binary check"
@@ -87,6 +91,7 @@
   ansible.builtin.shell: |
     /opt/rsct/bin/ctgethscid
   register: __sap_ha_pacemaker_cluster_power_rsct_hscid
+  changed_when: false
   when:
     - ansible_architecture == "ppc64le"
     - __sap_ha_pacemaker_cluster_power_rsct_check.stdout != ""
@@ -105,18 +110,11 @@
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_platform: hyp_ibmpower_vm
 
-#- name: "SAP HA Prepare Pacemaker - Check if platform is VMware vSphere"
-#  when:
-#    - ansible_virtualization_type == 'VMware'
-#  ansible.builtin.set_fact:
-#    __sap_ha_pacemaker_cluster_platform: hyp_vmware_vsphere_vm
-
-- name: "SAP HA Prepare Pacemaker - Include platform specific tasks - MS Azure VM - Ensure socat binary installed"
-  ansible.builtin.package:
-    name:
-      - socat
-    state: present
-  when: __sap_ha_pacemaker_cluster_platform == "cloud_msazure_vm"
+# - name: "SAP HA Prepare Pacemaker - Check if platform is VMware vSphere"
+#   when:
+#     - ansible_virtualization_type == 'VMware'
+#   ansible.builtin.set_fact:
+#     __sap_ha_pacemaker_cluster_platform: hyp_vmware_vsphere_vm
 
 # Call tasks to discover information that is needed as input for any further steps.
 # Run this before including the platform vars in order to build vars based on the

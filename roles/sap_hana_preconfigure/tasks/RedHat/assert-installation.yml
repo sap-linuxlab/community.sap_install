@@ -1,17 +1,21 @@
 ---
 
-- name: Assert that the RHEL release is supported for SAP HANA
+- name: Assert that the system is running a RHEL release which is supported for SAP HANA
   ansible.builtin.assert:
-    that: ansible_distribution_version in "{{ sap_hana_preconfigure_supported_rhel_minor_releases }}"
-    fail_msg: "FAIL: The RHEL release {{ ansible_distribution_version }} is not supported for SAP HANA!"
+    that: ansible_distribution_version in sap_hana_preconfigure_supported_rhel_minor_releases
+    fail_msg:
+      - "FAIL: The RHEL release '{{ ansible_distribution_version }}' may not (yet) be supported for SAP HANA. Please check SAP note 2235581!"
+      - "NOTE: If necessary, adapt role parameter `sap_hana_preconfigure_supported_rhel_minor_releases` accordingly."
     success_msg: "PASS: The RHEL release {{ ansible_distribution_version }} is supported for SAP HANA."
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
   when: sap_hana_preconfigure_min_rhel_release_check
 
 - name: Report if the RHEL release is supported for SAP HANA
   ansible.builtin.assert:
-    that: ansible_distribution_version in "{{ sap_hana_preconfigure_supported_rhel_minor_releases }}"
-    fail_msg: "WARN: The RHEL release {{ ansible_distribution_version }} is not supported for SAP HANA!"
+    that: ansible_distribution_version in sap_hana_preconfigure_supported_rhel_minor_releases
+    fail_msg:
+      - "WARN: The RHEL release '{{ ansible_distribution_version }}' may not (yet) be supported for SAP HANA. Please check SAP note 2235581!"
+      - "NOTE: If necessary, adapt role parameter `sap_hana_preconfigure_supported_rhel_minor_releases` accordingly."
     success_msg: "INFO: The RHEL release {{ ansible_distribution_version }} is supported for SAP HANA."
   ignore_errors: yes
   when: not sap_hana_preconfigure_min_rhel_release_check
@@ -29,7 +33,7 @@
 
 - name: Assert that all required repos are enabled
   ansible.builtin.assert:
-    that: "'{{ line_item }}' in __sap_hana_preconfigure_register_enabled_repos_assert.stdout_lines"
+    that: line_item in __sap_hana_preconfigure_register_enabled_repos_assert.stdout_lines
     fail_msg: "FAIL: Repository '{{ line_item }}' is not enabled!"
     success_msg: "PASS: Repository '{{ line_item }}' is enabled."
   with_items:
@@ -50,7 +54,7 @@
 
 - name: Assert that the RHEL release is locked correctly
   ansible.builtin.assert:
-    that: "__sap_hana_preconfigure_register_subscription_manager_release_assert.stdout == '{{ ansible_distribution_version }}'"
+    that: __sap_hana_preconfigure_register_subscription_manager_release_assert.stdout == ansible_distribution_version
     fail_msg: "FAIL: The RHEL release lock status is '{{ __sap_hana_preconfigure_register_subscription_manager_release_assert.stdout }}'
                but the expected value is '{{ ansible_distribution_version }}'!"
     success_msg: "PASS: The RHEL release is correctly locked to '{{ ansible_distribution_version }}'."
@@ -65,7 +69,7 @@
 
 - name: Assert that all required packages are installed
   ansible.builtin.assert:
-    that: "'{{ line_item }}' in ansible_facts.packages"
+    that: line_item in ansible_facts.packages
     fail_msg: "FAIL: Package '{{ line_item }}' is not installed!"
     success_msg: "PASS: Package '{{ line_item }}' is installed."
   with_items:
@@ -81,9 +85,13 @@
 ### # /opt/ibm/lop/configure
 ### # yum -y install ibm-power-managed-rhel7
 ###
-- name: Get install status of required IBM packages
+# Reasons for noqa:
+# command-instead-of-module: I need to examine the output of the yum info command.
+# risky-shell-pipe: If a package is not installed, the shell command will fail. But I want the command to
+#   succeed so that the awk command can examine the result.
+- name: Get install status of required IBM packages # noqa command-instead-of-module risky-shell-pipe
   ansible.builtin.shell: |
-    set -o pipefail && yum info installed {{ __sap_hana_preconfigure_required_ppc64le | map('quote') | join(' ') }} |
+    yum info installed {{ __sap_hana_preconfigure_required_ppc64le | map('quote') | join(' ') }} |
     awk '/Name/{n=$NF}/Version/{v=$NF}/Release/{r=$NF}/Description/{printf ("%s\n", n)}'
   register: __sap_hana_preconfigure_register_required_ppc64le_packages_assert
   changed_when: no
@@ -91,7 +99,7 @@
 
 - name: Assert that all required IBM packages are installed
   ansible.builtin.assert:
-    that: "'{{ line_item }}' in __sap_hana_preconfigure_register_required_ppc64le_packages_assert.stdout_lines"
+    that: line_item in __sap_hana_preconfigure_register_required_ppc64le_packages_assert.stdout_lines
     fail_msg: "FAIL: Package '{{ line_item }}' is not installed!"
     success_msg: "PASS: Package '{{ line_item }}' is installed."
   with_items:
@@ -108,7 +116,8 @@
     - sap_hana_preconfigure_assert_ignore_errors | d(false)
   block:
 
-    - name: Assert - Create a list of minimum required package versions to be installed
+# Reason for noqa: We can safely fail at the last command in the pipeline.
+    - name: Assert - Create a list of minimum required package versions to be installed # noqa risky-shell-pipe
 # How does it work?
 # 1 - Print the required package name and version with a prefix "1" followed by a space.
 # 2 - In the same output sequence, list all installed versions of this package with a prefix "2" followed by a space.

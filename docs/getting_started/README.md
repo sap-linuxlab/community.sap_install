@@ -1,12 +1,11 @@
-# Examples and Tips
+# Getting started
 
-In this folder you find sample files, a few additional tips for using the provided ansible roles, as well as references to further information.
+In this folder you will find sample files, a few additional tips for using the provided ansible roles, as well as references to further information.
 
-- [Examples and Tips](#examples-and-tips)
-  - [How to run playbooks](#how-to-run-playbooks)
-    - [Inventory and variable parameters](#inventory-and-variable-parameters)
-    - [Security parameters](#security-parameters)
-    - [Other useful options](#other-useful-options)
+- [How to run playbooks](#how-to-run-playbooks)
+  - [Inventory and variable parameters](#inventory-and-variable-parameters)
+  - [Security parameters](#security-parameters)
+  - [Other useful options](#other-useful-options)
 
 ## How to run playbooks
 

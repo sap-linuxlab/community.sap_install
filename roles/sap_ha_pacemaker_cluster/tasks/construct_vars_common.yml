@@ -28,11 +28,11 @@
 
 - name: "SAP HA Prepare Pacemaker - Combine extra packages lists"
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_extra_packages: "{{ (
-      sap_ha_pacemaker_cluster_extra_packages
+    __sap_ha_pacemaker_cluster_extra_packages: "{{
+      (sap_ha_pacemaker_cluster_extra_packages
       + __sap_ha_pacemaker_cluster_sap_extra_packages
-      + __sap_ha_pacemaker_cluster_platform_extra_packages
-    ) | unique | select() }}"
+      + __sap_ha_pacemaker_cluster_platform_extra_packages)
+      | unique | select() }}"
   # remove duplicates and empty elements
 
 # sap_ha_pacemaker_cluster_fence_agent_minimal_packages -> global default
@@ -41,8 +41,28 @@
 
 - name: "SAP HA Prepare Pacemaker - Combine fence agent packages lists"
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_fence_agent_packages: "{{ (
-      sap_ha_pacemaker_cluster_fence_agent_minimal_packages
+    __sap_ha_pacemaker_cluster_fence_agent_packages: "{{
+      (sap_ha_pacemaker_cluster_fence_agent_minimal_packages
       + sap_ha_pacemaker_cluster_fence_agent_packages
-      + __sap_ha_pacemaker_cluster_fence_agent_packages
-    ) | unique }}"
+      + __sap_ha_pacemaker_cluster_fence_agent_packages)
+      | unique }}"
+
+- name: "SAP HA Prepare Pacemaker - Add default corosync totem settings"
+  when:
+    - sap_ha_pacemaker_cluster_corosync_totem is defined
+    - sap_ha_pacemaker_cluster_corosync_totem.options is defined
+    - sap_ha_pacemaker_cluster_corosync_totem.options | length > 0
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_corosync_totem:
+      options: "{{ __sap_ha_pacemaker_cluster_corosync_totem.options | default([]) + __totem_settings }}"
+  vars:
+    __totem_settings: |-
+      {% set new_opts = [] %}
+      {% for option in sap_ha_pacemaker_cluster_corosync_totem.options | dict2items -%}
+        {%- set add_opts = new_opts.extend([
+          {
+            'name': option.key,
+            'value': option.value
+          }]) -%}
+      {%- endfor %}
+      {{ new_opts }}

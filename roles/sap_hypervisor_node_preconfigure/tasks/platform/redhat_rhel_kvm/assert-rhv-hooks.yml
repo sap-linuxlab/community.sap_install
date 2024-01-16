@@ -2,6 +2,7 @@
 - name: Check file permissions
   ansible.builtin.command: "stat -c%a /usr/libexec/vdsm/hooks/before_vm_start/{{ item }}"
   register: __sap_hypervisor_node_preconfigure_register_file_permissions_assert
+  changed_when: __sap_hypervisor_node_preconfigure_register_file_permissions_assert.rc != 0
 
 - name: Assert hook file permissions
   ansible.builtin.assert:
@@ -14,16 +15,19 @@
   ansible.builtin.file:
     path: /tmp/sap_hypervisor_node_preconfigure
     state: directory
+    mode: "0755"
 
 - name: Copy hook for checking
   ansible.builtin.copy:
     dest: "/tmp/sap_hypervisor_node_preconfigure/{{ item }}"
     src: "{{ item }}"
+    mode: "0755"
 
 - name: Diff hook
   ansible.builtin.command: "diff -uw /tmp/sap_hypervisor_node_preconfigure/{{ item }} /usr/libexec/vdsm/hooks/before_vm_start/{{ item }}"
   register: __sap_hypervisor_node_preconfigure_register_hook_diff_assert
   ignore_errors: yes
+  changed_when: __sap_hypervisor_node_preconfigure_register_hook_diff_assert.rc != 0
 
 - name: Assert hook content
   ansible.builtin.assert:

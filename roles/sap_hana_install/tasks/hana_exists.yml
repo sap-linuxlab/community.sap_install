@@ -4,16 +4,16 @@
 - name: SAP HANA Checks - Check if saphostctrl is installed
   ansible.builtin.stat:
     path: /usr/sap/hostctrl/exe/saphostctrl
-  check_mode: no
+  check_mode: false
   register: __sap_hana_install_register_stat_saphostctrl
-  failed_when: no
+  failed_when: false
 
 - name: SAP HANA Checks - Check if SAP instances are installed with saphostctrl
   when: __sap_hana_install_register_stat_saphostctrl.stat.exists
   block:
 
     - name: SAP HANA Checks - Get list of installed SAP instances
-      ansible.builtin.shell: /usr/sap/hostctrl/exe/saphostctrl -function ListInstances | cut -d":" -f2-
+      ansible.builtin.shell: set -o pipefail && /usr/sap/hostctrl/exe/saphostctrl -function ListInstances | cut -d":" -f2-
       register: __sap_hana_install_register_instancelist
       changed_when: false
 
@@ -66,9 +66,9 @@
     - name: SAP HANA Checks - Get status of '/hana/shared/{{ sap_hana_install_sid }}'
       ansible.builtin.stat:
         path: "/hana/shared/{{ sap_hana_install_sid }}"
-      check_mode: no
+      check_mode: false
       register: __sap_hana_install_register_stat_hana_shared_sid_assert
-      failed_when: no
+      failed_when: false
 
     - name: SAP HANA Checks - Get contents of '/hana/shared/{{ sap_hana_install_sid }}'
       ansible.builtin.find:
@@ -87,9 +87,9 @@
     - name: SAP HANA Checks - Get status of '/usr/sap/{{ sap_hana_install_sid }}'
       ansible.builtin.stat:
         path: "/usr/sap/{{ sap_hana_install_sid }}"
-      check_mode: no
+      check_mode: false
       register: __sap_hana_install_register_stat_usr_sap_sid_assert
-      failed_when: no
+      failed_when: false
 
     - name: SAP HANA Checks - Get contents of '/usr/sap/{{ sap_hana_install_sid }}'
       ansible.builtin.find:
@@ -113,10 +113,10 @@
 
     - name: SAP HANA Checks - Get info about '{{ sap_hana_install_sid | lower }}adm' user
       ansible.builtin.command: getent passwd {{ sap_hana_install_sid | lower }}adm
-      check_mode: no
+      check_mode: false
       register: __sap_hana_install_register_getent_passwd_sidadm
-      changed_when: no
-      failed_when: no
+      changed_when: false
+      failed_when: false
 
     - name: SAP HANA Checks - Fail if the user '{{ sap_hana_install_sid | lower }}adm' exists
       ansible.builtin.fail:
@@ -135,10 +135,10 @@
 
     - name: SAP HANA Checks - Get info about the ID of the 'sapsys' group
       ansible.builtin.command: getent group sapsys
-      check_mode: no
+      check_mode: false
       register: __sap_hana_install_register_getent_group_sapsys
-      changed_when: no
-      failed_when: no
+      changed_when: false
+      failed_when: false
 
     - name: SAP HANA Checks - Define new variable for the assertion
       ansible.builtin.set_fact:

@@ -1,21 +1,24 @@
 ---
 # Reminder: This file is included in a loop over a dictionary.
 
-- name: "SAP HA Prepare Pacemaker - ipaddr resource agent - Add resource: OS network interface Virtual IP"
+- name: "SAP HA Prepare Pacemaker - IBM Cloud PowerVS - Add resource: OS network interface Virtual IP: {{ vip_list_item.key }} (IPaddr2)"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
   vars:
     __resource_vip:
       id: "{{ vip_list_item.key }}"
-      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents['ipaddr'].agent }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents['ipaddr_custom'].agent }}"
       instance_attrs:
         - attrs:
             - name: ip
               value: "{{ vip_list_item.value }}"
+            - name: cidr_netmask
+              value: "{{ __sap_ha_pacemaker_cluster_vip_client_interface_subnet_cidr.stdout | int }}"
             - name: nic
               value: "{{ sap_ha_pacemaker_cluster_vip_client_interface }}"
   when:
     - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
-    - (sap_ha_pacemaker_cluster_vip_method == 'ipaddr') or
+    - sap_ha_pacemaker_cluster_vip_method == 'ipaddr_custom' or
       (__sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with is defined and
-      'ipaddr' in __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with)
+      __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].with == 'ipaddr_custom')
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list

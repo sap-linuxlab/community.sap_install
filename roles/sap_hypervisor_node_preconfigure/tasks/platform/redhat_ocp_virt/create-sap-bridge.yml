@@ -1,0 +1,49 @@
+---
+- name: Create SAP bridge NodeNetworkConfigurationPolicy
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: nmstate.io/v1
+      kind: NodeNetworkConfigurationPolicy
+      metadata:
+        name: "sap-bridge-policy-{{ worker.name }}"
+      spec:
+        nodeSelector:
+          kubernetes.io/hostname: "{{ worker.name }}"
+        desiredState:
+          interfaces:
+            - name: sapbridge
+              description: "Linux bridge with {{ worker.sap_bridge_interface }} as physical port to access SAP network"
+              type: linux-bridge
+              state: up
+              ipv4:
+                enabled: false
+              bridge:
+                options:
+                  stp:
+                    enabled: false
+                port:
+                  - name: "{{ worker.sap_bridge_interface }}"
+
+
+- name: Create SAP bridge NetworkAttachmentDefinition
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: "k8s.cni.cncf.io/v1"
+      kind: NetworkAttachmentDefinition
+      metadata:
+        kubernetes.io/hostname: "{{ worker.name }}"
+        machineconfiguration.openshift.io/role: "{{ worker.name }}"
+        namespace: "{{ vm_namespace }}"
+        name: sap-bridge-network-definition
+        annotations:
+          k8s.v1.cni.cncf.io/resourceName: bridge.network.kubevirt.io/sapbridge
+      spec:
+        config: '{
+          "cniVersion": "0.3.1",
+          "name": "sap-bridge-network-definition",
+          "type": "cnv-bridge",
+          "bridge": "sapbridge",
+          "macspoofchk": true
+        }'

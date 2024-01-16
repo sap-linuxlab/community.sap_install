@@ -5,10 +5,35 @@
     state: present
     name: "{{ __sap_netweaver_preconfigure_packages }}"
 
-#The use of zypper here allows exact saptune version to be declared and used.
+- name: Get contents of /etc/products.d/baseproduct
+  ansible.builtin.stat:
+    path: /etc/products.d/baseproduct
+  register: sles_baseproduct
+  when: ansible_os_family == 'Suse'
+
+- name: Setfact if baseproduct contains SLES without SLES_SAP
+  ansible.builtin.set_fact:
+    __sap_netweaver_preconfigure_run_saptune: false
+  when:
+    - '"SLES_SAP" not in sles_baseproduct.stat.lnk_target'
+    - '"SLES" in sles_baseproduct.stat.lnk_target'
+    - ansible_os_family == 'Suse'
+
+# The use of zypper here allows exact saptune version to be declared and used.
 - name: Ensure saptune is installed
   community.general.zypper:
     type: package
     name: "saptune={{ sap_netweaver_preconfigure_saptune_version }}"
     state: present
-    force: yes
+    force: true
+  when:
+    - __sap_netweaver_preconfigure_run_saptune
+
+- name: Ensure sapconf is installed
+  community.general.zypper:
+    type: package
+    name: "sapconf"
+    state: present
+    force: true
+  when:
+    - not __sap_netweaver_preconfigure_run_saptune

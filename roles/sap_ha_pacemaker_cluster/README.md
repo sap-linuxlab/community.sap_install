@@ -84,7 +84,7 @@ In addition, the following network ports must be available:
 
 | **SAP Technical Application and Component** | **Port** |
 | --- | --- |
-| **_SAP HANA Sytem Replication_** | |
+| **_SAP HANA System Replication_** | |
 | hdbnameserver<br/><sub> used for log and data shipping from a primary site to a secondary site.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_no>`01 |
 | hdbnameserver<br/><sub> unencrypted metadata communication between sites.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_no>`02 |
 | hdbnameserver<br/><sub> used for encrypted metadata communication between sites.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_no>`06 |
@@ -95,7 +95,7 @@ In addition, the following network ports must be available:
 | **_Linux Pacemaker_** | |
 | pcsd<br/><sub> cluster nodes requirement for node-to-node communication</sub> | 2224 (TCP)|
 | pacemaker<br/><sub> cluster nodes requirement for Pacemaker Remote service daemon</sub> | 3121 (TCP) |
-| corosync<br/><sub> cluster nodes requirement for node-to-node communcation</sub> | 5404-5412 (UDP) |
+| corosync<br/><sub> cluster nodes requirement for node-to-node communication</sub> | 5404-5412 (UDP) |
 
 ## Execution Flow
 
@@ -269,25 +269,6 @@ The minimal set of fence agent packages that will be installed.<br>
 Additional fence agent packages to be installed.<br>
 This is automatically combined with `sap_ha_pacemaker_cluster_fence_agent_minimal_packages`.<br>
 
-### sap_ha_pacemaker_cluster_fence_options
-
-- _Type:_ `dict`
-- _Default:_ `{'pcmk_reboot_retries': 4, 'pcmk_reboot_timeout': 400, 'power_timeout': 240}`
-
-STONITH resource common parameters that apply to most fencing agents.<br>
-These options are applied to fencing resources this role uses automatically for pre-defined platforms (like AWS EC2 VS, IBM Cloud VS).<br>
-The listed options are set by default.<br>
-Additional options can be added by defining this parameter in dictionary format and adding the defaults plus any valid stonith resource key-value pair.<br>
-
-Example:
-
-```yaml
-sap_ha_pacemaker_cluster_fence_options:
-  pcmk_reboot_retries: 4
-  pcmk_reboot_timeout: 400
-  power_timeout: 240
-```
-
 ### sap_ha_pacemaker_cluster_gcp_project
 
 - _Type:_ `string`
@@ -421,7 +402,7 @@ Mandatory for the cluster setup on IBM Cloud Virtual Server instances or IBM Pow
 - _Type:_ `string`
 
 IBM Power Virtual Server API Endpoint type (public or private) dependent on network interface attachments for the target instances.<br>
-['Mandatory for the cluster setup on IBM Power Virtual Server from IBM Cloud.']<br>
+Mandatory for the cluster setup on IBM Power Virtual Server from IBM Cloud.<br>
 
 ### sap_ha_pacemaker_cluster_ibmcloud_powervs_forward_proxy_url
 
@@ -791,6 +772,13 @@ Name of the SAPInstance resource for NetWeaver AAS.<br>
 Virtual IP of the NetWeaver ASCS instance.<br>
 Mandatory for NetWeaver ASCS/ERS cluster setup.<br>
 
+### sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name
+
+- _Type:_ `string`
+- _Default:_ `<SID>_ASCS<ASCS-instance-number>_group`
+
+Name of the NetWeaver ASCS resource group.<br>
+
 ### sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name
 
 - _Type:_ `string`
@@ -804,6 +792,13 @@ Name of the SAPInstance resource for NetWeaver ASCS.<br>
 
 Virtual IP of the NetWeaver ERS instance.<br>
 Mandatory for NetWeaver ASCS/ERS cluster setup.<br>
+
+### sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name
+
+- _Type:_ `string`
+- _Default:_ `<SID>_ERS<ERS-instance-number>_group`
+
+Name of the NetWeaver ERS resource group.<br>
 
 ### sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name
 

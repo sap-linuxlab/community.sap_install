@@ -41,7 +41,8 @@
 
 # TODO: detection based on multiple facts and providing one standard
 # name for use as platform type in related include files
-# cloud_aliyun_ecs_vm, cloud_aws_ec2_vs, cloud_gcp_ce_vm, cloud_ibmcloud_powervs, cloud_ibmcloud_vs, cloud_msazure_vm, hyp_ibmpower_lpar, hyp_redhat_ocp_virt_vm, hyp_redhat_rhel_kvm_vm, hyp_vmware_vsphere_vm
+# cloud_aliyun_ecs_vm, cloud_aws_ec2_vs, cloud_gcp_ce_vm, cloud_ibmcloud_powervs, cloud_ibmcloud_vs, cloud_msazure_vm,
+# hyp_ibmpower_lpar, hyp_redhat_ocp_virt_vm, hyp_redhat_rhel_kvm_vm, hyp_vmware_vsphere_vm
 
 - name: "SAP VM Preconfigure - Check if platform is Amazon Web Services EC2 Virtual Server"
   when:
@@ -49,7 +50,7 @@
   ansible.builtin.set_fact:
     sap_vm_platform: cloud_aws_ec2_vs
 
-#- name: "SAP VM Preconfigure - Check if platform is Google Cloud Compute Engine Virtual Machine"
+# - name: "SAP VM Preconfigure - Check if platform is Google Cloud Compute Engine Virtual Machine"
 #  when:
 #    - ansible_product_name == 'Google Compute Engine'
 #  ansible.builtin.set_fact:
@@ -61,14 +62,14 @@
   ansible.builtin.set_fact:
     sap_vm_platform: cloud_ibmcloud_vs
 
-#- name: "SAP VM Preconfigure - Check if platform is Microsoft Azure Virtual Machine"
+# - name: "SAP VM Preconfigure - Check if platform is Microsoft Azure Virtual Machine"
 #  when:
 #    - ansible_chassis_vendor == 'Virtual Machine'
 #    - ansible_product_name == 'Microsoft Corporation'
 #  ansible.builtin.set_fact:
 #    sap_vm_platform: cloud_msazure_vm
 
-#- name: "SAP VM Preconfigure - Check if platform is VMware vSphere"
+# - name: "SAP VM Preconfigure - Check if platform is VMware vSphere"
 #  when:
 #    - ansible_virtualization_type == 'VMware'
 #  ansible.builtin.set_fact:
@@ -79,53 +80,52 @@
   when: sap_vm_platform == cloud_aws_ec2_vs
   block:
 
-  - name: (AWS) Get instance metadata token
-    ansible.builtin.uri:
-      headers:
-        X-aws-ec2-metadata-token-ttl-seconds: 21600
-      method: PUT
-      return_content: true
-      url: http://169.254.169.254/latest/api/token
-    register: detect_cloud_provider_aws_token
-    changed_when: false
-    ignore_errors: true
+    - name: (AWS) Get instance metadata token
+      ansible.builtin.uri:
+        headers:
+          X-aws-ec2-metadata-token-ttl-seconds: 21600
+        method: PUT
+        return_content: true
+        url: http://169.254.169.254/latest/api/token
+      register: detect_cloud_provider_aws_token
+      changed_when: false
+      ignore_errors: true
 
-  - name: (AWS) Get instance metadata ami-id
-    ansible.builtin.uri:
-      headers:
-        X-aws-ec2-metadata-token: "{{ detect_cloud_provider_aws_token.content }}"
-      method: GET
-      return_content: true
-      url: http://169.254.169.254/latest/meta-data/ami-id
-    register: detect_cloud_provider_aws_ami_id
-    changed_when: false
-    ignore_errors: true
+    - name: (AWS) Get instance metadata ami-id
+      ansible.builtin.uri:
+        headers:
+          X-aws-ec2-metadata-token: "{{ detect_cloud_provider_aws_token.content }}"
+        method: GET
+        return_content: true
+        url: http://169.254.169.254/latest/meta-data/ami-id
+      register: detect_cloud_provider_aws_ami_id
+      changed_when: false
+      ignore_errors: true
 
-  - name: (AWS) Fail if cannot reach Instance Metadata Service
-    ansible.builtin.fail:
-      msg: Detected MS Azure, but could not confirm with the Instance Metadata Service
-    when:
-      - detect_cloud_provider_aws_ami_id.failed
+    - name: (AWS) Fail if cannot reach Instance Metadata Service
+      ansible.builtin.fail:
+        msg: Detected MS Azure, but could not confirm with the Instance Metadata Service
+      when:
+        - detect_cloud_provider_aws_ami_id.failed
 
 
 - name: SAP VM Preconfigure - confirm Microsoft Azure Virtual Machine
   when: sap_vm_platform == cloud_msazure_vm
   block:
 
-  - name: (Azure) Get instance metadata
-    ansible.builtin.uri:
-      headers:
-        Metadata: true
-      method: GET
-      url: http://169.254.169.254/metadata/instance/compute?api-version=2021-10-01
-    register: detect_cloud_provider_azure_instance_metadata
-    changed_when: false
-    ignore_errors: true
+    - name: (Azure) Get instance metadata
+      ansible.builtin.uri:
+        headers:
+          Metadata: true
+        method: GET
+        url: http://169.254.169.254/metadata/instance/compute?api-version=2021-10-01
+      register: detect_cloud_provider_azure_instance_metadata
+      changed_when: false
+      ignore_errors: true
 
-  - name: (Azure) Fail if cannot reach Instance Metadata Service
-    ansible.builtin.fail:
-      msg: Detected MS Azure, but could not confirm with the Instance Metadata Service
-    when:
-      - detect_cloud_provider_azure_instance_metadata.json.azEnvironment is not defined
-      - detect_cloud_provider_azure_instance_metadata.json.azEnvironment != "AzurePublicCloud"
-
+    - name: (Azure) Fail if cannot reach Instance Metadata Service
+      ansible.builtin.fail:
+        msg: Detected MS Azure, but could not confirm with the Instance Metadata Service
+      when:
+        - detect_cloud_provider_azure_instance_metadata.json.azEnvironment is not defined
+        - detect_cloud_provider_azure_instance_metadata.json.azEnvironment != "AzurePublicCloud"

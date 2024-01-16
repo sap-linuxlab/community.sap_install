@@ -1,0 +1,98 @@
+---
+- name: Get a list of all nodes from any namespace
+  kubernetes.core.k8s_info:
+    kind: Node
+  register: __sap_hypervisor_node_preconfigure_register_node_list
+
+- name: Generate list with worker node names
+  ansible.builtin.set_fact:
+    __sap_hypervisor_node_preconfigure_register_worker_node_name_list:
+      "{{ __sap_hypervisor_node_preconfigure_register_worker_node_name_list | \
+       d([]) + [__sap_hypervisor_node_preconfigure_register_worker_node.name] }}"
+  with_items: "{{ sap_hypervisor_node_preconfigure_cluster_config.workers }}"
+  loop_control:
+    loop_var: __sap_hypervisor_node_preconfigure_register_worker_node
+
+- name: Filter hosts
+  ansible.builtin.set_fact:
+    __sap_hypervisor_node_preconfigure_register_nodes:
+      "{{ __sap_hypervisor_node_preconfigure_register_nodes | \
+       d([]) + [__sap_hypervisor_node_preconfigure_register_host] }}"
+  with_items: "{{ __sap_hypervisor_node_preconfigure_register_node_list['resources'] }}"
+  loop_control:
+    loop_var: __sap_hypervisor_node_preconfigure_register_host
+  when: __sap_hypervisor_node_preconfigure_register_host.metadata.name in __sap_hypervisor_node_preconfigure_register_worker_node_name_list
+
+- name: Assert that configured nodes are found
+  ansible.builtin.assert:
+    that: __sap_hypervisor_node_preconfigure_register_nodes is defined
+    fail_msg: No nodes found that match configuration provided in sap_hypervisor_node_preconfigure_cluster_config
+    success_msg: Configured nodes found
+
+# Determine available memory on first worker node.
+# This amount will be used for all nodes, so make sure all have an identical amount.
+- name: Get worker name
+  ansible.builtin.set_fact:
+    __sap_hypervisor_node_preconfigure_register_worker_name:
+      "{{ __sap_hypervisor_node_preconfigure_register_nodes[0]['metadata']['labels']['kubernetes.io/hostname'] }}"
+
+- name: Get memory of first worker node (will be used for all worker nodes later on)
+  ansible.builtin.set_fact:
+    __sap_hypervisor_node_preconfigure_register_worker_memory_gib:
+      "{{ (__sap_hypervisor_node_preconfigure_register_nodes[0]['status']['capacity']['memory'] | replace('Ki', '') | int / 1048576) }}"
+
+- name: Check if host has minimal amount of memory (96GiB)
+  ansible.builtin.assert:
+    that: __sap_hypervisor_node_preconfigure_register_worker_memory_gib | int >= 96
+    fail_msg: "Not enough memory on node {{ __sap_hypervisor_node_preconfigure_register_worker_name }}"
+    success_msg: "Enough memory on node {{ __sap_hypervisor_node_preconfigure_register_worker_name }}"
+  ignore_errors: "{{ sap_hypervisor_node_preconfigure_ignore_minimal_memory_check }}"
+
+# calculate memory to be allocated as hugepages
+# if system < 512GiB memory use 32GiB as upper boundary, 64GB otherwise as upper boundary
+- name: Calculate amount of hugepages to reserve (host memory < 512 GiB)
+  ansible.builtin.set_fact:
+    __sap_hypervisor_node_preconfigure_register_worker_reserved_hugepages: "{{ __sap_hypervisor_node_preconfigure_register_worker_memory_gib | int - sap_hypervisor_node_preconfigure_hypervisor_reserved_ram_host_lt_512 }}"
+  when: __sap_hypervisor_node_preconfigure_register_worker_memory_gib | int < 512
+
+- name: Calculate amount of hugepages to reserve (host memory >= 512 GiB)
+  ansible.builtin.set_fact:
+    __sap_hypervisor_node_preconfigure_register_worker_reserved_hugepages: "{{ __sap_hypervisor_node_preconfigure_register_worker_memory_gib | int - sap_hypervisor_node_preconfigure_hypervisor_reserved_ram_host_ge_512 }}"
+  when: __sap_hypervisor_node_preconfigure_register_worker_memory_gib | int >= 512
+
+- name: Include prepare
+  ansible.builtin.include_tasks: prepare.yml
+- name: Include tuned virtual host
+  ansible.builtin.include_tasks: tuned-virtual-host.yml
+- name: Include install CNV operator
+  ansible.builtin.include_tasks: install-cnv-operator.yml
+  when: sap_hypervisor_node_preconfigure_install_operators
+- name: Include install sriov operator
+  ansible.builtin.include_tasks: install-sriov-operator.yml
+  when: sap_hypervisor_node_preconfigure_install_operators
+- name: Include install nmstate operator
+  ansible.builtin.include_tasks: install-nmstate-operator.yml
+  when: sap_hypervisor_node_preconfigure_install_operators
+- name: Include install virtctl
+  ansible.builtin.include_tasks: install-virtctl.yml
+- name: Include setup worker nodes
+  ansible.builtin.include_tasks: setup-worker-nodes.yml
+  when: sap_hypervisor_node_preconfigure_setup_workers
+
+# How to wait for node to be scheduleable? (NodeSchedulable)
+- name: Wait for all k8s nodes to be ready
+  ansible.builtin.command: oc wait --for=condition=Ready nodes --all --timeout=3600s
+  register: __sap_hypervisor_node_preconfigure_register_nodes_ready
+  changed_when: __sap_hypervisor_node_preconfigure_register_nodes_ready.rc != 0
+
+- name: Print nodes
+  ansible.builtin.debug:
+    var: __sap_hypervisor_node_preconfigure_register_nodes_ready.stdout_lines
+
+- name: Include Trident installation
+  ansible.builtin.include_tasks: install-trident.yml
+  when: sap_hypervisor_node_preconfigure_install_trident
+
+- name: Include local storage creation (HPP)
+  ansible.builtin.include_tasks: install-hpp.yml
+  when: sap_hypervisor_node_preconfigure_install_hpp

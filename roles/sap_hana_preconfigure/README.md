@@ -26,15 +26,25 @@ for RHEL 8.x:
 - rhel-8-for-[x86_64|ppc64le]-appstream-e4s-rpms
 - rhel-8-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
 
+for RHEL 9.x:
+- rhel-9-for-[x86_64|ppc64le]-baseos-e4s-rpms
+- rhel-9-for-[x86_64|ppc64le]-appstream-e4s-rpms
+- rhel-9-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
+
 for SLES 15.x:
-- SLE-Module-SAP-Applications15-[SP number]-Pool 
+- SLE-Module-SAP-Applications15-[SP number]-Pool
 - SLE-Module-SAP-Applications15-[SP number]-Updates
 - SLE-Product-SLES_SAP15-[SP number]-Pool
 - SLE-Product-SLES_SAP15-[SP number]-Updates
 
 For details on configuring Red Hat, see the knowledge base article: [How to subscribe SAP HANA systems to the Update Services for SAP Solutions](https://access.redhat.com/solutions/3075991)). If you set role parameter sap_hana_preconfigure_enable_sap_hana_repos to `yes`, the role can enable these repos.
 
-To install HANA on Red Hat Enterprise Linux 6, 7, or 8, you need some additional packages which are contained in the rhel-sap-hana-for-rhel-7-[server|for-power-le]-e4s-rpms or rhel-8-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms repo.
+To install HANA on Red Hat Enterprise Linux 7, 8, or 9, you need some additional packages which are contained in the
+- rhel-sap-hana-for-rhel-7-[server|for-power-le]-e4s-rpms,
+- rhel-8-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms, or
+- rhel-9-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
+
+repository.
 
 To get this repository you need to have one of the following products:
 
@@ -75,7 +85,8 @@ Do not run this role against an SAP HANA or other production system. The role wi
 
 Changes
 -------
-1) Previous versions of this role used variable sap_hana_preconfigure_use_tuned_where_possible to switch between either tuned settings or kernel command line settings (where applicable).
+1) Previous versions of this role used the variable sap_hana_preconfigure_use_tuned_where_possible to switch between either tuned settings
+or kernel command line settings (where applicable).
 The current version modifies this behavior:
 - The variable sap_hana_preconfigure_use_tuned_where_possible has been renamed to sap_hana_preconfigure_use_tuned
 - The variable sap_hana_preconfigure_switch_to_tuned_profile_sap_hana has been removed.
@@ -83,10 +94,10 @@ The current version modifies this behavior:
   If sap_hana_preconfigure_use_tuned is set to `no`, the role will perform a static configuration, including the modification of the linux command line in grub.
 - The role can use tuned, or configure the kernel command line, or both.
 
-2) Previous versions of this role used variable sap_hana_preconfigure_selinux_state to set the SELinux state to disabled, which is
-mentioned in SAP notes 2292690 (RHEL 7) and 2777782 (RHEL 8). As role sap_general_preconfigure already allows to specify the desired
-SELinux state, and as sap_general_preconfigure is run before sap_hana_preconfigure, there is no need any more to let
-sap_hana_preconfigure configure the SELinux state. Same applies to the assertion of the SELinux state.
+2) Previous versions of this role used variable sap_hana_preconfigure_selinux_state to set the SELinux state to disabled.
+As the role sap_general_preconfigure already allows to specify the desired SELinux state, and as sap_general_preconfigure
+is always run before sap_hana_preconfigure, there is no need any more to let sap_hana_preconfigure configure the SELinux state.
+The same applies to the assertion of the SELinux state.
 
 3) SLES systems are now configured using saptune rather than the ansible implementation of the notes.
 
@@ -159,10 +170,11 @@ For the RHEL System Roles for SAP, or for Red Hat Automation Hub, use 'redhat.rh
 
 ### sap_hana_preconfigure_min_rhel_release_check
 - _Type:_ `bool`
-- _Default:_ `true`
+- _Default:_ `false`
 
-Check the RHEL release against a predefined list of known SAP HANA supported RHEL minor releases.<br>
-If this parameter is set to `false`, the role will *not* perform this check.<br>
+Check the RHEL release against parameter `sap_hana_preconfigure_supported_rhel_minor_releases`, which is a list of<br>
+known SAP HANA supported RHEL minor releases. By default, the role will display a message and continue running if<br>
+the RHEL release is not part of that list. If set to `true`, the role will fail in such a case.<br>
 
 ### sap_hana_preconfigure_supported_rhel_minor_releases
 - _Type:_ `list` with elements of type `str`

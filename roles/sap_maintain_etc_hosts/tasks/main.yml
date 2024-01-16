@@ -1,0 +1,79 @@
+---
+# tasks file for sap_maintain_etc_hosts
+#- name: Double check that list entries with state present do not have duplicate IP addresses
+#  ansible.builtin.assert:
+#    that:
+#     - sap_maintain_etc_hosts_list | selectattr('state')
+- name: Get list of hosts to be added with no state definition
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_present: "{{ sap_maintain_etc_hosts_list | selectattr('state', 'undefined') | list }}"
+  when: sap_maintain_etc_hosts_list is defined
+
+- name: Add list of hosts with state=present
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_present: "{{ __sap_maintain_etc_hosts_present +
+      (sap_maintain_etc_hosts_list | difference(__sap_maintain_etc_hosts_present) | selectattr('state', 'eq', 'present') | list) }}"
+
+- name: Debug list of hosts to be present
+  ansible.builtin.debug:
+    msg:
+      - "{{ __sap_maintain_etc_hosts_present }}"
+    verbosity: 2
+  when:
+    - __sap_maintain_etc_hosts_present is defined
+
+- name: Ensure no duplicate IPs are in the list for adding to hosts
+  ansible.builtin.assert:
+    that:
+      (__sap_maintain_etc_hosts_present | map(attribute='node_ip') | length) ==
+      (__sap_maintain_etc_hosts_present | map(attribute='node_ip') | unique | length)
+    msg: "You have defined duplicate ip addresses to be created!"
+  when:
+    - __sap_maintain_etc_hosts_present is defined
+
+- name: Ensure no duplicate hostnames are in the list for adding to hosts
+  ansible.builtin.assert:
+    that:
+      (__sap_maintain_etc_hosts_present | map(attribute='node_name') | length) ==
+      (__sap_maintain_etc_hosts_present | map(attribute='node_name') | unique | length)
+    msg: "You have defined duplicate hostnames to be created!"
+  when:
+    - __sap_maintain_etc_hosts_present is defined
+
+- name: Ensure required defaults are read from setup module
+  when: >
+    not ((ansible_hostname is defined) and
+    (ansible_domain is defined) and
+    (ansible_default_ipv4 is defined))
+  ## this is equivalent to
+  # (ansible_hostname is undefined) or
+  # (ansible_domain is undefined) or
+  # (ansible_default_ipv4 is defined)
+  ansible.builtin.setup:
+    gather_subset: "{{ __sap_maintain_etc_hosts_gather_subset }}"
+    filter:
+      - "ansible_hostname"
+      - "ansible_domain"
+      - "ansible_default_ipv4"
+
+# when sap_maintain_etc_hosts_list is empty, set defaults for local host
+- name: Ensure sap_maintain_etc_hosts_list is filled with defaults
+  when: >
+    ( sap_maintain_etc_hosts_list is undefined) or
+    ( sap_maintain_etc_hosts_list is none) or
+    ( sap_maintain_etc_hosts_list | trim == '')
+  ansible.builtin.set_fact:
+    sap_maintain_etc_hosts_list:
+      - node_ip: "{{ ansible_default_ipv4.address }}"
+        node_name: "{{ ansible_hostname }}"
+        node_domain: "{{ sap_domain | default(ansible_domain) }}"
+        node_comment: "managed by ansible sap_maintain_etc_hosts role"
+        state: present
+
+- name: Add entry to "{{ __sap_maintain_etc_hosts_file }}"
+  loop: "{{ sap_maintain_etc_hosts_list }}"
+  loop_control:
+    label: "{{ thishost.node_name | d(thishost.node_ip) }}"
+    loop_var: thishost
+  ansible.builtin.include_tasks:
+    file: update_host_{{ thishost.state | default('present') }}.yml

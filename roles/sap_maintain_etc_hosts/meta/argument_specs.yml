@@ -1,0 +1,84 @@
+---
+# Requires: ansible 2.11
+# Argument specifications in this separate file maintain backwards compatibility.
+argument_specs:
+
+# For required variables using aliases do not work and fail the argument validation.
+
+  main:
+    short_description: Configure /etc/hosts
+    description: This is role is used for proper local /etc/hosts configuration.
+    options:
+      sap_maintain_etc_hosts_list:
+        type: list
+        description:
+          - List of nodes to be added or removed in /etc/hosts
+        elements: dict
+        options:
+          node_ip:
+            type: str
+            description:
+              - IP address of the node
+              - It is required for adding a node. When deleting a node use only when node_name and node_domain are not defined
+          node_name:
+            type: str
+            description:
+              - Hostname of the node
+              - It is required for adding a node. When deleting a node use only when node_ip is not defined
+          node_domain:
+            type: str
+            description:
+              - Domainname of the node
+              - _Optional. Defaults to sap_domain, if set, otherwise ansible_domain is the default_
+              - _Optional. when deleting a node use only when node_name is defined_
+          aliases:
+            type: list
+            elements: str
+            description:
+              - List of aliases for the node
+              - Not used when state is absent
+          alias_mode:
+            type: str
+            default: merge
+            choices:
+              - merge
+              - overwrite
+            description:
+              - merges or overwrites the aliases of the node
+              - Not used when state is absent
+          node_comment:
+            type: str
+            default: "managed by ansible sap_maintain_etc_hosts role"
+            description:
+              - String which is appended to line in hosts after comment string
+              - Not used when state is absent
+          hana_site:
+            type: str
+            description:
+              - if set (e.g. for configuring cluster) it is appended to the comment
+              - Not used when state is absent
+          node_role:
+            description:
+              - Not used. For compatibility reason only.
+          state:
+            type: str
+            default: present
+            choices:
+              - present
+              - absent
+            description:
+              - Defines, if an entry is added or removed from /etc/hosts
+        example:
+          sap_maintain_etc_hosts_list:
+            - node_ip: 1.2.3.4
+              node_name: host1
+              node_domain: abc.de
+              aliases:
+                - alias1
+                - anotheralias2
+              node_comment: "Here comes text after hashsign"
+              state: present
+            - node_ip: 1.2.3.5
+              state: absent
+            - node_name: host2
+              state: absent

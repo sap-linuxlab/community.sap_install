@@ -11,59 +11,60 @@
   loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
   loop_control:
     loop_var: line_item
+    label: "{{ line_item.file }}"
   when: sap_install_media_detect_source == 'remote_dir'
 
-- name: SAP Install Media Detect - Organize all files - Remove existing archive extraction directories
+- name: SAP Install Media Detect - Organize all files - Ensure archive extraction directories are absent
   ansible.builtin.file:
-    path: "{{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}"
+    path: "{{ line_item }}"
     state: absent
-  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
+  loop: "{{ [__sap_install_media_detect_software_main_directory + '/'] | product(__sap_install_media_detect_fact_extraction_directories) | map('join') | list }}"
   loop_control:
     loop_var: line_item
   when:
     - sap_install_media_detect_extract_archives
-    - line_item.extract_archive == 'y'
-    - (line_item.archive_type == 'zip' or
-       line_item.archive_type == 'rarexe' or
-       line_item.archive_type == 'rar' or
-       line_item.archive_type == 'sapcar')
 
 - name: SAP Install Media Detect - Organize all files - Create archive extraction directories
   ansible.builtin.file:
-    path: "{{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}"
+    path: "{{ line_item }}"
     state: directory
     owner: root
     group: root
     mode: '0755'
-  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
+  loop: "{{ [__sap_install_media_detect_software_main_directory + '/'] | product(__sap_install_media_detect_fact_extraction_directories) | map('join') | list }}"
   loop_control:
     loop_var: line_item
   when:
     - sap_install_media_detect_extract_archives
-    - line_item.extract_archive == 'y'
-    - (line_item.archive_type == 'zip' or
-       line_item.archive_type == 'rarexe' or
-       line_item.archive_type == 'rar' or
-       line_item.archive_type == 'sapcar')
 
-- name: SAP Install Media Detect - Organize all files - Create target directories for archive files
+- name: SAP Install Media Detect - Organize all files - Ensure target directories exist
   ansible.builtin.file:
-    path: "{{ __sap_install_media_detect_software_main_directory }}/{{ line_item.target_dir }}"
+    path: "{{ line_item }}"
     state: directory
     owner: root
     group: root
     mode: '0755'
-  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
+  loop: "{{ [__sap_install_media_detect_software_main_directory + '/'] | product(__sap_install_media_detect_fact_target_directories) | map('join') | list }}"
   loop_control:
     loop_var: line_item
   when:
     - sap_install_media_detect_move_or_copy_archives
-    - line_item.target_dir != 'auto'
-    - (line_item.archive_type == 'zip' or
-       line_item.archive_type == 'rarexe' or
-       line_item.archive_type == 'rar' or
-       line_item.archive_type == 'sapcar' or
-       line_item.archive_type == 'xml')
+
+- name: SAP Install Media Detect - Organize all files - Ensure SWPM target directories exist
+  ansible.builtin.file:
+    path: "{{ line_item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm"
+    - "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm_download_basket"
+  loop_control:
+    loop_var: line_item
+  when:
+    - sap_install_media_detect_move_or_copy_archives
+    - sap_install_media_detect_swpm
 
 - name: SAP Install Media Detect - Organize all files - Create target directory 'sap_hana'
   ansible.builtin.file:
@@ -72,72 +73,54 @@
     owner: root
     group: root
     mode: '0755'
-  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
-  loop_control:
-    loop_var: line_item
   when:
     - sap_install_media_detect_move_or_copy_archives
     - sap_install_media_detect_db | d('') == 'saphana'
-    - line_item.target_dir == 'auto'
-
-- name: SAP Install Media Detect - Organize all files - Create target directory 'sap_swpm_download_basket'
-  ansible.builtin.file:
-    path: "{{ __sap_install_media_detect_software_main_directory }}/sap_swpm_download_basket"
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
-  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
-  loop_control:
-    loop_var: line_item
-  when:
-    - sap_install_media_detect_move_or_copy_archives
-    - sap_install_media_detect_swpm
-    - line_item.target_dir == 'auto'
 
 - name: SAP Install Media Detect - Organize all files - Extract zip export archive files to separate subdirectories
   ansible.builtin.shell: "set -o pipefail && unzip {{ line_item.file }} -d {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}/{{ (line_item.file | splitext)[0] }}"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
-  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
+  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results_extract_zip }}"
   loop_control:
     loop_var: line_item
+    label: "{{ line_item.file }}"
+  changed_when: true
   when:
     - sap_install_media_detect_extract_archives
-    - line_item.archive_type == 'zip'
-    - line_item.extract_archive == 'y'
     - line_item.sap_file_type is search("export")
 
 - name: SAP Install Media Detect - Organize all files - Extract zip non-export archive files
   ansible.builtin.shell: "set -o pipefail && unzip {{ line_item.file }} -d {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
-  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
+  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results_extract_zip }}"
   loop_control:
     loop_var: line_item
+    label: "{{ line_item.file }}"
+  changed_when: true
   when:
     - sap_install_media_detect_extract_archives
-    - line_item.archive_type == 'zip'
-    - line_item.extract_archive == 'y'
     - not line_item.sap_file_type is search("export")
 
-- name: SAP Install Media Detect - Organize all files - Extract rar archive files
+- name: SAP Install Media Detect - Organize all files - Extract rar self-extracting archive files
   ansible.builtin.shell: "set -o pipefail && {{ __sap_install_media_detect_rar_extract }} {{ line_item.file }}{{ __sap_install_media_detect_rar_extract_directory_argument }} {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}"
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
-  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
+  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results_extract_rarexe }}"
   loop_control:
     loop_var: line_item
+    label: "{{ line_item.file }}"
+  changed_when: true
   when:
     - sap_install_media_detect_extract_archives
     - line_item.archive_type == 'rarexe'
-    - line_item.extract_archive == 'y'
 
-# SAP HANA sapcar archive files have a directory structure with a single directory (e.g. SAP_HANA_DATBASE) which contains all files.
+# SAP HANA sapcar archive files have a directory structure with a single directory (e.g. SAP_HANA_DATABASE) which contains all files.
 # We want the extracted files to be placed in extraction_dir under this directory name, allowing multiple directories in extraction_dir.
 # So we create a temporary directory, move the file SIGNATURE.SMF (which the sapcar command extracts to the level above) to this directory,
 # and then move the single directory to the extraction_dir.
-- name: SAP Install Media Detect - Organize all files - Create temp dir for sapcar archive files - {{ __sap_install_media_detect_software_main_directory }}/tmp_extract
+- name: SAP Install Media Detect - Organize all files - Create temp dir for HANA archive files - {{ __sap_install_media_detect_software_main_directory }}/tmp_extract
   ansible.builtin.file:
     path: "{{ __sap_install_media_detect_software_main_directory }}/tmp_extract"
     state: directory
@@ -157,14 +140,13 @@
     && mv $extracted_dir {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}/
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}/tmp_extract"
-  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
+  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results_extract_sapcar_hana }}"
   loop_control:
     loop_var: line_item
+    label: "{{ line_item.file }}"
+  changed_when: true
   when:
     - sap_install_media_detect_extract_archives
-    - line_item.extract_archive == 'y'
-    - line_item.archive_type == 'sapcar'
-    - line_item.sap_file_type is search('saphana')
 
 - name: SAP Install Media Detect - Organize all files - Remove temp dir - {{ __sap_install_media_detect_software_main_directory }}/tmp_extract
   ansible.builtin.file:
@@ -182,14 +164,13 @@
     -manifest SIGNATURE.SMF
   args:
     chdir: "{{ __sap_install_media_detect_software_main_directory }}/{{ line_item.extraction_dir }}"
-  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
+  loop: "{{ __sap_install_media_detect_fact_files_sapfile_results_extract_sapcar_nonhana }}"
   loop_control:
     loop_var: line_item
+    label: "{{ line_item.file }}"
+  changed_when: true
   when:
     - sap_install_media_detect_extract_archives
-    - line_item.extract_archive == 'y'
-    - line_item.archive_type == 'sapcar'
-    - not line_item.sap_file_type is search('saphana')
 
 - name: SAP Install Media Detect - Organize all files - Copy certain files to 'sap_hana' directory
   ansible.builtin.copy:
@@ -202,6 +183,7 @@
   loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
   loop_control:
     loop_var: line_item
+    label: "{{ line_item.file }}"
   when:
     - sap_install_media_detect_move_or_copy_archives
     - sap_install_media_detect_db | d('') == 'saphana'
@@ -220,6 +202,7 @@
   loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
   loop_control:
     loop_var: line_item
+    label: "{{ line_item.file }}"
   when:
     - sap_install_media_detect_move_or_copy_archives
     - sap_install_media_detect_swpm
@@ -232,6 +215,8 @@
   loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
   loop_control:
     loop_var: line_item
+    label: "{{ line_item.file }}"
+  changed_when: true
   when:
     - sap_install_media_detect_move_or_copy_archives
     - line_item.copy_archive == 'y'
@@ -239,11 +224,13 @@
     - line_item.sap_file_type != 'saphana_client'
     - line_item.sap_file_type != 'sap_hostagent'
 
-- name: SAP Install Media Detect - Organize all files - Move archive files into subdirectories
+- name: SAP Install Media Detect - Organize all files - Move archive files into subdirectories if not already present
   ansible.builtin.shell: "set -o pipefail && mv {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.file }} {{ __sap_install_media_detect_software_main_directory }}/{{ line_item.target_dir }}/{{ line_item.file }}"
   loop: "{{ __sap_install_media_detect_fact_files_sapfile_results }}"
   loop_control:
     loop_var: line_item
+    label: "{{ line_item.file }}"
+  changed_when: true
   when:
     - sap_install_media_detect_move_or_copy_archives
     - line_item.copy_archive == 'n'

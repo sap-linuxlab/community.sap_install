@@ -34,7 +34,7 @@
 
 - name: "Assert that the permanent configuration of the SELinux state is set to '{{ sap_general_preconfigure_selinux_state }}'"
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_selinux_conf_assert.stdout == "{{ sap_general_preconfigure_selinux_state }}"
+    that: __sap_general_preconfigure_register_selinux_conf_assert.stdout == sap_general_preconfigure_selinux_state
     fail_msg: "FAIL: The system is not configured for the SELinux state of '{{ sap_general_preconfigure_selinux_state }}'.
                Current configuration: '{{ __sap_general_preconfigure_register_selinux_conf_assert.stdout }}'."
     success_msg: "PASS: The system is configured for the SELinux state of '{{ sap_general_preconfigure_selinux_state }}'"
@@ -48,7 +48,7 @@
 
 - name: Assert that the SELinux state is set correctly
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_getenforce_assert.stdout | lower == "{{ sap_general_preconfigure_selinux_state }}"
+    that: (__sap_general_preconfigure_register_getenforce_assert.stdout | lower) == sap_general_preconfigure_selinux_state
     fail_msg: "FAIL: SELinux is currently not '{{ sap_general_preconfigure_selinux_state }}'!
                The current SELinux state is: '{{ __sap_general_preconfigure_register_getenforce_assert.stdout | lower }}'."
     success_msg: "PASS: SELinux is currently {{ sap_general_preconfigure_selinux_state }}."
@@ -89,7 +89,7 @@
 
 - name: Assert that there is an entry for '/usr/sap' in the SELinux configuration database
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_semanage_fcontext_usr_sap.stdout | int != 0
+    that: (__sap_general_preconfigure_register_semanage_fcontext_usr_sap.stdout | int) != 0
     fail_msg: "FAIL: There is no entry for '/usr/sap' in the SELinux configuration database!"
     success_msg: "PASS: There is an entry for '/usr/sap' in the SELinux configuration database."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
@@ -107,7 +107,7 @@
 
 - name: Assert that all files in '/usr/sap' and below have the 'usr_t' file context
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_ls_z_usr_sap.stdout | int == 0
+    that: (__sap_general_preconfigure_register_ls_z_usr_sap.stdout | int) == 0
     fail_msg: "FAIL: There is at least one file in '/usr/sap' or below without the 'usr_t' file context!"
     success_msg: "PASS: All files in '/usr/sap' and below have the 'usr_t' file context."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"

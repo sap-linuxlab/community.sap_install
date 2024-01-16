@@ -1,0 +1,54 @@
+---
+- name: Create the SRIOV Operator namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: openshift-sriov-network-operator
+
+- name: Create the SRIOV Operator namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1
+      kind: OperatorGroup
+      metadata:
+        name: sriov-network-operators
+        namespace: openshift-sriov-network-operator
+      spec:
+        targetNamespaces:
+          - openshift-sriov-network-operator
+
+- name: Create the SRIOV Operator namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1alpha1
+      kind: Subscription
+      metadata:
+        name: sriov-network-operator-subscription
+        namespace: openshift-sriov-network-operator
+      spec:
+        source: redhat-operators
+        sourceNamespace: openshift-marketplace
+        name: sriov-network-operator
+        channel: "stable"
+
+- name: Pause to give operator a chance to install
+  ansible.builtin.pause:
+    minutes: 3
+
+- name: Copy patch to enable unsupported NICs
+  ansible.builtin.copy:
+    src: sriov-enabled-unsupported-nics.sh
+    dest: "{{ __sap_hypervisor_node_preconfigure_register_tmpdir.path }}/sriov-enabled-unsupported-nics.sh"
+    mode: "0755"
+  when: sap_hypervisor_node_preconfigure_sriov_enable_unsupported_nics
+
+- name: Enable unsupported NICs
+  ansible.builtin.command: "{{ __sap_hypervisor_node_preconfigure_register_tmpdir.path }}/sriov-enabled-unsupported-nics.sh"
+  when: sap_hypervisor_node_preconfigure_sriov_enable_unsupported_nics
+  register: __sap_hypervisor_node_preconfigure_register_enable_unsupported_nics
+  changed_when: __sap_hypervisor_node_preconfigure_register_enable_unsupported_nics.rc != 0
