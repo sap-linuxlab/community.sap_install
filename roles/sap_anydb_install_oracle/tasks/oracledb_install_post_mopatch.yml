@@ -4,15 +4,15 @@
   ansible.builtin.copy:
     remote_src: true
     directory_mode: true
-    src: "{{ sap_anydb_patch_oracle_sbp_path  }}/"
+    src: "{{ sap_anydb_patch_oracle_sbp_path }}/"
     dest: "{{ sap_anydb_install_oracle_base }}/tmp_sbp"
     owner: oracle
     group: oinstall
-    mode: '0774'  
+    mode: '0774'
 
 - name: Define vars to use in next tasks
   ansible.builtin.set_fact:
-    current_datetime: "{{ lookup('pipe','date \"+%Y_%m_%d_%H_%M_%S\"') }}"
+    current_datetime: "{{ lookup('pipe', 'date \"+%Y_%m_%d_%H_%M_%S\"') }}"
     IHRDBMS: "{{ sap_anydb_install_oracle_base }}/{{ sap_anydb_install_oracle_sid }}/19.0.0"
 
 - name: Creates the sapbundle dir
@@ -21,7 +21,7 @@
     owner: oracle
     group: oinstall
     state: directory
-    mode: '0774'  
+    mode: '0774'
 
 - name: Move the old OPatch dir
   ansible.builtin.shell: mv {{ IHRDBMS }}/OPatch {{ IHRDBMS }}/OPATCH_pre_SBP_{{ current_datetime }}
@@ -86,3 +86,8 @@
     owner: root
     group: oinstall
     mode: '4750'
+
+- name: Remove the temp dir
+  ansible.builtin.file:
+  path: "{{ sap_anydb_install_oracle_base }}/tmp_sbp"
+  state: absent
