@@ -1,6 +1,6 @@
 ---
 
-# Workflow for ansible-lint of a role
+# Workflow for ansible-lint of a role, using reusable workflow
 
 name: ansible-lint of the role sap_hana_install
 
@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - dev
+      - github-workflow-test
     paths:
       - 'roles/sap_hana_install/**'
   pull_request:
@@ -17,11 +18,16 @@ on:
       - dev
     paths:
       - 'roles/sap_hana_install/**'
+  workflow_dispatch:
+    branches:
+      - main
+      - dev
+      - github-workflow-test
+    paths:
+      - 'roles/sap_hana_install/**'
 
 jobs:
-  ansible-lint:
-    call-ansible-lint-with-role:
-        uses: sap-linuxlab/community.sap_install/.github/workflows/ansible-lint-sap_reusable_workflow.yml@main
-        with:
-          role: sap_hana_install
-
+  ansible-lint-exec:
+    uses: sap-linuxlab/community.sap_install/.github/workflows/ansible-lint-sap_reusable_workflow.yml@main
+    with:
+      role: sap_hana_install
