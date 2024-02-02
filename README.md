@@ -34,7 +34,6 @@ Within this Ansible Collection, there are various Ansible Roles and no custom An
 | [sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_install) | install SAP HANA via HDBLCM |
 | [sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_preconfigure) | configure settings for SAP HANA database server |
 | [sap_hostagent](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hostagent) | install SAP Host Agent |
-| [sap_hypervisor_node_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hypervisor_node_preconfigure) | configure a hypervisor running VMs for SAP HANA |
 | [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect) | detect and extract SAP Software installation media |
 | [sap_maintain_etc_hosts](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_maintain_etc_hosts) | maintain the /etc/hosts file of an SAP software host |
 | [sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_netweaver_preconfigure) | configure settings for SAP NetWeaver application server |
