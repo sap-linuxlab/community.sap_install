@@ -5,6 +5,17 @@ community.sap_install Release Notes
 .. contents:: Topics
 
 
+v1.4.0
+======
+
+Release Summary
+---------------
+
+| Release Date: 2024-02-02
+| collection: Move sap_hypervisor_node_preconfigure Role to sap_infrastructure Collection
+| collection: Move sap_vm_preconfigure Role to sap_infrastructure Collection
+| sap_anydb_install_oracle: Feature add for Oracle DB install with patch
+
 v1.3.5
 ======
 
