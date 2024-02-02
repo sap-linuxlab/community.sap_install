@@ -1,1 +1,93 @@
 ---
+
+- name: Oracle DB Patch - Copy the SBP
+  ansible.builtin.copy:
+    remote_src: true
+    directory_mode: true
+    src: "{{ sap_anydb_patch_oracle_sbp_path }}/"
+    dest: "{{ sap_anydb_install_oracle_base }}/tmp_sbp"
+    owner: oracle
+    group: oinstall
+    mode: '0774'
+
+- name: Oracle DB Patch - Define vars to use in next tasks
+  ansible.builtin.set_fact:
+    current_datetime: "{{ lookup('pipe', 'date \"+%Y_%m_%d_%H_%M_%S\"') }}"
+    IHRDBMS: "{{ sap_anydb_install_oracle_base }}/{{ sap_anydb_install_oracle_sid }}/19.0.0"
+
+- name: Oracle DB Patch - Creates the sapbundle dir
+  ansible.builtin.file:
+    path: "{{ IHRDBMS }}/sapbundle"
+    owner: oracle
+    group: oinstall
+    state: directory
+    mode: '0774'
+
+- name: Oracle DB Patch - Move the old OPatch dir
+  ansible.builtin.shell: mv {{ IHRDBMS }}/OPatch {{ IHRDBMS }}/OPATCH_pre_SBP_{{ current_datetime }}
+  become_user: oracle
+
+- name: Oracle DB Patch - Uncompress the patch files
+  become_user: oracle
+  ansible.builtin.unarchive:
+    src: "{{ sap_anydb_install_oracle_base }}/tmp_sbp/{{ item.source }}"
+    dest: "{{ item.destination }}"
+    remote_src: true
+  loop:
+    - source: "{{ sap_anydb_install_oracle_patch_opatch_zip }}"
+      destination: "{{ IHRDBMS }}"
+    - source: "{{ sap_anydb_install_oracle_patch_sap_zip }}"
+      destination: "{{ IHRDBMS }}/sapbundle"
+
+- name: Oracle DB Patch - Move the old MOPatch dir if it exists and move sapbundle
+  ansible.builtin.shell: |
+    test -d {{ IHRDBMS }}/MOPatch && mv {{ IHRDBMS }}/MOPatch {{ IHRDBMS }}/MOPATCH_pre_SBP_{{ current_datetime }}
+    mv {{ IHRDBMS }}/sapbundle/*/MOPatch {{ IHRDBMS }}/MOPatch
+  become_user: oracle
+
+# From the SAP Note 3263756 - (LINUX) Oracle Database 19c SBP fails during mopatch
+- name: Oracle DB Patch - Fixes rights on oradism file before the mopatch
+  become: true
+  ansible.builtin.file:
+    path: "{{ sap_anydb_install_oracle_base }}/{{ sap_anydb_install_oracle_sid }}/19/bin/oradism"
+    owner: oracle
+    mode: '0750'
+
+- name: Oracle DB Patch - Apply patches
+  become: true
+  become_user: oracle
+  args:
+    executable: /bin/csh
+    chdir: "{{ sap_anydb_install_oracle_base }}/tmp_sbp/"
+  register: __sap_anydb_patch_oracle_exec
+  changed_when: "'SAP RUNINSTALLER: Completed' in __sap_anydb_patch_oracle_exec.stdout"
+  failed_when: "__sap_anydb_patch_oracle_exec.rc not in [ 0, 1 ]"
+  ansible.builtin.shell: |
+    setenv ORACLE_BASE "{{ sap_anydb_install_oracle_base }}"
+    setenv DB_SID "{{ sap_anydb_install_oracle_sid }}"
+    setenv ORACLE_SID "{{ sap_anydb_install_oracle_sid }}"
+    setenv dbs_ora_tnsname "{{ sap_anydb_install_oracle_sid }}"
+    setenv ORACLE_HOME "$ORACLE_BASE/$DB_SID/19.0.0"
+    setenv SAPDATA_HOME "$ORACLE_BASE/$DB_SID/19.0.0"
+    setenv IHRDBMS "$ORACLE_HOME"
+    setenv OHRDBMS "$ORACLE_BASE/$DB_SID/19"
+    setenv dbms_type ORA
+    setenv GROUP dba
+    setenv LD_LIBRARY_PATH "$ORACLE_BASE/$DB_SID/19/lib"
+    setenv SBPFUSER /sbin/fuser
+    setenv PATH $PATH":$ORACLE_BASE/$DB_SID/19/bin"
+    $IHRDBMS/MOPatch/mopatch.sh -v -s {{ sap_anydb_install_oracle_patch_sap_zip }}
+
+# From the SAP Note 3263756 - (LINUX) Oracle Database 19c SBP fails during mopatch
+- name: Oracle DB Patch - Return rights on oradism file after the mopatch
+  become: true
+  ansible.builtin.file:
+    path: "{{ sap_anydb_install_oracle_base }}/{{ sap_anydb_install_oracle_sid }}/19/bin/oradism"
+    owner: root
+    group: oinstall
+    mode: '4750'
+
+- name: Oracle DB Patch - Remove the temp dir
+  ansible.builtin.file:
+  path: "{{ sap_anydb_install_oracle_base }}/tmp_sbp"
+  state: absent
