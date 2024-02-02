@@ -39,7 +39,6 @@ Within this Ansible Collection, there are various Ansible Roles and no custom An
 | [sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_netweaver_preconfigure) | configure settings for SAP NetWeaver application server |
 | [sap_storage_setup](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_storage_setup) | configure storage for SAP HANA, with LVM partitions and XFS filesystem |
 | [sap_swpm](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_swpm) | install SAP Software via SWPM |
-| [sap_vm_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_vm_preconfigure) | configure settings for a guest (VM) running on RHV/KVM for SAP HANA |
 
 ## License
 
