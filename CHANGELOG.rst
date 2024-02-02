@@ -5,6 +5,15 @@ community.sap_install Release Notes
 .. contents:: Topics
 
 
+v1.3.5
+======
+
+Release Summary
+---------------
+
+| Release Date: 2024-01-31
+| sap_hypervisor_node_preconfigure: Bug fix for role name and path for included tasks
+
 v1.3.4
 ======
 

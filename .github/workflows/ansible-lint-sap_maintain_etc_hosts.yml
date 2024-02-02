@@ -1,6 +1,6 @@
 ---
 
-# Workflow for ansible-lint of a role
+# Workflow for ansible-lint of a role, using reusable workflow
 
 name: ansible-lint of the role sap_maintain_etc_hosts
 
@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - dev
+      - github-workflow-test
     paths:
       - 'roles/sap_maintain_etc_hosts/**'
   pull_request:
@@ -17,27 +18,16 @@ on:
       - dev
     paths:
       - 'roles/sap_maintain_etc_hosts/**'
+  workflow_dispatch:
+    branches:
+      - main
+      - dev
+      - github-workflow-test
+    paths:
+      - 'roles/sap_maintain_etc_hosts/**'
 
 jobs:
-  ansible-lint:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out the code
-        uses: actions/checkout@main
-
-      - name: Set up Python 3
-        uses: actions/setup-python@main
-        with:
-          python-version: '3.9'
-
-      - name: Install test dependencies
-        run: |
-          pip3 install ansible==7.5.0
-          pip3 install ansible-compat==3.0.2
-          pip3 install ansible-core==2.14.5
-          pip3 install ansible-lint==6.8.6
-
-      - name: Run ansible-lint
-        working-directory: /home/runner/work/community.sap_install/community.sap_install/roles/sap_maintain_etc_hosts
-        run: ansible-lint
+  ansible-lint-exec:
+    uses: sap-linuxlab/community.sap_install/.github/workflows/ansible-lint-sap_reusable_workflow.yml@main
+    with:
+      role: sap_maintain_etc_hosts

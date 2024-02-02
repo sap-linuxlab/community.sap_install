@@ -4,8 +4,9 @@
   serial: 1
   vars:
     sap_hypervisor_node_platform: redhat_ocp_virt
-
-  tasks:
-    - name: Include Role
-      ansible.builtin.include_role:
-        name: sap_hypervisor_node_preconfigure
+    sap_hypervisor_node_kubeconfig: "{{ lookup( 'ansible.builtin.env', 'KUBECONFIG') }}"
+  environment:
+    KUBECONFIG: "{{ sap_hypervisor_node_kubeconfig }}"
+    K8S_AUTH_KUBECONFIG: "{{ sap_hypervisor_node_kubeconfig }}"
+  roles:
+    - { role: community.sap_install.sap_hypervisor_node_preconfigure }
