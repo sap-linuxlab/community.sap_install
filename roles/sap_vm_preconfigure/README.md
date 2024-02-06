@@ -10,7 +10,7 @@ Requirements
 ------------
 
 VM with at least RHEL 8.2 installed.
-The roles sap_preconfigure and sap_hana_preconfigure have been run on that system.
+The roles sap_general_preconfigure and sap_hana_preconfigure have been run on that system.
 
 
 Role Variables
