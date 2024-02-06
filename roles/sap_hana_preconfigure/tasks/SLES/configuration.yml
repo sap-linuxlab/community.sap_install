@@ -32,6 +32,26 @@
       ansible.builtin.debug:
         var: __sap_hana_preconfigure_fact_solution_configured
 
+- name: Set GRUB entries
+  when: __sap_hana_preconfigure_run_saptune
+  block:
+    - name: Set GRUB entries # noqa yaml[line-length]
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        regexp: "^GRUB_CMDLINE_LINUX_DEFAULT="
+        line: 'GRUB_CMDLINE_LINUX_DEFAULT="splash=silent mitigations=auto quiet numa_balancing=disable transparent_hugepage=never intel_idle.max_cstate=1 processor.max_cstate=1 audit=1"'
+      register: set_grub_entries
+
+    - name: GRUB mkconfig # noqa command-instead-of-shell no-handler
+      ansible.builtin.shell:
+        cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
+      when: set_grub_entries.changed
+
+    - name: GRUB.cfg permissions
+      ansible.builtin.file:
+        path: /boot/grub2/grub.cfg
+        mode: "0600"
+
 - name: Enable sapconf
   when: not __sap_hana_preconfigure_run_saptune
   block:
