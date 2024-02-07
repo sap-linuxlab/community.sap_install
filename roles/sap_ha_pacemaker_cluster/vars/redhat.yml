@@ -19,3 +19,55 @@ __sap_ha_pacemaker_cluster_command:
   resource_start: "pcs resource enable"
   resource_defaults_show: "pcs resource defaults config"
   resource_defaults_update: "pcs resource defaults update"
+
+# Make sure that there is always the minimal default fed into the included role.
+# This is combined with the custom list 'sap_ha_pacemaker_cluster_fence_agent_packages'.
+sap_ha_pacemaker_cluster_fence_agent_minimal_packages:
+  - fence-agents-all
+
+# Dictionary with fence packages for each platform
+sap_ha_pacemaker_cluster_fence_agent_packages_dict:
+  cloud_aws:
+    - fence-agents-aws
+  cloud_gcp:
+    - fence-agents-gce
+  cloud_ibmcloud_powervs:
+    - fence-agents-ibm-powervs
+  cloud_ibmcloud_vs:
+    - fence-agents-ibm-vpc
+  cloud_msazure_vm:
+    - fence-agents-azure-arm
+  hyp_ibmpower_vm:
+    - fence-agents-lpar
+
+# Dictionary with extra platform specific packages
+__sap_ha_pacemaker_cluster_platform_extra_packages_dict:
+  cloud_aws:
+    - awscli
+  cloud_gcp:
+    - resource-agents-gcp
+  cloud_ibmcloud_powervs: []
+  cloud_ibmcloud_vs: []
+  cloud_msazure_vm:
+    - socat
+  hyp_ibmpower_vm: []
+
+# Dictionary with additional cluster packages for specific scenarios
+__sap_ha_pacemaker_cluster_sap_extra_packages_dict:
+  scaleout:
+    - resource-agents-sap-hana-scaleout
+  scaleup:
+    - resource-agents-sap-hana
+  nwas:
+    - resource-agents-sap
+
+# Dictionary for platform specific Stonith agents
+# This is required only if there are differences between os_family
+sap_ha_pacemaker_cluster_stonith_agent_dict:
+  cloud_aws: 'stonith:fence_aws'
+
+# SAP HANA Resource agent namespace
+__sap_ha_resource_agent_namespace: heartbeat
+
+# Location of HANA SRHook binaries
+__sap_ha_srhook_path: '/usr/share/SAPHanaSR/srHook/SAPHanaSR.py'
