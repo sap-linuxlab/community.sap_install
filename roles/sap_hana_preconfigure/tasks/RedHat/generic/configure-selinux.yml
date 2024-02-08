@@ -1,5 +1,18 @@
 ---
 
+# Set a new SELinux mode variable to the SELinux status if 'disabled' or otherwise to
+# the value of the 'mode' member ('permissive' or 'enforcing')
+- name: SELinux - Set an SELinux mode variable
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_fact_selinux_mode: "{{ (ansible_selinux.status == 'disabled') | ternary(ansible_selinux.status, ansible_selinux.mode) }}"
+
+- name: SELinux - Warn if the SELinux file contexts cannot be set
+  ansible.builtin.debug:
+    msg: "WARN: The SELinux file contexts cannot be set on an SELinux disabled system!"
+  when:
+    - sap_hana_preconfigure_modify_selinux_labels
+    - __sap_hana_preconfigure_fact_selinux_mode == 'disabled'
+
 - name: SELinux - Configure SELinux file contexts
   ansible.builtin.include_role:
     name: '{{ sap_hana_preconfigure_system_roles_collection }}.selinux'
@@ -10,4 +23,6 @@
       - "{{ sap_hana_preconfigure_fact_targets_setypes }}"
     selinux_restore_dirs:
       - "{{ sap_hana_preconfigure_hana_directories }}"
-  when: sap_hana_preconfigure_modify_selinux_labels
+  when:
+    - sap_hana_preconfigure_modify_selinux_labels
+    - __sap_hana_preconfigure_fact_selinux_mode != 'disabled'
