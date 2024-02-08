@@ -35,17 +35,26 @@
 - name: Set GRUB entries
   when: __sap_hana_preconfigure_run_saptune
   block:
-    - name: Set GRUB entries # noqa yaml[line-length]
+    - name: Set GRUB entries
       ansible.builtin.lineinfile:
         path: /etc/default/grub
-        regexp: "^GRUB_CMDLINE_LINUX_DEFAULT="
-        line: 'GRUB_CMDLINE_LINUX_DEFAULT="splash=silent mitigations=auto quiet numa_balancing=disable transparent_hugepage=never intel_idle.max_cstate=1 processor.max_cstate=1 audit=1"'
+        regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=(?!.* {{ item }}).*). *$'
+        line: "\\1 {{ item }}\""
       register: set_grub_entries
+      with_items: 
+        - "splash=silent"
+        - "mitigations=auto"
+        - "quiet"
+        - "numa_balancing=disable"
+        - "transparent_hugepage=never"
+        - "intel_idle.max_cstate=1"
+        - "processor.max_cstate=1"
+        - "audit=1"
 
     - name: GRUB mkconfig # noqa command-instead-of-shell no-handler
       ansible.builtin.shell:
         cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
-      when: set_grub_entries.changed
+      when: set_grub_entries.results | selectattr('changed', 'equalto', true) | list | length > 0
 
     - name: GRUB.cfg permissions
       ansible.builtin.file:
