@@ -5,7 +5,14 @@
   ansible.builtin.debug:
     msg: "SAP note {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^1771258$') | first).number }}
           (version {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^1771258$') | first).version }}): User and system resource limits"
+  tags:
+    - sap_general_preconfigure_configuration
+    - sap_general_preconfigure_configuration_all_steps
 
 - name: Import tasks from '../RedHat/generic/assert-nofile-limits.yml'
   ansible.builtin.import_tasks: ../RedHat/generic/assert-nofile-limits.yml
   when: sap_general_preconfigure_config_all | d(true) or sap_general_preconfigure_1771258 | d(false)
+  tags:
+    - sap_general_preconfigure_configuration_all_steps
+    - sap_general_preconfigure_1771258
+    - sap_general_preconfigure_nofile_limits
