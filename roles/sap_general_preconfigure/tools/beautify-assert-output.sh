@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # default font color: Light Cyan, which should be readable on both bright and dark background
 __FONT_COLOR=36m
