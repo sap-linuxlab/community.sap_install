@@ -34,10 +34,21 @@
 
 - name: Set GRUB entries
   when: __sap_hana_preconfigure_run_saptune
+  handlers:
+    - name: GRUB_post-update_configuration
+      block:
+        - name: GRUB mkconfig
+          ansible.builtin.shell:
+            cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
+
+        - name: GRUB.cfg permissions
+          ansible.builtin.file:
+            path: /boot/grub2/grub.cfg
+            mode: "0600"
   block:
-    # Reason for noqa: 
-    # no-changed-when: the regex do a check on the element before apply the 
-    #   changed item, this prevent a replace to an element that is already in 
+    # Reason for noqa:
+    # no-changed-when: the regex do a check on the element before apply the
+    #   changed item, this prevent a replace to an element that is already in
     #   the configuration
     - name: Set GRUB entries # noqa no-changed-when
       ansible.builtin.lineinfile:
@@ -120,16 +131,3 @@
     - name: Ensure solution was successful
       ansible.builtin.command: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
       changed_when: false # We're only checking, not changing!
-
-  handlers:
-    - name: GRUB_post-update_configuration
-      block:
-        - name: GRUB mkconfig
-          ansible.builtin.shell:
-            cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
-
-        - name: GRUB.cfg permissions
-          ansible.builtin.file:
-            path: /boot/grub2/grub.cfg
-            mode: "0600"
-
