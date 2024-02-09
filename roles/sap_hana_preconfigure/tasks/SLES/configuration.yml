@@ -35,9 +35,9 @@
 - name: Set GRUB entries
   when: __sap_hana_preconfigure_run_saptune
   block:
-    # Reason for noqa: the regex do a check on the element before apply the 
+    # Reason for noqa: the regex do a check on the element before apply the
     # changed item, this prevent a replace to an element that is already in the
-    # configuration 
+    # configuration
     - name: Set GRUB entries # noqa no-changed-when
       ansible.builtin.lineinfile:
         path: /etc/default/grub
@@ -54,7 +54,7 @@
         - "processor.max_cstate=1"
         - "audit=1"
 
-    - name: GRUB mkconfig # noqa command-instead-of-shell no-handler
+    - name: GRUB mkconfig # noqa command-instead-of-shell no-handler no-changed-when
       ansible.builtin.shell:
         cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
       when: set_grub_entries.results | selectattr('changed', 'equalto', true) | list | length > 0
