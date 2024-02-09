@@ -35,13 +35,16 @@
 - name: Set GRUB entries
   when: __sap_hana_preconfigure_run_saptune
   block:
-    - name: Set GRUB entries
+    # Reason for noqa: the regex do a check on the element before apply the 
+    # changed item, this prevent a replace to an element that is already in the
+    # configuration 
+    - name: Set GRUB entries # noqa no-changed-when
       ansible.builtin.lineinfile:
         path: /etc/default/grub
         regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=(?!.* {{ item }}).*). *$'
         line: "\\1 {{ item }}\""
       register: set_grub_entries
-      with_items: 
+      with_items:
         - "splash=silent"
         - "mitigations=auto"
         - "quiet"
