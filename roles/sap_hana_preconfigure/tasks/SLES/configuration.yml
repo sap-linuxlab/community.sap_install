@@ -35,9 +35,10 @@
 - name: Set GRUB entries
   when: __sap_hana_preconfigure_run_saptune
   block:
-    # Reason for noqa: the regex do a check on the element before apply the
-    # changed item, this prevent a replace to an element that is already in the
-    # configuration
+    # Reason for noqa: 
+    # no-changed-when: the regex do a check on the element before apply the 
+    #   changed item, this prevent a replace to an element that is already in 
+    #   the configuration
     - name: Set GRUB entries # noqa no-changed-when
       ansible.builtin.lineinfile:
         path: /etc/default/grub
@@ -54,15 +55,10 @@
         - "processor.max_cstate=1"
         - "audit=1"
 
-    - name: GRUB mkconfig # noqa command-instead-of-shell no-handler no-changed-when
-      ansible.builtin.shell:
-        cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
+    - name: Trigger grub update if necessary
+      ansible.builtin.meta: noop
       when: set_grub_entries.results | selectattr('changed', 'equalto', true) | list | length > 0
-
-    - name: GRUB.cfg permissions
-      ansible.builtin.file:
-        path: /boot/grub2/grub.cfg
-        mode: "0600"
+      notify: GRUB_post-update_configuration
 
 - name: Enable sapconf
   when: not __sap_hana_preconfigure_run_saptune
@@ -124,3 +120,16 @@
     - name: Ensure solution was successful
       ansible.builtin.command: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
       changed_when: false # We're only checking, not changing!
+
+  handlers:
+    - name: GRUB_post-update_configuration
+      block:
+        - name: GRUB mkconfig
+          ansible.builtin.shell:
+            cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
+
+        - name: GRUB.cfg permissions
+          ansible.builtin.file:
+            path: /boot/grub2/grub.cfg
+            mode: "0600"
+
