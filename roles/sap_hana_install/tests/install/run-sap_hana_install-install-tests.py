@@ -4,10 +4,8 @@ import os
 import sys
 import datetime
 import subprocess
-import re
 import shlex
 import yaml
-
 
 def print_log(text):
     sys.stdout.write(str(text))
