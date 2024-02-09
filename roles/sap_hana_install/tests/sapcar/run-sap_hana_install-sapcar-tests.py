@@ -9,7 +9,7 @@ import yaml
 # output field delimiter for displaying the results:
 _field_delimiter = '\t'
 
-if(len(sys.argv) != 3):
+if (len(sys.argv) != 3):
     print('Please provide the name of the managed node and the user name for logging in.')
     _managed_node = input('Name of managed node: ')
     _username = input('User name for connecting to managed node: ')
