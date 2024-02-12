@@ -4,7 +4,6 @@ import os
 import sys
 import datetime
 import subprocess
-import re
 import shlex
 import yaml
 
@@ -17,7 +16,7 @@ def print_log(text):
 # output field delimiter for displaying the results:
 __field_delimiter = '\t'
 
-if(len(sys.argv) != 3):
+if (len(sys.argv) != 3):
     print('Please provide the name of the managed node and the user name for logging in.')
     __managed_node = input('Name of managed node: ')
     __username = input('User name for connecting to managed node: ')
@@ -183,7 +182,7 @@ with open(__logfile, 'w') as __filedescriptor:
                                  + '\'' + par1['command_line_parameter'] + '\'' + __field_delimiter
                                  + '\'' + par1['expected_output_string'] + '\'' + __field_delimiter)
 #                                  + '\'' + par1['expected_output_string'] + '\'' + __field_delimiter, end='')
-        if(len(par1['role_vars']) == 0):
+        if (len(par1['role_vars']) == 0):
             print_log('\n')
         else:
             for par2 in par1['role_vars']:
