@@ -334,7 +334,7 @@ sap_general_preconfigure_db_group_name: dba
 
 <!-- END: Role Input Parameters for sap_general_preconfigure -->
 
-## Tags
+## Tags (RHEL systems only)
 
 With the following tags, the role can be called to perform certain activities only:
 - tag `sap_general_preconfigure_installation`: Perform only the installation tasks
