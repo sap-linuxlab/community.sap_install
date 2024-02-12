@@ -334,6 +334,36 @@ sap_general_preconfigure_db_group_name: dba
 
 <!-- END: Role Input Parameters for sap_general_preconfigure -->
 
+## Tags
+
+With the following tags, the role can be called to perform certain activities only:
+- tag `sap_general_preconfigure_installation`: Perform only the installation tasks
+- tag `sap_general_preconfigure_configuration`: Perform only the configuration tasks
+- tag `sap_general_preconfigure_configuration_all_steps`: Perform all configuration tasks
+- tag `sap_general_preconfigure_3108316_03`: Perform only the tasks(s) related to this step of the SAP note.
+- tag `sap_general_preconfigure_etc_hosts`: Perform only the tasks(s) related to this step. This step might be one of multiple
+  configuration activities of a SAP note. Also this step might be valid for multiple RHEL major releases.
+
+Sample call for only verifying and modifying the /etc/hosts file:
+```
+# ansible-playbook sap-general-preconfigure.yml --tags=sap_general_preconfigure_configuration,sap_general_preconfigure_etc_hosts
+```
+
+Sample call for performing all configuration steps except verifying and modifying the /etc/hosts file:
+```
+# ansible-playbook sap-general-preconfigure.yml --tags=sap_general_preconfigure_configuration,sap_general_preconfigure_configuration_all_steps --skip_tags=sap_general_preconfigure_etc_hosts
+```
+
+Sample call for only performing the configuration actitvities related to step 2 (SELinux settings) of SAP note 3108316:
+```
+# ansible-playbook sap-general-preconfigure.yml --tags=sap_general_preconfigure_configuration,sap_general_preconfigure_3108316_02
+```
+
+Sample call for performing all configuration actitvities except those related to step 2 (SELinux settings) of SAP note 3108316:
+```
+# ansible-playbook sap-general-preconfigure.yml --tags=sap_general_preconfigure_configuration,sap_general_preconfigure_configuration_all_steps --skip_tags=sap_general_preconfigure_3108316_02
+```
+
 ## Dependencies
 
 This role does not depend on any other role.

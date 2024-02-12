@@ -96,7 +96,10 @@
     - sap_general_preconfigure_installation
 
 - name: Include tasks from 'installation.yml'
-  ansible.builtin.include_tasks: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}installation.yml'
+  ansible.builtin.include_tasks:
+    file: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}installation.yml'
+    apply:
+      tags: sap_general_preconfigure_installation
   when: sap_general_preconfigure_config_all | d(true) or sap_general_preconfigure_installation | d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'
@@ -112,7 +115,10 @@
     - sap_general_preconfigure_configuration
 
 - name: Include tasks from 'configuration.yml'
-  ansible.builtin.include_tasks: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}configuration.yml'
+  ansible.builtin.include_tasks:
+    file: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}configuration.yml'
+    apply:
+      tags: sap_general_preconfigure_configuration_all_steps
   when: sap_general_preconfigure_config_all | d(true) or sap_general_preconfigure_configuration | d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'
@@ -120,6 +126,7 @@
     - '{{ ansible_os_family }}.yml'
   tags:
     - sap_general_preconfigure_configuration
+#    - sap_general_preconfigure_configuration_all_steps
 
 # allow a reboot at the end of the preconfigure role
 - name: Flush handlers
