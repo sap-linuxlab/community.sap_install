@@ -344,6 +344,24 @@ With the following tags, the role can be called to perform certain activities on
 - tag `sap_general_preconfigure_etc_hosts`: Perform only the tasks(s) related to this step. This step might be one of multiple
   configuration activities of a SAP note. Also this step might be valid for multiple RHEL major releases.
 
+Sample call for only performing all installation and configuration tasks. This is the default behavior. If no tag is specified, all
+installation and configuration tasks are enabled:
+```
+# ansible-playbook sap-general-preconfigure.yml
+```
+
+Sample call for only performing all installation tasks:
+```
+# ansible-playbook sap-general-preconfigure.yml --tags=sap_general_preconfigure_installation
+```
+
+Sample call for only performing all configuration tasks. The tag sap_general_preconfigure_configuration is needed to only use
+the configuration tasks, and the tag sap_general_preconfigure_configuration_all_steps activates each individual configuration task. Both
+need to be enabled for running all the configuration tasks:
+```
+# ansible-playbook sap-general-preconfigure.yml --tags=sap_general_preconfigure_configuration,sap_general_preconfigure_configuration_all_steps
+```
+
 Sample call for only verifying and modifying the /etc/hosts file:
 ```
 # ansible-playbook sap-general-preconfigure.yml --tags=sap_general_preconfigure_configuration,sap_general_preconfigure_etc_hosts
