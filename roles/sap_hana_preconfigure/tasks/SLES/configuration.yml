@@ -66,8 +66,14 @@
         - "processor.max_cstate=1"
         - "audit=1"
 
-    - name: Trigger grub update if necessary
-      ansible.builtin.meta: noop
+    # Reason for noqa:
+    # no-changed-when: there is already a check on the `when` argument that
+    # loop over all the results of the previous task and if some of the results
+    # changed the grub configuration file the `GRUB_post-update_configuration`
+    # handler will be notify, in the other hands if none of the item changed
+    # the configuration file no handler will be notify
+    - name: Trigger grub update if necessary # noqa no-changed-when
+      ansible.builtin.command: /bin/true
       when: set_grub_entries.results | selectattr('changed', 'equalto', true) | list | length > 0
       notify: GRUB_post-update_configuration
 
