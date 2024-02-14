@@ -145,17 +145,15 @@ sap_general_preconfigure_kernel_parameters: "{{ __sap_general_preconfigure_kerne
 sap_general_preconfigure_max_hostname_length: '13'
 # The maximum length of the hostname. See SAP note 611361.
 
-# Reason for noqa: A separate role is planned to replace the code which uses this variable.
-#sap_hostname: "{{ ansible_hostname }}" # noqa var-naming[no-role-prefix]
+# If "global" variables are set, use those. If not, default to the values from gather_facts:
+sap_general_preconfigure_ip: "{{ sap_ip | d(ansible_default_ipv4.address) }}"
+# The IPV4 address to be used for updating or checking `/etc/hosts` entries.
+
+sap_general_preconfigure_hostname: "{{ sap_hostname | d(ansible_hostname) }}"
 # The hostname to be used for updating or checking `/etc/hosts` entries.
 
-# Reason for noqa: A separate role is planned to replace the code which uses this variable.
-#sap_domain: "{{ ansible_domain }}" # noqa var-naming[no-role-prefix]
+sap_general_preconfigure_domain: "{{ sap_domain | d(ansible_domain) }}"
 # The DNS domain name to be used for updating or checking `/etc/hosts` entries.
-
-# Reason for noqa: A separate role is planned to replace the code which uses this variable.
-#sap_ip: "{{ ansible_default_ipv4.address }}" # noqa var-naming[no-role-prefix]
-# The IPV4 address to be used for updating or checking `/etc/hosts` entries.
 
 # sap_general_preconfigure_db_group_name: (not defined by default)
 # Use this variable to specify the name of the RHEL group which is used for the database processes.
