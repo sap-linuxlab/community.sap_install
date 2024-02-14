@@ -7,8 +7,20 @@
 - name: Import tasks from '../../RedHat/generic/configure-hostname.yml'
   ansible.builtin.import_tasks: ../../RedHat/generic/configure-hostname.yml
 
-- name: Import tasks from '../../RedHat/generic/configure-etc-hosts.yml'
-  ansible.builtin.import_tasks: ../../RedHat/generic/configure-etc-hosts.yml
+- name: Import role sap_maintain_etc_hosts
+  ansible.builtin.import_role:
+    name: sap_maintain_etc_hosts
+  vars:
+    sap_maintain_etc_hosts_list:
+      - node_ip: "{{ sap_ip | d(ansible_default_ipv4.address) }}"
+        node_name: "{{ sap_hostname | d(ansible_hostname) }}"
+        node_domain: "{{ sap_domain | d(ansible_domain) }}"
+        state: present
+  when: sap_general_preconfigure_modify_etc_hosts
+
+- name: Import tasks from '../../RedHat/generic/assert-etc-hosts.yml'
+  ansible.builtin.import_tasks: ../../RedHat/generic/assert-etc-hosts.yml
+  when: not sap_general_preconfigure_modify_etc_hosts
 
 - name: Import tasks from '../../RedHat/generic/check-dns-name-resolution.yml'
   ansible.builtin.import_tasks: ../../RedHat/generic/check-dns-name-resolution.yml

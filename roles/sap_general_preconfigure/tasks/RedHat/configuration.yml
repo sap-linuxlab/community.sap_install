@@ -4,6 +4,21 @@
   ansible.builtin.debug:
     var: __sap_general_preconfigure_sapnotes_versions | difference([''])
 
+- name: Configure - Set sap_hostname if not defined
+  ansible.builtin.set_fact:
+    sap_hostname: "{{ ansible_hostname }}"
+  when: sap_hostname is not defined
+
+- name: Configure - Set sap_domain if not defined
+  ansible.builtin.set_fact:
+    sap_domain: "{{ ansible_domain }}"
+  when: sap_domain is not defined
+
+- name: Configure - Set sap_ip if not defined
+  ansible.builtin.set_fact:
+    sap_ip: "{{ ansible_default_ipv4.address }}"
+  when: sap_ip is not defined
+
 - name: Configure - Set directory variables for setting SELinux file contexts
   ansible.builtin.set_fact:
     sap_general_preconfigure_fact_targets_setypes: "{{ sap_general_preconfigure_fact_targets_setypes | d([]) +
