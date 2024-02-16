@@ -4,8 +4,7 @@
   ansible.builtin.debug:
     var: role_path
   tags:
-    - sap_general_preconfigure_installation
-    - sap_general_preconfigure_configuration
+    - always
 
 - name: Include OS specific vars, specific
   ansible.builtin.include_vars: '{{ item }}'
@@ -14,8 +13,7 @@
     - '{{ ansible_distribution.split("_")[0] }}_{{ ansible_distribution_major_version }}.yml'
     - '{{ ansible_os_family }}.yml'
   tags:
-    - sap_general_preconfigure_installation
-    - sap_general_preconfigure_configuration
+    - always
 
 - name: Rename user sap_preconfigure variables if found, generic
   ansible.builtin.set_fact:
@@ -38,8 +36,7 @@
     sap_general_preconfigure_kernel_parameters: "{{ sap_preconfigure_kernel_parameters | d(sap_general_preconfigure_kernel_parameters) }}"
     sap_general_preconfigure_max_hostname_length: "{{ sap_preconfigure_max_hostname_length | d(sap_general_preconfigure_max_hostname_length) }}"
   tags:
-    - sap_general_preconfigure_installation
-    - sap_general_preconfigure_configuration
+    - always
 
 - name: Rename user sap_preconfigure variables if found, RHEL only
   ansible.builtin.set_fact:
@@ -62,32 +59,28 @@
     sap_general_preconfigure_2772999_10: "{{ (sap_preconfigure_2772999_10 | d(sap_general_preconfigure_2772999_10)) | d(false) }}"
   when: ansible_facts['distribution'] in ['RedHat']
   tags:
-    - sap_general_preconfigure_installation
-    - sap_general_preconfigure_configuration
+    - always
 
 - name: Rename sap_preconfigure_db_group_name if defined
   ansible.builtin.set_fact:
     sap_general_preconfigure_db_group_name: "{{ sap_preconfigure_db_group_name | d(sap_general_preconfigure_db_group_name) }}"
   when: sap_preconfigure_db_group_name is defined or sap_general_preconfigure_db_group_name is defined
   tags:
-    - sap_general_preconfigure_installation
-    - sap_general_preconfigure_configuration
+    - always
 
 - name: Set filename prefix to empty string if role is run in normal mode
   ansible.builtin.set_fact:
     __sap_general_preconfigure_fact_assert_filename_prefix: ""
   when: not sap_general_preconfigure_assert | d(false)
   tags:
-    - sap_general_preconfigure_installation
-    - sap_general_preconfigure_configuration
+    - always
 
 - name: Prepend filename with assert string if role is run in assert mode
   ansible.builtin.set_fact:
     __sap_general_preconfigure_fact_assert_filename_prefix: "assert-"
   when: sap_general_preconfigure_assert | d(false)
   tags:
-    - sap_general_preconfigure_installation
-    - sap_general_preconfigure_configuration
+    - always
 
 # required for installation and configuration tasks:
 - name: Gather package facts
@@ -111,25 +104,23 @@
 - name: Gather package facts again after the installation phase
   ansible.builtin.package_facts:
   tags:
-    - sap_general_preconfigure_installation
-    - sap_general_preconfigure_configuration
+    - always
 
 - name: Include tasks from 'configuration.yml'
   ansible.builtin.include_tasks:
     file: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}configuration.yml'
     apply:
-      tags: sap_general_preconfigure_configuration_all_steps
+      tags: sap_general_preconfigure_configuration
   when: sap_general_preconfigure_config_all | d(true) or sap_general_preconfigure_configuration | d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'
     - '{{ ansible_distribution }}'
     - '{{ ansible_os_family }}.yml'
   tags:
-    - sap_general_preconfigure_configuration
+    - always
 
 # allow a reboot at the end of the preconfigure role
 - name: Flush handlers
   ansible.builtin.meta: flush_handlers
   tags:
-    - sap_general_preconfigure_installation
-    - sap_general_preconfigure_configuration
+    - always

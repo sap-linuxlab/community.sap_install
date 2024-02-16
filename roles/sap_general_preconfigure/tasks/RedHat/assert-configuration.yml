@@ -3,12 +3,18 @@
 - name: Assert - List required SAP Notes
   ansible.builtin.debug:
     var: __sap_general_preconfigure_sapnotes_versions | difference([''])
+  tags:
+    - always
 
 - name: Gather service facts
   ansible.builtin.service_facts:
+  tags:
+    - always
 
 - name: Assert - Include configuration actions for required sapnotes
   ansible.builtin.include_tasks: "sapnote/assert-{{ sap_note_line_item.number }}.yml"
   with_items: "{{ __sap_general_preconfigure_sapnotes_versions | difference(['']) }}"
   loop_control:
     loop_var: sap_note_line_item
+  tags:
+    - always
