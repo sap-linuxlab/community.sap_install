@@ -369,12 +369,12 @@ Sample call for performing all configuration steps except verifying and modifyin
 # ansible-playbook sap.yml --tags=sap_general_preconfigure_configuration --skip_tags=sap_general_preconfigure_etc_hosts
 ```
 
-Sample call for only performing the configuration actitvities related to step 2 (SELinux settings) of SAP note 3108316 (RHEL 9 specific):
+Sample call for only performing the configuration activities related to step 2 (SELinux settings) of SAP note 3108316 (RHEL 9 specific):
 ```
 # ansible-playbook sap.yml --tags=sap_general_preconfigure_3108316_02
 ```
 
-Sample call for performing all configuration actitvities except those related to step 2 (SELinux settings) of SAP note 3108316 (RHEL 9 specific):
+Sample call for performing all configuration activities except those related to step 2 (SELinux settings) of SAP note 3108316 (RHEL 9 specific):
 ```
 # ansible-playbook sap-general-preconfigure.yml --tags=sap_general_preconfigure_configuration --skip_tags=sap_general_preconfigure_3108316_02
 ```
