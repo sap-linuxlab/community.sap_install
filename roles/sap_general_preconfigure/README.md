@@ -334,6 +334,58 @@ sap_general_preconfigure_db_group_name: dba
 
 <!-- END: Role Input Parameters for sap_general_preconfigure -->
 
+## Tags (RHEL systems only)
+
+With the following tags, the role can be called to perform certain activities only:
+- tag `sap_general_preconfigure_installation`: Perform only the installation tasks
+- tag `sap_general_preconfigure_configuration`: Perform only the configuration tasks
+- tag `sap_general_preconfigure_3108316`: Perform only the tasks(s) related to this SAP note.
+- tag `sap_general_preconfigure_2772999_03`: Perform only the tasks(s) related to step 3 of the SAP note.
+- tag `sap_general_preconfigure_etc_hosts`: Perform only the tasks(s) related to this step. This step might be one of multiple
+  configuration activities of a SAP note. Also this step might be valid for multiple RHEL major releases.
+
+Sample call for only performing all installation and configuration tasks (sample playbook name sap.yml, see the next section for
+an example). This is the default behavior. If no tag is specified, all installation and configuration tasks are enabled:
+```
+# ansible-playbook sap.yml
+```
+
+Sample call for only performing all installation tasks:
+```
+# ansible-playbook sap.yml --tags=sap_general_preconfigure_installation
+```
+
+Sample call for only performing all configuration tasks:
+```
+# ansible-playbook sap.yml --tags=sap_general_preconfigure_configuration
+```
+
+Sample call for only verifying and modifying the /etc/hosts file:
+```
+# ansible-playbook sap.yml --tags=sap_general_preconfigure_etc_hosts
+```
+
+Sample call for performing all configuration steps except verifying and modifying the /etc/hosts file:
+```
+# ansible-playbook sap.yml --tags=sap_general_preconfigure_configuration --skip_tags=sap_general_preconfigure_etc_hosts
+```
+
+Sample call for only performing the configuration activities related to SAP note 3108316 (RHEL 9 specific):
+```
+# ansible-playbook sap.yml --tags=sap_general_preconfigure_3108316
+```
+
+Sample call for performing all configuration activities except those related to step 2 (SELinux settings) of SAP note 3108316 (RHEL 9 specific):
+Sample call for only performing the configuration activities related to step 2 (SELinux settings) of SAP note 3108316 (RHEL 9 specific):
+```
+# ansible-playbook sap.yml --tags=sap_general_preconfigure_3108316_02
+```
+
+Sample call for performing all configuration activities except those related to step 2 (SELinux settings) of SAP note 3108316 (RHEL 9 specific):
+```
+# ansible-playbook sap-general-preconfigure.yml --tags=sap_general_preconfigure_configuration --skip_tags=sap_general_preconfigure_3108316_02
+```
+
 ## Dependencies
 
 This role does not depend on any other role.
