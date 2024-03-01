@@ -203,3 +203,34 @@
 #      - '  Host             -       {{ ansible_hostname }}'
 #      - '  FQDN             -       {{ ansible_fqdn }}'
   when: not ansible_check_mode
+
+- name: SAP HANA Post Install, fapolicyd - Put all executable files from 'sap_hana_install_root_path' into the fapolicyd trust file
+  ansible.builtin.shell: |
+    set -o pipefail && find {{ sap_hana_install_root_path }} -type f -executable -exec file {} \; | awk 'BEGIN{FS=":";IGNORECASE=1}/64-bit/{system ("fapolicyd-cli --file add "$1" --trust-file {{ sap_hana_install_fapolicyd_trust_filename }}")}'
+  when:
+    - sap_hana_install_use_fapolicyd
+    - '"fapolicyd" in ansible_facts.packages'
+
+- name: SAP HANA Post Install, fapolicyd - Enable fapolicyd
+  ansible.builtin.service:
+    name: fapolicyd
+    enabled: true
+    state: started
+  when:
+    - sap_hana_install_use_fapolicyd
+    - '"fapolicyd" in ansible_facts.packages'
+
+- name: SAP HANA Post Install, fapolicyd - Update the fapolicyd database
+  ansible.builtin.command: fapolicyd-cli --update
+  when:
+    - sap_hana_install_use_fapolicyd
+    - '"fapolicyd" in ansible_facts.packages'
+
+- name: SAP HANA Post Install, fapolicyd - Restart fapolicyd
+  ansible.builtin.service:
+    name: fapolicyd
+    enabled: true
+    state: restarted
+  when:
+    - sap_hana_install_use_fapolicyd
+    - '"fapolicyd" in ansible_facts.packages'
