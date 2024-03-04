@@ -204,9 +204,14 @@
 #      - '  FQDN             -       {{ ansible_fqdn }}'
   when: not ansible_check_mode
 
+# We want to add only the necessary files to the fapolicyd trust file, so we are only looking for files which have the execute
+# mode bit set AND which are of file type 64-bit executable or 64-bit shared object.
 - name: SAP HANA Post Install, fapolicyd - Put all executable files from 'sap_hana_install_root_path' into the fapolicyd trust file
   ansible.builtin.shell: |
-    set -o pipefail && find {{ sap_hana_install_root_path }} -type f -executable -exec file {} \; | awk 'BEGIN{FS=":";IGNORECASE=1}/64-bit/{system ("fapolicyd-cli --file add "$1" --trust-file {{ sap_hana_install_fapolicyd_trust_filename }}")}'
+    set -o pipefail &&
+    find {{ sap_hana_install_root_path }} -type f -executable -exec file {} \; |
+    awk 'BEGIN{FS=":";IGNORECASE=1}/64-bit/{system ("fapolicyd-cli --file add "$1" --trust-file {{ sap_hana_install_fapolicyd_trust_filename }}")}'
+  changed_when: true
   when:
     - sap_hana_install_use_fapolicyd
     - '"fapolicyd" in ansible_facts.packages'
@@ -222,6 +227,7 @@
 
 - name: SAP HANA Post Install, fapolicyd - Update the fapolicyd database
   ansible.builtin.command: fapolicyd-cli --update
+  changed_when: true
   when:
     - sap_hana_install_use_fapolicyd
     - '"fapolicyd" in ansible_facts.packages'
