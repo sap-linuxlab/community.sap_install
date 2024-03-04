@@ -1,7 +1,8 @@
 ---
 - name: Verify that variable node_ip is in the correct format
   ansible.builtin.assert:
-    that: thishost.node_ip is ansible.utils.ip
+    that: thishost.node_ip | regex_search(sap_maintain_etc_hosts_regexp_ipv4) or
+          thishost.node_ip | regex_search(sap_maintain_etc_hosts_regexp_ipv6)
     msg: "Variable 'node_ip' is not an IP address. Please use the correct format"
   when: thisnode.node_ip is defined
 
