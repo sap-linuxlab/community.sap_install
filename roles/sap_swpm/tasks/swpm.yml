@@ -126,10 +126,12 @@
   register: swpm_output_sapcontrol_files
 
 - name: SAP SWPM - Get sapcontrol file/s
-  ansible.builtin.command: awk -v RS='(^|\n)GetInstanceProperties\n' 'END{printf "%s", $0}' {{ item }}
+  ansible.builtin.command: awk -v RS='(^|\n)GetInstanceProperties\n' 'END{printf "%s", $0}' {{ line_item }}
   register: swpm_sapcontrol_file_contents
   changed_when: false
   loop: "{{ swpm_output_sapcontrol_files.files | map(attribute='path') | list | unique }}"
+  loop_control:
+    loop_var: line_item
 
 - name: SAP SWPM - Display installation finished from success file
   ansible.builtin.debug:

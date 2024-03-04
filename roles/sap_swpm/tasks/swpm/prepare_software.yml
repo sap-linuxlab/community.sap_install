@@ -32,14 +32,18 @@
 
     - name: SAP SWPM Pre Install - Create list of absolute directory names from the find result
       ansible.builtin.set_fact:
-        __sap_swpm_fact_directories: "{{ __sap_swpm_fact_directories | d([]) + [item.path] }}"
+        __sap_swpm_fact_directories: "{{ __sap_swpm_fact_directories | d([]) + [line_item.path] }}"
       loop: "{{ __sap_swpm_register_find_result_directories.files }}"
+      loop_control:
+        loop_var: line_item
       when: __sap_swpm_register_find_result_directories is defined
 
     - name: SAP SWPM Pre Install - Create list of absolute file names for non-SAPCAR files from the find result
       ansible.builtin.set_fact:
-        __sap_swpm_fact_files_non_sapcar: "{{ __sap_swpm_fact_files_non_sapcar | d([]) + [item.path] }}"
+        __sap_swpm_fact_files_non_sapcar: "{{ __sap_swpm_fact_files_non_sapcar | d([]) + [line_item.path] }}"
       loop: "{{ __sap_swpm_register_find_result_files_non_sapcar.files }}"
+      loop_control:
+        loop_var: line_item
       when: __sap_swpm_register_find_result_files_non_sapcar is defined
 
     - name: SAP SWPM Pre Install - Ensure correct permissions and ownership of all directories
