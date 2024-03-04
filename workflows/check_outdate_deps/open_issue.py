@@ -33,7 +33,7 @@ data = response.json()
 if data["total_count"] > 0:
     print("There is already an issue with this title!")
 else:
-    issue_description = "This issue is created automatically"
+    issue_description = get_description_from_package(args.package, args.latest)
     token = os.environ.get("GITHUB_TOKEN")
     issue = {"title": issue_title, "body": issue_description}
     headers = {"Authorization": f"token {token}"}
@@ -45,3 +45,11 @@ else:
         print("Issue created successfully.")
     else:
         print(f"Failed to create issue. Status code: {response.status_code}.")
+
+
+def get_description_from_package(package, latest):
+    return f"""The package {package} is outdated in {requirement_file}. The latest version is {latest}. Please update the package to the latest version.
+
+Check the package [here](https://pypi.org/project/{package}/{latest}/) for more information.
+"""
+
