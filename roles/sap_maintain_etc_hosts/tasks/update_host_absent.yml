@@ -3,7 +3,11 @@
   ansible.builtin.assert:
     that: thishost.node_ip | regex_search(sap_maintain_etc_hosts_regexp_ipv4) or
           thishost.node_ip | regex_search(sap_maintain_etc_hosts_regexp_ipv6)
-    msg: "Variable 'node_ip' is not an IP address. Please use the correct format"
+    msg: |
+      "The IP address of this host does not have a correct format.
+       Configure the IP address appropriately in of the following variables:
+       - sap_ip
+       - sap_maintain_etc_hosts_list, member node_ip"
   when: thisnode.node_ip is defined
 
 - name: Ensure that either IP address or hostname is defined
@@ -13,7 +17,7 @@
       ((thishost.node_ip is undefined) and (thishost.node_name is defined))
     msg: "Invalid delete item. Please define either node_ip only or node_name. In the latter case node_domain is optional."
 
-- name: Ensure that the entry all entries in hosts file are removed with IP {{ thishost.node_ip | d('undefined') }}
+- name: Ensure that all entries with IP {{ thishost.node_ip | d('undefined') }} in /etc/hosts are absent
   ansible.builtin.lineinfile:
     path: "{{ __sap_maintain_etc_hosts_file }}"
     regexp: '^{{ thishost.node_ip }}\s'
@@ -26,7 +30,7 @@
   become_user: root
   become: true
 
-- name: Ensure that the entry all entries in hosts file are removed with name {{ thishost.node_name | d('undefined') }}
+- name: Ensure that all entries with name {{ thishost.node_name | d('undefined') }} in /etc/hosts are absent
   ansible.builtin.lineinfile:
     path: "{{ __sap_maintain_etc_hosts_file }}"
     regexp: '^.*\s{{ thishost.node_name }}\s'
@@ -40,7 +44,7 @@
   become_user: root
   become: true
 
-- name: Ensure that the entry all enries in hosts file are removed with FQDN
+- name: Ensure that all enries with the specified FQDN in /etc/hosts are absent
   ansible.builtin.lineinfile:
     path: "{{ __sap_maintain_etc_hosts_file }}"
     regexp: '^.*\s{{ thishost.node_name + "." + thishost.node_domain }}\s'
