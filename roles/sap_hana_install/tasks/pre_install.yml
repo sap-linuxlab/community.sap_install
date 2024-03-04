@@ -18,17 +18,26 @@
 # Handle fapolicyd
 ################
 
-- name: SAP HANA Pre Install, fapolicyd - Gather package facts
-  ansible.builtin.package_facts:
+- name: SAP HANA Pre Install, fapolicyd - Ensure the presence of fapolicyd
+  ansible.builtin.package:
+    name: fapolicyd
+    state: present
   when: sap_hana_install_use_fapolicyd
 
-- name: SAP HANA Pre Install, fapolicyd - Disable fapolicyd
+################
+# We must ensure fapolicyd is disabled before installing SAP HANA in all cases
+# Otherwise, the installation of SAP HANA will fail
+################
+
+- name: SAP HANA Pre Install - Gather package facts
+  ansible.builtin.package_facts:
+
+- name: SAP HANA Pre Install - Disable fapolicyd
   ansible.builtin.service:
     name: fapolicyd
     enabled: false
     state: stopped
   when:
-    - sap_hana_install_use_fapolicyd
     - '"fapolicyd" in ansible_facts.packages'
 
 ################
