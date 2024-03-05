@@ -5,13 +5,6 @@ import requests
 import os
 import json
 
-# Arguments parsing
-parser = argparse.ArgumentParser(description="Open issue with the correct argument")
-parser.add_argument("package", type=str, help='The name of the package')
-parser.add_argument("version", type=str, help='The current version of the package')
-parser.add_argument("latest", type=str, help='The latest version of the package')
-args = parser.parse_args()
-
 def get_description(requirement_file, package, latest):
     return f"""The package {package} is outdated in {requirement_file}. The latest version is {latest}. Please update the package to the latest version.
 
@@ -22,6 +15,13 @@ def get_title(requirement_file, package_name, current_version, latest_version):
     return f"Dependency outdated in {requirement_file}: {package_name}:{current_version} -> {latest_version}"
 
 if __name__ == '__main__':
+    # Arguments parsing
+    parser = argparse.ArgumentParser(description="Open issue with the correct argument")
+    parser.add_argument("package", type=str, help='The name of the package')
+    parser.add_argument("version", type=str, help='The current version of the package')
+    parser.add_argument("latest", type=str, help='The latest version of the package')
+    args = parser.parse_args()
+
     # Environment variable
     repo = os.environ.get("GITHUB_REPOSITORY")
     requirement_file = str(os.environ.get("REQUIREMENT_FILE"))
