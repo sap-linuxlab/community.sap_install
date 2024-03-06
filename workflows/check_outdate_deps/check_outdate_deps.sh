@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 
+# Parse requirement file to extract all packages
+packages=()
+while read -r line; do
+    if [[ $line =~ ^([a-zA-Z-]+)=+(([0-9]+\.)*[0-9]+) ]]; then
+        packages+=("${BASH_REMATCH[1]}")
+    fi
+done <<< "$input"
+
+# Install all packages from requirement file and check if there are any
+# outdated packages
 pip3 install -r "$REQUIREMENT_FILE"
 input=$(pip3 list --outdated)
 
@@ -21,13 +31,22 @@ compare_versions() {
    echo 0
 }
 
+is_pakage_included_in_requirement_file() {
+    for i in "${packages[@]}"; do
+        if [ "$i" == "$1" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 while read -r line; do
     if [[ $line =~ ^([a-zA-Z0-9-]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([a-zA-Z]+) ]]; then
         package="${BASH_REMATCH[1]}"
         version="${BASH_REMATCH[2]}"
         latest="${BASH_REMATCH[3]}"
         
-        if [ "$(compare_versions "$version" "$latest")" -lt 0 ]; then
+        if [ "$(compare_versions "$version" "$latest")" -lt 0 ] && ! [ $(is_pakage_included_in_requirement_file "$package") ]; then
             ./workflows/check_outdate_deps/open_issue.py "$package" "$version" "$latest"
         fi
     fi
