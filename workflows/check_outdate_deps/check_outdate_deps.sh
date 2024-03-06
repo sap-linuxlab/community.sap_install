@@ -2,11 +2,12 @@
 
 # Parse requirement file to extract all packages
 packages=()
+requirement_content=`cat $REQUIREMENT_FILE`
 while read -r line; do
-    if [[ $line =~ ^([a-zA-Z-]+)=+(([0-9]+\.)*[0-9]+) ]]; then
+    if [[ $line =~ ^([a-zA-Z\-]+)=+(([0-9]+\.)*[0-9]+) ]]; then
         packages+=("${BASH_REMATCH[1]}")
     fi
-done <<< "$input"
+done <<< "$requirement_content"
 
 # Install all packages from requirement file and check if there are any
 # outdated packages
@@ -46,8 +47,12 @@ while read -r line; do
         version="${BASH_REMATCH[2]}"
         latest="${BASH_REMATCH[3]}"
         
-        if [ "$(compare_versions "$version" "$latest")" -lt 0 ] && ! [ $(is_pakage_included_in_requirement_file "$package") ]; then
-            ./workflows/check_outdate_deps/open_issue.py "$package" "$version" "$latest"
+        if [ "$(compare_versions "$version" "$latest")" -lt 0 ] && \
+           is_pakage_included_in_requirement_file "$package"; then
+                ./workflows/check_outdate_deps/open_issue.py \
+                    "$package" \
+                    "$version" \
+                    "$latest"
         fi
     fi
 done <<< "$input"
