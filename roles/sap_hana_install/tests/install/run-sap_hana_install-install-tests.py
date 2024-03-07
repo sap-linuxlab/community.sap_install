@@ -100,11 +100,15 @@ __tests = [
 for par1 in __tests[0:3]:
     print('\n' + 'Test ' + par1['number'] + ': ' + par1['name'])
 # prepare the test:
-    command = ('ansible-playbook prepare-install-test-'
-               + par1['number']
-               + '.yml '
-               + '-l '
-               + __managed_node)
+    command = (
+        'ansible-playbook prepare-install-test-'
+        + par1['number']
+        + '.yml '
+        + '-u root '
+        + '-i '
+        + __managed_node
+        + ','
+    )
     args = shlex.split(command)
 #    _py_rc = os.system(command)
     __logfile = __logdir + '/' + __logfile_prefix + __datestr + '-prepare-' + par1['number'] + '.log'
@@ -116,14 +120,17 @@ for par1 in __tests[0:3]:
             __filedescriptor.flush()
 
 # run the test:
-    command = ('ansible-playbook run-install-test-'
-               + par1['number']
-               + '.yml '
-               + par1['command_line_parameter']
-               + '-l '
-               + __managed_node
-               + ' '
-               + '-e "')
+    command = (
+        'ansible-playbook run-install-test-'
+        + par1['number']
+        + '.yml '
+        + par1['command_line_parameter']
+        + '-u root '
+        + '-i '
+        + __managed_node
+        + ', '
+        + '-e "'
+    )
 # add all role vars for this test:
     for par2 in par1['role_vars']:
         command += str(par2)
@@ -149,9 +156,13 @@ for par1 in __tests[0:3]:
         print('Test ' + par1['number'] + ' FAILED!!!')
 
 # uninstall SAP HANA:
-    command = ('ansible-playbook hana-uninstall.yml '
-               + '-l '
-               + __managed_node)
+    command = (
+        'ansible-playbook hana-uninstall.yml '
+        + '-u root '
+        + '-i '
+        + __managed_node
+        + ','
+    )
     args = shlex.split(command)
     __logfile = __logdir + '/' + __logfile_prefix + __datestr + '-uninstall-' + par1['number'] + '.log'
     with open(__logfile, 'wb') as __filedescriptor:

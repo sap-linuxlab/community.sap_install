@@ -143,9 +143,10 @@ for par1 in __tests:
     command = (
         'ansible-playbook sap_general_preconfigure-default-settings.yml '
         + par1['command_line_parameter']
-        + '-l '
+        + '-u root '
+        + '-i '
         + _managed_node
-        + ' '
+        + ', '
         + '-e "'
     )
     for par2 in par1['role_vars']:
