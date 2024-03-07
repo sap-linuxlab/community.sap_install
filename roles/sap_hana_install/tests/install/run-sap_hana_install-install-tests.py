@@ -104,8 +104,10 @@ for par1 in __tests[0:3]:
     command = ('ansible-playbook prepare-install-test-'
                + par1['number']
                + '.yml '
-               + '-l '
+               + '-u root '
+               + '-i '
                + __managed_node)
+               + ','
     args = shlex.split(command)
 #    _py_rc = os.system(command)
     __logfile = __logdir + '/' + __logfile_prefix + __datestr + '-prepare-' + par1['number'] + '.log'
@@ -121,9 +123,10 @@ for par1 in __tests[0:3]:
                + par1['number']
                + '.yml '
                + par1['command_line_parameter']
-               + '-l '
+               + '-u root '
+               + '-i '
                + __managed_node
-               + ' '
+               + ', '
                + '-e "')
 # add all role vars for this test:
     for par2 in par1['role_vars']:
@@ -151,8 +154,10 @@ for par1 in __tests[0:3]:
 
 # uninstall SAP HANA:
     command = ('ansible-playbook hana-uninstall.yml '
-               + '-l '
+               + '-u root '
+               + '-i '
                + __managed_node)
+               + ','
     args = shlex.split(command)
     __logfile = __logdir + '/' + __logfile_prefix + __datestr + '-uninstall-' + par1['number'] + '.log'
     with open(__logfile, 'wb') as __filedescriptor:

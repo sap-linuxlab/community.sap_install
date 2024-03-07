@@ -98,6 +98,7 @@ for par1 in __tests:
     print('\n' + 'Test ' + par1['number'] + ': ' + par1['name'])
     command = ('ansible-playbook sap_netweaver_preconfigure-default-settings.yml '
                + par1['command_line_parameter']
+               + '-u root '
                + '-i '
                + _managed_node
                + ', '
