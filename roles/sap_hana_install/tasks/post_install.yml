@@ -209,8 +209,16 @@
 - name: SAP HANA Post Install, fapolicyd - Put all executable files from 'sap_hana_install_root_path' into the fapolicyd trust file
   ansible.builtin.shell: |
     set -o pipefail &&
-    find {{ sap_hana_install_root_path }} -type f -executable -exec file {} \; |
-    awk 'BEGIN{FS=":";IGNORECASE=1}/64-bit/{system ("fapolicyd-cli --file add "$1" --trust-file {{ sap_hana_install_fapolicyd_trust_filename }}")}'
+    find {{ sap_hana_install_root_path }} -type f -executable -exec fapolicyd-cli -t {} \; -print |
+    awk '/\/x-executable/||
+        /\/x-sharedlib/||
+        /\/x-shellscript/||
+        /\/x-python/{a=1; b=NR}
+        {
+            if(a==1 && b==(NR-1)){
+                system("fapolicyd-cli --file add "$0" --trust-file {{ sap_hana_install_fapolicyd_trust_filename }}"); a=0; b=0
+            }
+        }'
   changed_when: true
   when:
     - sap_hana_install_use_fapolicyd
