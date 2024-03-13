@@ -13,3 +13,46 @@ __sap_ha_pacemaker_cluster_command:
   resource_start: "crm resource start"
   resource_defaults_show: "crm configure show type:rsc_defaults"
   resource_defaults_update: "crm configure rsc_defaults"
+
+# Make sure that there is always the minimal default fed into the included role.
+# This is combined with the custom list 'sap_ha_pacemaker_cluster_fence_agent_packages'.
+sap_ha_pacemaker_cluster_fence_agent_minimal_packages:
+  - fence-agents
+
+# Dictionary with fence packages for each platform
+# SUSE does not use platform specific fence agents, just fence-agents
+# sap_ha_pacemaker_cluster_fence_agent_packages_dict:
+
+# Dictionary with extra platform specific packages
+__sap_ha_pacemaker_cluster_platform_extra_packages_dict:
+  cloud_aws:
+    - awscli
+  cloud_msazure_vm:
+    - socat
+
+# Dictionary with additional cluster packages for specific scenarios
+__sap_ha_pacemaker_cluster_sap_extra_packages_dict:
+  hana_scaleout:
+    - resource-agents
+    - SAPHanaSR-ScaleOut
+    - ClusterTools2
+  hana_scaleup:
+    - resource-agents
+    - SAPHanaSR
+    - ClusterTools2
+  nwas:
+    - resource-agents
+    - ClusterTools2
+    - sap-suse-cluster-connector
+    - sapstartsrv-resource-agents
+
+# Dictionary for platform specific Stonith agents
+# This is required only if there are differences between os_family
+sap_ha_pacemaker_cluster_stonith_agent_dict:
+  cloud_aws: 'stonith:external/ec2'
+
+# SAP HANA Resource agent namespace
+__sap_ha_resource_agent_namespace: suse
+
+# Location of HANA SRHook binaries
+__sap_ha_srhook_path: '/usr/share/SAPHanaSR/SAPHanaSR.py'

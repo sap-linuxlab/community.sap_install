@@ -4,10 +4,10 @@
 # TODO: make sure to first respect 'ha_cluster' native variables
 
 sap_ha_pacemaker_cluster_fence_agent_packages:
-  - fence-agents-aws
+  "{{ sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_aws | default([]) }}"
 
 __sap_ha_pacemaker_cluster_platform_extra_packages:
-  - awscli
+  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_aws | default([]) }}"
 
 __sap_ha_pacemaker_cluster_repos:
   - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
@@ -21,7 +21,7 @@ __sap_ha_pacemaker_cluster_aws_instances: []
 # The aws cli is currently configured anyway for the standard AWS VIP resource.
 sap_ha_pacemaker_cluster_stonith_default:
   id: "res_fence_aws"
-  agent: "stonith:fence_aws"
+  agent: "{{ sap_ha_pacemaker_cluster_stonith_agent_dict.cloud_aws }}"
 #  options:
 #    access_key: "{{ sap_ha_pacemaker_cluster_aws_access_key_id }}"
 #    secret_key: "{{ sap_ha_pacemaker_cluster_aws_secret_access_key }}"
