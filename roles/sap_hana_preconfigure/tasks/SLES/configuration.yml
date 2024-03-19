@@ -40,17 +40,6 @@
 
 - name: Set GRUB entries
   when: __sap_hana_preconfigure_run_saptune
-  handlers:
-    - name: GRUB_post-update_configuration
-      block:
-        - name: GRUB mkconfig
-          ansible.builtin.shell:
-            cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
-
-        - name: GRUB.cfg permissions
-          ansible.builtin.file:
-            path: /boot/grub2/grub.cfg
-            mode: "0600"
   block:
     # Reason for noqa:
     # no-changed-when: the regex do a check on the element before apply the
@@ -81,7 +70,7 @@
     - name: Trigger grub update if necessary # noqa no-changed-when
       ansible.builtin.command: /bin/true
       when: set_grub_entries.results | selectattr('changed', 'equalto', true) | list | length > 0
-      notify: GRUB_post-update_configuration
+      notify: __sap_hana_preconfigure_grub_configuration_changed_handler
 
 - name: Enable sapconf
   when: not __sap_hana_preconfigure_run_saptune
