@@ -7,35 +7,32 @@
 
 # Note: This file is only included for RHEL 8, so no further when condition is required here.
 
-- name: Identify all 'compat-sap-c++-NUM.so' files with NUM >= 10
+- name: Identify all 'compat-sap-c++-NUM.so' symlinks with NUM >= 10
   ansible.builtin.find:
     paths: '/opt/rh/SAP/lib64'
-    patterns: "compat-sap-c++-1*"
+    patterns: "compat-sap-c\\+\\+-1[0-9].so"
+    file_type: link
+    use_regex: true
   register: __sap_netweaver_preconfigure_register_find_compat_sap_cpp
 
-# Note: The file compat-sap-c++-NUM.so with NUM >= 10 will be available if the role sap_general_preconfigure has been run before,
+# Note: The symlink compat-sap-c++-NUM.so with NUM >= 10 will be available if the role sap_general_preconfigure has been run before,
 # which is a requirement.
-- name: Fail if there is no file 'compat-sap-c++-NUM.so' file with NUM >= 10
+- name: Fail if there is no 'compat-sap-c++-NUM.so' symlink with NUM >= 10
   ansible.builtin.fail:
-    msg: There is no file '/opt/rh/SAP/lib64/compat-sap-c++-NUM.so' file with NUM >= 10!
+    msg: There is no symlink '/opt/rh/SAP/lib64/compat-sap-c++-NUM.so' with NUM >= 10!
   when: __sap_netweaver_preconfigure_register_find_compat_sap_cpp.matched == 0
 
 # Note: All following tasks depend on the previous task not having failed, so no further when condition is used below.
-- name: Set fact for file names from find result
+- name: Set fact for the latest 'compat-sap-c++.NUM.so' symlink
   ansible.builtin.set_fact:
-    __sap_netweaver_preconfigure_fact_compat_sap_cpp_filenames: "{{ __sap_netweaver_preconfigure_fact_compat_sap_cpp_filenames | d([]) + [__sap_netweaver_preconfigure_item.path | basename] }}"
-  loop: "{{ __sap_netweaver_preconfigure_register_find_compat_sap_cpp.files }}"
-  loop_control:
-    loop_var: __sap_netweaver_preconfigure_item
-    label: "{{ __sap_netweaver_preconfigure_item.path }}"
+    __sap_netweaver_preconfigure_fact_compat_sap_cpp_latest: >-
+     {{ __sap_netweaver_preconfigure_register_find_compat_sap_cpp.files
+       | map(attribute = 'path')
+       | sort | last | basename }}
 
-- name: Set fact for the latest 'compat-sap-c++.NUM.so' file name
-  ansible.builtin.set_fact:
-    __sap_netweaver_preconfigure_fact_compat_sap_cpp_latest: "{{ __sap_netweaver_preconfigure_fact_compat_sap_cpp_filenames | sort | last }}"
-
-- name: Display the identified 'compat-sap-c++-NUM.so' file name
+- name: Display the identified 'compat-sap-c++-NUM.so' symlink
   ansible.builtin.debug:
-    msg: "File /opt/rh/SAP/lib64/{{ __sap_netweaver_preconfigure_fact_compat_sap_cpp_latest }} is present."
+    msg: "Symlink /opt/rh/SAP/lib64/{{ __sap_netweaver_preconfigure_fact_compat_sap_cpp_latest }} is present."
 
 - name: Ensure there is a symlink in directory '/opt/rh/SAP/lib64' named 'libstdc++.so.6', pointing to '{{ __sap_netweaver_preconfigure_fact_compat_sap_cpp_latest }}'
   ansible.builtin.file:
