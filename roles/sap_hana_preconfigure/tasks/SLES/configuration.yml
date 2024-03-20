@@ -50,6 +50,7 @@
         path: /etc/default/grub
         regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=(?!.* {{ item }}).*). *$'
         line: "\\1 {{ item }}\""
+        backrefs: yes
       register: set_grub_entries
       with_items:
         - "splash=silent"
@@ -69,8 +70,8 @@
     # the configuration file no handler will be notify
     - name: Trigger grub update if necessary # noqa no-changed-when
       ansible.builtin.command: /bin/true
+      notify: __sap_hana_preconfigure_regenerate_grub2_conf_handler
       when: set_grub_entries.results | selectattr('changed', 'equalto', true) | list | length > 0
-      notify: __sap_hana_preconfigure_grub_configuration_changed_handler
 
 - name: Enable sapconf
   when: not __sap_hana_preconfigure_run_saptune
