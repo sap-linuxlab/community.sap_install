@@ -204,21 +204,23 @@
 #      - '  FQDN             -       {{ ansible_fqdn }}'
   when: not ansible_check_mode
 
-# We want to add only the necessary files to the fapolicyd trust file, so we are only looking for files which have the execute
-# mode bit set AND which are reported as executables by fapolicyd-cli -t
-- name: SAP HANA Post Install, fapolicyd - Put all executable files from 'sap_hana_install_root_path' into the fapolicyd trust file
+# We want to add files which have the execute mode bit set AND which are reported as executables
+# by fapolicyd-cli -t, one for each directory of sap_hana_install_directories_with_executables.
+# The fapolicy trust file name will be created from the directory names by replacing '/' by '_' and
+# omitting the first '_'.
+- name: SAP HANA Post Install, fapolicyd - Put all executable files from 'sap_hana_install_directories_with_executables' into an fapolicyd trust file
   ansible.builtin.shell: |
     set -o pipefail &&
-    find {{ sap_hana_install_root_path }} -type f -executable -exec fapolicyd-cli -t {} \; -print |
-    awk '/\/x-executable/||
-        /\/x-sharedlib/||
-        /\/x-shellscript/||
-        /\/x-python/{a=1; b=NR}
+    find {{ __sap_hana_install_item }} -type f -executable -exec fapolicyd-cli -t {} \; -print |
+    awk '/\/x-/{a=1; b=NR}
         {
             if(a==1 && b==(NR-1)){
-                system("fapolicyd-cli --file add "$0" --trust-file {{ sap_hana_install_fapolicyd_trust_filename }}"); a=0; b=0
+                system("fapolicyd-cli --file add "$0" --trust-file {{ __sap_hana_install_item | regex_replace('//*', '_') | regex_replace("^_", "") }}"); a=0; b=0
             }
         }'
+  loop: "{{ sap_hana_install_directories_with_executables }}"
+  loop_control:
+    loop_var: __sap_hana_install_item
   changed_when: true
   when:
     - sap_hana_install_use_fapolicyd
@@ -233,12 +235,12 @@
     - sap_hana_install_use_fapolicyd
     - '"fapolicyd" in ansible_facts.packages'
 
-- name: SAP HANA Post Install, fapolicyd - Update the fapolicyd database
-  ansible.builtin.command: fapolicyd-cli --update
-  changed_when: true
-  when:
-    - sap_hana_install_use_fapolicyd
-    - '"fapolicyd" in ansible_facts.packages'
+#- name: SAP HANA Post Install, fapolicyd - Update the fapolicyd database
+#  ansible.builtin.command: fapolicyd-cli --update
+#  changed_when: true
+#  when:
+#    - sap_hana_install_use_fapolicyd
+#    - '"fapolicyd" in ansible_facts.packages'
 
 - name: SAP HANA Post Install, fapolicyd - Restart fapolicyd
   ansible.builtin.service:
