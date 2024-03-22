@@ -205,23 +205,40 @@
   when: not ansible_check_mode
 
 # We want to add files which have the execute mode bit set AND which are reported as executables
-# by fapolicyd-cli -t, one for each directory of sap_hana_install_directories_with_executables.
+# by fapolicyd-cli -t, one for each directory of sap_hana_install_fapolicyd_trusted_directories.
 # The fapolicy trust file name will be created from the directory names by replacing '/' by '_' and
 # omitting the first '_'.
-- name: SAP HANA Post Install, fapolicyd - Put all executable files from 'sap_hana_install_directories_with_executables' into an fapolicyd trust file
+- name: SAP HANA Post Install, fapolicyd - Put all executable files from 'sap_hana_install_fapolicyd_trusted_directories' into an fapolicyd trust file
   ansible.builtin.shell: |
     set -o pipefail &&
     find {{ __sap_hana_install_item }} -type f -executable -exec fapolicyd-cli -t {} \; -print |
     awk '/\/x-/{a=1; b=NR}
-        {
-            if(a==1 && b==(NR-1)){
-                system("fapolicyd-cli --file add "$0" --trust-file {{ __sap_hana_install_item | regex_replace('//*', '_') | regex_replace("^_", "") }}"); a=0; b=0
-            }
-        }'
-  loop: "{{ sap_hana_install_directories_with_executables }}"
+      {
+        if(a==1 && b==(NR-1)){
+          system("fapolicyd-cli --file add "$0" --trust-file \
+            {{ __sap_hana_install_item | regex_replace('//*', '_') | regex_replace("^_", "") }}"); a=0; b=0
+        }
+      }'
+  loop: "{{ sap_hana_install_fapolicyd_trusted_directories }}"
   loop_control:
     loop_var: __sap_hana_install_item
+    label: >-
+      "{{ __sap_hana_install_item }} ->
+      /etc/fapolicyd/trust.d/{{ __sap_hana_install_item |
+      regex_replace('//*', '_') |
+      regex_replace('^_', '')}}"
   changed_when: true
+  when:
+    - sap_hana_install_use_fapolicyd
+    - '"fapolicyd" in ansible_facts.packages'
+
+- name: SAP HANA Post Install, fapolicyd - Ensure the desired integrity level
+  ansible.builtin.lineinfile:
+    path: /etc/fapolicyd/fapolicyd.conf
+    backup: yes
+    state: present
+    regexp: 'integrity'
+    line: "integrity = {{ sap_hana_install_fapolicyd_integrity }}"
   when:
     - sap_hana_install_use_fapolicyd
     - '"fapolicyd" in ansible_facts.packages'
