@@ -232,54 +232,26 @@
     - sap_hana_install_use_fapolicyd
     - '"fapolicyd" in ansible_facts.packages'
 
-- name: SAP HANA Post Install, fapolicyd - Identify marker in fapolicyd config file
-  ansible.builtin.find:
-    paths: /etc/fapolicyd
-    file_type: file
-    patterns: 'fapolicyd.conf$'
-    contains: '# integrity - BEGIN ANSIBLE MANAGED'
-    use_regex: true
-  register: sap_hana_install_fapolicyd_conf_ansbile_managed
-  when:
-    - sap_hana_install_use_fapolicyd
-    - '"fapolicyd" in ansible_facts.packages'
-
-- name: SAP HANA Post Install, fapolicyd - Ensure marker is present
+- name: SAP HANA Post Install, fapolicyd - Ensure marker for 'integrity' is present in fapolicyd config file
   ansible.builtin.lineinfile:
     path: /etc/fapolicyd/fapolicyd.conf
-    backup: yes
-    state: present
-    regexp: '^(integrity.\s*=\s*.*)'
-    line: '# integrity - BEGIN ANSIBLE MANAGED\n\1\n# integrity - END ANSIBLE MANAGED'
-    backrefs: true
+    regexp: '# "integrity" managed by Ansible'
+    insertbefore: '^integrity\s*=.*'
+    line: '# "integrity" managed by Ansible'
   when:
     - sap_hana_install_use_fapolicyd
     - '"fapolicyd" in ansible_facts.packages'
-    - sap_hana_install_fapolicyd_conf_ansbile_managed.matched == 0
 
 - name: SAP HANA Post Install, fapolicyd - Ensure the desired integrity level
-  ansible.builtin.blockinfile:
+  ansible.builtin.lineinfile:
     path: /etc/fapolicyd/fapolicyd.conf
-    backup: yes
-    state: present
-    marker: "# integrity - {mark} ANSIBLE MANAGED"
-    block: |
-      integrity = {{ sap_hana_install_fapolicyd_integrity }}
+    regexp: '^(integrity\s*=.*)'
+    insertafter: '# "integrity" managed by Ansible'
+    line: 'integrity = {{ sap_hana_install_fapolicyd_integrity }}'
+    backup: true
   when:
     - sap_hana_install_use_fapolicyd
     - '"fapolicyd" in ansible_facts.packages'
-
-## Version without markers:
-#- name: SAP HANA Post Install, fapolicyd - Ensure the desired integrity level
-#  ansible.builtin.lineinfile:
-#    path: /etc/fapolicyd/fapolicyd.conf
-#    backup: yes
-#    state: present
-#    regexp: '^(integrity.\s*=\s*.*)'
-#    line: "integrity = {{ sap_hana_install_fapolicyd_integrity }}"
-#  when:
-#    - sap_hana_install_use_fapolicyd
-#    - '"fapolicyd" in ansible_facts.packages'
 
 - name: SAP HANA Post Install, fapolicyd - Enable fapolicyd
   ansible.builtin.service:
