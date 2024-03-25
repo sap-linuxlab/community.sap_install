@@ -204,6 +204,14 @@
 #      - '  FQDN             -       {{ ansible_fqdn }}'
   when: not ansible_check_mode
 
+- name: SAP HANA Post Install, fapolicyd - Process template for adding custom rules
+  template:
+    src: fapolicyd-rules.j2
+    dest: /etc/fapolicyd/rules.d/71-sap-shellscripts
+    owner: root
+    group: fapolicyd
+    mode: '0644'
+
 # We want to add files which have the execute mode bit set AND which are reported as executables
 # by fapolicyd-cli -t, one for each directory of sap_hana_install_fapolicyd_trusted_directories.
 # The fapolicy trust file name will be created from the directory names by replacing '/' by '_' and
