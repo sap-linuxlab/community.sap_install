@@ -23,6 +23,7 @@
     name: fapolicyd
     state: present
   when: sap_hana_install_use_fapolicyd
+  tags: sap_hana_install_use_fapolicyd
 
 ################
 # We must ensure fapolicyd is disabled before installing SAP HANA in all cases
@@ -31,6 +32,7 @@
 
 - name: SAP HANA Pre Install - Gather package facts
   ansible.builtin.package_facts:
+  tags: sap_hana_install_use_fapolicyd
 
 - name: SAP HANA Pre Install - Disable fapolicyd
   ansible.builtin.service:
@@ -39,6 +41,7 @@
     state: stopped
   when:
     - '"fapolicyd" in ansible_facts.packages'
+  tags: sap_hana_install_use_fapolicyd
 
 ################
 # Prepare software path
