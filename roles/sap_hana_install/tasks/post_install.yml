@@ -204,10 +204,54 @@
 #      - '  FQDN             -       {{ ansible_fqdn }}'
   when: not ansible_check_mode
 
-- name: SAP HANA Post Install, fapolicyd - Process template for adding custom rules
+- name: SAP HANA Post Install, fapolicyd - Update config for desired integrity level and backout if validation fails
+  when:
+    - sap_hana_install_use_fapolicyd
+    - '"fapolicyd" in ansible_facts.packages'
+  block:
+
+    - name: SAP HANA Post Install, fapolicyd - Ensure Ansible marker for 'integrity' is present in fapolicyd config file
+      ansible.builtin.lineinfile:
+        path: /etc/fapolicyd/fapolicyd.conf
+        regexp: '# "integrity" managed by Ansible'
+        insertbefore: '^integrity\s*=.*'
+        line: '# "integrity" managed by Ansible'
+      tags: sap_hana_install_use_fapolicyd
+
+    - name: SAP HANA Post Install, fapolicyd - Ensure integrity level '{{ sap_hana_install_fapolicyd_integrity }}' is configured"
+      ansible.builtin.lineinfile:
+        path: /etc/fapolicyd/fapolicyd.conf
+        regexp: '^(integrity\s*=.*)'
+        insertafter: '# "integrity" managed by Ansible'
+        line: 'integrity = {{ sap_hana_install_fapolicyd_integrity }}'
+        backup: true
+      register: __sap_hana_install_fapolicyd_conf_updated
+      tags: sap_hana_install_use_fapolicyd
+
+    - name: SAP HANA Post Install, fapolicyd - Validate the new version of the fapolicyd config file
+      ansible.builtin.command: fapolicyd-cli --check-config
+      tags: sap_hana_install_use_fapolicyd
+
+  rescue:
+
+    - name: SAP HANA Post Install, fapolicyd - Restore fapolicyd config file from backup if validation fails
+      ansible.builtin.copy:
+        remote_src: true
+        dest: /etc/fapolicyd/fapolicyd.conf
+        src: "{{ __sap_hana_install_fapolicyd_conf_updated['backup'] }}"
+      tags: sap_hana_install_use_fapolicyd
+
+    - name: SAP HANA Post Install, fapolicyd - Notify about failed validation
+      ansible.builtin.fail:
+        msg: >-
+          "The update of the fapolicyd config file failed, likely because an unsupported value has been used for
+           the parameter 'sap_hana_install_fapolicyd_integrity'. The previous version has been successfully restored."
+      tags: sap_hana_install_use_fapolicyd
+
+- name: SAP HANA Post Install, fapolicyd - Process template for creating rule file "{{ sap_hana_install_fapolicyd_rule_file }}"
   template:
     src: fapolicyd-rules.j2
-    dest: /etc/fapolicyd/rules.d/71-sap-shellscripts
+    dest: "/etc/fapolicyd/rules.d/{{ sap_hana_install_fapolicyd_rule_file }}.rules"
     owner: root
     group: fapolicyd
     mode: '0644'
@@ -245,50 +289,6 @@
     - '"fapolicyd" in ansible_facts.packages'
   tags: sap_hana_install_use_fapolicyd
 
-- name: SAP HANA Post Install, fapolicyd - Update config for desired integrity level and backout if validation fails
-  when:
-    - sap_hana_install_use_fapolicyd
-    - '"fapolicyd" in ansible_facts.packages'
-  block:
-
-    - name: SAP HANA Post Install, fapolicyd - Ensure marker for 'integrity' is present in fapolicyd config file
-      ansible.builtin.lineinfile:
-        path: /etc/fapolicyd/fapolicyd.conf
-        regexp: '# "integrity" managed by Ansible'
-        insertbefore: '^integrity\s*=.*'
-        line: '# "integrity" managed by Ansible'
-      tags: sap_hana_install_use_fapolicyd
-
-    - name: SAP HANA Post Install, fapolicyd - Ensure the desired integrity level
-      ansible.builtin.lineinfile:
-        path: /etc/fapolicyd/fapolicyd.conf
-        regexp: '^(integrity\s*=.*)'
-        insertafter: '# "integrity" managed by Ansible'
-        line: 'integrity = {{ sap_hana_install_fapolicyd_integrity }}'
-        backup: true
-      register: __sap_hana_install_fapolicyd_conf_updated
-      tags: sap_hana_install_use_fapolicyd
-
-    - name: SAP HANA Post Install, fapolicyd - Validate the new version of the fapolicyd config file
-      ansible.builtin.command: fapolicyd-cli --check-config
-      tags: sap_hana_install_use_fapolicyd
-
-  rescue:
-
-    - name: SAP HANA Post Install, fapolicyd - Restore fapolicyd config file from backup if validation fails
-      ansible.builtin.copy:
-        remote_src: true
-        dest: /etc/fapolicyd/fapolicyd.conf
-        src: "{{ __sap_hana_install_fapolicyd_conf_updated['backup'] }}"
-      tags: sap_hana_install_use_fapolicyd
-
-    - name: SAP HANA Post Install, fapolicyd - Notify about failed validation
-      ansible.builtin.fail:
-        msg: >-
-          "The update of the fapolicyd config file failed, likely because an unsupported value has been used for
-           the parameter 'sap_hana_install_fapolicyd_integrity'. The previous version has been successfully restored."
-      tags: sap_hana_install_use_fapolicyd
-
 - name: SAP HANA Post Install, fapolicyd - Enable fapolicyd
   ansible.builtin.service:
     name: fapolicyd
@@ -298,14 +298,6 @@
     - sap_hana_install_use_fapolicyd
     - '"fapolicyd" in ansible_facts.packages'
   tags: sap_hana_install_use_fapolicyd
-
-#- name: SAP HANA Post Install, fapolicyd - Update the fapolicyd database
-#  ansible.builtin.command: fapolicyd-cli --update
-#  changed_when: true
-#  when:
-#    - sap_hana_install_use_fapolicyd
-#    - '"fapolicyd" in ansible_facts.packages'
-#  tags: sap_hana_install_use_fapolicyd
 
 - name: SAP HANA Post Install, fapolicyd - Restart fapolicyd
   ansible.builtin.service:
