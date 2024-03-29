@@ -1,10 +1,12 @@
 FROM python:3.12-slim
 
-COPY check_outdate_deps.sh /check_outdate_deps.sh
+COPY check_deps.py /check_deps.py
+RUN chmod +x /check_deps.py
 
-RUN chmod +x /check_outdate_deps.sh
+RUN env
 
-# needed for the open_issue.py
-RUN pip3 install requests
+RUN pip3 install requests; \
+	apt-get update; \
+	apt-get install -y --no-install-recommends git
 
-ENTRYPOINT [ "/check_outdate_deps.sh" ]
+ENTRYPOINT [ "/check_deps.py" ]
