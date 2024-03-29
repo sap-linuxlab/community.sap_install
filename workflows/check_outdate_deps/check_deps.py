@@ -16,6 +16,7 @@ HEADERS = {
 }
 OPEN_PR = os.environ.get("OPEN_PR")
 OPEN_PR_BASE = os.environ.get("OPEN_PR_BASE")
+BRANCH = "automation/dependencies_update"
 
 
 def create_pull_request(branch, packages_issue):
@@ -43,10 +44,11 @@ def create_pull_request(branch, packages_issue):
                 f"INFO: Pull Request -> https://github.com/{REPOSITORY}/pull/{pr_number}")
         else:
             print(f"ERROR: Failed to create pull request. Status code: {
-                      response.status_code}.")
+                response.status_code}.")
     else:
         response = requests.patch(
-            f"https://api.github.com/repos/{REPOSITORY}/pulls/{find_pr[0]['number']}",
+            f"https://api.github.com/repos/{
+                REPOSITORY}/pulls/{find_pr[0]['number']}",
             headers=HEADERS,
             data=json.dumps(pr_data))
         if response.status_code == 201:
@@ -55,7 +57,7 @@ def create_pull_request(branch, packages_issue):
                 f"INFO: Pull Request updated -> https://github.com/{REPOSITORY}/pull/{pr_number}")
         else:
             print(f"ERROR: Failed to update the pull requests. Status code: {
-                      response.status_code}.")
+                response.status_code}.")
 
 
 def update_branch_with_changes(branch, file_to_change):
@@ -180,14 +182,15 @@ if __name__ == '__main__':
         raw_output_outdated.stdout.decode('utf-8'))
     packages_issue = {}
     if OPEN_PR == "True":
-        branch = "automation/dependencies_update"
-        create_branch_if_not_exists(branch, COMMIT_SHA)
+        create_branch_if_not_exists(BRANCH, COMMIT_SHA)
     for package in current_packages.keys():
         if package in latest_packages:
             current_version = current_packages[package]
             latest_version = latest_packages[package]
             packages_issue[package] = open_issue_for_package(
                 package, current_version, latest_version)
+            # TODO: check if there is already a issue for this package with
+            # old dependency version
 
             if OPEN_PR == "True":
                 line_current = f"{package}==[0-9]+\.[0-9]+\.[0-9]+"
@@ -204,5 +207,5 @@ if __name__ == '__main__':
             ----------------
             """)
     if OPEN_PR == "True":
-        update_branch_with_changes(branch, REQUIREMENT_FILE)
-        create_pull_request(branch, packages_issue)
+        update_branch_with_changes(BRANCH, REQUIREMENT_FILE)
+        create_pull_request(BRANCH, packages_issue)
