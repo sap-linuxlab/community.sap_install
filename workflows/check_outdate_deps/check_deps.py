@@ -19,69 +19,136 @@ OPEN_PR_BASE = os.environ.get("OPEN_PR_BASE")
 ISSUE_AUTOCLOSE = os.environ.get("ISSUE_AUTOCLOSE")
 BRANCH = "automation/dependencies_update"
 
-def close_issue_if_old(package, current_version, latest_version, new_issue_number):
-    issue_title = f"Dependency outdated in {REQUIREMENT_FILE}: {package}=={current_version}"
-    query = f"{issue_title} repo:{REPOSITORY} type:issue in:title"
+
+def __build_packages_dict_from_file():
+    print("INFO: create dictionary from file")
+    packages = {}
+    with open(REQUIREMENT_FILE, 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            regex_pattern = re.compile(
+                "([a-zA-Z0-9-]+)==([0-9]+\.[0-9]+\.[0-9]+)")
+            matches = regex_pattern.findall(line)
+            if len(matches) > 0:
+                package_name = str(matches[0][0])
+                package_version = str(matches[0][1])
+                packages[package_name] = package_version
+    return packages
+
+
+def __build_packages_dict_from_output(output):
+    print("INFO: create dictionary from output")
+    packages = {}
+    lines = output.splitlines(output)
+    for line in lines:
+        regex_pattern = re.compile(
+            "([a-zA-Z0-9-]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([a-zA-Z]+)")
+        matches = regex_pattern.findall(line)
+        if len(matches) > 0:
+            package_name = str(matches[0][0])
+            package_version = str(matches[0][2])
+            packages[package_name] = package_version
+    return packages
+
+
+def __create_branch(branch, branch_data):
+    response = requests.post(
+        f"https://api.github.com/repos/{REPOSITORY}/git/refs",
+        headers=HEADERS,
+        data=json.dumps(branch_data))
+    if response.status_code == 201:
+        print(f"INFO: Branch created -> https://github.com/{REPOSITORY}/tree/{branch}")
+    else:
+        print(f"ERROR: Failed to create branch. Status code: {response.status_code}.")
+
+
+def __search_issues(query):
     response = requests.get(
         "https://api.github.com/search/issues", params={"q": query})
-    data = response.json()
-    issue_title_latest = f"Dependency outdated in {REQUIREMENT_FILE}: {
-        package}=={current_version} -> {latest_version}"
-    for issue in data['items']:
+    return response.json()['items']
+
+
+def __create_issue(issue_data):
+    response = requests.post(
+        f"https://api.github.com/repos/{REPOSITORY}/issues",
+        headers=HEADERS,
+        data=json.dumps(issue_data))
+    if response.status_code == 201:
+        issue_number = response.json()['number']
+        print(f"INFO: Issue created -> https://github.com/{REPOSITORY}/issues/{issue_number}")
+        return issue_number
+    else:
+        print(f"ERROR: Failed to create issue. Status code: {response.status_code}.")
+        return -1
+
+
+def __update_issue(issue_number, issue):
+    response = requests.patch(
+        f"https://api.github.com/repos/{REPOSITORY}/issues/{issue_number}",
+        headers=HEADERS,
+        data=json.dumps(issue))
+    if response.status_code == 200:
+        print(f"INFO: Issue updated -> https://github.com/{REPOSITORY}/issues/{issue_number}")
+    else:
+        print(f"ERROR: Failed to update the issue. Status code: {response.status_code}.")
+
+
+def __comment_issue(issue_number, comment):
+    comment_data = {
+        "body": comment
+    }
+    response = requests.post(
+        f"https://api.github.com/repos/{REPOSITORY}/issues/{issue_number}/comments",
+        headers=HEADERS,
+        data=json.dumps(comment_data))
+    if response.status_code == 201:
+        print(f"INFO: Comment done in -> https://github.com/{REPOSITORY}/issues/{issue_number}")
+    else:
+        print(f"ERROR: Failed to create comment. Status code: {response.status_code}.")
+
+
+def __check_if_issue_already_exists(package, current_version, latest_version):
+    issue_title = f"Dependency outdated in {REQUIREMENT_FILE}: {package}=={current_version}"
+    query = f"{issue_title} repo:{REPOSITORY} type:issue in:title"
+    items = __search_issues(query)
+    issue_title_latest = f"Dependency outdated in {REQUIREMENT_FILE}: {package}=={current_version} -> {latest_version}"
+    for issue in items:
         if issue['title'] != issue_title_latest:
-            comment = f"""
-A new version of the package is out, check out the new issue #{new_issue_number}.
-            """
-            comment_data = {
-                "body": comment
-            }
-            response = requests.post(
-                f"https://api.github.com/repos/{REPOSITORY}/issues/{issue['number']}/comments",
-                headers=HEADERS,
-                data=json.dumps(comment_data))
-            if response.status_code == 201:
-                print(f"INFO: Comment done in -> https://github.com/{REPOSITORY}/issues/{issue['number']}")
-            else:
-                print(f"ERROR: Failed to create comment. Status code: {response.status_code}.")
-            issue_data = {
-                "state": "closed"
-            }
-            response = requests.patch(
-                f"https://api.github.com/repos/{REPOSITORY}/issues/{issue['number']}",
-                headers=HEADERS,
-                data=json.dumps(issue_data))
-            if response.status_code == 200:
-                print(f"INFO: Issue closed -> https://github.com/{REPOSITORY}/issues/{issue['number']}")
-            else:
-                print(f"ERROR: Failed to close the issue. Status code: {response.status_code}.")
+            return issue['number'], issue['title'], issue['body']
+    return 0, "", ""
+
+
+def __create_pull_request(pr_data):
+    response = requests.post(
+        f"https://api.github.com/repos/{REPOSITORY}/pulls",
+        headers=HEADERS,
+        data=json.dumps(pr_data))
+    if response.status_code == 201:
+        pr_number = response.json()['number']
+        print(f"INFO: Pull Request open -> https://github.com/{REPOSITORY}/pull/{pr_number}")
+        return pr_number
+    else:
+        print(f"ERROR: Failed to create pull request. Status code: {response.status_code}.")
+        return -1
 
 def create_pull_request(branch, packages_issue):
     body = f"Bumps packages in {REQUIREMENT_FILE}."
     for package in packages_issue:
         body += f"\nCloses #{packages_issue[package]}"
+    title= f"Automation: update outdated packages in {REQUIREMENT_FILE}"
     pr_data = {
-        "title": f"Automation: update outdated packages in {REQUIREMENT_FILE}",
+        "title": title,
         "body": body,
         "head": branch,
         "base": OPEN_PR_BASE
     }
-    response = requests.get(
-        f"https://api.github.com/repos/{REPOSITORY}/pulls",
-        headers=HEADERS)
-    find_pr = list(pr['number'] for pr in response.json() if pr['title'] == pr_data['title'])
-    if not any(find_pr):
-        response = requests.post(
-            f"https://api.github.com/repos/{REPOSITORY}/pulls",
-            headers=HEADERS,
-            data=json.dumps(pr_data))
-        if response.status_code == 201:
-            pr_number = response.json()['number']
-            print(f"INFO: Pull Request open -> https://github.com/{REPOSITORY}/pull/{pr_number}")
-        else:
-            print(f"ERROR: Failed to create pull request. Status code: {response.status_code}.")
-    else:
+    query = f"{title} repo:{REPOSITORY} type:pull-request in:title"
+    items = __search_issues(query)
+    if not any(items):
+        __create_pull_request(pr_data)
+    elif len(items) == 1:
         response = requests.patch(
-            f"https://api.github.com/repos/{REPOSITORY}/pulls/{find_pr[0]}",
+            f"https://api.github.com/repos/{REPOSITORY}/pulls/{items[0]}",
             headers=HEADERS,
             data=json.dumps(pr_data))
         if response.status_code == 200:
@@ -89,6 +156,8 @@ def create_pull_request(branch, packages_issue):
             print(f"INFO: Pull Request updated -> https://github.com/{REPOSITORY}/pull/{pr_number}")
         else:
             print(f"ERROR: Failed to update the pull requests. Status code: {response.status_code}.")
+    else:
+        print(f"ERROR: More than 1 pull-request with the same title are found! I can't update.")
 
 
 def update_branch_with_changes(branch, file_to_change):
@@ -117,83 +186,43 @@ def find_replace_in_file(file_path, find_str, replace_str):
 def create_branch_if_not_exists(branch, commit_sha):
     response = requests.get(f"https://api.github.com/repos/{REPOSITORY}/branches/{branch}")
     if response.status_code == 404:
-        refs = {"ref": "refs/heads/" + branch, "sha": commit_sha}
-        response = requests.post(
-            f"https://api.github.com/repos/{REPOSITORY}/git/refs",
-            headers=HEADERS,
-            data=json.dumps(refs))
-        if response.status_code == 201:
-            print(f"INFO: Branch created -> https://github.com/{REPOSITORY}/tree/{branch}")
-        else:
-            print("ERROR: branch not created")
+         branch_data = {"ref": "refs/heads/" + branch, "sha": commit_sha}
+         __create_branch(branch, branch_data)
     else:
         print(f"INFO: Branch -> https://github.com/{REPOSITORY}/tree/{branch}")
 
 
 def open_issue_for_package(package, current_version, latest_version):
-    issue_title = f"Dependency outdated in {REQUIREMENT_FILE}: {
-        package}=={current_version} -> {latest_version}"
-    query = f"{issue_title} repo:{REPOSITORY} type:issue in:title"
-    response = requests.get(
-        "https://api.github.com/search/issues", params={"q": query})
-    data = response.json()
-    if data["total_count"] > 0:
-        issue_number = data['items'][0]['number']
-        print(f"INFO: Issue -> https://github.com/{REPOSITORY}/issues/{issue_number}")
-        return issue_number
-    else:
-        issue_description = f"""
+    issue_number, old_title, old_description = __check_if_issue_already_exists(package, current_version, latest_version)
+    issue_title = f"Dependency outdated in {REQUIREMENT_FILE}: {package}=={current_version} -> {latest_version}"
+    issue_description = f"""
 The package {package} is outdated in {REQUIREMENT_FILE}.
 
 The latest version is {latest_version}. Please update the package to the latest version.
 
 Check the package [here](https://pypi.org/project/{package}/{latest_version}/) for more information.
+    """
+    issue = {"title": issue_title,
+             "body": issue_description,
+             "labels": ["automation"]}
+    if issue_number > 0:
+        comment = f"""
+A new version of the package is out.
+
+**Title and description is going to be updated with the latest one.**
+
+**This is the previous title and description of this issue:**
+```
+Title: {old_title}
+Description: 
+{old_description}
+```
         """
-        issue = {"title": issue_title,
-                 "body": issue_description,
-                 "labels": ["automation"]}
-        response = requests.post(
-            f"https://api.github.com/repos/{REPOSITORY}/issues",
-            headers=HEADERS,
-            data=json.dumps(issue))
-        if response.status_code == 201:
-            issue_number = response.json()['number']
-            print(f"INFO: Issue created -> https://github.com/{REPOSITORY}/issues/{issue_number}")
-            return issue_number
-        else:
-            print(f"ERROR: Failed to create issue. Status code: {response.status_code}.")
-            return -1
-
-
-def build_packages_dict_from_file():
-    print("INFO: create dictionary from file")
-    packages = {}
-    with open(REQUIREMENT_FILE, 'r') as file:
-        lines = file.readlines()
-        for line in lines:
-            regex_pattern = re.compile(
-                "([a-zA-Z0-9-]+)==([0-9]+\.[0-9]+\.[0-9]+)")
-            matches = regex_pattern.findall(line)
-            if len(matches) > 0:
-                package_name = str(matches[0][0])
-                package_version = str(matches[0][1])
-                packages[package_name] = package_version
-    return packages
-
-
-def build_packages_dict_from_output(output):
-    print("INFO: create dictionary from output")
-    packages = {}
-    lines = output.splitlines(output)
-    for line in lines:
-        regex_pattern = re.compile(
-            "([a-zA-Z0-9-]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([a-zA-Z]+)")
-        matches = regex_pattern.findall(line)
-        if len(matches) > 0:
-            package_name = str(matches[0][0])
-            package_version = str(matches[0][2])
-            packages[package_name] = package_version
-    return packages
+        __comment_issue(issue_number, comment)
+        __update_issue(issue_number, issue)
+        return issue_number
+    else:
+        return __create_issue(issue)
 
 
 if __name__ == '__main__':
@@ -202,8 +231,8 @@ if __name__ == '__main__':
     raw_output_outdated = subprocess.run(
         ['pip3', 'list', '--outdated'],
         stdout=subprocess.PIPE)
-    current_packages = build_packages_dict_from_file()
-    latest_packages = build_packages_dict_from_output(raw_output_outdated.stdout.decode('utf-8'))
+    current_packages = __build_packages_dict_from_file()
+    latest_packages = __build_packages_dict_from_output(raw_output_outdated.stdout.decode('utf-8'))
     print("##### Create datas #####")
     packages_issue = {}
     if OPEN_PR == "True":
@@ -218,10 +247,9 @@ if __name__ == '__main__':
 INFO: current version {current_version}
 INFO: latest version {latest_version}""")
             packages_issue[package] = open_issue_for_package(
-                package, current_version, latest_version)
-
-            if ISSUE_AUTOCLOSE == "True":
-                close_issue_if_old(package, current_version, latest_version, packages_issue[package])
+                package,
+                current_version,
+                latest_version)
 
             if OPEN_PR == "True":
                 line_current = f"{package}==[0-9]+\.[0-9]+\.[0-9]+"
