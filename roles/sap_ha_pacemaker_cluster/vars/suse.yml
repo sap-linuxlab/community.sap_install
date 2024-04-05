@@ -20,7 +20,7 @@ sap_ha_pacemaker_cluster_fence_agent_minimal_packages:
   - fence-agents
 
 # Dictionary with fence packages for each platform
-# SUSE does not use platform specific fence agents, just fence-agents
+# fence-agents are defined in sap_ha_pacemaker_cluster_fence_agent_minimal_packages already.
 # sap_ha_pacemaker_cluster_fence_agent_packages_dict:
 
 # Dictionary with extra platform specific packages
@@ -32,27 +32,84 @@ __sap_ha_pacemaker_cluster_platform_extra_packages_dict:
 
 # Dictionary with additional cluster packages for specific scenarios
 __sap_ha_pacemaker_cluster_sap_extra_packages_dict:
+  minimal:
+    - ClusterTools2
+    - resource-agents
   hana_scaleout:
-    - resource-agents
     - SAPHanaSR-ScaleOut
-    - ClusterTools2
   hana_scaleup:
-    - resource-agents
     - SAPHanaSR
-    - ClusterTools2
+  hana_angi:
+    - SAPHanaSR-angi
   nwas:
-    - resource-agents
-    - ClusterTools2
     - sap-suse-cluster-connector
     - sapstartsrv-resource-agents
 
-# Dictionary for platform specific Stonith agents
-# This is required only if there are differences between os_family
-sap_ha_pacemaker_cluster_stonith_agent_dict:
-  cloud_aws: 'stonith:external/ec2'
+# Resource agents - fully qualified names
+__sap_ha_pacemaker_cluster_resource_agents:
+  saphanatopology: "ocf:suse:SAPHanaTopology"
+  saphana: "ocf:suse:SAPHana"
+  saphanacontroller: "ocf:suse:SAPHanaController"
+  saphanafilesystem: "ocf:suse:SAPHanaFilesystem"
+  # "ocf:heartbeat:Filesystem"
+  # "ocf:heartbeat:SAPInstance"
 
-# SAP HANA Resource agent namespace
-__sap_ha_resource_agent_namespace: suse
+# Boolean variable reflecting availability of SAPHanaSR-angi availability.
+__sap_ha_pacemaker_cluster_saphanasr_angi_available: false
 
-# Location of HANA SRHook binaries
-__sap_ha_srhook_path: '/usr/share/SAPHanaSR/SAPHanaSR.py'
+# Default SAP HANA hook parameters combined based on user decision
+__sap_ha_pacemaker_cluster_hook_hana_scaleup_perf:
+  saphanasr:
+    - provider: SAPHanaSR
+      path: /usr/share/SAPHanaSR/
+      options:
+        - name: execution_order
+          value: 1
+  tkover:
+    - provider: susTkOver
+      path: /usr/share/SAPHanaSR/
+      options:
+        - name: execution_order
+          value: 2
+  chksrv:
+    - provider: susChkSrv
+      path: /usr/share/SAPHanaSR/
+      options:
+        - name: execution_order
+          value: 3
+        - name: action_on_lost
+          value: stop
+
+__sap_ha_pacemaker_cluster_hook_hana_scaleup_perf_angi:
+  saphanasr:
+    - provider: susHanaSR
+      path: /usr/share/SAPHanaSR-angi/
+      options:
+        - name: execution_order
+          value: 1
+  tkover:
+    - provider: susTkOver
+      path: /usr/share/SAPHanaSR-angi/
+      options:
+        - name: execution_order
+          value: 2
+        - name: sustkover_timeout
+          value: 30
+  chksrv:
+    - provider: susChkSrv
+      path: /usr/share/SAPHanaSR-angi/
+      options:
+        - name: execution_order
+          value: 3
+        - name: action_on_lost
+          value: stop
+        - name: stop_timeout
+          value: 25
+
+# Placeholder dictionaries
+__sap_ha_pacemaker_cluster_hook_hana_scaleout: []
+__sap_ha_pacemaker_cluster_hook_hana_scaleout_angi: []
+
+# Overwrite resource clone name for SAP HANA
+sap_ha_pacemaker_cluster_hana_resource_clone_name:
+  "{{ sap_ha_pacemaker_cluster_hana_resource_clone_msl_name }}"

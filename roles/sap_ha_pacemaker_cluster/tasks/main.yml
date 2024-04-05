@@ -60,6 +60,14 @@
     file: construct_vars_hana_scaleup.yml
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
+    - not __sap_ha_pacemaker_cluster_saphanasr_angi_available
+
+- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP HANA Scale-up - Angi"
+  ansible.builtin.include_tasks:
+    file: construct_vars_hana_scaleup_angi.yml
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
+    - __sap_ha_pacemaker_cluster_saphanasr_angi_available
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver common"
   ansible.builtin.include_tasks:
@@ -167,32 +175,32 @@
         name: "{{ sap_ha_pacemaker_cluster_system_roles_collection }}.ha_cluster"
       no_log: "{{ __sap_ha_pacemaker_cluster_no_log }}"  # some parameters contain secrets
 
-    # Resource defaults settings were added to "ha_cluster" in Apr 2023 (GH version 1.9.0)
-    # https://github.com/linux-system-roles/ha_cluster#ha_cluster_resource_defaults
-    # Keeping separate for compatibility with older versions of the ha_cluster role.
-    # TODO: Change resource defaults update to "ha_cluster" native syntax.
-    - name: "SAP HA Install Pacemaker - Check resource defaults"
-      ansible.builtin.command:
-        cmd: |
-          {{ __sap_ha_pacemaker_cluster_command.resource_defaults_show }}
-      register: __sap_ha_pacemaker_cluster_check_resource_defaults
-      run_once: true
-      changed_when: false
-      check_mode: false
+    # # Resource defaults settings were added to "ha_cluster" in Apr 2023 (GH version 1.9.0)
+    # # https://github.com/linux-system-roles/ha_cluster#ha_cluster_resource_defaults
+    # # Keeping separate for compatibility with older versions of the ha_cluster role.
+    # # TODO: Change resource defaults update to "ha_cluster" native syntax.
+    # - name: "SAP HA Install Pacemaker - Check resource defaults"
+    #   ansible.builtin.command:
+    #     cmd: |
+    #       {{ __sap_ha_pacemaker_cluster_command.resource_defaults_show }}
+    #   register: __sap_ha_pacemaker_cluster_check_resource_defaults
+    #   run_once: true
+    #   changed_when: false
+    #   check_mode: false
 
-    - name: "SAP HA Install Pacemaker - Update resource default attributes"
-      when:
-        - item.key ~ '=' ~ item.value not in __sap_ha_pacemaker_cluster_check_resource_defaults.stdout
-        - __sap_ha_pacemaker_cluster_resource_defaults is defined
-        - __sap_ha_pacemaker_cluster_resource_defaults | length > 0
-      ansible.builtin.command:
-        cmd: |
-          {{ __sap_ha_pacemaker_cluster_command.resource_defaults_update }} {{ item.key }}={{ item.value }}
-      loop: "{{ __sap_ha_pacemaker_cluster_resource_defaults | dict2items }}"
-      loop_control:
-        label: "{{ item.key }}={{ item.value }}"
-      run_once: true
-      changed_when: true
+    # - name: "SAP HA Install Pacemaker - Update resource default attributes"
+    #   when:
+    #     - item.key ~ '=' ~ item.value not in __sap_ha_pacemaker_cluster_check_resource_defaults.stdout
+    #     - __sap_ha_pacemaker_cluster_resource_defaults is defined
+    #     - __sap_ha_pacemaker_cluster_resource_defaults | length > 0
+    #   ansible.builtin.command:
+    #     cmd: |
+    #       {{ __sap_ha_pacemaker_cluster_command.resource_defaults_update }} {{ item.key }}={{ item.value }}
+    #   loop: "{{ __sap_ha_pacemaker_cluster_resource_defaults | dict2items }}"
+    #   loop_control:
+    #     label: "{{ item.key }}={{ item.value }}"
+    #   run_once: true
+    #   changed_when: true
 
     # Corosync post-inst
     - name: "SAP HA Install Pacemaker - Make sure corosync systemd directory exists"
@@ -226,6 +234,14 @@
       tags: srhook
       when:
         - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+
+    # Graceful start of SAPHana clone to ensure resource agents are able to load configuration.
+    - name: "SAP HA Install Pacemaker - Gracefully start SAP HANA cluster"
+      ansible.builtin.include_tasks:
+        file: "{{ ansible_facts['os_family'] }}/post_steps_hana_scaleup.yml"
+      when:
+        - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
+      run_once: true
 
     - name: "SAP HA Install Pacemaker - Include NetWeaver ASCS/ERS post installation"
       ansible.builtin.include_tasks:

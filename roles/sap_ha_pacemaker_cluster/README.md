@@ -57,11 +57,15 @@ _All of the following functionality is provided as **Technology Preview**._
 
 The Ansible Role requires the SAP HANA Database Server or SAP NetWeaver Application Server software installation to already exist on the target host/s.
 
-The target host must have:
-- OS version and license - RHEL4SAP (HA and US) 8.4+
-- OS package repositories enabled - SAP and High Availability
+The target host must be either:
+- Red Hat
+  - OS version: Registered RHEL4SAP (HA and US) 8.4+
+  - OS package repositories enabled: SAP and High Availability
+- SUSE
+  - OS version: Registered SLES4SAP 15+
+  - OS package repositories enabled: HA Extension is part of registered SLES4SAP
 
-> _N.B. At this time SLES4SAP functionality is not available, until `crmsh` commands are provided in dependency Ansible Role [`ha_cluster`](https://github.com/linux-system-roles/ha_cluster)_
+
 
 The Ansible Control System (where Ansible is executed from) must have:
 - Ansible Core 2.9+
@@ -321,7 +325,7 @@ Define if a former primary should be re-registered automatically as secondary.<b
 ### sap_ha_pacemaker_cluster_hana_duplicate_primary_timeout
 
 - _Type:_ `int`
-- _Default:_ `900`
+- _Default:_ `7200`
 
 Parameter for the 'SAPHana' cluster resource.<br>
 Time difference needed between to primary time stamps, if a dual-primary situation occurs.<br>
@@ -348,16 +352,38 @@ When set to "true" (default) a failover to secondary will be initiated on resour
 ### sap_ha_pacemaker_cluster_hana_resource_clone_name
 
 - _Type:_ `string`
-- _Default:_ `SAPHana_<SID>_<Instance Number>-clone`
+- _Default:_ `cln_SAPHana_<SID>_HDB<Instance Number>`
 
 Customize the cluster resource name of the SAP HANA DB resource clone.<br>
+
+### sap_ha_pacemaker_cluster_hana_resource_clone_msl_name
+
+- _Type:_ `string`
+- _Default:_ `msl_SAPHana_<SID>_HDB<Instance Number>`
+
+Customize the cluster resource name of the SAP HANA DB resource master slave clone.<br>
+Master Slave clone is specific to SAPHana resource on SUSE.<br>
 
 ### sap_ha_pacemaker_cluster_hana_resource_name
 
 - _Type:_ `string`
-- _Default:_ `SAPHana_<SID>_<Instance Number>`
+- _Default:_ `rsc_SAPHana_<SID>_HDB<Instance Number>`
 
 Customize the cluster resource name of the SAP HANA DB resource.<br>
+
+### sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name
+
+- _Type:_ `string`
+- _Default:_ `cln_SAPHanaCon_<SID>_HDB<Instance Number>`
+
+Customize the cluster resource name of the SAP HANA DB Controller clone.<br>
+
+### sap_ha_pacemaker_cluster_hanacontroller_resource_name
+
+- _Type:_ `string`
+- _Default:_ `rsc_SAPHanaCon_<SID>_HDB<Instance Number>`
+
+Customize the cluster resource name of the SAP HANA Controller.<br>
 
 ### sap_ha_pacemaker_cluster_hana_sid
 
@@ -371,16 +397,85 @@ Mandatory for SAP HANA cluster setups.<br>
 ### sap_ha_pacemaker_cluster_hana_topology_resource_clone_name
 
 - _Type:_ `string`
-- _Default:_ `SAPHanaTopology_<SID>_<Instance Number>-clone`
+- _Default:_ `cln_SAPHanaTop_<SID>_HDB<Instance Number>`
 
 Customize the cluster resource name of the SAP HANA Topology resource clone.<br>
 
 ### sap_ha_pacemaker_cluster_hana_topology_resource_name
 
 - _Type:_ `string`
-- _Default:_ `SAPHanaTopology_<SID>_<Instance Number>`
+- _Default:_ `rsc_SAPHanaTop_<SID>_HDB<Instance Number>`
 
 Customize the cluster resource name of the SAP HANA Topology resource.<br>
+
+### sap_ha_pacemaker_cluster_hana_filesystem_resource_clone_name
+
+- _Type:_ `string`
+- _Default:_ `cln_SAPHanaFil_<SID>_HDB<Instance Number>`
+
+Customize the cluster resource name of the SAP HANA Filesystem clone.<br>
+
+### sap_ha_pacemaker_cluster_hana_filesystem_resource_name
+
+- _Type:_ `string`
+- _Default:_ `rsc_SAPHanaFil_<SID>_HDB<Instance Number>`
+
+Customize the cluster resource name of the SAP HANA Filesystem.<br>
+
+### sap_ha_pacemaker_cluster_hana_hooks
+
+- _Type:_ `list`
+
+Customize required list of SAP HANA Hooks.<br>
+Mandatory to include SAPHanaSR srHook in list.<br>
+Mandatory attributes are provider and path.<br>
+Example below shows mandatory SAPHanaSR, TkOver and ChkSrv hooks.<br>
+
+Example:
+
+```yaml
+sap_ha_pacemaker_cluster_hana_hooks:
+  - provider: SAPHanaSR
+    path: /usr/share/SAPHanaSR/
+    options:
+      - name: execution_order
+        value: 1
+  - provider: susTkOver
+    path: /usr/share/SAPHanaSR/
+    options:
+      - name: execution_order
+        value: 2
+  - provider: susChkSrv
+    path: /usr/share/SAPHanaSR/
+    options:
+      - name: execution_order
+        value: 3
+      - name: action_on_lost
+        value: stop
+```
+
+### sap_ha_pacemaker_cluster_hana_hook_tkover
+
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Controls if TkOver srHook is enabled during srHook creation.<br>
+It is ignored when sap_ha_pacemaker_cluster_hana_hooks is defined.<br>
+
+### sap_ha_pacemaker_cluster_hana_hook_chksrv
+
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Controls if ChkSrv srHook is enabled during srHook creation.<br>
+It is ignored when sap_ha_pacemaker_cluster_hana_hooks is defined.<br>
+
+### sap_ha_pacemaker_cluster_hana_global_ini_path
+
+- _Type:_ `string`
+- _Default:_ `/usr/sap/<SID>/SYS/global/hdb/custom/config/global.ini`
+
+Path with location of global.ini for srHook update.<br>
 
 ### sap_ha_pacemaker_cluster_host_type
 
@@ -458,7 +553,7 @@ Set this parameter to 'true' to configure it as ENSA1.<br>
 ### sap_ha_pacemaker_cluster_nwas_abap_ascs_filesystem_resource_name
 
 - _Type:_ `string`
-- _Default:_ `Filesystem_NWAS_ABAP_ASCS_<SID>_<ASCS-instance-number>`
+- _Default:_ `rsc_fs_<SID>_ASCS<ASCS-instance-number>`
 
 Name of the filesystem resource for the ASCS instance.<br>
 
@@ -509,7 +604,7 @@ Mandatory for the NetWeaver ASCS/ERS cluster setup<br>
 ### sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name
 
 - _Type:_ `string`
-- _Default:_ `SAPInstance_NWAS_ABAP_ASCS_<SID>_<ASCS-instance-number>`
+- _Default:_ `rsc_SAPInstance_<SID>_ASCS<ASCS-instance-number>`
 
 Name of the ASCS instance resource.<br>
 
@@ -530,7 +625,7 @@ Mandatory for the NetWeaver ASCS/ERS cluster setup.<br>
 ### sap_ha_pacemaker_cluster_nwas_abap_ers_filesystem_resource_name
 
 - _Type:_ `string`
-- _Default:_ `Filesystem_NWAS_ABAP_ERS_<SID>_<ERS-instance-number>`
+- _Default:_ `rsc_fs_<SID>_ERS<ERS-instance-number>`
 
 Name of the filesystem resource for the ERS instance.<br>
 
@@ -558,7 +653,7 @@ Mandatory for the NetWeaver ASCS/ERS cluster setup.<br>
 ### sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name
 
 - _Type:_ `string`
-- _Default:_ `SAPInstance_NWAS_ABAP_ERS_<SID>_<ERS-instance-number>`
+- _Default:_ `rsc_SAPInstance_<SID>_ERS<ERS-instance-number>`
 
 Name of the ERS instance resource.<br>
 
@@ -588,7 +683,7 @@ Mandatory for NetWeaver cluster setups.<br>
 ### sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name
 
 - _Type:_ `string`
-- _Default:_ `Filesystem_NWAS_SAPMNT_<SID>`
+- _Default:_ `rsc_fs_<SID>_sapmnt`
 
 Filesystem resource name for the shared filesystem /sapmnt.<br>
 Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.<br>
@@ -604,7 +699,7 @@ Change this parameter to 'true' if the 3 shared filesystems `/usr/sap/trans`, `/
 ### sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name
 
 - _Type:_ `string`
-- _Default:_ `Filesystem_NWAS_SYS_<SID>`
+- _Default:_ `rsc_fs_<SID>_sys`
 
 Filesystem resource name for the transports filesystem /usr/sap/<SID>/SYS.<br>
 Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.<br>
@@ -613,7 +708,7 @@ Enable this resource setup using `sap_ha_pacemaker_cluster_nwas_shared_filesyste
 ### sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name
 
 - _Type:_ `string`
-- _Default:_ `Filesystem_NWAS_TRANS_<SID>`
+- _Default:_ `rsc_fs_<SID>_trans`
 
 Filesystem resource name for the transports filesystem /usr/sap/trans.<br>
 Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.<br>
@@ -632,6 +727,21 @@ Example:
 sap_ha_pacemaker_cluster_resource_defaults:
   migration-threshold: 5000
   resource-stickiness: 1000
+```
+
+### sap_ha_pacemaker_cluster_operation_defaults
+
+- _Type:_ `dict`
+- _Default:_ `{'timeout': 600, 'record-pending': true}`
+
+Set default operation parameters that will be valid for all pacemaker resources.<br>
+
+Example:
+
+```yaml
+sap_ha_pacemaker_cluster_operation_defaults:
+  timeout: 600
+  record-pending: true
 ```
 
 ### sap_ha_pacemaker_cluster_stonith_custom
@@ -740,7 +850,7 @@ Mandatory parameter for HANA clusters.<br>
 ### sap_ha_pacemaker_cluster_vip_hana_primary_resource_name
 
 - _Type:_ `string`
-- _Default:_ `vip_<SID><Instance Number>`
+- _Default:_ `rsc_vip_<SID>_HDB<Instance Number>_primary`
 
 Customize the name of the resource managing the Virtual IP of the primary HANA instance.<br>
 
@@ -761,7 +871,7 @@ Mandatory for NetWeaver AAS cluster setup.<br>
 ### sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name
 
 - _Type:_ `string`
-- _Default:_ `vip_<SID>_<AAS-instance-number>_aas`
+- _Default:_ `rsc_vip_<SID>_AAS<AAS-instance-number>`
 
 Name of the SAPInstance resource for NetWeaver AAS.<br>
 
@@ -775,14 +885,14 @@ Mandatory for NetWeaver ASCS/ERS cluster setup.<br>
 ### sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name
 
 - _Type:_ `string`
-- _Default:_ `<SID>_ASCS<ASCS-instance-number>_group`
+- _Default:_ `grp_<SID>_ASCS<ASCS-instance-number>`
 
 Name of the NetWeaver ASCS resource group.<br>
 
 ### sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name
 
 - _Type:_ `string`
-- _Default:_ `vip_<SID>_<ASCS-instance-number>_ascs`
+- _Default:_ `rsc_vip_<SID>_ASCS<ASCS-instance-number>`
 
 Name of the SAPInstance resource for NetWeaver ASCS.<br>
 
@@ -796,14 +906,14 @@ Mandatory for NetWeaver ASCS/ERS cluster setup.<br>
 ### sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name
 
 - _Type:_ `string`
-- _Default:_ `<SID>_ERS<ERS-instance-number>_group`
+- _Default:_ `grp_<SID>_ERS<ERS-instance-number>_group`
 
 Name of the NetWeaver ERS resource group.<br>
 
 ### sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name
 
 - _Type:_ `string`
-- _Default:_ `vip_<SID>_<ERS-instance-number>_ers`
+- _Default:_ `rsc_vip_<SID>_ERS<ERS-instance-number>`
 
 Name of the SAPInstance resource for NetWeaver ERS.<br>
 
@@ -817,14 +927,14 @@ Mandatory for NetWeaver PAS cluster setup.<br>
 ### sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name
 
 - _Type:_ `string`
-- _Default:_ `vip_<SID>_<PAS-instance-number>_pas`
+- _Default:_ `rsc_vip_<SID>_PAS<PAS-instance-number>`
 
 Name of the SAPInstance resource for NetWeaver PAS.<br>
 
 ### sap_ha_pacemaker_cluster_vip_secondary_resource_name
 
 - _Type:_ `string`
-- _Default:_ `vip_<SID><Instance Number>`
+- _Default:_ `rsc_vip_<SID>_HDB<Instance Number>_readonly`
 
 Customize the name of the resource managing the Virtual IP of read-only access to the secondary HANA instance.<br>
 

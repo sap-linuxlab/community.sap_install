@@ -52,6 +52,16 @@
 
 # END of block for disabling stonith
 
+# Add additional stonith properties to sap_ha_pacemaker_cluster_cluster_properties
+# Checks if pcmk_delay_max is defined and non zero, then multiples it by 2.
+- name: "SAP HA Prepare Pacemaker - (STONITH) Add priority-fencing-delay property"
+  ansible.builtin.set_fact:
+    sap_ha_pacemaker_cluster_cluster_properties:
+      "{{ sap_ha_pacemaker_cluster_cluster_properties | combine({'priority-fencing-delay':
+          sap_ha_pacemaker_cluster_stonith_default.options.pcmk_delay_max | int * 2})
+        if sap_ha_pacemaker_cluster_stonith_default.options.pcmk_delay_max is defined
+        and sap_ha_pacemaker_cluster_stonith_default.options.pcmk_delay_max | int != 0
+        else sap_ha_pacemaker_cluster_cluster_properties }}"
 
 - name: "SAP HA Prepare Pacemaker - (STONITH) Define cluster properties"
   when:

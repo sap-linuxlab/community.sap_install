@@ -1,10 +1,5 @@
 ---
-#- name: Enable Debugging
-#  debug:
-#    verbosity: "{{ debuglevel }}"
-#
-
-#Capture all patterns along with their install status
+# Capture all patterns along with their install status
 - name: Get zypper pattern information
   ansible.builtin.command: zypper patterns
   register: __sap_hana_preconfigure_zypper_patterns
@@ -21,5 +16,9 @@
 - name: Assert saptune is at requested version
   ansible.builtin.assert:
     that: ansible_facts.packages['saptune'][0]['version'] == sap_hana_preconfigure_saptune_version
-    fail_msg: "FAIL: saptune version installed is {{ ansible_facts.packages['saptune'][0]['version'] }} but the version {{ sap_hana_preconfigure_saptune_version }} was expected"
+    fail_msg: "FAIL: saptune version installed is {{ ansible_facts.packages['saptune'][0]['version']
+      }} but the version {{ sap_hana_preconfigure_saptune_version }} was expected"
     success_msg: "PASS: the installed version of saptune meets the expected version: {{ sap_hana_preconfigure_saptune_version }}"
+  when:
+    - sap_hana_preconfigure_saptune_version is defined
+    - sap_hana_preconfigure_saptune_version | length > 0
