@@ -16,7 +16,6 @@ HEADERS = {
 }
 OPEN_PR = os.environ.get("OPEN_PR")
 OPEN_PR_BASE = os.environ.get("OPEN_PR_BASE")
-ISSUE_AUTOCLOSE = os.environ.get("ISSUE_AUTOCLOSE")
 BRANCH = "automation/dependencies_update"
 
 
@@ -107,17 +106,6 @@ def __comment_issue(issue_number, comment):
         print(f"ERROR: Failed to create comment. Status code: {response.status_code}.")
 
 
-def __check_if_issue_already_exists(package, current_version, latest_version):
-    issue_title = f"Dependency outdated in {REQUIREMENT_FILE}: {package}=={current_version}"
-    query = f"{issue_title} repo:{REPOSITORY} type:issue in:title"
-    items = __search_issues(query)
-    issue_title_latest = f"Dependency outdated in {REQUIREMENT_FILE}: {package}=={current_version} -> {latest_version}"
-    for issue in items:
-        if issue['title'] != issue_title_latest:
-            return issue['number'], issue['title'], issue['body']
-    return 0, "", ""
-
-
 def __create_pull_request(pr_data):
     response = requests.post(
         f"https://api.github.com/repos/{REPOSITORY}/pulls",
@@ -135,7 +123,7 @@ def create_pull_request(branch, packages_issue):
     body = f"Bumps packages in {REQUIREMENT_FILE}."
     for package in packages_issue:
         body += f"\nCloses #{packages_issue[package]}"
-    title= f"Automation: update outdated packages in {REQUIREMENT_FILE}"
+    title = f"Automation: number outdated packages in {REQUIREMENT_FILE}"
     pr_data = {
         "title": title,
         "body": body,
@@ -193,7 +181,9 @@ def create_branch_if_not_exists(branch, commit_sha):
 
 
 def open_issue_for_package(package, current_version, latest_version):
-    issue_number, old_title, old_description = __check_if_issue_already_exists(package, current_version, latest_version)
+    issue_title = f"Dependency outdated in {REQUIREMENT_FILE}: {package}=={current_version}"
+    query = f"{issue_title} repo:{REPOSITORY} type:issue in:title"
+    items = __search_issues(query)
     issue_title = f"Dependency outdated in {REQUIREMENT_FILE}: {package}=={current_version} -> {latest_version}"
     issue_description = f"""
 The package {package} is outdated in {REQUIREMENT_FILE}.
@@ -205,8 +195,17 @@ Check the package [here](https://pypi.org/project/{package}/{latest_version}/) f
     issue = {"title": issue_title,
              "body": issue_description,
              "labels": ["automation"]}
-    if issue_number > 0:
-        comment = f"""
+    if not any(items):
+        return __create_issue(issue)
+    elif len(items) == 1:
+        issue_number = items[0]['number']
+        old_title = items[0]['title']
+        if old_title == issue_title:
+            print(f"INFO: Issue -> https://github.com/{REPOSITORY}/issues/{issue_number}")
+            return issue_number
+        else:
+            old_description = items[0]['body']
+            comment = f"""
 A new version of the package is out.
 
 **Title and description is going to be updated with the latest one.**
@@ -217,12 +216,13 @@ Title: {old_title}
 Description: 
 {old_description}
 ```
-        """
-        __comment_issue(issue_number, comment)
-        __update_issue(issue_number, issue)
-        return issue_number
+            """
+            __comment_issue(issue_number, comment)
+            __update_issue(issue_number, issue)
+            return issue_number
     else:
-        return __create_issue(issue)
+        print(f"ERROR: More than 1 issues with the same title are found! I can't update.")
+        return -1
 
 
 if __name__ == '__main__':
