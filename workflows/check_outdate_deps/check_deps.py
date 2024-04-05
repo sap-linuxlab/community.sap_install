@@ -119,7 +119,7 @@ def __create_pull_request(pr_data):
         print(f"ERROR: Failed to create pull request. Status code: {response.status_code}.")
         return -1
 
-def create_pull_request(branch, packages_issue):
+def manage_pull_request(branch, packages_issue):
     body = f"Bumps packages in {REQUIREMENT_FILE}."
     for package in packages_issue:
         body += f"\nCloses #{packages_issue[package]}"
@@ -130,17 +130,17 @@ def create_pull_request(branch, packages_issue):
         "head": branch,
         "base": OPEN_PR_BASE
     }
-    query = f"{title} repo:{REPOSITORY} type:pull-request in:title"
+    query = f"{title} repo:{REPOSITORY} is:pr in:title state:open"
     items = __search_issues(query)
     if not any(items):
         __create_pull_request(pr_data)
     elif len(items) == 1:
+        pr_number = items[0]['number']
         response = requests.patch(
-            f"https://api.github.com/repos/{REPOSITORY}/pulls/{items[0]}",
+            f"https://api.github.com/repos/{REPOSITORY}/pulls/{pr_number}",
             headers=HEADERS,
             data=json.dumps(pr_data))
         if response.status_code == 200:
-            pr_number = response.json()['number']
             print(f"INFO: Pull Request updated -> https://github.com/{REPOSITORY}/pull/{pr_number}")
         else:
             print(f"ERROR: Failed to update the pull requests. Status code: {response.status_code}.")
@@ -182,7 +182,7 @@ def create_branch_if_not_exists(branch, commit_sha):
 
 def open_issue_for_package(package, current_version, latest_version):
     issue_title = f"Dependency outdated in {REQUIREMENT_FILE}: {package}=={current_version}"
-    query = f"{issue_title} repo:{REPOSITORY} type:issue in:title"
+    query = f"{issue_title} repo:{REPOSITORY} is:issue in:title state:open"
     items = __search_issues(query)
     issue_title = f"Dependency outdated in {REQUIREMENT_FILE}: {package}=={current_version} -> {latest_version}"
     issue_description = f"""
@@ -243,9 +243,8 @@ if __name__ == '__main__':
         if package in latest_packages:
             current_version = current_packages[package]
             latest_version = latest_packages[package]
-            print(f"""
-INFO: current version {current_version}
-INFO: latest version {latest_version}""")
+            print(f"INFO: current version {current_version}")
+            print(f"INFO: latest version {latest_version}")
             packages_issue[package] = open_issue_for_package(
                 package,
                 current_version,
@@ -263,4 +262,4 @@ INFO: latest version {latest_version}""")
             print("----------------")
     if OPEN_PR == "True":
         update_branch_with_changes(BRANCH, REQUIREMENT_FILE)
-        create_pull_request(BRANCH, packages_issue)
+        manage_pull_request(BRANCH, packages_issue)
