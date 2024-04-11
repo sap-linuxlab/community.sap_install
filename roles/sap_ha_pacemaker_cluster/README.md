@@ -62,7 +62,7 @@ The target host must be either:
   - OS version: Registered RHEL4SAP (HA and US) 8.4+
   - OS package repositories enabled: SAP and High Availability
 - SUSE
-  - OS version: Registered SLES4SAP 15+
+  - OS version: Registered SLES for SAP 15+ (SLES4SAP 15+)
   - OS package repositories enabled: HA Extension is part of registered SLES4SAP
 
 
@@ -332,6 +332,76 @@ Time difference needed between to primary time stamps, if a dual-primary situati
 If the time difference is less than the time gap, then the cluster holds one or both instances in a "WAITING" status.<br>
 This is to give an admin a chance to react on a failover. A failed former primary will be registered after the time difference is passed.<br>
 
+### sap_ha_pacemaker_cluster_hana_filesystem_resource_clone_name
+
+- _Type:_ `string`
+- _Default:_ `cln_SAPHanaFil_<SID>_HDB<Instance Number>`
+
+Customize the cluster resource name of the SAP HANA Filesystem clone.<br>
+
+### sap_ha_pacemaker_cluster_hana_filesystem_resource_name
+
+- _Type:_ `string`
+- _Default:_ `rsc_SAPHanaFil_<SID>_HDB<Instance Number>`
+
+Customize the cluster resource name of the SAP HANA Filesystem.<br>
+
+### sap_ha_pacemaker_cluster_hana_global_ini_path
+
+- _Type:_ `string`
+- _Default:_ `/usr/sap/<SID>/SYS/global/hdb/custom/config/global.ini`
+
+Path with location of global.ini for srHook update<br>
+
+### sap_ha_pacemaker_cluster_hana_hook_chksrv
+
+- _Type:_ `bool`
+- _Default:_ `False`
+
+Controls if ChkSrv srHook is enabled during srHook creation.<br>
+It is ignored when sap_ha_pacemaker_cluster_hana_hooks is defined.<br>
+
+### sap_ha_pacemaker_cluster_hana_hook_tkover
+
+- _Type:_ `bool`
+- _Default:_ `False`
+
+Controls if TkOver srHook is enabled during srHook creation.<br>
+It is ignored when sap_ha_pacemaker_cluster_hana_hooks is defined.<br>
+
+### sap_ha_pacemaker_cluster_hana_hooks
+
+- _Type:_ `list`
+- _Default:_ `[]`
+
+Customize required list of SAP HANA Hooks<br>
+Mandatory to include SAPHanaSR srHook in list.<br>
+Mandatory attributes are provider and path.<br>
+Example below shows mandatory SAPHanaSR, TkOver and ChkSrv hooks.<br>
+
+Example:
+
+```yaml
+sap_ha_pacemaker_cluster_hana_hooks:
+- options:
+  - name: execution_order
+    value: 1
+  path: /usr/share/SAPHanaSR/
+  provider: SAPHanaSR
+- options:
+  - name: execution_order
+    value: 2
+  path: /usr/share/SAPHanaSR/
+  provider: susTkOver
+- options:
+  - name: execution_order
+    value: 3
+  - name: action_on_lost
+    value: stop
+  path: /usr/share/SAPHanaSR/
+  provider: susChkSrv
+```
+
 ### sap_ha_pacemaker_cluster_hana_instance_nr
 
 - _Type:_ `string`
@@ -349,13 +419,6 @@ Parameter for the 'SAPHana' cluster resource.<br>
 Set to "false" if the cluster should first attempt to restart the instance on the same node.<br>
 When set to "true" (default) a failover to secondary will be initiated on resource failure.<br>
 
-### sap_ha_pacemaker_cluster_hana_resource_clone_name
-
-- _Type:_ `string`
-- _Default:_ `cln_SAPHana_<SID>_HDB<Instance Number>`
-
-Customize the cluster resource name of the SAP HANA DB resource clone.<br>
-
 ### sap_ha_pacemaker_cluster_hana_resource_clone_msl_name
 
 - _Type:_ `string`
@@ -364,26 +427,19 @@ Customize the cluster resource name of the SAP HANA DB resource clone.<br>
 Customize the cluster resource name of the SAP HANA DB resource master slave clone.<br>
 Master Slave clone is specific to SAPHana resource on SUSE.<br>
 
+### sap_ha_pacemaker_cluster_hana_resource_clone_name
+
+- _Type:_ `string`
+- _Default:_ `cln_SAPHana_<SID>_HDB<Instance Number>`
+
+Customize the cluster resource name of the SAP HANA DB resource clone.<br>
+
 ### sap_ha_pacemaker_cluster_hana_resource_name
 
 - _Type:_ `string`
 - _Default:_ `rsc_SAPHana_<SID>_HDB<Instance Number>`
 
 Customize the cluster resource name of the SAP HANA DB resource.<br>
-
-### sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name
-
-- _Type:_ `string`
-- _Default:_ `cln_SAPHanaCon_<SID>_HDB<Instance Number>`
-
-Customize the cluster resource name of the SAP HANA DB Controller clone.<br>
-
-### sap_ha_pacemaker_cluster_hanacontroller_resource_name
-
-- _Type:_ `string`
-- _Default:_ `rsc_SAPHanaCon_<SID>_HDB<Instance Number>`
-
-Customize the cluster resource name of the SAP HANA Controller.<br>
 
 ### sap_ha_pacemaker_cluster_hana_sid
 
@@ -408,74 +464,19 @@ Customize the cluster resource name of the SAP HANA Topology resource clone.<br>
 
 Customize the cluster resource name of the SAP HANA Topology resource.<br>
 
-### sap_ha_pacemaker_cluster_hana_filesystem_resource_clone_name
+### sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name
 
 - _Type:_ `string`
-- _Default:_ `cln_SAPHanaFil_<SID>_HDB<Instance Number>`
+- _Default:_ `cln_SAPHanaCon_<SID>_HDB<Instance Number>`
 
-Customize the cluster resource name of the SAP HANA Filesystem clone.<br>
+Customize the cluster resource name of the SAP HANA Controller clone.<br>
 
-### sap_ha_pacemaker_cluster_hana_filesystem_resource_name
-
-- _Type:_ `string`
-- _Default:_ `rsc_SAPHanaFil_<SID>_HDB<Instance Number>`
-
-Customize the cluster resource name of the SAP HANA Filesystem.<br>
-
-### sap_ha_pacemaker_cluster_hana_hooks
-
-- _Type:_ `list`
-
-Customize required list of SAP HANA Hooks.<br>
-Mandatory to include SAPHanaSR srHook in list.<br>
-Mandatory attributes are provider and path.<br>
-Example below shows mandatory SAPHanaSR, TkOver and ChkSrv hooks.<br>
-
-Example:
-
-```yaml
-sap_ha_pacemaker_cluster_hana_hooks:
-  - provider: SAPHanaSR
-    path: /usr/share/SAPHanaSR/
-    options:
-      - name: execution_order
-        value: 1
-  - provider: susTkOver
-    path: /usr/share/SAPHanaSR/
-    options:
-      - name: execution_order
-        value: 2
-  - provider: susChkSrv
-    path: /usr/share/SAPHanaSR/
-    options:
-      - name: execution_order
-        value: 3
-      - name: action_on_lost
-        value: stop
-```
-
-### sap_ha_pacemaker_cluster_hana_hook_tkover
-
-- _Type:_ `bool`
-- _Default:_ `false`
-
-Controls if TkOver srHook is enabled during srHook creation.<br>
-It is ignored when sap_ha_pacemaker_cluster_hana_hooks is defined.<br>
-
-### sap_ha_pacemaker_cluster_hana_hook_chksrv
-
-- _Type:_ `bool`
-- _Default:_ `false`
-
-Controls if ChkSrv srHook is enabled during srHook creation.<br>
-It is ignored when sap_ha_pacemaker_cluster_hana_hooks is defined.<br>
-
-### sap_ha_pacemaker_cluster_hana_global_ini_path
+### sap_ha_pacemaker_cluster_hanacontroller_resource_name
 
 - _Type:_ `string`
-- _Default:_ `/usr/sap/<SID>/SYS/global/hdb/custom/config/global.ini`
+- _Default:_ `rsc_SAPHanaCon_<SID>_HDB<Instance Number>`
 
-Path with location of global.ini for srHook update.<br>
+Customize the cluster resource name of the SAP HANA Controller.<br>
 
 ### sap_ha_pacemaker_cluster_host_type
 
@@ -714,6 +715,21 @@ Filesystem resource name for the transports filesystem /usr/sap/trans.<br>
 Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.<br>
 Enable this resource setup using `sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed`.<br>
 
+### sap_ha_pacemaker_cluster_operation_defaults
+
+- _Type:_ `dict`
+- _Default:_ `{'record-pending': True, 'timeout': 600}`
+
+Set default operation parameters that will be valid for all pacemaker resources.<br>
+
+Example:
+
+```yaml
+sap_ha_pacemaker_cluster_operation_defaults:
+  record-pending: true
+  timeout: 600
+```
+
 ### sap_ha_pacemaker_cluster_resource_defaults
 
 - _Type:_ `dict`
@@ -727,21 +743,6 @@ Example:
 sap_ha_pacemaker_cluster_resource_defaults:
   migration-threshold: 5000
   resource-stickiness: 1000
-```
-
-### sap_ha_pacemaker_cluster_operation_defaults
-
-- _Type:_ `dict`
-- _Default:_ `{'timeout': 600, 'record-pending': true}`
-
-Set default operation parameters that will be valid for all pacemaker resources.<br>
-
-Example:
-
-```yaml
-sap_ha_pacemaker_cluster_operation_defaults:
-  timeout: 600
-  record-pending: true
 ```
 
 ### sap_ha_pacemaker_cluster_stonith_custom
