@@ -907,7 +907,7 @@ Mandatory for NetWeaver ASCS/ERS cluster setup.<br>
 ### sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name
 
 - _Type:_ `string`
-- _Default:_ `grp_<SID>_ERS<ERS-instance-number>_group`
+- _Default:_ `grp_<SID>_ERS<ERS-instance-number>`
 
 Name of the NetWeaver ERS resource group.<br>
 

@@ -44,17 +44,18 @@
     path: "{{ sap_ha_pacemaker_cluster_hana_global_ini_path }}"
     marker: ""
     block: |
-      [ha_dr_provider_{{ srhook.provider }}]
-      provider = {{ srhook.provider }}
-      path = {{ srhook.path }}
-      {% for option in srhook.options | d([]) -%}
+      [ha_dr_provider_{{ srhook_item.provider }}]
+      provider = {{ srhook_item.provider }}
+      path = {{ srhook_item.path }}
+      {% for option in srhook_item.options | d([]) -%}
       {{ option.name }} = {{ option.value }}
       {% endfor %}
   loop: "{{ __sap_ha_pacemaker_cluster_hana_hooks }}"
   loop_control:
-    loop_var: srhook
-  when: "('[ha_dr_provider_' + srhook.provider + ']')
-    not in __sap_ha_pacemaker_cluster_global_ini_contents.stdout"
+    loop_var: srhook_item
+    label: "{{ srhook_item.provider }}"
+  when: "('[ha_dr_provider_' + srhook_item.provider + ']') | lower
+    not in __sap_ha_pacemaker_cluster_global_ini_contents.stdout | lower"
 
 # Separate task to create [trace] block so hooks can be appended to it
 - name: "SAP HA Pacemaker srHook - Add [trace] block in global.ini"
@@ -71,13 +72,14 @@
   ansible.builtin.lineinfile:
     path: "{{ sap_ha_pacemaker_cluster_hana_global_ini_path }}"
     insertafter: "^\\[trace\\]"
-    line: "ha_dr_{{ srhook.provider }} = info"
+    line: "ha_dr_{{ srhook_item.provider }} = info"
   loop: "{{ __sap_ha_pacemaker_cluster_hana_hooks }}"
   loop_control:
-    loop_var: srhook
+    loop_var: srhook_item
+    label: "{{ srhook_item.provider }}"
   when:
-    - "('ha_dr_' + srhook.provider + ' = info')
-      not in __sap_ha_pacemaker_cluster_global_ini_contents.stdout"
+    - "('ha_dr_' + srhook_item.provider + ' = info') | lower
+      not in __sap_ha_pacemaker_cluster_global_ini_contents.stdout | lower"
 
 # jinja2 template contains logic to add extra entries if:
 # TkOver hook is present or SAPHanaSR-angi is used.

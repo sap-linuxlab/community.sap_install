@@ -51,15 +51,15 @@
 # Convert dictionary into ha_cluster format.
 - name: "SAP HA Prepare Pacemaker - prepare operation defaults for ha_cluster"
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_operation_defaults: "{{ __operation_defaults }}"
+    __sap_ha_pacemaker_cluster_resource_operation_defaults: "{{ __operation_defaults }}"
   vars:
     __operation_defaults:
       meta_attrs:
         - attrs: |-
-            {% set attrs = __sap_ha_pacemaker_cluster_operation_defaults.meta_attrs  | map(attribute='attrs') | flatten -%}
+            {% set attrs = __sap_ha_pacemaker_cluster_resource_operation_defaults.meta_attrs  | map(attribute='attrs') | flatten -%}
             {%- for operation_default in (sap_ha_pacemaker_cluster_operation_defaults | dict2items) -%}
               {% if operation_default.key not in
-              (__sap_ha_pacemaker_cluster_operation_defaults.meta_attrs  | map(attribute='attrs') | flatten | map(attribute='name')) -%}
+              (__sap_ha_pacemaker_cluster_resource_operation_defaults.meta_attrs  | map(attribute='attrs') | flatten | map(attribute='name')) -%}
                 {% set role_attrs = attrs.extend([
                   {
                     'name': operation_default.key,

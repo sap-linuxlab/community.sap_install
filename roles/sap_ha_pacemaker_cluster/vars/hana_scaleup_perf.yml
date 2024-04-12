@@ -19,19 +19,19 @@ __sap_ha_pacemaker_cluster_hana_hook_dictionary:
 
 # Recommended srhooks are set to true only if default dictionary is populated
 __sap_ha_pacemaker_cluster_hana_hook_tkover:
-  "{{ true if vars[__sap_ha_pacemaker_cluster_hana_hook_dictionary].tkover
+  "{{ true if lookup('ansible.builtin.vars', __sap_ha_pacemaker_cluster_hana_hook_dictionary).tkover
    is defined else false }}"
 __sap_ha_pacemaker_cluster_hana_hook_chksrv:
-  "{{ true if vars[__sap_ha_pacemaker_cluster_hana_hook_dictionary].chksrv
+  "{{ true if lookup('ansible.builtin.vars', __sap_ha_pacemaker_cluster_hana_hook_dictionary).chksrv
    is defined else false }}"
 
 # Combine final list of srhooks based on user input and angi availability
 __sap_ha_pacemaker_cluster_hana_hooks: "{{
-  vars[__sap_ha_pacemaker_cluster_hana_hook_dictionary].saphanasr
-  + (vars[__sap_ha_pacemaker_cluster_hana_hook_dictionary].tkover | default([])
-   if __sap_ha_pacemaker_cluster_hana_hook_tkover else [])
-  + (vars[__sap_ha_pacemaker_cluster_hana_hook_dictionary].chksrv | default([])
-   if __sap_ha_pacemaker_cluster_hana_hook_chksrv else [])
+  lookup('ansible.builtin.vars', __sap_ha_pacemaker_cluster_hana_hook_dictionary).saphanasr
+  + (lookup('ansible.builtin.vars', __sap_ha_pacemaker_cluster_hana_hook_dictionary).tkover
+   | default([]) if __sap_ha_pacemaker_cluster_hana_hook_tkover else [])
+  + (lookup('ansible.builtin.vars', __sap_ha_pacemaker_cluster_hana_hook_dictionary).chksrv
+   | default([]) if __sap_ha_pacemaker_cluster_hana_hook_chksrv else [])
   }}"
 
 # Define sap_ha_pacemaker_cluster_hadr_provider_name for jinja2 template
