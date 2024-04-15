@@ -29,6 +29,13 @@ SAPINST.CD.PACKAGE.RDBMS = {{ sap_swpm_cd_rdbms_path }}
 # SAPINST.CD.PACKAGE.KERNEL =
 # SAPINST.CD.PACKAGE.KERNEL2 =
 # SAPINST.CD.PACKAGE.KERNEL3 =
+
+SAPINST.CD.PACKAGE.JAVA_EXPORT = /path/JAVA_EXPORT
+SAPINST.CD.PACKAGE.JDMP = /path/JAVA_EXPORT_JDMP
+SAPINST.CD.PACKAGE.J2EE = /path/JAVA_J2EE_OSINDEP
+SAPINST.CD.PACKAGE.J2EE-INST = /path/JAVA_J2EE_OSINDEP_J2EE_INST
+SAPINST.CD.PACKAGE.SCA = /path/JAVA_J2EE_OSINDEP_UT
+
 {% endif %}
 
 {% if 'swpm_installation_media_swpm1_exportfiles' in sap_swpm_inifile_list %}
@@ -638,7 +645,7 @@ UmeConfiguration.umeType = {{ sap_swpm_ume_type }}
 # nw_config_java_feature_template_ids
 ######
 NW_internal.useProductVersionDescriptor = true
-nw_java_import.buildJEEusingExtraMileTool = true
+nw_java_import.buildJEEusingExtraMileTool = {{ true if sap_swpm_java_import_method == 'extramile' else false }}
 
 # If use PV = true
 # SAP SWPM 1.0 for SAP NetWeaver AS (JAVA), Product Version Software Instance **Feature Template IDs** comma-separated list
@@ -802,10 +809,9 @@ nwUsers.sidAdmUID = {{ sap_swpm_sidadm_uid }}
 {% endif %}
 
 
-{% if 'solman_credentials_swpm1' in sap_swpm_inifile_list %}
+{% if 'nw_config_java_icm_credentials' in sap_swpm_inifile_list %}
 ######
-# solman_credentials_swpm1
-# Not in use by sap_swpm Ansible Role
+# nw_config_java_icm_credentials
 ######
 NW_IcmAuth.webadmPassword = {{ sap_swpm_ume_j2ee_admin_password }}
 {% endif %}

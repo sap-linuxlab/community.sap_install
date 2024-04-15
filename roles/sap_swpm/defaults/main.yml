@@ -115,6 +115,7 @@ sap_swpm_inifile_list:
   - nw_config_ports
 #  - nw_config_java_ume
 #  - nw_config_java_feature_template_ids
+#  - nw_config_java_icm_credentials
 #  - nw_config_webdisp_generic
 #  - nw_config_webdisp_gateway
   - nw_config_host_agent
@@ -126,7 +127,6 @@ sap_swpm_inifile_list:
 
 ## Not in use
 #  - swpm_installation_media_download_service
-#  - solman_credentials_swpm1
 #  - solman_abap_swpm1
 #  - solman_daa_swpm1
 
@@ -229,11 +229,15 @@ sap_swpm_virtual_hostname: "initial"
 ########################################
 #   SWPM Ansible Role variables
 #   for Default Mode
-#   - Lookup list of Feature Template IDs
+#   - Lookup list of NWAS JAVA Feature Template IDs
 ########################################
 
-sap_swpm_java_template_id_selected_list:
-  - java_engine_ee
+# Two methods exist for SAP NWAS JAVA, jload and extramile (BatchDeployer) before call to Deploy Controller Runner
+# Default to extramile for SAP NWAS JAVA, except SAP S/4HANA
+sap_swpm_java_import_method: "{{ 'jload' if 'S4H' in sap_swpm_product_catalog_id else 'extramile' }}"
+
+# Use empty list which will create inifile parameter as blank for default installation
+sap_swpm_java_template_id_selected_list: []
 
 sap_swpm_java_template_id_lookup_dictionary:
   java_nwas_as:
@@ -270,6 +274,14 @@ sap_swpm_java_template_id_lookup_dictionary:
     - 01200615324800001035 # Solution Manager, includes java_nwas_as (01200615324800000135) and java_engine_ee (01200615324800000125)
   java_demo:
     - 01200615324800002898 # Demo Applications
+  s4hana_java_as:
+    - '73554900104800002396' # SAP S/4HANA Java
+  s4hana_java_adobe_document_services:
+    - '73554900104800002328' # SAP S/4HANA Java Adobe Document Services, includes s4hana_java_as (73554900104800002396)
+  s4hana_java_enterprise_service_repository:
+    - '73554900104800002330' # SAP S/4HANA Java Enterprise Services Repository, includes s4hana_java_as (73554900104800002396)
+  s4hana_java_aex:
+    - '73554900104800002329' # SAP S/4HANA Java Advanced Adapter Engine Extnd, includes s4hana_java_as (73554900104800002396) and s4hana_java_enterprise_service_repository (73554900104800002330)
 
 
 ########################################
