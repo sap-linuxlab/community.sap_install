@@ -681,6 +681,14 @@ Mandatory for NetWeaver cluster configuration.<br>
 Uses `sap_swpm_sid` if defined.<br>
 Mandatory for NetWeaver cluster setups.<br>
 
+### sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_clone_name
+
+- _Type:_ `string`
+- _Default:_ `cln_fs_<SID>_sapmnt`
+
+Filesystem resource clone name for the shared filesystem /sapmnt.<br>
+Enable this resource setup using `sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed`.<br>
+
 ### sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name
 
 - _Type:_ `string`
@@ -697,6 +705,14 @@ Enable this resource setup using `sap_ha_pacemaker_cluster_nwas_shared_filesyste
 
 Change this parameter to 'true' if the 3 shared filesystems `/usr/sap/trans`, `/usr/sap/<SID>/SYS` and '/sapmnt' shall be configured as cloned cluster resources.<br>
 
+### sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_clone_name
+
+- _Type:_ `string`
+- _Default:_ `cln_fs_<SID>_sys`
+
+Filesystem resource clone name for the shared filesystem /usr/sap/<SID>/SYS.<br>
+Enable this resource setup using `sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed`.<br>
+
 ### sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name
 
 - _Type:_ `string`
@@ -704,6 +720,14 @@ Change this parameter to 'true' if the 3 shared filesystems `/usr/sap/trans`, `/
 
 Filesystem resource name for the transports filesystem /usr/sap/<SID>/SYS.<br>
 Optional, this is typically managed by the OS, but can as well be added to the cluster configuration.<br>
+Enable this resource setup using `sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed`.<br>
+
+### sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_clone_name
+
+- _Type:_ `string`
+- _Default:_ `cln_fs_<SID>_trans`
+
+Filesystem resource clone name for the shared filesystem /usr/sap/trans.<br>
 Enable this resource setup using `sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed`.<br>
 
 ### sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name

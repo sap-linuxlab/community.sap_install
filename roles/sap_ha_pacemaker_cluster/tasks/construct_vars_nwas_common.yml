@@ -156,15 +156,22 @@
     __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_common_filesystem] }}"
   vars:
     __clone_common_filesystem:
+      id: |-
+        {%- if '/sapmnt' in __mountpoint -%}
+          {{ sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_clone_name }}
+        {%- elif '/usr/sap/trans' in __mountpoint -%}
+          {{ sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_clone_name }}
+        {%- elif '/usr/sap/' + sap_ha_pacemaker_cluster_nwas_abap_sid + '/SYS' in __mountpoint -%}
+          {{ sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_clone_name }}
+        {%- endif %}
       resource_id: |-
         {%- if '/sapmnt' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name %}
-        {% elif '/usr/sap/trans' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name %}
-        {% elif '/usr/sap/' + sap_ha_pacemaker_cluster_nwas_abap_sid + '/SYS' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name %}
-        {% endif %}
-        {{ idname }}
+          {{ sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name }}
+        {%- elif '/usr/sap/trans' in __mountpoint -%}
+          {{ sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name }}
+        {%- elif '/usr/sap/' + sap_ha_pacemaker_cluster_nwas_abap_sid + '/SYS' in __mountpoint -%}
+          {{ sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name }}
+        {%- endif %}
       meta_attrs:
         - attrs:
             - name: interleave
