@@ -58,13 +58,34 @@ __sap_ha_pacemaker_cluster_sap_extra_packages_dict:
   nwas:
     - resource-agents-sap
 
-# Dictionary for platform specific Stonith agents
-# This is required only if there are differences between os_family
-sap_ha_pacemaker_cluster_stonith_agent_dict:
-  cloud_aws: 'stonith:fence_aws'
+# Resource agents - fully qualified names
+__sap_ha_pacemaker_cluster_resource_agents:
+  saphanatopology: "ocf:heartbeat:SAPHanaTopology"
+  saphana: "ocf:heartbeat:SAPHana"
+# TODO: Uncomment when SAPHanaSR-angi is available on Red Hat
+#  saphanacontroller: "ocf:heartbeat:SAPHanaController"
+#  saphanafilesystem: "ocf:heartbeat:SAPHanaFilesystem"
 
-# SAP HANA Resource agent namespace
-__sap_ha_resource_agent_namespace: heartbeat
+# TODO: Uncomment when SAPHanaSR-angi is available on Red Hat
+__sap_ha_pacemaker_cluster_saphanasr_angi_available: false
 
-# Location of HANA SRHook binaries
-__sap_ha_srhook_path: '/usr/share/SAPHanaSR/srHook/SAPHanaSR.py'
+# Default SAP HANA hook parameters combined based on user decision
+__sap_ha_pacemaker_cluster_hook_hana_scaleup_perf:
+  saphanasr:
+    - provider: SAPHanaSR
+      path: /usr/share/SAPHanaSR/srHook/
+      options:
+        - name: execution_order
+          value: 1
+# TODO: Add additional hooks
+
+# Placeholder dictionaries
+# TODO: Define hooks when SAPHanaSR-angi is available on Red Hat
+__sap_ha_pacemaker_cluster_hook_hana_scaleup_perf_angi: []
+__sap_ha_pacemaker_cluster_hook_hana_scaleout: []
+__sap_ha_pacemaker_cluster_hook_hana_scaleout_angi: []
+
+# Disabled additional hooks until they are present in dictionary above
+# TODO: Remove when additional hooks are specified above.
+__sap_ha_pacemaker_cluster_hana_hook_tkover: false
+__sap_ha_pacemaker_cluster_hana_hook_chksrv: false

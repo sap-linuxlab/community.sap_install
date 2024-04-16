@@ -1,5 +1,15 @@
 ---
-- name: SAP HA Prepare Pacemaker - Include HANA landscape specific variables
+# Detect presence of SAPHanaSR-angi package before loading HANA variables
+# Detection of package availability was chosen instead of OS version check.
+# SAPHanaSR-angi will be retrofitted to older SP repositories in future.
+- name: "SAP HA Prepare Pacemaker - Detect SAPHanaSR-angi availability"
+  ansible.builtin.include_tasks:
+    file: "{{ ansible_facts['os_family'] }}/pre_steps_hana.yml"
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+
+
+- name: "SAP HA Prepare Pacemaker - Include HANA landscape specific variables"
   ansible.builtin.include_vars: "{{ role_path }}/vars/{{ include_item }}.yml"
   loop: "{{ __host_type_list | flatten }}"
   loop_control:
@@ -7,7 +17,18 @@
     label: "{{ include_item }}.yml"
   vars:
     __host_type_list:
-      - hana_scaleup_common
-      - "{{ sap_ha_pacemaker_cluster_host_type }}"
+      - "{{ sap_ha_pacemaker_cluster_host_type | d('hana_scaleup_perf') }}"
   when:
     - "(role_path + '/vars/' + include_item + '.yml') is file"
+
+
+# Disable concurrent-fencing for Scale-up scenario.
+# This assignment cannot be in scaleup var file, because it results in nested error.
+- name: "SAP HA Prepare Pacemaker - Disable concurrent-fencing in properties"
+  ansible.builtin.set_fact:
+    sap_ha_pacemaker_cluster_cluster_properties:
+      "{{ sap_ha_pacemaker_cluster_cluster_properties | combine({'concurrent-fencing': false})
+      if sap_ha_pacemaker_cluster_cluster_properties['concurrent-fencing'] is defined
+      else sap_ha_pacemaker_cluster_cluster_properties }}"
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0

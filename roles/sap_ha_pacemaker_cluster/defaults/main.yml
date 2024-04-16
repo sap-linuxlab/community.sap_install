@@ -31,9 +31,8 @@ sap_ha_pacemaker_cluster_create_config_dest: "review_resource_config.yml"
 sap_ha_pacemaker_cluster_cluster_nodes: "{{ sap_hana_cluster_nodes | default([]) }}"
 
 # Resource defaults are defined differently by cluster type in different tasks, if not custom defined.
-# TODO: migrate to 'ha_cluster' native parameter combination when moving the function to be included in the role
-# (newer feature in the LSR)
 sap_ha_pacemaker_cluster_resource_defaults: {}
+sap_ha_pacemaker_cluster_operation_defaults: {}
 
 # The type of SAP landscape and multi-node replication
 # TODO: Type definitions and feature support
@@ -108,20 +107,33 @@ sap_ha_pacemaker_cluster_hana_instance_nr: >-
 # AUTOMATED_REGISTER
 sap_ha_pacemaker_cluster_hana_automated_register: true
 # DUPLICATE_PRIMARY_TIMEOUT
-sap_ha_pacemaker_cluster_hana_duplicate_primary_timeout: 900
+sap_ha_pacemaker_cluster_hana_duplicate_primary_timeout: 7200
 # PREFER_SITE_TAKEOVER
 sap_ha_pacemaker_cluster_hana_prefer_site_takeover: true
 
 # SAP HANA - Resource IDs (names) as convenience parameters.
 sap_ha_pacemaker_cluster_hana_resource_name: >-
-  SAPHana_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
+  rsc_SAPHana_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
 sap_ha_pacemaker_cluster_hana_resource_clone_name: >-
-  {{ sap_ha_pacemaker_cluster_hana_resource_name }}-clone
-sap_ha_pacemaker_cluster_hana_topology_resource_name: >-
-  SAPHanaTopology_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
-sap_ha_pacemaker_cluster_hana_topology_resource_clone_name: >-
-  {{ sap_ha_pacemaker_cluster_hana_topology_resource_name }}-clone
+  cln_SAPHana_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
+# Master slave clone for SAPHanaSR on SLES <15.6
+sap_ha_pacemaker_cluster_hana_resource_clone_msl_name: >-
+  msl_SAPHana_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
+# SAPHanaController resource in SAPHanaSR-angi
+sap_ha_pacemaker_cluster_hanacontroller_resource_name: >-
+  rsc_SAPHanaCon_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
+sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name: >-
+  mst_SAPHanaCon_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
 
+sap_ha_pacemaker_cluster_hana_topology_resource_name: >-
+  rsc_SAPHanaTop_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
+sap_ha_pacemaker_cluster_hana_topology_resource_clone_name: >-
+  cln_SAPHanaTop_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
+
+sap_ha_pacemaker_cluster_hana_filesystem_resource_name: >-
+  rsc_SAPHanaFil_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
+sap_ha_pacemaker_cluster_hana_filesystem_resource_clone_name: >-
+  cln_SAPHanaFil_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
 
 # Multiple VIP parameters can be defined and will be combined.
 # See tasks/include_construct_vip_resources.yml
@@ -129,10 +141,10 @@ sap_ha_pacemaker_cluster_hana_topology_resource_clone_name: >-
 # Mandatory: primary VIP address definition in HANA scale-up clusters
 sap_ha_pacemaker_cluster_vip_hana_primary_ip_address: ''
 sap_ha_pacemaker_cluster_vip_hana_primary_resource_name: >-
-  vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_primary
+  rsc_vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_primary
 sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address: ''
 sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name: >-
-  vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_readonly
+  rsc_vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_readonly
 
 sap_ha_pacemaker_cluster_healthcheck_hana_primary_id: "{{ sap_ha_pacemaker_cluster_hana_sid + 'prim' }}"
 sap_ha_pacemaker_cluster_healthcheck_hana_secondary_id: "{{ sap_ha_pacemaker_cluster_hana_sid + 'ro' }}"
@@ -141,6 +153,16 @@ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_id: "{{ sap_ha_pacemaker_clus
 sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_id: "{{ sap_ha_pacemaker_cluster_nwas_abap_sid + 'pas' }}"
 sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_id: "{{ sap_ha_pacemaker_cluster_nwas_abap_sid + 'aas' }}"
 
+# Optional dictionary with custom list of HANA Hooks for replication
+sap_ha_pacemaker_cluster_hana_hooks: []
+# Parameters enable additional srHooks for TkOver and ChkSrv.
+# They are ignored if sap_ha_pacemaker_cluster_hana_hooks is used.
+sap_ha_pacemaker_cluster_hana_hook_tkover: false
+sap_ha_pacemaker_cluster_hana_hook_chksrv: false
+
+# SAP Hana global.ini path calculated from SID
+sap_ha_pacemaker_cluster_hana_global_ini_path: "/usr/sap/{{
+ sap_ha_pacemaker_cluster_hana_sid | upper }}/SYS/global/hdb/custom/config/global.ini"
 
 ################################################################################
 # NetWeaver generic definitions
@@ -180,16 +202,16 @@ sap_ha_pacemaker_cluster_resource_filesystem_force_unmount: safe
 # See tasks/include_construct_vip_resources.yml
 sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address: ''
 sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name: >-
-  vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}_ascs
+  rsc_vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ASCS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
 sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address: ''
 sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name: >-
-  vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}_ers
+  rsc_vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ERS{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}
 sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address: ''
 sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name: >-
-  vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}_pas
+  rsc_vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_PAS{{ sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}
 sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address: ''
 sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name: >-
-  vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}_aas
+  rsc_vip_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_AAS{{ sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}
 
 
 # SAP NetWeaver common - Resource IDs (names) as convenience parameters
@@ -198,11 +220,19 @@ sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name: >-
 # - /usr/sap/trans
 # - /usr/sap/<<SID>>/SYS
 sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name: >-
-  Filesystem_NWAS_SAPMNT_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}
+  rsc_fs_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_sapmnt
+sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_clone_name: >-
+  cln_fs_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_sapmnt
+
 sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name: >-
-  Filesystem_NWAS_TRANS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}
+  rsc_fs_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_trans
+sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_clone_name: >-
+  cln_fs_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_trans
+
 sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name: >-
-  Filesystem_NWAS_SYS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}
+  rsc_fs_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_sys
+sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_clone_name: >-
+  cln_fs_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_sys
 
 # The shared filesystems are not required to be configured in the cluster.
 # By default it is assumed that they are mounted by the system and available on all cluster nodes.
@@ -211,9 +241,9 @@ sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed: false
 
 # SAP NetWeaver resource group names as convenience parameters
 sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name: >-
-  {{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ASCS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}_group
+  grp_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ASCS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
 sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name: >-
-  {{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ERS{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}_group
+  grp_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ERS{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}
 
 ################################################################################
 # ASCS resource defaults
@@ -229,9 +259,9 @@ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_start_profile_string: ''
 # - /usr/sap/<<SID>>/ERS<<Instance>>
 
 sap_ha_pacemaker_cluster_nwas_abap_ascs_filesystem_resource_name: >-
-  Filesystem_NWAS_ABAP_ASCS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
+  rsc_fs_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ASCS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
 sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name: >-
-  SAPInstance_NWAS_ABAP_ASCS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
+  rsc_SAPInstance_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ASCS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
 # sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name }}-clone"
 sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_automatic_recover_bool: false
 sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_stickiness: 5000
@@ -252,9 +282,9 @@ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name: ''
 sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string: ''
 
 sap_ha_pacemaker_cluster_nwas_abap_ers_filesystem_resource_name: >-
-  Filesystem_NWAS_ABAP_ERS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}
+  rsc_fs_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ERS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
 sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name: >-
-  SAPInstance_NWAS_ABAP_ERS_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}
+  rsc_SAPInstance_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ERS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
 # sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name }}-clone"
 sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_automatic_recover_bool: false
 

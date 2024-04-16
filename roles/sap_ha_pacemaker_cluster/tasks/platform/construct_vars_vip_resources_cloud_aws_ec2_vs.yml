@@ -18,14 +18,15 @@
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
   vars:
     __resource_vip:
-      id: "pri_{{ vip_list_item.key }}"
+      id: "{{ vip_list_item.key }}"  # pri_ prefix removed
       agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
       instance_attrs:
         - attrs:
             - name: secondary_private_ip
               value: "{{ vip_list_item.value }}"
   when:
-    - ('pri_' ~ vip_list_item.key) not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+#     - ('pri_' ~ vip_list_item.key) not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+    - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_method == 'awsvip'
     - vip_list_item.key in __sap_ha_pacemaker_cluster_vip_resource_list
 
@@ -37,7 +38,7 @@
       id: "{{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ vip_list_item.key }}"
       resource_ids:
         - "{{ vip_list_item.key }}"
-        - "pri_{{ vip_list_item.key }}"
+#        - "pri_{{ vip_list_item.key }}"
   when:
     - __vip_group.id is not in (__sap_ha_pacemaker_cluster_resource_groups | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_method in ['awsvip']
