@@ -20,18 +20,18 @@
     success_msg: "PASS: The line '{{ sap_general_preconfigure_ip }} {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} {{ sap_general_preconfigure_hostname }}' is once in /etc/hosts."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
-# We allow more than one line containing sap_general_preconfigure_ip:
+# Only one line containing sap_general_preconfigure_ip is allowed:
 - name: Count the number of sap_general_preconfigure_ip ({{ sap_general_preconfigure_ip }}) entries in /etc/hosts
   ansible.builtin.command: awk 'BEGIN{a=0}/^{{ sap_general_preconfigure_ip }}\s/{a++}END{print a}' /etc/hosts
   register: __sap_general_preconfigure_register_sap_ip_once_assert
   ignore_errors: yes
   changed_when: no
 
-- name: Assert that there is at least one line containing {{ sap_general_preconfigure_ip }} in /etc/hosts
+- name: Assert that there is exactly one line containing {{ sap_general_preconfigure_ip }} in /etc/hosts
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_sap_ip_once_assert.stdout >= '1'
-    fail_msg: "FAIL: There is no line containing '{{ sap_general_preconfigure_ip }}' in /etc/hosts!"
-    success_msg: "PASS: There is at least one line containing '{{ sap_general_preconfigure_ip }}' in /etc/hosts."
+    that: __sap_general_preconfigure_register_sap_ip_once_assert.stdout == '1'
+    fail_msg: "FAIL: There is no line, or more than one line, containing '{{ sap_general_preconfigure_ip }}' in /etc/hosts!"
+    success_msg: "PASS: There is one line containing '{{ sap_general_preconfigure_ip }}' in /etc/hosts."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Check for duplicate or missing entries of {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} in /etc/hosts
@@ -46,7 +46,7 @@
   ansible.builtin.assert:
     that: __sap_general_preconfigure_register_fqdn_once_assert.stdout == '1'
     fail_msg: "FAIL: There is no line, or more than one line, containing '{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}' in /etc/hosts!"
-    success_msg: "PASS: There is only one line containing '{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}' in /etc/hosts."
+    success_msg: "PASS: There is one line containing '{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}' in /etc/hosts."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Check for duplicate or missing entries of {{ sap_general_preconfigure_hostname }} in /etc/hosts
