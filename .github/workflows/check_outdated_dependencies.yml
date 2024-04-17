@@ -1,0 +1,29 @@
+---
+
+name: Check outdated dependencies
+
+on:
+  schedule:
+    - cron: '0 7 1,15 * *'
+
+  workflow_dispatch:
+
+jobs:
+  check_outdate_dependencies:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@main
+        with:
+          ref: "dev"
+
+      - name: Check workflow dependencies 
+        uses: ./workflows/check_outdate_deps
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ secrets.GITHUB_SHA }}
+          REQUIREMENT_FILE: "requirements-workflow.txt"
+          OPEN_PR: "True"
+          OPEN_PR_BASE: "dev"
