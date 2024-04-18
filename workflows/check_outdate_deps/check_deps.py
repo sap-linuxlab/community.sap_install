@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import os
 import re
@@ -119,6 +119,7 @@ def __create_pull_request(pr_data):
         print(f"ERROR: Failed to create pull request. Status code: {response.status_code}.")
         return -1
 
+
 def manage_pull_request(branch, packages_issue):
     body = f"Bumps packages in {REQUIREMENT_FILE}."
     for package in packages_issue:
@@ -174,8 +175,8 @@ def find_replace_in_file(file_path, find_str, replace_str):
 def create_branch_if_not_exists(branch, commit_sha):
     response = requests.get(f"https://api.github.com/repos/{REPOSITORY}/branches/{branch}")
     if response.status_code == 404:
-         branch_data = {"ref": "refs/heads/" + branch, "sha": commit_sha}
-         __create_branch(branch, branch_data)
+        branch_data = {"ref": "refs/heads/" + branch, "sha": commit_sha}
+        __create_branch(branch, branch_data)
     else:
         print(f"INFO: Branch -> https://github.com/{REPOSITORY}/tree/{branch}")
 
@@ -213,7 +214,7 @@ A new version of the package is out.
 **This is the previous title and description of this issue:**
 ```
 Title: {old_title}
-Description: 
+Description:
 {old_description}
 ```
             """
@@ -230,7 +231,8 @@ if __name__ == '__main__':
     os.system(f"pip3 install -r {REQUIREMENT_FILE}")
     raw_output_outdated = subprocess.run(
         ['pip3', 'list', '--outdated'],
-        stdout=subprocess.PIPE)
+        stdout=subprocess.PIPE,
+        check=False)
     current_packages = __build_packages_dict_from_file()
     latest_packages = __build_packages_dict_from_output(raw_output_outdated.stdout.decode('utf-8'))
     print("##### Create data #####")
