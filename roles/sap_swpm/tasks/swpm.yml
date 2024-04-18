@@ -23,20 +23,19 @@
 ### Async method
 
 # Required for Ansible Module pids
-- name: Install Python devel, Python pip and gcc to system Python
-  ansible.builtin.package:
-    name:
-      - python3-devel
-      - python3-pip
-      - gcc
-    state: present
+#- name: Install Python devel, Python pip and gcc to system Python
+#  ansible.builtin.package:
+#    name:
+#      - python3-devel
+#      - python3-pip
+#      - gcc
+#    state: present
 
 # Required for Ansible Module pids
-- name: Install Python dependency psutil to system Python
-  ansible.builtin.pip:
-    name:
-      - psutil
-#    executable: pip3.6
+#- name: Install Python dependency psutil to system Python
+#  ansible.builtin.pip:
+#    name:
+#      - psutil
 
 - name: Set fact for the sapinst command line
   ansible.builtin.set_fact:
@@ -71,15 +70,12 @@
   poll: 0 # Seconds between polls, use 0 to run Ansible Tasks concurrently
 
 # Monitor sapinst process (i.e. ps aux | grep sapinst) and wait for exit
-- name: SAP SWPM - Wait for sapinst process to exit, poll every 60 seconds
-  community.general.pids:
-    name: sapinst
-#  shell: ps -ef | awk '/sapinst/&&!/awk/&&!/ansible/{print}'
+- name: SAP SWPM - Wait for sapinst process to exit, poll every 10 seconds
+  ansible.builtin.shell: ps -ef | awk '/sapinst/&&!/awk/&&!/ansible/{print}'
   register: pids_sapinst
-  until: "pids_sapinst.pids | length == 0"
-#  until: "pids_sapinst.stdout | length == 0"
+  until: "pids_sapinst.stdout | length == 0"
   retries: 1000
-  delay: 60
+  delay: 10
 
 - name: SAP SWPM - Verify if sapinst process finished successfully
   ansible.builtin.async_status:
