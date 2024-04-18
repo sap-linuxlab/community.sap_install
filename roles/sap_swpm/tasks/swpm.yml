@@ -22,24 +22,9 @@
 
 ### Async method
 
-# Required for Ansible Module pids
-#- name: Install Python devel, Python pip and gcc to system Python
-#  ansible.builtin.package:
-#    name:
-#      - python3-devel
-#      - python3-pip
-#      - gcc
-#    state: present
-
-# Required for Ansible Module pids
-#- name: Install Python dependency psutil to system Python
-#  ansible.builtin.pip:
-#    name:
-#      - psutil
-
 - name: Set fact for the sapinst command line
   ansible.builtin.set_fact:
-    __sap_swpm_sapinst_command: "umask {{ sap_swpm_umask | default('022') }} ; ./sapinst {{ sap_swpm_swpm_command_inifile }}
+    __sap_swpm_sapinst_command: "umask {{ sap_swpm_umask | d('022') }} ; ./sapinst {{ sap_swpm_swpm_command_inifile }}
     {{ sap_swpm_swpm_command_product_id }}
     {{ sap_swpm_swpm_command_extra_args }}"
   tags: sap_swpm_sapinst_commandline
@@ -69,13 +54,13 @@
   async: 32400 # Seconds for maximum runtime, set to 9 hours
   poll: 0 # Seconds between polls, use 0 to run Ansible Tasks concurrently
 
-# Monitor sapinst process (i.e. ps aux | grep sapinst) and wait for exit
-- name: SAP SWPM - Wait for sapinst process to exit, poll every 10 seconds
-  ansible.builtin.shell: ps -ef | awk '/sapinst/&&!/awk/&&!/ansible/{print}'
+# Monitor sapinst process and wait for exit
+- name: SAP SWPM - Wait for sapinst process to exit, poll every 60 seconds
+  ansible.builtin.shell: ps -ef | awk '/sapinst/&&!/ awk /{print}'
   register: pids_sapinst
   until: "pids_sapinst.stdout | length == 0"
   retries: 1000
-  delay: 10
+  delay: 60
 
 - name: SAP SWPM - Verify if sapinst process finished successfully
   ansible.builtin.async_status:
