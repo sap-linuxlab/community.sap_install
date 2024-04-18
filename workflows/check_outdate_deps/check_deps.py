@@ -226,14 +226,14 @@ Description:
 
 
 if __name__ == '__main__':
-    print("##### Collect datas #####")
+    print("##### Collect data #####")
     os.system(f"pip3 install -r {REQUIREMENT_FILE}")
     raw_output_outdated = subprocess.run(
         ['pip3', 'list', '--outdated'],
         stdout=subprocess.PIPE)
     current_packages = __build_packages_dict_from_file()
     latest_packages = __build_packages_dict_from_output(raw_output_outdated.stdout.decode('utf-8'))
-    print("##### Create datas #####")
+    print("##### Create data #####")
     packages_issue = {}
     if OPEN_PR == "True":
         create_branch_if_not_exists(BRANCH, COMMIT_SHA)
