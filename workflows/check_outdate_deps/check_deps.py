@@ -26,7 +26,7 @@ def __build_packages_dict_from_file():
         lines = file.readlines()
         for line in lines:
             regex_pattern = re.compile(
-                "([a-zA-Z0-9-]+)==([0-9]+\.[0-9]+\.[0-9]+)")
+                r"([a-zA-Z0-9-]+)==([0-9]+\.[0-9]+\.[0-9]+)")
             matches = regex_pattern.findall(line)
             if len(matches) > 0:
                 package_name = str(matches[0][0])
@@ -41,7 +41,7 @@ def __build_packages_dict_from_output(output):
     lines = output.splitlines(output)
     for line in lines:
         regex_pattern = re.compile(
-            "([a-zA-Z0-9-]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([a-zA-Z]+)")
+            r"([a-zA-Z0-9-]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([a-zA-Z]+)")
         matches = regex_pattern.findall(line)
         if len(matches) > 0:
             package_name = str(matches[0][0])
@@ -145,7 +145,7 @@ def manage_pull_request(branch, packages_issue):
         else:
             print(f"ERROR: Failed to update the pull requests. Status code: {response.status_code}.")
     else:
-        print(f"ERROR: More than 1 pull-request with the same title are found! I can't update.")
+        print("ERROR: More than 1 pull-request with the same title are found! I can't update.")
 
 
 def update_branch_with_changes(branch, file_to_change):
@@ -221,7 +221,7 @@ Description:
             __update_issue(issue_number, issue)
             return issue_number
     else:
-        print(f"ERROR: More than 1 issues with the same title are found! I can't update.")
+        print("ERROR: More than 1 issues with the same title are found! I can't update.")
         return -1
 
 
@@ -251,7 +251,7 @@ if __name__ == '__main__':
                 latest_version)
 
             if OPEN_PR == "True":
-                line_current = f"{package}==[0-9]+\.[0-9]+\.[0-9]+"
+                line_current = package + r"==[0-9]+\.[0-9]+\.[0-9]+"
                 line_latest = f"{package}=={latest_version}"
                 find_replace_in_file(REQUIREMENT_FILE,
                                      line_current,
