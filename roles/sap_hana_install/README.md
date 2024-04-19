@@ -247,7 +247,7 @@ You can find more complex playbooks in directory `playbooks` of the collection `
 
 #### Perform Initial Checks
 
-These checks are only performed if `sap_hana_install_force` is set to `true`. Its default value is `false`
+These checks are only performed if `sap_hana_install_force` is set to `false`. Its default value is `false`
 - If variable `sap_hana_install_check_sidadm_user` is undefined or set to `yes`: Check if user sidadm exists. If yes,
   abort the role.
 
