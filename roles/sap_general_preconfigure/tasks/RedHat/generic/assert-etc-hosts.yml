@@ -7,63 +7,98 @@
       - "sap_general_preconfigure_domain = {{ sap_general_preconfigure_domain }}"
       - "sap_general_preconfigure_ip = {{ sap_general_preconfigure_ip }}"
 
-- name: Check if ipv4 address, FQDN, and hostname are once in /etc/hosts
-  ansible.builtin.command: awk 'BEGIN{a=0}/{{ sap_general_preconfigure_ip }}/&&/{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}/&&/{{ sap_general_preconfigure_hostname }}/{a++}END{print a}' /etc/hosts
-  register: __sap_general_preconfigure_register_ipv4_fqdn_sap_hostname_once_assert
-  ignore_errors: yes
-  changed_when: no
+- name: Initialize variables
+  ansible.builtin.set_fact:
+    __sap_general_preconfigure_etc_hosts_lines: []
+    __sap_general_preconfigure_ipv4_fqdn_hostname_count: 0
+    __sap_general_preconfigure_ipv4_count: 0
+    __sap_general_preconfigure_fqdn_count: 0
+    __sap_general_preconfigure_hostname_count: 0
 
-- name: Assert that ipv4 address, FQDN, and hostname are once in /etc/hosts
+- name: Read /etc/hosts
+  ansible.builtin.slurp:
+    src: /etc/hosts
+  register: __sap_general_preconfigure_etc_hosts
+
+- name: Set fact for /etc/hosts lines
+  ansible.builtin.set_fact:
+    __sap_general_preconfigure_etc_hosts_lines: "{{ __sap_general_preconfigure_etc_hosts_lines + [__sap_general_preconfigure_line_item] }}"
+  loop: "{{ __sap_general_preconfigure_etc_hosts_decoded_split }}"
+  loop_control:
+    loop_var: __sap_general_preconfigure_line_item
+    label: "{{ __sap_general_preconfigure_line_item }}"
+  vars:
+    - __sap_general_preconfigure_etc_hosts_decoded: "{{ __sap_general_preconfigure_etc_hosts.content | b64decode }}"
+    - __sap_general_preconfigure_etc_hosts_decoded_split: "{{ __sap_general_preconfigure_etc_hosts_decoded.split('\n') }}"
+  when:
+    - __sap_general_preconfigure_line_item | length > 0
+    - not __sap_general_preconfigure_line_item | regex_search("^#")
+
+- name: Count the number of lines containing ipv4 address, FQDN, and hostname
+  ansible.builtin.set_fact:
+    __sap_general_preconfigure_ipv4_fqdn_hostname_count: "{{ __sap_general_preconfigure_ipv4_fqdn_hostname_count | int + 1 }}"
+  loop: "{{ __sap_general_preconfigure_etc_hosts_lines }}"
+  loop_control:
+    loop_var: __sap_general_preconfigure_line_item
+    label: "{{ __sap_general_preconfigure_line_item }}"
+  when: __sap_general_preconfigure_line_item | regex_search("^" + sap_general_preconfigure_ip + "(\s)*" + sap_general_preconfigure_hostname + "." + sap_general_preconfigure_domain + "(\s)*" + sap_general_preconfigure_hostname + "($|\s)" )
+
+- name: Fail if the number of lines in __sap_general_preconfigure_ipv4_fqdn_hostname_count is != 1
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_ipv4_fqdn_sap_hostname_once_assert.stdout == '1'
-    fail_msg: "FAIL: The line '{{ sap_general_preconfigure_ip }} {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} {{ sap_general_preconfigure_hostname }}' needs to be once in /etc/hosts!"
-    success_msg: "PASS: The line '{{ sap_general_preconfigure_ip }} {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} {{ sap_general_preconfigure_hostname }}' is once in /etc/hosts."
+    that: (__sap_general_preconfigure_ipv4_fqdn_hostname_count | int) == 1
+    fail_msg: "FAIL: There is no line, or more than one line, containing '{{ sap_general_preconfigure_ip }} {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} {{ sap_general_preconfigure_hostname }}' in /etc/hosts!"
+    success_msg: "PASS: There is one line containing '{{ sap_general_preconfigure_ip }} {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} {{ sap_general_preconfigure_hostname }}' in /etc/hosts."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
-- name: Count the number of sap_general_preconfigure_ip ({{ sap_general_preconfigure_ip }}) entries in /etc/hosts
-  ansible.builtin.command: awk 'BEGIN{a=0}/{{ sap_general_preconfigure_ip }}/{a++}END{print a}' /etc/hosts
-  register: __sap_general_preconfigure_register_sap_ip_once_assert
-  ignore_errors: yes
-  changed_when: no
+- name: Count the number of lines containing the ipv4 address of sap_ip
+  ansible.builtin.set_fact:
+    __sap_general_preconfigure_ipv4_count: "{{ __sap_general_preconfigure_ipv4_count | int + 1 }}"
+  loop: "{{ __sap_general_preconfigure_etc_hosts_lines }}"
+  loop_control:
+    loop_var: __sap_general_preconfigure_line_item
+    label: "{{ __sap_general_preconfigure_line_item.split()[0] }}"
+  when: __sap_general_preconfigure_line_item | regex_search("^" + sap_general_preconfigure_ip + "\s")
 
-- name: Assert that there is just one line containing {{ sap_general_preconfigure_ip }} in /etc/hosts
+- name: Fail if the number of lines in __sap_general_preconfigure_ipv4_count is != 1
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_sap_ip_once_assert.stdout == '1'
+    that: (__sap_general_preconfigure_ipv4_count | int) == 1
     fail_msg: "FAIL: There is no line, or more than one line, containing '{{ sap_general_preconfigure_ip }}' in /etc/hosts!"
-    success_msg: "PASS: There is only one line containing '{{ sap_general_preconfigure_ip }}' in /etc/hosts."
+    success_msg: "PASS: There is one line containing '{{ sap_general_preconfigure_ip }}' in /etc/hosts."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
-- name: Check for duplicate or missing entries of {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} in /etc/hosts
-  ansible.builtin.command: awk 'BEGIN{a=0}/^{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}\s/||
-                /\s{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}\s/||
-                /\s{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}$/{a++}END{print a}' /etc/hosts
-  register: __sap_general_preconfigure_register_fqdn_once_assert
-  ignore_errors: yes
-  changed_when: no
+- name: Count the number of lines containing FQDN
+  ansible.builtin.set_fact:
+    __sap_general_preconfigure_fqdn_count: "{{ __sap_general_preconfigure_fqdn_count | int + 1 }}"
+  loop: "{{ __sap_general_preconfigure_etc_hosts_lines }}"
+  loop_control:
+    loop_var: __sap_general_preconfigure_line_item
+    label: "{{ __sap_general_preconfigure_line_item.split()[0] }}"
+  when: __sap_general_preconfigure_line_item | regex_search("(\s)*" + sap_general_preconfigure_hostname + "." + sap_general_preconfigure_domain + "($|\s)*" )
 
-- name: Assert that there is just one line containing {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} in /etc/hosts
+- name: Fail if the number of lines in __sap_general_preconfigure_fqdn_count is != 1
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_fqdn_once_assert.stdout == '1'
+    that: (__sap_general_preconfigure_fqdn_count | int) == 1
     fail_msg: "FAIL: There is no line, or more than one line, containing '{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}' in /etc/hosts!"
-    success_msg: "PASS: There is only one line containing '{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}' in /etc/hosts."
+    success_msg: "PASS: There is one line containing '{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}' in /etc/hosts!"
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
-- name: Check for duplicate or missing entries of {{ sap_general_preconfigure_hostname }} in /etc/hosts
-  ansible.builtin.command: awk 'BEGIN{a=0}/^{{ sap_general_preconfigure_hostname }}\s/||
-                /\s{{ sap_general_preconfigure_hostname }}\s/||
-                /\s{{ sap_general_preconfigure_hostname }}$/{a++}END{print a}' /etc/hosts
-  register: __sap_general_preconfigure_register_sap_hostname_once_assert
-  ignore_errors: yes
-  changed_when: no
+- name: Count the number of lines containing hostname
+  ansible.builtin.set_fact:
+    __sap_general_preconfigure_hostname_count: "{{ __sap_general_preconfigure_hostname_count | int + 1 }}"
+  loop: "{{ __sap_general_preconfigure_etc_hosts_lines }}"
+  loop_control:
+    loop_var: __sap_general_preconfigure_line_item
+    label: "{{ __sap_general_preconfigure_line_item.split()[0] }}"
+  when: __sap_general_preconfigure_line_item | regex_search("(\s)*" + sap_general_preconfigure_hostname + "($|\s)*" )
 
-- name: Assert that there is just one line containing {{ sap_general_preconfigure_hostname }} in /etc/hosts
+- name: Fail if the number of lines in __sap_general_preconfigure_hostname_count is != 1
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_sap_hostname_once_assert.stdout == '1'
+    that: (__sap_general_preconfigure_hostname_count | int) == 1
     fail_msg: "FAIL: There is no line, or more than one line, containing '{{ sap_general_preconfigure_hostname }}' in /etc/hosts!"
-    success_msg: "PASS: There is only one line containing '{{ sap_general_preconfigure_hostname }}' in /etc/hosts."
+    success_msg: "PASS: There is one line containing '{{ sap_general_preconfigure_hostname }}' in /etc/hosts!"
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
-- name: Check hostname -s
+- name: Test hostname -s
   ansible.builtin.shell: test "$(hostname -s)" = "$(hostname)"
   register: __sap_general_preconfigure_register_hostname_s_assert
   ignore_errors: yes
@@ -76,7 +111,7 @@
     success_msg: "PASS: The output of 'hostname -s' matches the output of 'hostname'."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
-- name: Check hostname -f
+- name: Test hostname -f
   ansible.builtin.shell: test "$(hostname -f)" = "$(hostname).$(hostname -d)"
   register: __sap_general_preconfigure_register_hostname_f_assert
   ignore_errors: yes
