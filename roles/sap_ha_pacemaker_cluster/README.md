@@ -322,6 +322,20 @@ Inherits the value of `ha_cluster_hacluster_password`, when defined.<br>
 Parameter for the 'SAPHana' cluster resource.<br>
 Define if a former primary should be re-registered automatically as secondary.<br>
 
+### sap_ha_pacemaker_cluster_hana_colocation_hana_vip_primary_name
+
+- _Type:_ `string`
+- _Default:_ `col_saphana_vip_<SID>_HDB<Instance Number>_primary`
+
+Customize the cluster constraint name for VIP and SAPHana primary clone colocation.<br>
+
+### sap_ha_pacemaker_cluster_hana_colocation_hana_vip_secondary_name
+
+- _Type:_ `string`
+- _Default:_ `col_saphana_vip_<SID>_HDB<Instance Number>_readonly`
+
+Customize the cluster constraint name for VIP and SAPHana secondary clone colocation.<br>
+
 ### sap_ha_pacemaker_cluster_hana_duplicate_primary_timeout
 
 - _Type:_ `int`
@@ -409,6 +423,27 @@ sap_ha_pacemaker_cluster_hana_hooks:
 The instance number of the SAP HANA database which this role will configure in the cluster.<br>
 Inherits the value of `sap_hana_instance_number`, when defined.<br>
 Mandatory for SAP HANA cluster setups.<br>
+
+### sap_ha_pacemaker_cluster_hana_order_hana_vip_primary_name
+
+- _Type:_ `string`
+- _Default:_ `ord_saphana_vip_<SID>_HDB<Instance Number>_primary`
+
+Customize the cluster constraint name for VIP and SAPHana primary clone order.<br>
+
+### sap_ha_pacemaker_cluster_hana_order_hana_vip_secondary_name
+
+- _Type:_ `string`
+- _Default:_ `ord_saphana_vip_<SID>_HDB<Instance Number>_readonly`
+
+Customize the cluster constraint name for VIP and SAPHana secondary clone order.<br>
+
+### sap_ha_pacemaker_cluster_hana_order_topology_hana_name
+
+- _Type:_ `string`
+- _Default:_ `ord_saphana_saphanatop_<SID>_HDB<Instance Number>`
+
+Customize the cluster constraint name for SAPHana and Topology order.<br>
 
 ### sap_ha_pacemaker_cluster_hana_prefer_site_takeover
 
@@ -551,6 +586,14 @@ Mandatory for NetWeaver AAS cluster configuration.<br>
 The standard NetWeaver ASCS/ERS cluster will be set up as ENSA2.<br>
 Set this parameter to 'true' to configure it as ENSA1.<br>
 
+### sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
+
+- _Type:_ `bool`
+- _Default:_ `True`
+
+Enables preferred method for ASCS ERS ENSA2 clusters - Simple Mount<br>
+Set this parameter to 'true' to configure ENSA2 Simple Mount.<br>
+
 ### sap_ha_pacemaker_cluster_nwas_abap_ascs_filesystem_resource_name
 
 - _Type:_ `string`
@@ -601,6 +644,7 @@ Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ens
 
 The name of the ASCS instance, typically the profile name.<br>
 Mandatory for the NetWeaver ASCS/ERS cluster setup<br>
+Recommended format <SID>_ASCS<ASCS-instance-number>_<ASCS-hostname>.<br>
 
 ### sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name
 
@@ -622,6 +666,13 @@ NetWeaver ASCS instance resource stickiness attribute.<br>
 
 The full path and name of the ASCS instance profile.<br>
 Mandatory for the NetWeaver ASCS/ERS cluster setup.<br>
+
+### sap_ha_pacemaker_cluster_nwas_abap_ascs_sapstartsrv_resource_name
+
+- _Type:_ `string`
+- _Default:_ `rsc_SAPStartSrv_<SID>_ASCS<ASCS-instance-number>`
+
+Name of the ASCS SAPStartSrv resource for simple mount.<br>
 
 ### sap_ha_pacemaker_cluster_nwas_abap_ers_filesystem_resource_name
 
@@ -650,6 +701,7 @@ NetWeaver ERS instance resource option "AUTOMATIC_RECOVER".<br>
 
 The name of the ERS instance, typically the profile name.<br>
 Mandatory for the NetWeaver ASCS/ERS cluster setup.<br>
+Recommended format <SID>_ERS<ERS-instance-number>_<ERS-hostname>.<br>
 
 ### sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name
 
@@ -664,6 +716,13 @@ Name of the ERS instance resource.<br>
 
 The full path and name of the ERS instance profile.<br>
 Mandatory for the NetWeaver ASCS/ERS cluster.<br>
+
+### sap_ha_pacemaker_cluster_nwas_abap_ers_sapstartsrv_resource_name
+
+- _Type:_ `string`
+- _Default:_ `rsc_SAPStartSrv_<SID>_ERS<ERS-instance-number>`
+
+Name of the ERS SAPstartSrv resource for simple mount.<br>
 
 ### sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr
 
@@ -680,6 +739,20 @@ SID of the NetWeaver instances.<br>
 Mandatory for NetWeaver cluster configuration.<br>
 Uses `sap_swpm_sid` if defined.<br>
 Mandatory for NetWeaver cluster setups.<br>
+
+### sap_ha_pacemaker_cluster_nwas_colocation_ascs_no_ers_name
+
+- _Type:_ `string`
+- _Default:_ `col_ascs_separate_<SID>`
+
+Customize the cluster constraint name for ASCS and ERS separation colocation.<br>
+
+### sap_ha_pacemaker_cluster_nwas_order_ascs_first_name
+
+- _Type:_ `string`
+- _Default:_ `ord_ascs_first_<SID>`
+
+Customize the cluster constraint name for ASCS starting before ERS order.<br>
 
 ### sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_clone_name
 

@@ -135,6 +135,20 @@ sap_ha_pacemaker_cluster_hana_filesystem_resource_name: >-
 sap_ha_pacemaker_cluster_hana_filesystem_resource_clone_name: >-
   cln_SAPHanaFil_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
 
+# SAP HANA - Constraint names
+sap_ha_pacemaker_cluster_hana_order_topology_hana_name: >-
+  ord_saphana_saphanatop_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}
+
+sap_ha_pacemaker_cluster_hana_colocation_hana_vip_primary_name: >-
+  col_saphana_vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_primary
+sap_ha_pacemaker_cluster_hana_colocation_hana_vip_secondary_name: >-
+  col_saphana_vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_primary
+
+sap_ha_pacemaker_cluster_hana_order_hana_vip_primary_name: >-
+  ord_saphana_vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_primary
+sap_ha_pacemaker_cluster_hana_order_hana_vip_secondary_name: >-
+  ord_saphana_vip_{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_readonly
+
 # Multiple VIP parameters can be defined and will be combined.
 # See tasks/include_construct_vip_resources.yml
 #
@@ -171,6 +185,9 @@ sap_ha_pacemaker_cluster_hana_global_ini_path: "/usr/sap/{{
 # Default will be ENSA2. To configure HA resources for ENSA1,
 # set this parameter to 'true'.
 sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1: false
+
+# Enable ENSA2 simple mount configuration
+sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount: true
 
 # Enable/Disable sap_cluster_connector.
 # Ref.: https://access.redhat.com/solutions/3606101
@@ -239,12 +256,6 @@ sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_clone_name: >-
 # Set this parameter to "true" to configure the 3 shared filesystems as part of the cluster.
 sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed: false
 
-# SAP NetWeaver resource group names as convenience parameters
-sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name: >-
-  grp_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ASCS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
-sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name: >-
-  grp_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ERS{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}
-
 ################################################################################
 # ASCS resource defaults
 ################################################################################
@@ -262,7 +273,18 @@ sap_ha_pacemaker_cluster_nwas_abap_ascs_filesystem_resource_name: >-
   rsc_fs_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ASCS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
 sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name: >-
   rsc_SAPInstance_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ASCS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
-# sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name }}-clone"
+sap_ha_pacemaker_cluster_nwas_abap_ascs_sapstartsrv_resource_name: >-
+  rsc_SAPStartSrv_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ASCS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
+
+sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name: >-
+  grp_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ASCS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
+
+sap_ha_pacemaker_cluster_nwas_colocation_ascs_no_ers_name: >-
+  col_ascs_separate_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}
+
+sap_ha_pacemaker_cluster_nwas_order_ascs_first_name: >-
+  ord_ascs_first_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}
+
 sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_automatic_recover_bool: false
 sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_stickiness: 5000
 sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_ensa1_migration_threshold: 1
@@ -281,12 +303,17 @@ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name: ''
 # Full path with instance profile name - mandatory to be user-defined
 sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string: ''
 
+# SAP NetWeaver ABAP ERS - Resource IDs (names) as convenience parameters.
 sap_ha_pacemaker_cluster_nwas_abap_ers_filesystem_resource_name: >-
-  rsc_fs_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ERS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
+  rsc_fs_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ERS{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}
 sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name: >-
-  rsc_SAPInstance_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ERS{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}
-# sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_clone_name: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name }}-clone"
+  rsc_SAPInstance_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ERS{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}
+sap_ha_pacemaker_cluster_nwas_abap_ers_sapstartsrv_resource_name: >-
+  rsc_SAPStartSrv_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ERS{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}
 sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_automatic_recover_bool: false
+
+sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name: >-
+  grp_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}_ERS{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}
 
 
 ################################################################################

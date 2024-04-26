@@ -83,6 +83,20 @@
     loop_var: nwas_build_item
   when:
     - "'nwas_abap_ascs' in nwas_build_item"
+    - not sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
+
+- name: SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ABAP ASCS/ERS
+    Simple Mount # noqa name[template]
+  ansible.builtin.include_tasks:
+    file: construct_vars_nwas_abap_ascs_ers_simple_mount.yml
+  loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
+  loop_control:
+    loop_var: nwas_build_item
+  when:
+    - "'nwas_abap_ascs' in nwas_build_item"
+    - sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
+    # TODO: Remove rule when SAPStartSrv resource agents are available on Red Hat
+    - ansible_os_family == 'Suse'
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ABAP PAS/AAS"
   ansible.builtin.include_tasks:
