@@ -158,8 +158,9 @@ git fetch --prune
 git stash push
 git checkout -b {branch} origin/{branch}
 git stash pop
+git checkout --theirs {REQUIREMENT_FILE}
 git add {file_to_change}
-git commit --message=\"Update {file_to_change}\"
+git commit --message=\"Update {file_to_change} on `date`\"
 git push
     """)
 
