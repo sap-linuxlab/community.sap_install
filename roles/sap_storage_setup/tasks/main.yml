@@ -10,6 +10,10 @@
   ansible.builtin.include_vars:
     file: "{{ ansible_os_family }}.yml"
 
+- name: SAP Storage Setup - For SLES ensure OS Package for Python Lib of rpm bindings is enabled for System Python
+  ansible.builtin.command: zypper install --no-confirm --auto-agree-with-licenses python3-rpm
+  when: ansible_os_family == "Suse"
+
 - name: SAP Storage Setup - Install additional OS packages
   when: __sap_storage_setup_extra_packages is defined
   ansible.builtin.package:
