@@ -37,14 +37,15 @@
       changed_when: false
       run_once: true  # noqa: run_once[task]
 
-    - name: "SAP HA Install Pacemaker - SAPStartSrv crm resource cleanup"
-      ansible.builtin.command:
-        cmd: crm resource cleanup {{ item }}
-      loop:
-        - "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapstartsrv_resource_name }}"
-        - "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapstartsrv_resource_name }}"
-      when: sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
-      changed_when: true
+    # # Workaround situation when ASCS and ERS mounts are not present on both nodes.
+    # - name: "SAP HA Install Pacemaker - SAPStartSrv crm resource cleanup"
+    #   ansible.builtin.command:
+    #     cmd: crm resource cleanup {{ item }}
+    #   loop:
+    #     - "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapstartsrv_resource_name }}"
+    #     - "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapstartsrv_resource_name }}"
+    #   when: sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
+    #   changed_when: true
 
     - name: "SAP HA Install Pacemaker - Fetch CIB configuration"
       ansible.builtin.command:
@@ -62,7 +63,7 @@
         mode: '0600'
       check_mode: false
 
-    # Removes monitor, start, stop operations from SAPStartSrv
+    # SAPStartSrv - Remove monitor, start, stop operations from SAPStartSrv
     # These operations are not supported and not recommended.
     # TODO: Limit deletion in future, when more supported is added in Resource Agent
     - name: "SAP HA Install Pacemaker - Remove operations for SAPStartSrv"
@@ -71,8 +72,8 @@
       when: sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
       changed_when: true
 
-    # Remove default operations: promote, demote, start, stop
-    - name: "SAP HA Install Pacemaker - Remove operations for SAPStartSrv"
+    # SAPInstance - Remove default operations: promote, demote, start, stop
+    - name: "SAP HA Install Pacemaker - Remove operations for SAPInstance"
       ansible.builtin.command:
         cmd: cibadmin -d --force --xpath "//primitive[@type='SAPInstance']//op[{{ item }}]"
       loop:
