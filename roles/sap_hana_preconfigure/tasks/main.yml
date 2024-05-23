@@ -27,6 +27,13 @@
     __sap_hana_preconfigure_fact_ansible_distribution_minor_version: '{{ ansible_distribution_version.split(".")[1] }}'
   when: ansible_distribution == 'RedHat'
 
+# Requirement for package_facts Ansible Module
+- name: For SLES ensure OS Package for Python Lib of rpm bindings is enabled for System Python
+  ansible.builtin.package:
+    name: python3-rpm
+    state: present
+  when: ansible_os_family == "Suse"
+
 # required for installation and configuration tasks:
 - name: Gather package facts
   ansible.builtin.package_facts:

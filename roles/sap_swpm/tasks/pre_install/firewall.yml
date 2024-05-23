@@ -4,6 +4,13 @@
   when: ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   block:
 
+    # Requirement for package_facts Ansible Module
+    - name: For SLES ensure OS Package for Python Lib of rpm bindings is enabled for System Python
+      ansible.builtin.package:
+        name: python3-rpm
+        state: present
+      when: ansible_os_family == "Suse"
+
     - name: SAP SWPM Pre Install - Gathering Firewall Facts
       ansible.builtin.package_facts:
         manager: auto
