@@ -9,24 +9,31 @@
 - name: SAP Storage Setup - Make a list of unused disk devices of the requested sizes
   ansible.builtin.set_fact:
     available_devices: |
-      {% set av_disks = [] %}
-      {% set all_disks = (ansible_devices | dict2items) %}
-      {% for disk in all_disks %}
-        {%- for fs in sap_storage_setup_new_mounts_fact %}
+      {%- set av_disks = [] -%}
+      {%- set all_disks = (ansible_devices | dict2items) -%}
+      {%- for disk in all_disks -%}
+        {%- for fs in sap_storage_setup_new_mounts_fact -%}
+          {%- if disk.value.size | regex_search('.*TB$') -%}
+            {%- set disk_size_gb = (((( disk.value.size | replace(' TB','') | float * 1024) /8) | round(0,'ceil') * 8) | int) -%}
+          {%- else -%}
+            {%- set disk_size_gb = (disk.value.size | regex_replace('(\.\d+\s*)', '') | replace('GB','') | int) -%}
+          {%- endif -%}
           {%- if not disk.key.startswith('dm-')
               and disk.value.links.uuids | length == 0
               and disk.value.partitions | length == 0
               and fs.disk_size is defined
-              and (fs.disk_size | string + 'GB') in (disk.value.size | regex_replace('(\.\d+\s*)', '')) %}
-            {%- set add_to_list = av_disks.append(disk) %}
-          {%- endif %}
-        {%- endfor %}
-      {%- endfor %}
+              and ((disk_size_gb-8) <= fs.disk_size <= (disk_size_gb+8)) -%}
+            {%- set add_to_list = av_disks.append(disk) -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endfor -%}
       {{ av_disks | items2dict }}
 
 # !!
 # If the DISK MATCHING syntax has changed in the above, it must also
-# be adjusted in the next task
+# be adjusted in the next task.
+# As ansible_devices returns only human-readable format, handling
+# for TB is provided and default is GB; use of MB and PB will error.
 # !!
 
 ##########
@@ -60,16 +67,22 @@
           -%}
 
           {%- for dev in av_dev -%}
-            {%- if (fs.disk_size | string + 'GB') in (dev.value.size | regex_replace('(\.\d+\s*)', ''))
+
+            {%- if dev.value.size | regex_search('.*TB$') -%}
+              {% set disk_size_gb = (((( dev.value.size | replace(' TB','') | float * 1024) /8) | round(0,'ceil') * 8) | int) -%}
+            {%- else -%}
+              {% set disk_size_gb = (dev.value.size | regex_replace('(\.\d+\s*)', '') | replace('GB','') | int) -%}
+            {%- endif -%}
+            {%- if (disk_size_gb-8) <= fs.disk_size <= (disk_size_gb+8)
                 and dev.key not in assigned_dev
                 and dev.value.holders | length == 0
-                and matching_dev | length < (fs.lvm_lv_stripes | d('1') | int) %}
+                and matching_dev | length < (fs.lvm_lv_stripes | d('1') | int) -%}
 
-                {%- set assigned = assigned_dev.append(dev.key) %}
-                {%- set add = matching_dev.append('/dev/' + dev.key) %}
+                {%- set assigned = assigned_dev.append(dev.key) -%}
+                {%- set add = matching_dev.append('/dev/' + dev.key) -%}
+            {%- endif -%}
 
-            {%- endif %}
-          {%- endfor %}
+          {%- endfor -%}
 
           {%- if matching_dev | length > 0 -%}
             {%- set extend = device_map.extend([
@@ -80,10 +93,10 @@
                 'name': fs.name,
                 'size': fs.disk_size,
               }
-            ]) %}
-          {%- endif %}
-        {%- endif %}
-      {%- endfor %}
+            ]) -%}
+          {%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
       {{ device_map }}
 
 
