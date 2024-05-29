@@ -5,6 +5,13 @@
 # This is destructive step if executed on running cluster
 # without proper migration from SAPHanaSR to SAPHanaSR-angi!
 
+# Requirement for package_facts Ansible Module
+- name: For SLES ensure OS Package for Python Lib of rpm bindings is enabled for System Python
+  ansible.builtin.package:
+    name: python3-rpm
+    state: present
+  when: ansible_os_family == "Suse"
+
 - name: "SAP HA Prepare Pacemaker - Gather installed packages facts"
   ansible.builtin.package_facts:
     manager: auto
