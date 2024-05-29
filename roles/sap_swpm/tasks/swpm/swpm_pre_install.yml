@@ -31,9 +31,19 @@
   tags: sap_swpm_generate_inifile
 
 # Set fact for SWPM path
-- name: SAP SWPM Pre Install - Set fact for SWPM path
+- name: SAP SWPM Pre Install - Set fact for SWPM path when extract directory defined
   ansible.builtin.set_fact:
-    sap_swpm_sapinst_path: "{{ sap_swpm_swpm_path }}/sap_swpm_extracted"
+    sap_swpm_sapinst_path: "{{ sap_swpm_software_extract_directory }}"
+  when:
+    - sap_swpm_software_extract_directory is defined
+    - not (sap_swpm_software_extract_directory is none or (sap_swpm_software_extract_directory | length == 0))
+
+# Set fact for SWPM path
+- name: SAP SWPM Pre Install - Set fact for SWPM path when undefined extract directory
+  ansible.builtin.set_fact:
+    sap_swpm_sapinst_path: "{{ (sap_swpm_swpm_path | regex_replace('\\/$', '')) + '/extracted' }}"
+  when:
+    - sap_swpm_software_extract_directory is undefined or (sap_swpm_software_extract_directory is none or (sap_swpm_software_extract_directory | length) == 0)
 
 - name: SAP SWPM Pre Install - Ensure directory '{{ sap_swpm_sapinst_path }}' exists
   ansible.builtin.file:
