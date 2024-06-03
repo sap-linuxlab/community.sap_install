@@ -212,7 +212,6 @@
         - name: "SAP HA Pacemaker - (SAP HA Interface) Restart ASCS ERS resources"
           ansible.builtin.shell: |
             {{ __sap_ha_pacemaker_cluster_command.resource_restart }} {{ __rsc_ascs }} {{ __rsc_ers }}
-          run_once: true
           vars:
             __rsc_ascs: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapstartsrv_resource_name
               if sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
@@ -266,6 +265,7 @@
       failed_when:
         - "'ERROR' in __sap_ha_pacemaker_cluster_register_where_ers.stdout"
 
+
     - name: "SAP HA Pacemaker - (SAP HA Interface) Get HA config for ASCS"
       when:
         - __sap_ha_pacemaker_cluster_register_where_ascs.rc == 0
@@ -275,12 +275,26 @@
       ansible.builtin.shell: |
         /usr/sap/hostctrl/exe/sapcontrol -nr {{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }} -function HAGetFailoverConfig
       changed_when: false
-      failed_when:
-        - __sap_ha_pacemaker_cluster_register_ascs_ha_config.stdout is defined
-           and 'FALSE' in __sap_ha_pacemaker_cluster_register_ascs_ha_config.stdout
+      # failed_when:
+      #   - __sap_ha_pacemaker_cluster_register_ascs_ha_config.stdout is defined
+      #      and 'FALSE' in __sap_ha_pacemaker_cluster_register_ascs_ha_config.stdout
 
-    # Only ASCS is required as both outputs are same.
-    - name: "SAP HA Pacemaker - (SAP HA Interface) Display HAGetFailoverConfig results"
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Get HA config for ERS"
+      when:
+        - __sap_ha_pacemaker_cluster_register_where_ers.rc == 0
+      become: true
+      become_user: "{{ sap_ha_pacemaker_cluster_nwas_abap_sid | lower }}adm"
+      register: __sap_ha_pacemaker_cluster_register_ers_ha_config
+      ansible.builtin.shell: |
+        /usr/sap/hostctrl/exe/sapcontrol -nr {{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }} -function HAGetFailoverConfig
+      changed_when: false
+      # failed_when:
+      #   - __sap_ha_pacemaker_cluster_register_ers_ha_config.stdout is defined
+      #      and 'FALSE' in __sap_ha_pacemaker_cluster_register_ers_ha_config.stdout
+
+
+    # HAGetFailoverConfig is not consistent and it can show FALSE on one of nodes
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Display HAGetFailoverConfig results on ASCS"
       when:
         - __sap_ha_pacemaker_cluster_register_where_ascs.rc == 0
         - __sap_ha_pacemaker_cluster_register_ascs_ha_config.stdout_lines is defined
@@ -288,6 +302,16 @@
         msg: |
           {{ __sap_ha_pacemaker_cluster_register_ascs_ha_config.stdout_lines }}
 
+    # HAGetFailoverConfig is not consistent and it can show FALSE on one of nodes
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Display HAGetFailoverConfig results on ERS"
+      when:
+        - __sap_ha_pacemaker_cluster_register_where_ers.rc == 0
+        - __sap_ha_pacemaker_cluster_register_ers_ha_config.stdout_lines is defined
+      ansible.builtin.debug:
+        msg: |
+          {{ __sap_ha_pacemaker_cluster_register_ers_ha_config.stdout_lines }}
+
+    # HACheckConfig shows same statues on both nodes, therefore only ASCS is shown
     - name: "SAP HA Pacemaker - (SAP HA Interface) Display HACheckConfig results"
       when:
         - __sap_ha_pacemaker_cluster_register_where_ascs.rc == 0
