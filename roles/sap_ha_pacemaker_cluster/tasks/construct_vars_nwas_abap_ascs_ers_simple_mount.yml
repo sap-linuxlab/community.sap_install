@@ -1,0 +1,215 @@
+---
+# Variables containing variables must be constructed with values
+# to be fed into the included ha_cluster role
+
+# TODO: add conditionals to verify that the same resource agent is not already
+#       defined in user input variables. Conflicting user input should take precedence.
+#
+# ASCS ERS simple mount cluster is ENSA2.
+
+### Resources
+# ASCS SAPStartSrv resource definition
+- name: "SAP HA Prepare Pacemaker - Add resource: SAPStartSrv for Central Service (ABAP ASCS)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapstartsrv] }}"
+  vars:
+    __resource_sapstartsrv:
+      id: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapstartsrv_resource_name }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_resource_agents.sapstartsrv }}"
+      instance_attrs:
+        - attrs:
+            - name: InstanceName
+              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name }}"
+  when:
+    - __resource_sapstartsrv.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+# ERS SAPStartSrv resource definition
+- name: "SAP HA Prepare Pacemaker - Add resource: SAPStartSrv for Central Service (ABAP ERS)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapstartsrv] }}"
+  vars:
+    __resource_sapstartsrv:
+      id: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapstartsrv_resource_name }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_resource_agents.sapstartsrv }}"
+      instance_attrs:
+        - attrs:
+            - name: InstanceName
+              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name }}"
+  when:
+    - __resource_sapstartsrv.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+
+# ASCS instance resource definition
+- name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for Central Service (ABAP ASCS)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapinstance] }}"
+  vars:
+    __resource_sapinstance:
+      id: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name }}"
+      agent: "ocf:heartbeat:SAPInstance"
+      instance_attrs:
+        - attrs:
+            - name: InstanceName
+              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name }}"
+            - name: START_PROFILE
+              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_start_profile_string }}"
+            - name: AUTOMATIC_RECOVER
+              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_automatic_recover_bool | string }}"
+            - name: MINIMAL_PROBE
+              value: true
+      meta_attrs:
+        - attrs:
+            - name: resource-stickiness
+              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_stickiness }}"
+      operations:
+        # TODO: Add values for start and stop when they are published.
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 11
+            - name: on-fail
+              value: restart
+            - name: timeout
+              value: 60
+  when:
+    - __resource_sapinstance.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+
+# ERS instance resource definition
+- name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for Enqueue Replication Service (ABAP ERS)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapinstance_ers] }}"
+  vars:
+    __resource_sapinstance_ers:
+      id: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name }}"
+      agent: "ocf:heartbeat:SAPInstance"
+      instance_attrs:
+        - attrs:
+            - name: InstanceName
+              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name }}"
+            - name: START_PROFILE
+              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string }}"
+            - name: AUTOMATIC_RECOVER
+              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_automatic_recover_bool | string }}"
+            - name: IS_ERS
+              value: true
+            - name: MINIMAL_PROBE
+              value: true
+      operations:
+        # TODO: Add values for start and stop when they are published.
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 11
+            - name: on-fail
+              value: restart
+            - name: timeout
+              value: 60
+  when:
+    - __resource_sapinstance_ers.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+
+
+### Groups
+# ASCS group consists of resources in this order:
+# - ASCS VIP
+# - ASCS SAPStartSrv
+# - ASCS SAPInstance
+- name: "SAP HA Prepare Pacemaker - Add resource group for ASCS resources"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__ascs_group] }}"
+  vars:
+    __ascs_group:
+      id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name }}"
+      resource_ids: |
+        {% set resource_ids_list = [] %}
+        {%- for resource in
+          sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name,
+          sap_ha_pacemaker_cluster_nwas_abap_ascs_sapstartsrv_resource_name,
+          sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name,
+          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_resource_name %}
+          {%- if resource | length > 0
+            and resource in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')) %}
+            {%- set ids = resource_ids_list.append(resource) %}
+          {%- endif %}
+        {%- endfor %}
+        {{ resource_ids_list }}
+      meta_attrs:
+        - attrs:
+            - name: resource-stickiness
+              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_group_stickiness }}"
+  when:
+    - __ascs_group.id is not in (__sap_ha_pacemaker_cluster_resource_groups | map(attribute='id'))
+
+
+# ERS group consists of resources in this order:
+# - ERS VIP
+# - ERS SAPStartSrv
+# - ERS SAPInstance
+- name: "SAP HA Prepare Pacemaker - Add resource group for ERS resources"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__ers_group] }}"
+  vars:
+    __ers_group:
+      id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name }}"
+      resource_ids: |
+        {% set resource_ids_list = [] %}
+        {%- for resource in
+          sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name,
+          sap_ha_pacemaker_cluster_nwas_abap_ers_sapstartsrv_resource_name,
+          sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name,
+          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_resource_name %}
+          {%- if resource | length > 0
+            and resource in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')) %}
+            {%- set ids = resource_ids_list.append(resource) %}
+          {%- endif %}
+        {%- endfor %}
+        {{ resource_ids_list }}
+  when:
+    - __ers_group.id is not in (__sap_ha_pacemaker_cluster_resource_groups | map(attribute='id'))
+
+- name: "SAP HA Prepare Pacemaker - Display VIP resource group definition if any were built"
+  ansible.builtin.debug:
+    var: __sap_ha_pacemaker_cluster_resource_groups
+  when:
+    - __sap_ha_pacemaker_cluster_resource_groups is defined
+    - __sap_ha_pacemaker_cluster_resource_groups | length > 0
+
+
+### Constraints
+# ERS and ASCS resource groups should try to avoid running on the same node
+- name: "SAP HA Prepare Pacemaker - Add colocation constraint: ERS avoids to run on the ASCS node"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation + [__constraint_colo_ers] }}"
+  vars:
+    __constraint_colo_ers:
+      id: "{{ sap_ha_pacemaker_cluster_nwas_colocation_ascs_no_ers_name }}"
+      resource_leader:
+        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name }}"
+        role: started
+      resource_follower:
+        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name }}"
+      options:
+        - name: score
+          value: -5000
+  when:
+    - __constraint_colo_ers.resource_follower not in (__sap_ha_pacemaker_cluster_constraints_colocation | map(attribute='resource_follower'))
+
+# Optional: ASCS should be started before ERS
+- name: "SAP HA Prepare Pacemaker - Add order constraint: first start ASCS group, then ERS group"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_ascs_ers] }}"
+  vars:
+    __constraint_order_ascs_ers:
+      id: "{{ sap_ha_pacemaker_cluster_nwas_order_ascs_first_name }}"
+      resource_first:
+        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name }}"
+        role: started
+      resource_then:
+        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name }}"
+      options:
+        - name: symmetrical
+          value: "false"
+        - name: kind
+          value: Optional
+  when:
+    - __constraint_order_ascs_ers.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))

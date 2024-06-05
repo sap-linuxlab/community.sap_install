@@ -36,7 +36,8 @@
         value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string }}"
       - name: AUTOMATIC_RECOVER
         value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_automatic_recover_bool | string }}"
-
+      - name: IS_ERS
+        value: true
 
 - name: "SAP HA Prepare Pacemaker - Define ASCS/ERS instance attributes (ENSA1)"
   when: sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1
@@ -60,7 +61,8 @@
         value: true
 
 
-### ASCS/ERS instance filesystems
+### Resources
+# ASCS/ERS instance filesystems
 - name: "SAP HA Prepare Pacemaker - Add filesystem resources for ASCS/ERS to resource definition"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_filesystem] }}"
@@ -238,20 +240,11 @@
   when:
     - __resource_sapinstance_ers.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
 
-
-#################################################
-# Group resources that belong together
-# ###############################################
-
-# ASCS group consists of resources for
+### Groups
+# ASCS group consists of resources in this order:
 # - ASCS filesystem
 # - ASCS instance
 # - ASCS VIP
-# The order of the resources in the group define the order in which they are
-# started - resources are stopped in reverse order.
-#
-# Only resources that were defined as resources to be configured will be
-# added to the group.
 
 - name: "SAP HA Prepare Pacemaker - Add resource group for ASCS resources"
   ansible.builtin.set_fact:
@@ -280,15 +273,10 @@
     - __ascs_group.id is not in (__sap_ha_pacemaker_cluster_resource_groups | map(attribute='id'))
 
 
-# ERS group consists of resources for
+# ERS group consists of resources in this order:
 # - ERS filesystem
 # - ERS instance
 # - ERS VIP
-# The order of the resources in the group define the order in which they are
-# started - resources are stopped in reverse order.
-#
-# Only resources that were defined as resources to be configured will be
-# added to the group.
 
 - name: "SAP HA Prepare Pacemaker - Add resource group for ERS resources"
   ansible.builtin.set_fact:
@@ -319,24 +307,15 @@
     - __sap_ha_pacemaker_cluster_resource_groups is defined
     - __sap_ha_pacemaker_cluster_resource_groups | length > 0
 
-#################################################
-# Constraints
-#################################################
 
-# Constraint parameters are pre-defined from potentially inherited ha_cluster LSR definitions.
-# Constraint definitions are combined into these parameters.
-# See tasks/ascertain_ha_cluster_in_inventory.yml:
-#
-# __sap_ha_pacemaker_cluster_constraints_colocation: "{{ ha_cluster_constraints_colocation }}"
-# __sap_ha_pacemaker_cluster_constraints_location: "{{ ha_cluster_constraints_location }}"
-# __sap_ha_pacemaker_cluster_constraints_order: "{{ ha_cluster_constraints_order }}"
-
+### Constraints
 # ERS and ASCS resource groups should try to avoid running on the same node
 - name: "SAP HA Prepare Pacemaker - Add colocation constraint: ERS avoids to run on the ASCS node"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation + [__constraint_colo_ers] }}"
   vars:
     __constraint_colo_ers:
+      id: "{{ sap_ha_pacemaker_cluster_nwas_colocation_ascs_no_ers_name }}"
       resource_leader:
         id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name }}"
         role: started
@@ -354,6 +333,7 @@
     __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_ascs_ers] }}"
   vars:
     __constraint_order_ascs_ers:
+      id: "{{ sap_ha_pacemaker_cluster_nwas_order_ascs_first_name }}"
       resource_first:
         id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name }}"
         role: started
