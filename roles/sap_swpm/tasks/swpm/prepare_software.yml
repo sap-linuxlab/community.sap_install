@@ -53,19 +53,19 @@
         __sap_swpm_fact_files_non_sapcar: "{{ __sap_swpm_register_find_result_files_non_sapcar.files | map(attribute='path') | reject('contains', 'extracted/') }}"
       when: __sap_swpm_register_find_result_files_non_sapcar is defined
 
-    - name: SAP SWPM Pre Install - Create argument list for chown and chmod of non-SAPCAR*EXE files
-      ansible.builtin.set_fact:
-        __sap_swpm_fact_files_non_sapcar_chown_arg_list: "{{ __sap_swpm_fact_files_non_sapcar | map('quote') | join(' ') }}"
-
 # Reasons for noqa:
 # - command-instead-of-module: Shorter execution time compared to looping over a list when using the file module
 # - no-changed-when: Not worth checking permissions and ownership before this task and comparing afterwards
     - name: SAP SWPM Pre Install - Ensure correct permissions and ownership of all non-SAPCAR files # noqa command-instead-of-module no-changed-when
       ansible.builtin.shell: >
          chown {{ sap_swpm_files_non_sapcar_owner }}:{{ sap_swpm_files_non_sapcar_group }} \
-         {{ __sap_swpm_fact_files_non_sapcar_chown_arg_list }} &&
+         {{ line_item | join(' ') }} &&
          chmod {{ sap_swpm_files_non_sapcar_mode }} \
-         {{ __sap_swpm_fact_files_non_sapcar_chown_arg_list }}
+         {{ line_item | join(' ') }}
+      loop: "{{ __sap_swpm_fact_files_non_sapcar | batch(100) }}"
+      loop_control:
+        loop_var: line_item
+        label: "Batch {{ (__sap_swpm_fact_files_non_sapcar.index(line_item[0]) // 100) + 1 }}, first item: {{ line_item[0] }}"
       when:
         - __sap_swpm_fact_files_non_sapcar is defined
         - __sap_swpm_register_find_result_files_non_sapcar is defined
