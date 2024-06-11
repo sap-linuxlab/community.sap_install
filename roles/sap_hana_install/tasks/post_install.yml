@@ -97,7 +97,7 @@
     - name: SAP HANA hdblcm installation check - Construct an hdbcheck command line
       ansible.builtin.set_fact:
         __sap_hana_install_fact_installation_check_command: "set -o pipefail && ./hdbcheck -b --read_password_from_stdin=xml
-          --property_file={{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/global/hdb/install/support/hdbcheck.xml
+          --property_file={{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/global/hdb/install/support/hdbcheck.xml
           --remote_execution=ssh
           --scope=system
           -b < {{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg.xml"
@@ -118,7 +118,7 @@
     - name: SAP HANA hdblcm installation check with hdbcheck - Perform the check # noqa command-instead-of-shell
       ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
       args:
-        chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/global/hdb/install/bin"
+        chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/global/hdb/install/bin"
       register: __sap_hana_install_register_installation_check
       changed_when: false
       when: sap_hana_install_use_hdbcheck | d(true)
@@ -132,7 +132,7 @@
     - name: SAP HANA hdblcm installation check with hdblcm - Perform the check # noqa command-instead-of-shell
       ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
       args:
-        chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
+        chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/hdblcm"
       register: __sap_hana_install_register_installation_check
       changed_when: false
       when: not sap_hana_install_use_hdbcheck | d(true)
@@ -152,7 +152,7 @@
         gsub ("^\\s*hosts?: ", ""); gsub (", ", ","); print; a=0}
       }'
   args:
-    chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
+    chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/hdblcm"
   register: __sap_hana_install_register_install_result
   changed_when: no
   when: not ansible_check_mode
