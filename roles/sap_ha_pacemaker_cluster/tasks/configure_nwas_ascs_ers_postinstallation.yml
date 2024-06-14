@@ -9,6 +9,10 @@
     backup: true
     regexp: 'Restart_Program_01'
     replace: 'Start_Program_01'
+  # Throttle and retry loop was added to combat NFS write lockups on Azure NFS
+  throttle: 1
+  retries: 30
+  delay: 10
 
 - name: "SAP HA Pacemaker - (ERS profile) Prevent automatic restart"
   ansible.builtin.replace:
@@ -16,6 +20,10 @@
     backup: true
     regexp: 'Restart_Program_00'
     replace: 'Start_Program_00'
+  # Throttle and retry loop was added to combat NFS write lockups on Azure NFS
+  throttle: 1
+  retries: 30
+  delay: 10
 
 # Comment out lines in /usr/sap/sapservices, which
 # - contain the target instance profile names
@@ -117,6 +125,7 @@
         state: present
 
     # Using 'lineinfile' with a nested loop to avoid duplicate entries for existing configuration.
+    # Initial run_once ensures that cross editing on NFS will not fail
     - name: "SAP HA Pacemaker - (SAP HA Interface) Add connector to start profiles"
       ansible.builtin.lineinfile:
         backup: true
@@ -128,6 +137,10 @@
       loop_control:
         loop_var: nwas_profile_item
         label: "{{ nwas_profile_item.0 }} -> {{ nwas_profile_item.1 }}"
+    # Throttle and retry loop was added to combat NFS write lockups on Azure NFS
+      throttle: 1
+      retries: 30
+      delay: 10
 
     # Sleep added to resolve issue with WaitforStarted finishing before resources are available.
     - name: "SAP HA Pacemaker - (SAP HA Interface) Wait for ASCS to be up and running"
@@ -148,7 +161,8 @@
       changed_when: false
       failed_when: false
 
-
+    # NOTE: RestartService can cause fencing lockup and hang forever,
+    # it might be good to remove them in future and leave reload to "ASCS ERS restart" block.
     - name: "SAP HA Pacemaker - (SAP HA Interface) Restart the ASCS service"
       when:
         - __sap_ha_pacemaker_cluster_register_where_ascs.rc == 0

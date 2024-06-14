@@ -6,6 +6,19 @@
 # Following steps are similar to crmsh code in ha_cluster role, but they are
 # too SAP specific, so they are added here instead of there.
 
+# Python3-pip and pexpect are required for ansible.builtin.expect
+# Python installation was removed from sap_swpm role in PR#720
+- name: "SAP HA Install Pacemaker - Install required python3-pip"
+  ansible.builtin.package:
+    name:
+      - python3-pip
+    state: present
+
+- name: "SAP HA Install Pacemaker - Install required pip pexpect"
+  ansible.builtin.pip:
+    name:
+      - pexpect
+
 - name: Block to ensure that changes are executed only once
   run_once: true  # noqa: run_once[task]
   block:
