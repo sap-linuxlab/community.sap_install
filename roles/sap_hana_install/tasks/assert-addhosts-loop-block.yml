@@ -2,12 +2,12 @@
 
 - name: SAP HANA Add Hosts - Check for SAP HANA instance profile for '{{ line_item }}'
   ansible.builtin.stat:
-    path: "/hana/shared/{{ sap_hana_install_sid }}/profile/{{ sap_hana_install_sid }}_HDB{{ sap_hana_install_number }}_{{ line_item }}"
+    path: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/profile/{{ sap_hana_install_sid }}_HDB{{ sap_hana_install_number }}_{{ line_item }}"
   register: __sap_hana_install_register_instance_profile_addhost
 
 - name: SAP HANA Add Hosts - Show the path name of the instance profile
   ansible.builtin.debug:
-    msg: "Instance profile: '/hana/shared/{{ sap_hana_install_sid }}/profile/\
+    msg: "Instance profile: '{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/profile/\
           {{ sap_hana_install_sid }}_HDB{{ sap_hana_install_number }}_{{ line_item }}'"
 
 - name: SAP HANA Add Hosts - Assert that there is no instance profile for the additional hosts
@@ -15,7 +15,7 @@
     that: not __sap_hana_install_register_instance_profile_addhost.stat.exists
     fail_msg:
       - "FAIL: There is already an instance profile for host '{{ line_item }}', at location:"
-      - "  '/hana/shared/{{ sap_hana_install_sid }}/profile/{{ sap_hana_install_sid }}_HDB{{ sap_hana_install_number }}_{'{ line_item }}."
+      - "  '{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/profile/{{ sap_hana_install_sid }}_HDB{{ sap_hana_install_number }}_{'{ line_item }}."
       - "Because of this, the addhost operation will not be performed."
     success_msg: "PASS: No instance profile was found for host '{{ line_item }}'."
 
