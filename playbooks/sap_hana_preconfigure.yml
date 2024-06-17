@@ -1,0 +1,88 @@
+---
+##
+# Call this playbook interactively with
+#  ansible-playbook community.sap_install.sap_hana_preconfigure
+#
+# or alternatively unattended with
+#  ansible-playbook community.sap_install.sap_hana_preconfigure -e @myvars.yml
+#
+# The file myvars. yaml needs to contain the following variables
+#
+- name: Disclaimer
+  ansible.builtin.import_playbook: disclaimer.yml # TODO: check if FQDN is required/optional
+  when: sap_playbook_disclaimer | d('true')
+
+- name: Collecting Variables
+  hosts: localhost
+
+  vars_prompt:
+    - name: "sap_domain"
+      prompt: "Enter Domainname of your SAP systems (leave empty for using system default: "
+      private: false
+      default: "{{ sap_domain | d('') }}"
+
+    - name: "sap_update_hosts"
+      prompt: "Do you want the system to update /etc/hosts for SAP (y/n)"
+      private: false
+      default: "y"
+
+    - name: "sap_update"
+      prompt: "Do you want to update the system? (y/n)"
+      private: false
+      default: "n"
+
+    - name: "sap_fail_if_reboot_required"
+      prompt: "Do you want to stop with an error if the system needs a reboot? (y/n)"
+      private: false
+      default: "n"
+
+    - name: "sap_reboot"
+      prompt: "Do you want to reboot the system if required? (y/n)"
+      private: false
+      default: "n"
+
+  tasks:
+    - name: Configure Role Variables
+      ansible.builtin.set_fact:
+        sap_domain: '{{ sap_domain }}'
+        ### redhat.sap_install.sap_general_preconfigure
+        sap_general_preconfigure_modify_etc_hosts: '{{ (sap_update_hosts == "y") | ternary(true, false) }}'
+        sap_general_preconfigure_update: '{{ (sap_update == "y") | ternary(true, false) }}'
+        sap_general_preconfigure_fail_if_reboot_required: '{{ (sap_fail_if_reboot_required == "n") | ternary(false, true) }}'
+        # sap_general_preconfigure_system_roles_collection: 'redhat.rhel_system_roles'
+        ### redhat.sap_install.sap_hana_preconfigure
+        sap_hana_preconfigure_update: '{{ (sap_update == "y") | ternary(true, false) }}'
+        sap_hana_preconfigure_fail_if_reboot_required: '{{ (sap_fail_if_reboot_required == "n") | ternary(false, true) }}'
+        sap_hana_preconfigure_reboot_ok: '{{ (sap_reboot == "n") | ternary(false, true) }}'
+        # sap_hana_preconfigure_system_roles_collection: 'redhat.rhel_system_roles'
+
+- name: Prepare system for SAP HANA Installation
+  hosts: "{{ target_group | d('localhost') }}"
+  become: true
+
+  tasks:
+    - name: Ansible Role Configuration
+      ansible.builtin.debug:
+        msg: |-
+          The Hana setup runs with the following configuration
+          - 'Hostname    : {{ sap_hostname | d(ansible_hostname) }}'
+          - 'IP Adress   : {{ sap_ip | d(ansible_default_ipv4.address) }}'
+          - 'Domain      : {{ (sap_domain | length > 0) | ternary(sap_domain, ansible_domain) }}'
+          - 'Modify hosts: {{ sap_general_preconfigure_modify_etc_hosts }}'
+          - 'Update OS   : {{ sap_hana_preconfigure_update }}'
+          - 'Auto Reboot : {{ sap_hana_preconfigure_reboot_ok }}'
+          - 'Fail if reboot is needed: {{ sap_hana_preconfigure_fail_if_reboot_required }}'
+          - 'Ansible Collection: {{ ansible_collection_name | d('undefined') }}'
+
+    - name: Pause playbook execution to verify parameters
+      when: sap_playbook_disclaimer | d('true')
+      ansible.builtin.pause:
+        prompt: Press enter to continue
+
+    - name: Prepare general preconfiguration
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_general_preconfigure
+
+    - name: Prepare system for HANA installation
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_hana_preconfigure
