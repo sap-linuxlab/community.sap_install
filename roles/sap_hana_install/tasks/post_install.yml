@@ -208,6 +208,7 @@
   when:
     - sap_hana_install_use_fapolicyd
     - '"fapolicyd" in ansible_facts.packages'
+  tags: sap_hana_install_use_fapolicyd
   block:
 
     - name: SAP HANA Post Install, fapolicyd - Ensure Ansible marker for 'integrity' is present in fapolicyd config file
@@ -216,7 +217,6 @@
         regexp: '# "integrity" managed by Ansible'
         insertbefore: '^integrity\s*=.*'
         line: '# "integrity" managed by Ansible'
-      tags: sap_hana_install_use_fapolicyd
 
     - name: SAP HANA Post Install, fapolicyd - Ensure integrity level '{{ sap_hana_install_fapolicyd_integrity }}' is configured"
       ansible.builtin.lineinfile:
@@ -226,12 +226,10 @@
         line: 'integrity = {{ sap_hana_install_fapolicyd_integrity }}'
         backup: true
       register: __sap_hana_install_fapolicyd_conf_updated
-      tags: sap_hana_install_use_fapolicyd
 
     - name: SAP HANA Post Install, fapolicyd - Validate the new version of the fapolicyd config file
       ansible.builtin.command: fapolicyd-cli --check-config
       changed_when: false
-      tags: sap_hana_install_use_fapolicyd
 
   rescue:
 
@@ -243,19 +241,18 @@
         owner: root
         group: fapolicyd
         mode: '0644'
-      tags: sap_hana_install_use_fapolicyd
 
     - name: SAP HANA Post Install, fapolicyd - Notify about failed validation
       ansible.builtin.fail:
         msg: >-
           "The update of the fapolicyd config file failed, likely because an unsupported value has been used for
            the parameter 'sap_hana_install_fapolicyd_integrity'. The previous version has been successfully restored."
-      tags: sap_hana_install_use_fapolicyd
 
 - name: SAP HANA Post Install, fapolicyd - Create rule and trust files, enable fapolicyd
   when:
     - sap_hana_install_use_fapolicyd
     - '"fapolicyd" in ansible_facts.packages'
+  tags: sap_hana_install_use_fapolicyd
   block:
 
     - name: SAP HANA Post Install, fapolicyd - Process template for creating rule file '{{ sap_hana_install_fapolicyd_rule_file }}'
@@ -271,12 +268,10 @@
     - name: SAP HANA Post Install, fapolicyd - Merge rule files # noqa no-changed-when
       ansible.builtin.command: fagenrules --load
       register: sap_hana_install_register_fagenrules_load
-      tags: sap_hana_install_use_fapolicyd
 
-    - name: SAP HANA hdblcm installation check - Display the output of the command 'fagenrules --load'
+    - name: SAP HANA Post Install, fapolicyd - Display the output of the command 'fagenrules --load'
       ansible.builtin.debug:
         msg: "{{ sap_hana_install_register_fagenrules_load.stdout_lines }}"
-      tags: sap_hana_install_use_fapolicyd
 
 # We want to add files which have the execute mode bit set AND which are reported as executables
 # by fapolicyd-cli -t, one for each directory of sap_hana_install_fapolicyd_trusted_directories.
@@ -302,18 +297,15 @@
           regex_replace('//*', '_') |
           regex_replace('^_', '') }}"
       changed_when: true
-      tags: sap_hana_install_use_fapolicyd
 
     - name: SAP HANA Post Install, fapolicyd - Enable fapolicyd
       ansible.builtin.service:
         name: fapolicyd
         enabled: true
         state: started
-      tags: sap_hana_install_use_fapolicyd
 
     - name: SAP HANA Post Install, fapolicyd - Restart fapolicyd
       ansible.builtin.service:
         name: fapolicyd
         enabled: true
         state: restarted
-      tags: sap_hana_install_use_fapolicyd
