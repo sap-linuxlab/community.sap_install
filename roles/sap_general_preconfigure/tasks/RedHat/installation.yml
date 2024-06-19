@@ -104,21 +104,21 @@
     - sap_general_preconfigure_set_minor_release
     - __sap_general_preconfigure_register_subscription_manager_release.stdout != ansible_distribution_version
 
-- name: Ensure that the required package groups are installed, RHEL 7
+- name: Ensure that the required package groups are installed, RHEL except 8.1
   ansible.builtin.package:
     name: "{{ sap_general_preconfigure_packagegroups }}"
     state: present
-  when: ansible_distribution_major_version == '7'
+  when: ansible_distribution_version != '8.1'
 
 # Note: We do not want package updates, see also Red Hat bug 1983749.
 #       Because the installation of an environment or package group is not guaranteed to avoid package updates,
 #       and because of bug 2011426 (for which the fix is not available in the RHEL 8.1 ISO image), a RHEL 8.1
 #       system might not boot after installing environment group Server.
 # Reason for noqa: Finding out if packages already are installed would require one more task.
-- name: Ensure that the required package groups are installed, RHEL 8 and RHEL 9 # noqa command-instead-of-module no-changed-when
+- name: Ensure that the required package groups are installed, RHEL 8.1 # noqa command-instead-of-module no-changed-when
   ansible.builtin.command: "yum install {{ sap_general_preconfigure_packagegroups | join(' ') }} --nobest --exclude=kernel* -y"
   register: __sap_general_preconfigure_register_yum_group_install
-  when: ansible_distribution_major_version == '8' or ansible_distribution_major_version == '9'
+  when: ansible_distribution_version == '8.1'
 
 # possible replacement once we no longer need Ansible 2.9 compatibility:
 #- name: Ensure that the required package groups are installed, RHEL 8 and 9
