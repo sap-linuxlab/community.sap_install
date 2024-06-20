@@ -246,7 +246,7 @@
       block:
         - name: "SAP HA Pacemaker - (SAP HA Interface) Restart ASCS ERS resources"
           ansible.builtin.shell: |
-            {{ __sap_ha_pacemaker_cluster_command.resource_restart }} {{ __rsc_ascs }} {{ __rsc_ers }}
+            {{ __sap_ha_pacemaker_cluster_command.resource_restart }} {{ restart_item }}
           vars:
             __rsc_ascs: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapstartsrv_resource_name
               if sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
@@ -254,6 +254,11 @@
             __rsc_ers: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapstartsrv_resource_name
               if sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
               else sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name }}"
+          loop:
+            - "{{ __rsc_ascs }}"
+            - "{{ __rsc_ers }}"
+          loop_control:
+            loop_var: restart_item
           when:
             - __sap_ha_pacemaker_cluster_register_where_ascs.rc == 0
           changed_when: true
