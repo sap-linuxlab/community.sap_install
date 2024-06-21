@@ -7,7 +7,7 @@ or included in your own playbooks or workflows.
 
 ## Usage of playbooks
 
-### sap-hana-prepare.yml
+### Prepare System for SAP HANA installation (sap_hana_prepare.yml/sap_hana_prepare_exec.yml)
 
 This playbook collects information for preparing an SAP system for an SAP HANA installation.
 Run the following command:
