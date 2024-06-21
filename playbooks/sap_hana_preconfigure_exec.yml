@@ -1,0 +1,53 @@
+---
+##
+# Call this playbook only with all variables defined.
+# The minimum viable set of variables which need to be defined are:
+#
+# sap_hana_group: name of group in inventory - defaults to localhost if not set
+# sap_domain: SAP domain - defaults to ansible_domain if not set, but must not be empty
+#
+# for redhat.sap_install.sap_general_preconfigure
+# sap_general_preconfigure_modify_etc_hosts: defaults to true
+# sap_general_preconfigure_update: defaults to false
+# sap_general_preconfigure_fail_if_reboot_required: defaults to true
+#
+# for redhat.sap_install.sap_hana_preconfigure
+# sap_hana_preconfigure_update: defaults to false
+# sap_hana_preconfigure_fail_if_reboot_required: defaults to true
+# sap_hana_preconfigure_reboot_ok: defaults to false
+
+- name: Prepare system for SAP HANA Installation
+  hosts: "{{ sap_hana_group | d('localhost') }}"
+  become: true
+  tasks:
+    - name: Ansible Role Configuration
+      ansible.builtin.debug:
+
+      ### ACHTUNG VArs nur bei Localhost gesetzt, daher Zugriff via hostvars[localhost]
+      ### Wunsch Target_group wird automatisch aus -i gesetzt, falls nicht explizit angegeben.
+
+      # sap_swpm_extract_directory testen !!!
+
+        msg: |-
+          The Hana setup runs with the following configuration
+          - 'Hostname    : {{ sap_hostname | d(ansible_hostname) }}'
+          - 'IP Adress   : {{ sap_ip | d(ansible_default_ipv4.address) }}'
+          - 'Domain      : {{ (sap_domain | length > 0) | ternary(sap_domain, ansible_domain) }}'
+          - 'Modify hosts: {{ sap_general_preconfigure_modify_etc_hosts }}'
+          - 'Update OS   : {{ sap_hana_preconfigure_update }}'
+          - 'Auto Reboot : {{ sap_hana_preconfigure_reboot_ok }}'
+          - 'Fail if reboot is needed: {{ sap_hana_preconfigure_fail_if_reboot_required }}'
+          - 'Ansible Collection: {{ ansible_collection_name | d('undefined') }}'
+
+    - name: Pause playbook execution to verify parameters
+      when: sap_playbook_paramter_confirm | d('false')
+      ansible.builtin.pause:
+        prompt: Press enter to continue
+
+    - name: Prepare general preconfiguration
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_general_preconfigure
+
+    - name: Prepare system for HANA installation
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_hana_preconfigure

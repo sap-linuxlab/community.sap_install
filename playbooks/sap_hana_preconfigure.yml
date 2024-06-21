@@ -8,16 +8,32 @@
 #
 # The file myvars. yaml needs to contain the following variables
 #
-- name: Disclaimer
-  ansible.builtin.import_playbook: disclaimer.yml # TODO: check if FQDN is required/optional
-  when: sap_playbook_disclaimer | d('true')
+- name: Playbook Usage
+  hosts: localhost
+  tasks:
+    - name: Playbook Usage
+      ansible.builtin.debug:
+        msg: |-
+          *****************************************************************************
+          * sap_hana_preconfigure                                                     *
+          *                                                                           *
+          * This playbook is used to prepare an SAP HANA system.                      *
+          * The minimum viable parameters to succussfully prepare your system for an  *
+          * SAP HANA installation will be asked.                                      *
+          * Useful defaults will be set, so that it is save to just press enter       *
+          *****************************************************************************
 
 - name: Collecting Variables
   hosts: localhost
 
   vars_prompt:
+    - name: "sap_systems"
+      prompt: "Enter comma separated list of systems, you want to prepare for SAP HANA"
+      private: false
+      default: "localhost"
+
     - name: "sap_domain"
-      prompt: "Enter Domainname of your SAP systems (leave empty for using system default: "
+      prompt: "Enter DNS Domainname of your SAP systems (leave empty for using system default: "
       private: false
       default: "{{ sap_domain | d('') }}"
 
@@ -42,6 +58,13 @@
       default: "n"
 
   tasks:
+    - name: Prepare inventory
+      when: sap_systems != 'localhost'
+      ansible.builtin.add_host:
+        groups: sap_hana_prepare_hosts
+        name: '{{ item }}'
+      loop: '{{ sap_systems | split(",") | list }}'
+
     - name: Configure Role Variables
       ansible.builtin.set_fact:
         sap_domain: '{{ sap_domain }}'
@@ -56,33 +79,11 @@
         sap_hana_preconfigure_reboot_ok: '{{ (sap_reboot == "n") | ternary(false, true) }}'
         # sap_hana_preconfigure_system_roles_collection: 'redhat.rhel_system_roles'
 
-- name: Prepare system for SAP HANA Installation
-  hosts: "{{ target_group | d('localhost') }}"
-  become: true
+- name: Run sap_hana_prepare_exec playbook
+  ansible.builtin.import_playbook: sap_hana_preconfigure_exec.yml
+  vars:
+    sap_playbook_paramter_confirm: true
+    #sap_hana_group: 'sap_hana_prepare_hosts'
+    sap_domain: "{{ hostvars['localhost']['sap_domain'] }}"
+    sap_general_preconfigure_modify_etc_hosts: "{{ hostvars['localhost']['sap_general_preconfigure_modify_etc_hosts'] }}"
 
-  tasks:
-    - name: Ansible Role Configuration
-      ansible.builtin.debug:
-        msg: |-
-          The Hana setup runs with the following configuration
-          - 'Hostname    : {{ sap_hostname | d(ansible_hostname) }}'
-          - 'IP Adress   : {{ sap_ip | d(ansible_default_ipv4.address) }}'
-          - 'Domain      : {{ (sap_domain | length > 0) | ternary(sap_domain, ansible_domain) }}'
-          - 'Modify hosts: {{ sap_general_preconfigure_modify_etc_hosts }}'
-          - 'Update OS   : {{ sap_hana_preconfigure_update }}'
-          - 'Auto Reboot : {{ sap_hana_preconfigure_reboot_ok }}'
-          - 'Fail if reboot is needed: {{ sap_hana_preconfigure_fail_if_reboot_required }}'
-          - 'Ansible Collection: {{ ansible_collection_name | d('undefined') }}'
-
-    - name: Pause playbook execution to verify parameters
-      when: sap_playbook_disclaimer | d('true')
-      ansible.builtin.pause:
-        prompt: Press enter to continue
-
-    - name: Prepare general preconfiguration
-      ansible.builtin.include_role:
-        name: community.sap_install.sap_general_preconfigure
-
-    - name: Prepare system for HANA installation
-      ansible.builtin.include_role:
-        name: community.sap_install.sap_hana_preconfigure
