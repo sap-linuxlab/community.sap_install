@@ -82,8 +82,12 @@
 - name: Run sap_hana_prepare_exec playbook
   ansible.builtin.import_playbook: sap_hana_preconfigure_exec.yml
   vars:
-    sap_playbook_paramter_confirm: true
-    #sap_hana_group: 'sap_hana_prepare_hosts'
+    sap_playbook_parameter_confirm: true
+    sap_hana_group: "{{ ( groups['sap_hana_prepare_hosts'] is defined) | ternary ('sap_hana_prepare_hosts','localhost') }}"
     sap_domain: "{{ hostvars['localhost']['sap_domain'] }}"
     sap_general_preconfigure_modify_etc_hosts: "{{ hostvars['localhost']['sap_general_preconfigure_modify_etc_hosts'] }}"
-
+    sap_general_preconfigure_update: "{{ hostvars['localhost']['sap_general_preconfigure_update'] }}"
+    sap_general_preconfigure_fail_if_reboot_required: "{{ hostvars['localhost']['sap_general_preconfigure_fail_if_reboot_required'] }}"
+    sap_hana_preconfigure_update: "{{ hostvars['localhost']['sap_hana_preconfigure_update'] }}"
+    sap_hana_preconfigure_fail_if_reboot_required: "{{ hostvars['localhost']['sap_hana_preconfigure_fail_if_reboot_required'] }}"
+    sap_hana_preconfigure_reboot_ok: "{{ hostvars['localhost']['sap_hana_preconfigure_reboot_ok'] }}"
