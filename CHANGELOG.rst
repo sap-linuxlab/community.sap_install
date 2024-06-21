@@ -5,6 +5,51 @@ community.sap_install Release Notes
 .. contents:: Topics
 
 
+v1.4.1
+======
+
+Release Summary
+---------------
+
+| Release Date: 2024-06-21
+| feat: sap_hana_install: add compatibility for fapolicyd
+| feat: sap_swpm: append generate options for s4hana java
+| feat: sap_ha_pacemaker_cluster: upgrade to ha_cluster Ansible Role with SLES compatibility
+| feat: sap_ha_pacemaker_cluster: compatibility enhancement for SLES
+| feat: sap_ha_pacemaker_cluster: improved handling of custom SAP HANA srHooks
+| feat: sap_ha_pacemaker_cluster: handling for future merged Resource Agent package (SAPHanaSR-angi)
+| feat: sap_ha_pacemaker_cluster: graceful SAP HANA start after PCMK Cluster start
+| feat: sap_ha_pacemaker_cluster: ASCS ERS Simple Mount
+| collection: add sample AAS installation var file
+| collection: fix ansible-test sanity errors
+| collection: for package_facts Ansible Module add python3-rpm requirement for SLES
+| collection: use -i instead of -l test scripts
+| sap_*_preconfigure: disable and stop sapconf when saptune run
+| sap_general_preconfigure: fix /etc/hosts check in assert mode
+| sap_general_preconfigure: revert to awk for asserting /etc/hosts
+| sap_general_preconfigure: use tags for limiting the role scope
+| sap_general_preconfigure: use the package module in most cases
+| sap_general_preconfigure: use the role sap_maintain_etc_hosts - RHEL systems
+| sap_hana_preconfigure: move handlers to the correct location
+| sap_hana_preconfigure: catch SELinux disabled
+| sap_hana_preconfigure: update kernel parameters for SLES
+| sap_netweaver_preconfigure: sync with SAP note 3119751 v.13 for RHEL
+| sap_anydb_install_oracle: fix temp directory removal
+| sap_ha_pacemaker_cluster: use expect Ansible Module and add python3-pip requirement
+| sap_ha_pacemaker_cluster: add retry for Azure Files (NFS) to avoid locks
+| sap_ha_pacemaker_cluster: variable changes for different os and platforms
+| sap_ha_pacemaker_cluster: fix pcs resource restart
+| sap_hana_install: update documentation for parameter sap_hana_install_force
+| sap_install_media_detect: detection of SAP Kernel Part I only
+| sap_install_media_detect: duplicate SAR file handling for SAP Kernel, IGS, WebDisp
+| sap_install_media_detect: directory handling fix for SAP SWPM
+| sap_maintain_etc_hosts: fix wrong assert messages
+| sap_maintain_etc_hosts: remove use ansible.utils.ip
+| sap_storage_setup: fix for TB disks
+| sap_swpm: directory handling fix for SAP SWPM
+| sap_swpm: align execution and monitoring timeouts to 24hrs (86400s)
+| sap_swpm: optionally skip setting file permissions
+
 v1.4.0
 ======
 
