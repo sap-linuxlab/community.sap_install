@@ -26,7 +26,7 @@ When you call this playbook against a remote host make sure the user can connect
 
 If you want to embed this playbook or run non-interactive, you need to prepare an ansible inventory that contains a group for the hosts you want to install, e.g. my_hanas (see also <https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html>).
 
-Create the file `my_inventory` with the following content:
+Create the file `my_inventory` similar to:
 
 ```[yaml]
 [my_hanas]
@@ -36,7 +36,7 @@ hana2
 
 Prepare a variable config file with the following parameters (adapt to your needs):
 
-Create a parameter file `my_vars` with the following content:
+Create a parameter file `my_vars` with similar content:
 
 ```[yaml]
     # sap_playbook_parameter_confirm: false 
