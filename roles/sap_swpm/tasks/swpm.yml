@@ -67,7 +67,7 @@
   register: __sap_swpm_register_sapinst_async_job
   args:
     chdir: "{{ sap_swpm_sapinst_path }}"
-  async: 32400 # Seconds for maximum runtime, set to 9 hours
+  async: 86400 # Seconds for maximum runtime, set to 24 hours
   poll: 0 # Seconds between polls, use 0 to run Ansible Tasks concurrently
 
 # Monitor sapinst process (i.e. ps aux | grep sapinst) and wait for exit
@@ -78,7 +78,7 @@
   register: pids_sapinst
   until: "pids_sapinst.pids | length == 0"
 #  until: "pids_sapinst.stdout | length == 0"
-  retries: 1000
+  retries: 1440
   delay: 60
 
 - name: SAP SWPM - Verify if sapinst process finished successfully
@@ -126,10 +126,12 @@
   register: swpm_output_sapcontrol_files
 
 - name: SAP SWPM - Get sapcontrol file/s
-  ansible.builtin.command: awk -v RS='(^|\n)GetInstanceProperties\n' 'END{printf "%s", $0}' {{ item }}
+  ansible.builtin.command: awk -v RS='(^|\n)GetInstanceProperties\n' 'END{printf "%s", $0}' {{ line_item }}
   register: swpm_sapcontrol_file_contents
   changed_when: false
   loop: "{{ swpm_output_sapcontrol_files.files | map(attribute='path') | list | unique }}"
+  loop_control:
+    loop_var: line_item
 
 - name: SAP SWPM - Display installation finished from success file
   ansible.builtin.debug:
@@ -141,4 +143,4 @@
   loop: "{{ swpm_sapcontrol_file_contents.results }}"
   loop_control:
     loop_var: file_output
-    label: "{{ file_output.item }}"
+    label: "{{ file_output.line_item }}"

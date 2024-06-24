@@ -3,16 +3,16 @@
 - name: Assert that the DNS domain is set
   ansible.builtin.assert:
     that: not( (ansible_domain is undefined) or (ansible_domain is none) or (ansible_domain | trim == '') )
-    fail_msg: "FAIL: The DNS domain is not configured! So variable 'sap_domain' needs to be configured!"
+    fail_msg: "FAIL: The DNS domain is not configured! So variable 'sap_general_preconfigure_domain' needs to be configured!"
     success_msg: "PASS: The DNS domain is configured."
 #  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
   ignore_errors: yes
 
-- name: Assert that variable sap_domain is set
+- name: Assert that variable sap_general_preconfigure_domain is set
   ansible.builtin.assert:
-    that: not( (sap_domain is undefined) or (sap_domain is none) or (sap_domain | trim == '') )
-    fail_msg: "FAIL: The variable 'sap_domain' is not set!"
-    success_msg: "PASS: The variable 'sap_domain' is set."
+    that: not( (sap_general_preconfigure_domain is undefined) or (sap_general_preconfigure_domain is none) or (sap_general_preconfigure_domain | trim == '') )
+    fail_msg: "FAIL: The variable 'sap_general_preconfigure_domain' is not set!"
+    success_msg: "PASS: The variable 'sap_general_preconfigure_domain' is set."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Check if the bind-utils package, which contains the dig command, is available
@@ -21,8 +21,8 @@
     fail_msg: "FAIL: The package 'bind-utils' is not installed! DNS checking not possible!"
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
-- name: Check if IP address for sap_hostname.sap_domain is resolved correctly
-  ansible.builtin.command: dig {{ sap_hostname }}.{{ sap_domain }} +short
+- name: Check if IP address for sap_general_preconfigure_hostname.sap_general_preconfigure_domain is resolved correctly
+  ansible.builtin.command: dig {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} +short
   register: __sap_general_preconfigure_register_dig_short_assert
   ignore_errors: yes
   changed_when: no
@@ -35,32 +35,32 @@
     success_msg: "PASS: The variable 'ansible_default_ipv4.address' is defined."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
-- name: Assert that sap_ip is set
+- name: Assert that sap_general_preconfigure_ip is set
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_dig_short_assert.stdout == sap_ip
-    fail_msg: "FAIL: The variable 'sap_ip' is not set!"
-    success_msg: "PASS: The variable 'sap_ip' is set."
+    that: __sap_general_preconfigure_register_dig_short_assert.stdout == sap_general_preconfigure_ip
+    fail_msg: "FAIL: The variable 'sap_general_preconfigure_ip' is not set!"
+    success_msg: "PASS: The variable 'sap_general_preconfigure_ip' is set."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
   when: "'bind-utils' in ansible_facts.packages"
 
 ### BUG: dig does not use search path in resolv.con on PPCle
-- name: Check if IP address for sap_hostname with search path is resolved correctly
-  ansible.builtin.command: dig {{ sap_hostname }} +search +short
+- name: Check if IP address for sap_general_preconfigure_hostname with search path is resolved correctly
+  ansible.builtin.command: dig {{ sap_general_preconfigure_hostname }} +search +short
   register: __sap_general_preconfigure_register_dig_search_short_assert
   changed_when: false
   ignore_errors: true
   when: "'bind-utils' in ansible_facts.packages"
 
-- name: Assert that the IP address for sap_hostname is resolved correctly
+- name: Assert that the IP address for sap_general_preconfigure_hostname is resolved correctly
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_dig_search_short_assert.stdout == sap_ip
-    fail_msg: "FAIL: The IP address for 'sap_hostname' could not be resolved!"
-    success_msg: "PASS: The IP address for 'sap_hostname' was resolved."
+    that: __sap_general_preconfigure_register_dig_search_short_assert.stdout == sap_general_preconfigure_ip
+    fail_msg: "FAIL: The IP address for 'sap_general_preconfigure_hostname' could not be resolved!"
+    success_msg: "PASS: The IP address for 'sap_general_preconfigure_hostname' was resolved."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(true) }}"
   when: "'bind-utils' in ansible_facts.packages"
 
 - name: Check if the reverse name resolution is correct
-  ansible.builtin.command: dig -x {{ sap_ip }} +short
+  ansible.builtin.command: dig -x {{ sap_general_preconfigure_ip }} +short
   register: __sap_general_preconfigure_register_dig_reverse_assert
   changed_when: false
   ignore_errors: true
@@ -68,8 +68,8 @@
 
 - name: Assert that the reverse name resolution is correct
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_dig_reverse_assert.stdout == (sap_hostname + '.' + sap_domain + '.')
-    fail_msg: "FAIL: The reverse name resolution of 'sap_ip' was not successful!"
-    success_msg: "PASS: The reverse name resolution of 'sap_ip' was successful."
+    that: __sap_general_preconfigure_register_dig_reverse_assert.stdout == (sap_general_preconfigure_hostname + '.' + sap_general_preconfigure_domain + '.')
+    fail_msg: "FAIL: The reverse name resolution of 'sap_general_preconfigure_ip' was not successful!"
+    success_msg: "PASS: The reverse name resolution of 'sap_general_preconfigure_ip' was successful."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(true) }}"
   when: "'bind-utils' in ansible_facts.packages"

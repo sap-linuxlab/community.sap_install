@@ -12,21 +12,79 @@
   register: sap_swpm_software_path_stat
   failed_when: not sap_swpm_software_path_stat.stat.exists
 
-- name: SAP SWPM Pre Install - Change ownership of software path - {{ sap_swpm_software_path }}
-  ansible.builtin.file:
-    path: "{{ sap_swpm_software_path }}"
-    state: directory
-    recurse: yes
-    mode: '0755'
-    owner: root
-    group: root
+- name: SAP SWPM Pre Install - Set directory and file permissions
+  when: sap_swpm_set_file_permissions
+  block:
+
+    - name: SAP SWPM Pre Install - Find directories
+      ansible.builtin.find:
+        path: "{{ sap_swpm_software_path }}"
+        file_type: directory
+      register: __sap_swpm_register_find_result_directories
+
+    - name: SAP SWPM Pre Install - Find non-SAPCAR files
+      ansible.builtin.find:
+        path: "{{ sap_swpm_software_path }}"
+        file_type: file
+        recurse: true
+        excludes: "SAPCAR*EXE"
+      register: __sap_swpm_register_find_result_files_non_sapcar
+
+    - name: SAP SWPM Pre Install - Create list of absolute directory names from the find result
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_directories: "{{ __sap_swpm_fact_directories | d([]) + [line_item.path] }}"
+      loop: "{{ __sap_swpm_register_find_result_directories.files }}"
+      loop_control:
+        loop_var: line_item
+        label: "{{ line_item.path }}"
+      when: __sap_swpm_register_find_result_directories is defined
+
+    - name: SAP SWPM Pre Install - Create list of absolute file names for non-SAPCAR files from the find result
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_files_non_sapcar: "{{ __sap_swpm_fact_files_non_sapcar | d([]) + [line_item.path] }}"
+      loop: "{{ __sap_swpm_register_find_result_files_non_sapcar.files }}"
+      loop_control:
+        loop_var: line_item
+        label: "{{ line_item.path }}"
+      when: __sap_swpm_register_find_result_files_non_sapcar is defined
+
+    - name: SAP SWPM Pre Install - Ensure correct permissions and ownership of all directories
+      ansible.builtin.file:
+        path: "{{ line_item }}"
+        recurse: no
+        mode: "{{ sap_swpm_software_directory_mode }}"
+        owner: "{{ sap_swpm_software_directory_owner }}"
+        group: "{{ sap_swpm_software_directory_group }}"
+      loop: "{{ __sap_swpm_fact_directories }}"
+      loop_control:
+        loop_var: line_item
+      when:
+        - __sap_swpm_fact_directories is defined
+        - __sap_swpm_register_find_result_directories is defined
+
+    - name: SAP SWPM Pre Install - Create argument list for chown and chmod of non-SAPCAR*EXE files
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_files_non_sapcar_chown_arg_list: "{{ __sap_swpm_fact_files_non_sapcar | map('quote') | join(' ') }}"
+
+# Reasons for noqa:
+# - command-instead-of-module: Shorter execution time compared to looping over a list when using the file module
+# - no-changed-when: Not worth checking permissions and ownership before this task and comparing afterwards
+    - name: SAP SWPM Pre Install - Ensure correct permissions and ownership of all non-SAPCAR files # noqa command-instead-of-module no-changed-when
+      ansible.builtin.shell: >
+         chown {{ sap_swpm_files_non_sapcar_owner }}:{{ sap_swpm_files_non_sapcar_group }} \
+         {{ __sap_swpm_fact_files_non_sapcar_chown_arg_list }} &&
+         chmod {{ sap_swpm_files_non_sapcar_mode }} \
+         {{ __sap_swpm_fact_files_non_sapcar_chown_arg_list }}
+      when:
+        - __sap_swpm_fact_files_non_sapcar is defined
+        - __sap_swpm_register_find_result_files_non_sapcar is defined
 
 
 # SAPCAR Path
 
 - name: SAP SWPM Pre Install - Check availability of SAPCAR path - {{ sap_swpm_sapcar_path }}
   ansible.builtin.stat:
-    path: "{{ sap_swpm_sapcar_path }}"
+    path: "{{ sap_swpm_sapcar_path | d(sap_swpm_software_path) }}"
   register: sap_swpm_sapcar_path_stat
   failed_when: not sap_swpm_sapcar_path_stat.stat.exists
 
@@ -34,16 +92,17 @@
   ansible.builtin.file:
     path: "{{ sap_swpm_sapcar_path }}"
     state: directory
-    recurse: yes
-    mode: '0755'
-    owner: root
-    group: root
+    recurse: no
+    mode: "{{ sap_swpm_software_directory_mode }}"
+    owner: "{{ sap_swpm_software_directory_owner }}"
+    group: "{{ sap_swpm_software_directory_group }}"
+  when: sap_swpm_set_file_permissions
 
 # SWPM Path
 
 - name: SAP SWPM Pre Install - Check availability of SWPM path - {{ sap_swpm_swpm_path }}
   ansible.builtin.stat:
-    path: "{{ sap_swpm_swpm_path }}"
+    path: "{{ sap_swpm_swpm_path | d(sap_swpm_software_path) }}"
   register: sap_swpm_swpm_path_stat
   failed_when: not sap_swpm_swpm_path_stat.stat.exists
 
@@ -51,10 +110,13 @@
   ansible.builtin.file:
     path: "{{ sap_swpm_swpm_path }}"
     state: directory
-    recurse: yes
-    mode: '0755'
-    owner: root
-    group: root
+    recurse: no
+    mode: "{{ sap_swpm_software_directory_mode }}"
+    owner: "{{ sap_swpm_software_directory_owner }}"
+    group: "{{ sap_swpm_software_directory_group }}"
+  when:
+    - sap_swpm_swpm_path != sap_swpm_software_path
+    - sap_swpm_set_file_permissions
 
 
 ################
@@ -81,6 +143,15 @@
   register: sap_swpm_sapcar_file_name_stat
   failed_when: not sap_swpm_sapcar_file_name_stat.stat.exists
 
+- name: SAP SWPM Pre Install - Ensure correct permissions and ownership of the SAPCAR*EXE file
+  ansible.builtin.file:
+    path: "{{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }}"
+    recurse: no
+    mode: "{{ sap_swpm_files_sapcar_mode }}"
+    owner: "{{ sap_swpm_files_sapcar_owner }}"
+    group: "{{ sap_swpm_files_sapcar_group }}"
+  when: sap_swpm_set_file_permissions
+
 # 2. SWPM
 
 - name: SAP SWPM Pre Install - Get SWPM from {{ sap_swpm_swpm_path }}
@@ -101,6 +172,17 @@
   register: sap_swpm_swpm_sar_file_name_stat
   failed_when: not sap_swpm_swpm_sar_file_name_stat.stat.exists
 
+# Note: We use the permissions and ownership settings for non-SAPCAR*EXE files:
+- name: SAP SWPM Pre Install - Ensure correct permissions and ownership of the SWPM*SAR file
+  ansible.builtin.file:
+    path: "{{ sap_swpm_swpm_path }}/{{ sap_swpm_swpm_sar_file_name }}"
+    recurse: no
+    mode: "{{ sap_swpm_files_non_sapcar_mode }}"
+    owner: "{{ sap_swpm_files_non_sapcar_owner }}"
+    group: "{{ sap_swpm_files_non_sapcar_group }}"
+  when:
+    - sap_swpm_swpm_path != sap_swpm_software_path
+    - sap_swpm_set_file_permissions
 
 - name: SAP SWPM Pre Install - Full SAP System
   when: not sap_swpm_generic | bool

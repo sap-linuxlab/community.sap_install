@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # sapfile: Determine and display SAP file type
 #
 # Copyright 2023 Bernd Finger, Red Hat
@@ -207,12 +207,12 @@ for _FILE in "$@"; do
       _FILE_OUTPUT=$(file "${_FILE}" | sed 's,'"${_FILE}"': ,,')
       _GENERIC_FILE_TYPE=$(echo "${_FILE_OUTPUT}" | awk '
       BEGIN{_file_type="other"}
-      /RAR self-extracting archive/{_file_type="rarexe"}
-      /RAR archive data/{_file_type="rar"}
-      /Zip archive data/{_file_type="zip"}
-      /SAPCAR archive data/{_file_type="sapcar"}
-      /XML/&&/ASCII/{_file_type="xml"}
-      /directory/{_file_type="dir"}
+      /RAR self-extracting archive/{_file_type="rarexe"; exit}
+      /RAR archive data/{_file_type="rar"; exit}
+      /Zip archive data/{_file_type="zip"; exit}
+      /SAPCAR archive data/{_file_type="sapcar"; exit}
+      /XML/&&/ASCII/{_file_type="xml"; exit}
+      /directory/{_file_type="dir"; exit}
       END{print _file_type}')
       if [[ ${_GENERIC_FILE_TYPE}. == "rarexe." ]]; then
          _list_content="${_LSAR_COMMAND}"
@@ -241,23 +241,23 @@ for _FILE in "$@"; do
 
    SAP_FILE_TYPE_FROM_FILENAME=$(echo "${_FILE}" | awk '
    BEGIN{_sap_file_type="look_inside"}
-   /SAPCAR/&&/\.EXE/{_sap_file_type="sapcar"}
-   /IMDB_SERVER/&&/\.SAR/{_sap_file_type="saphana"}
-   /IMDB_CLIENT/&&/\.SAR/{_sap_file_type="saphana_client"}
-   !/IMDB_SERVER/&&!/IMDB_CLIENT/&&/IMDB/&&/\.SAR/{_sap_file_type="saphana_other"}
-   /SWPM/&&/\.SAR/{_sap_file_type="sap_swpm"}
-   /SAPHOSTAGENT/&&/\.SAR/{_sap_file_type="sap_hostagent"}
-   /SAPEXE_/{_sap_file_type="sap_kernel"}
-   /SAPEXEDB_/{_sap_file_type="sap_kernel_db"}
-   /igsexe/||/igshelper/{_sap_file_type="sap_igs"}
-   /SAPWEBDISP_/{_sap_file_type="sap_webdisp"}
-   /SAPJVM/{_sap_file_type="sap_jvm"}
-   /ASEBC/{_sap_file_type="sapase_client"}
-   /COMPLETE/{_sap_file_type="saphana_backup"}
-   /S4/&&/LANG/{_sap_file_type="sap_s4hana_lang"}
-   /S4/&&/EXPORT/{_sap_file_type="sap_export_s4hana"}
-   /BW4/&&/EXPORT/{_sap_file_type="sap_export_bw4hana"}
-   /VCH/&&/\.SAR/{_sap_file_type="saphana_vch_afl"}
+   /SAPCAR/&&/\.EXE/{_sap_file_type="sapcar"; exit}
+   /IMDB_SERVER/&&/\.SAR/{_sap_file_type="saphana"; exit}
+   /IMDB_CLIENT/&&/\.SAR/{_sap_file_type="saphana_client"; exit}
+   !/IMDB_SERVER/&&!/IMDB_CLIENT/&&/IMDB/&&/\.SAR/{_sap_file_type="saphana_other"; exit}
+   /SWPM/&&/\.SAR/{_sap_file_type="sap_swpm"; exit}
+   /SAPHOSTAGENT/&&/\.SAR/{_sap_file_type="sap_hostagent"; exit}
+   /SAPEXE_/{_sap_file_type="sap_kernel"; exit}
+   /SAPEXEDB_/{_sap_file_type="sap_kernel_db"; exit}
+   /igsexe/||/igshelper/{_sap_file_type="sap_igs"; exit}
+   /SAPWEBDISP_/{_sap_file_type="sap_webdisp"; exit}
+   /SAPJVM/{_sap_file_type="sap_jvm"; exit}
+   /ASEBC/{_sap_file_type="sapase_client"; exit}
+   /COMPLETE/{_sap_file_type="saphana_backup"; exit}
+   /S4/&&/LANG/{_sap_file_type="sap_s4hana_lang"; exit}
+   /S4/&&/EXPORT/{_sap_file_type="sap_export_s4hana"; exit}
+   /BW4/&&/EXPORT/{_sap_file_type="sap_export_bw4hana"; exit}
+   /VCH/&&/\.SAR/{_sap_file_type="saphana_vch_afl"; exit}
    END{print _sap_file_type}')
    if [[ ${SAP_FILE_TYPE_FROM_FILENAME}. == "sap_kernel_db." ]]; then
       SAP_FILE_TYPE_FROM_FILENAME=$(eval "${_list_content}" "${_FILE}" | awk '
@@ -277,22 +277,22 @@ for _FILE in "$@"; do
               ${_GENERIC_FILE_TYPE}. == "xml." ]]; then
          _SAP_FILE_TYPE=$(eval "${_list_content}" "${_FILE}" | awk '
          BEGIN{_sap_file_type="sap_unknown"}
-         /BD_SYBASE_ASE/{_sap_file_type="sapase"}
-         /ASEBC/{_sap_file_type="sapase_client"}
-         /MaxDB_7.9/{_sap_file_type="sapmaxdb"}
-         /19cinstall.sh/{_sap_file_type="oracledb"}
-         /OCL_LINUX_X86_64/{_sap_file_type="oracledb_client"}
-         /brtools/{_sap_file_type="oracledb_tools"}
-         /db2setup/{_sap_file_type="ibmdb2"}
-         /db6_update_client.sh/{_sap_file_type="ibmdb2_client"}
-         /db2aese_c.lic/{_sap_file_type="ibmdb2_license"}
-         /DATA_UNITS\/EXPORT/{_sap_file_type="sap_export_ecc"}
-         /EXP[0-9]/{_sap_file_type="sap_export_ecc_ides"}
-         /DATA_UNITS\/EXP[0-9]/{_sap_file_type="sap_export_nwas_abap"}
-         /DATA_UNITS\/JAVA_EXPORT_JDMP/{_sap_file_type="sap_export_nwas_java"}
-         /DATA_UNITS\/SOLMAN/&&/_JAVA_UT/{_sap_file_type="sap_export_solman_java"}
-         /<sp-stacks/{_sap_file_type="sap_mp_xml"}
-         /format error in header/{_sap_file_type="format_error_in_header"}
+         /BD_SYBASE_ASE/{_sap_file_type="sapase"; exit}
+         /ASEBC/{_sap_file_type="sapase_client"; exit}
+         /MaxDB_7.9/{_sap_file_type="sapmaxdb"; exit}
+         /19cinstall.sh/{_sap_file_type="oracledb"; exit}
+         /OCL_LINUX_X86_64/{_sap_file_type="oracledb_client"; exit}
+         /brtools/{_sap_file_type="oracledb_tools"; exit}
+         /db2setup/{_sap_file_type="ibmdb2"; exit}
+         /db6_update_client.sh/{_sap_file_type="ibmdb2_client"; exit}
+         /db2aese_c.lic/{_sap_file_type="ibmdb2_license"; exit}
+         /DATA_UNITS\/JAVA_EXPORT_JDMP/{_sap_file_type="sap_export_nwas_java"; exit}
+         /DATA_UNITS\/EXPORT/{_sap_file_type="sap_export_ecc"; exit}
+         /DATA_UNITS\/EXP[0-9]/{_sap_file_type="sap_export_nwas_abap"; exit}
+         /DATA_UNITS\/SOLMAN/&&/_JAVA_UT/{_sap_file_type="sap_export_solman_java"; exit}
+         /EXP[0-9]/{_sap_file_type="sap_export_ecc_ides"; exit}
+         /<sp-stacks/{_sap_file_type="sap_mp_xml"; exit}
+         /format error in header/{_sap_file_type="format_error_in_header"; exit}
          END{print _sap_file_type}')
          if [[ ${_SAP_FILE_TYPE}. == "sap_export_nwas_abap." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
             _SAP_FILE_TYPE=$(unzip -p "${_FILE}" LABEL.ASC | awk '

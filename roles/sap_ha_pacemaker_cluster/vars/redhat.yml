@@ -19,3 +19,80 @@ __sap_ha_pacemaker_cluster_command:
   resource_start: "pcs resource enable"
   resource_defaults_show: "pcs resource defaults config"
   resource_defaults_update: "pcs resource defaults update"
+  resource_restart: "pcs resource restart"
+
+# Make sure that there is always the minimal default fed into the included role.
+# This is combined with the custom list 'sap_ha_pacemaker_cluster_fence_agent_packages'.
+sap_ha_pacemaker_cluster_fence_agent_minimal_packages:
+  - fence-agents-all
+
+# Dictionary with fence packages for each platform
+sap_ha_pacemaker_cluster_fence_agent_packages_dict:
+  cloud_aws:
+    - fence-agents-aws
+  cloud_gcp:
+    - fence-agents-gce
+  cloud_ibmcloud_powervs:
+    - fence-agents-ibm-powervs
+  cloud_ibmcloud_vs:
+    - fence-agents-ibm-vpc
+  cloud_msazure_vm:
+    - fence-agents-azure-arm
+  hyp_ibmpower_vm:
+    - fence-agents-lpar
+
+# Dictionary with extra platform specific packages
+__sap_ha_pacemaker_cluster_platform_extra_packages_dict:
+  cloud_aws:
+    - awscli
+  cloud_gcp:
+    - resource-agents-gcp
+  cloud_msazure_vm:
+    - socat
+
+# Dictionary with additional cluster packages for specific scenarios
+__sap_ha_pacemaker_cluster_sap_extra_packages_dict:
+  hana_scaleout:
+    - resource-agents-sap-hana-scaleout
+  hana_scaleup:
+    - resource-agents-sap-hana
+  nwas:
+    - resource-agents-sap
+
+# Resource agents - fully qualified names
+__sap_ha_pacemaker_cluster_resource_agents:
+  saphanatopology: "ocf:heartbeat:SAPHanaTopology"
+  saphana: "ocf:heartbeat:SAPHana"
+# TODO: Uncomment when SAPHanaSR-angi is available on Red Hat
+#  saphanacontroller: "ocf:heartbeat:SAPHanaController"
+#  saphanafilesystem: "ocf:heartbeat:SAPHanaFilesystem"
+# TODO: Uncomment when SAPStartSrv is available on Red Hat
+#  sapstartsrv: "ocf:heartbeat:SAPStartSrv"
+
+# TODO: Uncomment when SAPHanaSR-angi is available on Red Hat
+__sap_ha_pacemaker_cluster_saphanasr_angi_available: false
+
+# Default SAP HANA hook parameters combined based on user decision
+__sap_ha_pacemaker_cluster_hook_hana_scaleup_perf:
+  saphanasr:
+    - provider: SAPHanaSR
+      path: /usr/share/SAPHanaSR/srHook/
+      options:
+        - name: execution_order
+          value: 1
+# TODO: Add additional hooks
+
+# Placeholder dictionaries
+# TODO: Define hooks when SAPHanaSR-angi is available on Red Hat
+__sap_ha_pacemaker_cluster_hook_hana_scaleup_perf_angi: []
+__sap_ha_pacemaker_cluster_hook_hana_scaleout: []
+__sap_ha_pacemaker_cluster_hook_hana_scaleout_angi: []
+
+# Disabled additional hooks until they are present in dictionary above
+# TODO: Remove when additional hooks are specified above.
+__sap_ha_pacemaker_cluster_hana_hook_tkover: false
+__sap_ha_pacemaker_cluster_hana_hook_chksrv: false
+
+# Enable ASCS/ERS Simple Mount as default
+# TODO: Enable when SAPStartSrv resource agents are available on Red Hat
+sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount: false

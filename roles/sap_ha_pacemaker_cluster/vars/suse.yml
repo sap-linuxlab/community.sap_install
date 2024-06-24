@@ -13,3 +13,106 @@ __sap_ha_pacemaker_cluster_command:
   resource_start: "crm resource start"
   resource_defaults_show: "crm configure show type:rsc_defaults"
   resource_defaults_update: "crm configure rsc_defaults"
+  resource_restart: "crm resource restart"
+
+# Make sure that there is always the minimal default fed into the included role.
+# This is combined with the custom list 'sap_ha_pacemaker_cluster_fence_agent_packages'.
+sap_ha_pacemaker_cluster_fence_agent_minimal_packages:
+  - fence-agents
+
+# Dictionary with fence packages for each platform
+# fence-agents are defined in sap_ha_pacemaker_cluster_fence_agent_minimal_packages already.
+# sap_ha_pacemaker_cluster_fence_agent_packages_dict:
+
+# Dictionary with extra platform specific packages
+__sap_ha_pacemaker_cluster_platform_extra_packages_dict:
+  cloud_aws:
+    - awscli
+  cloud_msazure_vm:
+    - socat
+
+# Dictionary with additional cluster packages for specific scenarios
+__sap_ha_pacemaker_cluster_sap_extra_packages_dict:
+  minimal:
+    - ClusterTools2
+    - resource-agents
+  hana_scaleout:
+    - SAPHanaSR-ScaleOut
+  hana_scaleup:
+    - SAPHanaSR
+  hana_angi:
+    - SAPHanaSR-angi
+  nwas:
+    - sap-suse-cluster-connector
+    - sapstartsrv-resource-agents
+
+# Resource agents - fully qualified names
+__sap_ha_pacemaker_cluster_resource_agents:
+  saphanatopology: "ocf:suse:SAPHanaTopology"
+  saphana: "ocf:suse:SAPHana"
+  saphanacontroller: "ocf:suse:SAPHanaController"
+  saphanafilesystem: "ocf:suse:SAPHanaFilesystem"
+  sapstartsrv: "ocf:suse:SAPStartSrv"
+
+# Boolean variable reflecting availability of SAPHanaSR-angi availability.
+__sap_ha_pacemaker_cluster_saphanasr_angi_available: false
+
+# Default SAP HANA hook parameters combined based on user decision
+__sap_ha_pacemaker_cluster_hook_hana_scaleup_perf:
+  saphanasr:
+    - provider: SAPHanaSR
+      path: /usr/share/SAPHanaSR/
+      options:
+        - name: execution_order
+          value: 1
+  tkover:
+    - provider: susTkOver
+      path: /usr/share/SAPHanaSR/
+      options:
+        - name: execution_order
+          value: 2
+  chksrv:
+    - provider: susChkSrv
+      path: /usr/share/SAPHanaSR/
+      options:
+        - name: execution_order
+          value: 3
+        - name: action_on_lost
+          value: stop
+
+__sap_ha_pacemaker_cluster_hook_hana_scaleup_perf_angi:
+  saphanasr:
+    - provider: susHanaSR
+      path: /usr/share/SAPHanaSR-angi/
+      options:
+        - name: execution_order
+          value: 1
+  tkover:
+    - provider: susTkOver
+      path: /usr/share/SAPHanaSR-angi/
+      options:
+        - name: execution_order
+          value: 2
+        - name: sustkover_timeout
+          value: 30
+  chksrv:
+    - provider: susChkSrv
+      path: /usr/share/SAPHanaSR-angi/
+      options:
+        - name: execution_order
+          value: 3
+        - name: action_on_lost
+          value: stop
+        - name: stop_timeout
+          value: 25
+
+# Placeholder dictionaries
+__sap_ha_pacemaker_cluster_hook_hana_scaleout: []
+__sap_ha_pacemaker_cluster_hook_hana_scaleout_angi: []
+
+# Overwrite resource clone name for SAP HANA
+sap_ha_pacemaker_cluster_hana_resource_clone_name:
+  "{{ sap_ha_pacemaker_cluster_hana_resource_clone_msl_name }}"
+
+# Enable ASCS/ERS Simple Mount as default
+sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount: true

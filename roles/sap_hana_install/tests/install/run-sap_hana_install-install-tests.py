@@ -4,7 +4,6 @@ import os
 import sys
 import datetime
 import subprocess
-import re
 import shlex
 import yaml
 
@@ -17,7 +16,7 @@ def print_log(text):
 # output field delimiter for displaying the results:
 __field_delimiter = '\t'
 
-if(len(sys.argv) != 3):
+if (len(sys.argv) != 3):
     print('Please provide the name of the managed node and the user name for logging in.')
     __managed_node = input('Name of managed node: ')
     __username = input('User name for connecting to managed node: ')
@@ -101,11 +100,15 @@ __tests = [
 for par1 in __tests[0:3]:
     print('\n' + 'Test ' + par1['number'] + ': ' + par1['name'])
 # prepare the test:
-    command = ('ansible-playbook prepare-install-test-'
-               + par1['number']
-               + '.yml '
-               + '-l '
-               + __managed_node)
+    command = (
+        'ansible-playbook prepare-install-test-'
+        + par1['number']
+        + '.yml '
+        + '-u root '
+        + '-i '
+        + __managed_node
+        + ','
+    )
     args = shlex.split(command)
 #    _py_rc = os.system(command)
     __logfile = __logdir + '/' + __logfile_prefix + __datestr + '-prepare-' + par1['number'] + '.log'
@@ -117,14 +120,17 @@ for par1 in __tests[0:3]:
             __filedescriptor.flush()
 
 # run the test:
-    command = ('ansible-playbook run-install-test-'
-               + par1['number']
-               + '.yml '
-               + par1['command_line_parameter']
-               + '-l '
-               + __managed_node
-               + ' '
-               + '-e "')
+    command = (
+        'ansible-playbook run-install-test-'
+        + par1['number']
+        + '.yml '
+        + par1['command_line_parameter']
+        + '-u root '
+        + '-i '
+        + __managed_node
+        + ', '
+        + '-e "'
+    )
 # add all role vars for this test:
     for par2 in par1['role_vars']:
         command += str(par2)
@@ -150,9 +156,13 @@ for par1 in __tests[0:3]:
         print('Test ' + par1['number'] + ' FAILED!!!')
 
 # uninstall SAP HANA:
-    command = ('ansible-playbook hana-uninstall.yml '
-               + '-l '
-               + __managed_node)
+    command = (
+        'ansible-playbook hana-uninstall.yml '
+        + '-u root '
+        + '-i '
+        + __managed_node
+        + ','
+    )
     args = shlex.split(command)
     __logfile = __logdir + '/' + __logfile_prefix + __datestr + '-uninstall-' + par1['number'] + '.log'
     with open(__logfile, 'wb') as __filedescriptor:
@@ -183,7 +193,7 @@ with open(__logfile, 'w') as __filedescriptor:
                                  + '\'' + par1['command_line_parameter'] + '\'' + __field_delimiter
                                  + '\'' + par1['expected_output_string'] + '\'' + __field_delimiter)
 #                                  + '\'' + par1['expected_output_string'] + '\'' + __field_delimiter, end='')
-        if(len(par1['role_vars']) == 0):
+        if (len(par1['role_vars']) == 0):
             print_log('\n')
         else:
             for par2 in par1['role_vars']:

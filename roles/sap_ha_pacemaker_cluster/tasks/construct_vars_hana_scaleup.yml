@@ -1,13 +1,184 @@
 ---
-# Variables containing variables must be constructed with values
-# to be fed into an included role
+- name: "SAP HA Prepare Pacemaker - Add resource: SAP HANA Topology"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_hana_topology] }}"
+  vars:
+    __resource_hana_topology:
+      id: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_name }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_resource_agents.saphanatopology }}"
+      instance_attrs:
+        - attrs:
+            - name: SID
+              value: "{{ sap_ha_pacemaker_cluster_hana_sid }}"
+            - name: InstanceNumber
+              value: "{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
+      operations:
+        - action: start
+          attrs:
+            - name: timeout
+              value: 600
+        - action: stop
+          attrs:
+            - name: timeout
+              value: 600
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 10
+            - name: timeout
+              value: 600
+  when:
+    - __resource_hana_topology.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
 
-# TODO: add here any scale-up special variable constructions
-# Make sure to first respect 'ha_cluster' native variables
 
-# - name: "SAP HA Prepare Pacemaker - Construct cluster vars for SAP HANA Scale-up"
-#   ansible.builtin.set_fact:
-#
-- name: "SAP HA Prepare Pacemaker - Info"
-  ansible.builtin.debug:
-    msg: "INFO: There is currently no Scale-up specific construction, in addition to the SAP HANA common definitions."
+- name: "SAP HA Prepare Pacemaker - Add resource: SAP HANA DB"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_hana] }}"
+  vars:
+    __resource_hana:
+      id: "{{ sap_ha_pacemaker_cluster_hana_resource_name }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_resource_agents.saphana }}"
+      instance_attrs:
+        - attrs:
+            - name: SID
+              value: "{{ sap_ha_pacemaker_cluster_hana_sid }}"
+            - name: InstanceNumber
+              value: "{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
+            - name: AUTOMATED_REGISTER
+              value: "{{ sap_ha_pacemaker_cluster_hana_automated_register | string }}"
+            - name: DUPLICATE_PRIMARY_TIMEOUT
+              value: "{{ sap_ha_pacemaker_cluster_hana_duplicate_primary_timeout | string }}"
+            - name: PREFER_SITE_TAKEOVER
+              value: "{{ sap_ha_pacemaker_cluster_hana_prefer_site_takeover | string }}"
+      operations:
+        - action: start
+          attrs:
+            - name: timeout
+              value: 3600
+        - action: stop
+          attrs:
+            - name: timeout
+              value: 3600
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 61
+            - name: role
+              value: Slave
+            - name: timeout
+              value: 700
+        - action: monitor
+          attrs:
+            # SUSE recommended monitor interval is 60
+            - name: interval
+              value: "{{ 60 if ansible_os_family == 'Suse' else 59 }}"
+            - name: role
+              value: Master
+            - name: timeout
+              value: 700
+        - action: promote
+          attrs:
+            - name: timeout
+              value: 900
+        - action: demote
+          attrs:
+            - name: timeout
+              value: 320
+      meta_attrs:
+        - attrs:
+            - name: priority
+              value: 100
+  when:
+    - __resource_hana.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
+
+
+- name: "SAP HA Prepare Pacemaker - Add resource clone: SAP HANA Topology"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_hana_topology] }}"
+  vars:
+    __clone_hana_topology:
+      id: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_clone_name }}"
+      resource_id: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_name }}"
+      meta_attrs:
+        - attrs:
+            - name: clone-max
+              value: 2
+            - name: clone-node-max
+              value: 1
+            - name: interleave
+              value: "true"
+  when:
+    - __clone_hana_topology.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
+
+
+- name: "SAP HA Prepare Pacemaker - Add resource clone: SAP HANA DB"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_clones:
+      "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_hana] }}"
+  vars:
+    __clone_hana:
+      id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+      resource_id: "{{ sap_ha_pacemaker_cluster_hana_resource_name }}"
+      meta_attrs:
+        - attrs:
+            - name: clone-max
+              value: 2
+            - name: clone-node-max
+              value: 1
+            - name: interleave
+              value: "true"
+            - name: promotable
+              value: "true"
+            # Maintenance attribute is required for correct cluster startup.
+            - name: maintenance
+              value: "true"
+  when:
+    - __clone_hana.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
+    - ansible_os_family != 'Suse'
+
+- name: "SAP HA Prepare Pacemaker - Add master slave resource clone: SAP HANA DB"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_clones:
+      "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_hana] }}"
+  vars:
+    __clone_hana:
+      id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_msl_name }}"
+      resource_id: "{{ sap_ha_pacemaker_cluster_hana_resource_name }}"
+      meta_attrs:
+        - attrs:
+            - name: clone-max
+              value: 2
+            - name: clone-node-max
+              value: 1
+            - name: interleave
+              value: "true"
+            # Maintenance attribute is required for correct cluster startup.
+            - name: maintenance
+              value: "true"
+      # ms attribute is used to create ms resource instead of clone.
+      ms: true
+  when:
+    - __clone_hana.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
+    - ansible_os_family == 'Suse'
+
+# First start Topology, then HANA (automatically stops in reverse order)
+- name: "SAP HA Prepare Pacemaker - Add order constraint: Topology starts before DB"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_constraints_order:
+      "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_hana_topology] }}"
+  vars:
+    __constraint_order_hana_topology:
+      id: "{{ sap_ha_pacemaker_cluster_hana_order_topology_hana_name }}"
+      resource_first:
+        id: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_clone_name }}"
+        action: start
+      resource_then:
+        # SUSE SAPHanaSR is using Master Slave clone using Master/Slave roles
+        id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name
+          if ansible_os_family != 'Suse' else sap_ha_pacemaker_cluster_hana_resource_clone_msl_name }}"
+        action: start
+      options:
+        - name: symmetrical
+          value: "false"
+  when:
+    - __constraint_order_hana_topology.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))

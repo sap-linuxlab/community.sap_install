@@ -3,6 +3,12 @@
 #
 # TODO: make sure to first respect 'ha_cluster' native variables
 
-__sap_ha_pacemaker_cluster_sap_extra_packages:
-  - resource-agents-sap
-  - "{% if sap_ha_pacemaker_cluster_enable_cluster_connector %}{{ __sap_ha_pacemaker_cluster_halib_package }}{% endif %}"
+# Extra package list is combination of:
+#  minimal base packages required for all scenarios
+#  scenario specific packages
+#  halib package if selected
+__sap_ha_pacemaker_cluster_sap_extra_packages: "{{
+  __sap_ha_pacemaker_cluster_sap_extra_packages_dict.minimal | default([])
+  + ([__sap_ha_pacemaker_cluster_halib_package]
+    if sap_ha_pacemaker_cluster_enable_cluster_connector else [])
+  + __sap_ha_pacemaker_cluster_sap_extra_packages_dict.nwas | unique }}"

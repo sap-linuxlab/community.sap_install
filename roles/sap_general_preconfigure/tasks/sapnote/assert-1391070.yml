@@ -5,7 +5,12 @@
   ansible.builtin.debug:
     msg: "SAP note {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^1391070$') | first).number }}
           (version {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^1391070$') | first).version }}): Configure uuidd"
+  tags:
+    - always
 
 - name: Import tasks from '../RedHat/generic/assert-uuidd.yml'
   ansible.builtin.import_tasks: ../RedHat/generic/assert-uuidd.yml
   when: sap_general_preconfigure_config_all | d(true) or sap_general_preconfigure_1391070 | d(false)
+  tags:
+    - sap_general_preconfigure_1391070
+    - sap_general_preconfigure_configure_uuidd

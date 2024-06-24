@@ -1,0 +1,35 @@
+---
+# Starting SAPHana clone immediately after cluster configuration can lead to
+# HANA shutdown. Following steps will leave enough time for resource agents
+# to load HANA configuration before disabling maintenance.
+#
+# TODO:
+# Add RedHat specific steps to mitigate issues with abrupt start of cluster.
+
+- name: "SAP HA Install Pacemaker - SAPHana pcs resource cleanup"
+  ansible.builtin.command:
+    cmd: pcs resource cleanup {{ sap_ha_pacemaker_cluster_hana_resource_name
+     if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
+     else sap_ha_pacemaker_cluster_hanacontroller_resource_name }}
+  changed_when: true
+
+- name: "SAP HA Install Pacemaker - SAPHana clone pcs resource refresh"
+  ansible.builtin.command:
+    cmd: pcs resource refresh {{ sap_ha_pacemaker_cluster_hana_resource_clone_name
+     if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
+     else sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }}
+  changed_when: true
+
+# Sleep 30 is added to leave enough time for agents to load data from HANA.
+# TODO: Add detection for Idle HANA, to ensure that Resource Agents loaded data.
+- name: "SAP HA Install Pacemaker - Sleep wait for SAP HANA to become idle"
+  ansible.builtin.command:
+    cmd: sleep 30
+  changed_when: false
+
+- name: "SAP HA Install Pacemaker - SAPHana clone pcs resource meta maintenance=false"
+  ansible.builtin.command:
+    cmd: pcs resource meta {{ sap_ha_pacemaker_cluster_hana_resource_clone_name
+     if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
+     else sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }} maintenance=false
+  changed_when: true

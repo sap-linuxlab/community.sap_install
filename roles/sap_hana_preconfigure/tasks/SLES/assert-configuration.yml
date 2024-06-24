@@ -1,9 +1,4 @@
 ---
-#- name: Enable Debugging
-#  debug:
-#    verbosity: "{{ debuglevel }}"
-#
-
 - name: Populate service facts
   ansible.builtin.service_facts:
 
@@ -34,19 +29,21 @@
 
 - name: Set solution fact
   ansible.builtin.set_fact:
-    __sap_hana_preconfigure_saptune_configured_solution: "{{ (__sap_hana_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}"
+    __sap_hana_preconfigure_saptune_configured_solution:
+      "{{ (__sap_hana_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}"
 
 - name: Assert that active solution is the expected solution
   ansible.builtin.assert:
     that: __sap_hana_preconfigure_saptune_configured_solution == sap_hana_preconfigure_saptune_solution
-    fail_msg: "FAIL: the configured saptune solution is '{{ __sap_hana_preconfigure_saptune_configured_solution }}'' and does not match the expected solution '{{ sap_hana_preconfigure_saptune_solution }}'"
+    fail_msg: "FAIL: the configured saptune solution is '{{ __sap_hana_preconfigure_saptune_configured_solution
+      }}'' and does not match the expected solution '{{ sap_hana_preconfigure_saptune_solution }}'"
     success_msg: "PASS: the configured saptune solution matches the expected solution '{{ sap_hana_preconfigure_saptune_solution }}'"
 
 # If this is a cluster node on Azure, we need to override to disable tcp timestamps, reuse and recycle.
 # This can be done by copying the sapnote file 2382421 from /usr/share/saptune/notes to /etc/saptune/override
 # The value can then override in the in the new file
 
-#- name: Disable TCP timestamps, recycle & reuse
+# - name: Disable TCP timestamps, recycle & reuse
 #  ansible.builtin.blockinfile:
 #    path: /etc/saptune/override/2382421
 #    create: yes

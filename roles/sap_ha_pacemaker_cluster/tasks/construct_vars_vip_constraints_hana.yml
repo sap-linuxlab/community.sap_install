@@ -6,6 +6,7 @@
     __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_vip] }}"
   vars:
     __constraint_order_vip:
+      id: "{{ sap_ha_pacemaker_cluster_hana_order_hana_vip_primary_name }}"
       resource_first:
         id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
         action: promote
@@ -36,12 +37,15 @@
   when:
     - __constraint_order_vip.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))
     - __res_or_grp != 'none_found'  # fallback skip if there was neither a group nor any VIP/HC resources found
+    # SUSE HANA Cluster does not contain order for cln_SAPHana then IP. This is achieved by colocation constraint.
+    - ansible_os_family != 'Suse'
 
 - name: "SAP HA Prepare Pacemaker - Add order constraint: Read-only VIP starts after DB on the secondary"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_vip] }}"
   vars:
     __constraint_order_vip:
+      id: "{{ sap_ha_pacemaker_cluster_hana_order_hana_vip_secondary_name }}"
       resource_first:
         id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
         action: start
@@ -72,7 +76,8 @@
   when:
     - __constraint_order_vip.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))
     - __res_or_grp != 'none_found'  # fallback skip if there was neither a group nor any VIP/HC resources found
-
+    # SUSE HANA Cluster does not contain order for cln_SAPHana then IP. This is achieved by colocation constraint.
+    - ansible_os_family != 'Suse'
 
 # The primary VIP only runs where HANA is promoted
 - name: "SAP HA Prepare Pacemaker - Add colocation constraint: Primary VIP runs where HANA is promoted"
@@ -80,11 +85,17 @@
     __sap_ha_pacemaker_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation + [__constraint_colo_vip] }}"
   vars:
     __constraint_colo_vip:
+      id: "{{ sap_ha_pacemaker_cluster_hana_colocation_hana_vip_primary_name }}"
       resource_leader:
-        id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
-        role: promoted
+        # SAPHana is replaced by SAP HANA Controller for SAPHanaSR-angi
+        id: "{{ sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name if __sap_ha_pacemaker_cluster_saphanasr_angi_available
+           else sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+        # SUSE SAPHanaSR is using Master Slave clone using Master/Slave roles
+        role: "{{ 'master' if ansible_os_family == 'Suse' and not __sap_ha_pacemaker_cluster_saphanasr_angi_available
+         else 'promoted' }}"
       resource_follower:
         id: "{{ __res_or_grp }}"
+        role: started
       options:
         - name: score
           value: "{{ __colo_score }}"
@@ -134,11 +145,17 @@
     __sap_ha_pacemaker_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation + [__constraint_colo_vip] }}"
   vars:
     __constraint_colo_vip:
+      id: "{{ sap_ha_pacemaker_cluster_hana_colocation_hana_vip_secondary_name }}"
       resource_leader:
-        id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
-        role: unpromoted
+        # SAPHana is replaced by SAP HANA Controller for SAPHanaSR-angi
+        id: "{{ sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name if __sap_ha_pacemaker_cluster_saphanasr_angi_available
+          else sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+        # SUSE SAPHanaSR is using Master Slave clone using Master/Slave roles
+        role: "{{ 'slave' if ansible_os_family == 'Suse' and not __sap_ha_pacemaker_cluster_saphanasr_angi_available
+         else 'unpromoted' }}"
       resource_follower:
         id: "{{ __res_or_grp }}"
+        role: started
       options:
         - name: score
           value: "{{ __colo_score }}"

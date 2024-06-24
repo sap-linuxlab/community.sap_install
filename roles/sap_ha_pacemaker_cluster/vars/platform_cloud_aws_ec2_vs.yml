@@ -4,10 +4,10 @@
 # TODO: make sure to first respect 'ha_cluster' native variables
 
 sap_ha_pacemaker_cluster_fence_agent_packages:
-  - fence-agents-aws
+  "{{ sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_aws | default([]) }}"
 
 __sap_ha_pacemaker_cluster_platform_extra_packages:
-  - awscli
+  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_aws | default([]) }}"
 
 __sap_ha_pacemaker_cluster_repos:
   - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
@@ -20,9 +20,12 @@ __sap_ha_pacemaker_cluster_aws_instances: []
 # default to using the aws cli configuration.
 # The aws cli is currently configured anyway for the standard AWS VIP resource.
 sap_ha_pacemaker_cluster_stonith_default:
-  id: "res_fence_aws"
-  agent: "stonith:fence_aws"
-#  options:
+  id: "rsc_fence_aws"
+  # SUSE officially supports only stonith:external/ec2 for AWS.
+  agent: "{{ 'stonith:fence_aws' if ansible_os_family != 'Suse' else 'stonith:external/ec2' }}"
+  options:
+    # Fencing action delay is recommended. Default: 0
+    pcmk_delay_max: "{{ 0 if ansible_os_family != 'Suse' else 15 }}"
 #    access_key: "{{ sap_ha_pacemaker_cluster_aws_access_key_id }}"
 #    secret_key: "{{ sap_ha_pacemaker_cluster_aws_secret_access_key }}"
 #    region: "{{ sap_ha_pacemaker_cluster_aws_region }}"

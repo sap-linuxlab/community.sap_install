@@ -1,0 +1,106 @@
+---
+# Recent crmsh changes have added default behavior, where all default metadata
+# op parameters are added and it cannot be controlled. Not adding them during
+# creation, will forcefully add them regardless.
+
+# Following steps are similar to crmsh code in ha_cluster role, but they are
+# too SAP specific, so they are added here instead of there.
+
+# Python3-pip and pexpect are required for ansible.builtin.expect
+# Python installation was removed from sap_swpm role in PR#720
+- name: "SAP HA Install Pacemaker - Install required python3-pip"
+  ansible.builtin.package:
+    name:
+      - python3-pip
+    state: present
+
+- name: "SAP HA Install Pacemaker - Install required pip pexpect"
+  ansible.builtin.pip:
+    name:
+      - pexpect
+
+- name: Block to ensure that changes are executed only once
+  run_once: true  # noqa: run_once[task]
+  block:
+
+    - name: "SAP HA Install Pacemaker - Create file for CIB backup"
+      ansible.builtin.tempfile:
+        state: file
+        suffix: _sap_ha_pacemaker_cluster_cib_xml_backup
+      register: __sap_ha_pacemaker_cluster_cib_xml_backup
+
+    - name: "SAP HA Install Pacemaker - Put cluster in maintenance mode"
+      ansible.builtin.expect:
+        command: crm configure property maintenance-mode=true
+        responses:
+          ".*is-managed.*": "n"
+          ".*already.*": "n"
+      check_mode: false
+      changed_when: true
+
+    - name: "SAP HA Install Pacemaker - Verify that maintenance-mode is true"
+      ansible.builtin.command:
+        cmd: crm status
+      register: __sap_ha_pacemaker_cluster_crm_status_maint
+      retries: 10
+      delay: 5
+      until:
+        '"Resource management is DISABLED" in __sap_ha_pacemaker_cluster_crm_status_maint.stdout'
+      check_mode: false
+      changed_when: false
+      run_once: true  # noqa: run_once[task]
+
+    # # Workaround situation when ASCS and ERS mounts are not present on both nodes.
+    # - name: "SAP HA Install Pacemaker - SAPStartSrv crm resource cleanup"
+    #   ansible.builtin.command:
+    #     cmd: crm resource cleanup {{ item }}
+    #   loop:
+    #     - "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapstartsrv_resource_name }}"
+    #     - "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapstartsrv_resource_name }}"
+    #   when: sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
+    #   changed_when: true
+
+    - name: "SAP HA Install Pacemaker - Fetch CIB configuration"
+      ansible.builtin.command:
+        cmd: cibadmin --query
+      register: __sap_ha_pacemaker_cluster_cib_query
+      check_mode: false
+      changed_when: false
+
+    - name: "SAP HA Install Pacemaker - Save CIB configuration"
+      ansible.builtin.copy:
+        content: "{{ __sap_ha_pacemaker_cluster_cib_query.stdout }}"
+        dest: "{{ __sap_ha_pacemaker_cluster_cib_xml_backup.path }}"
+        owner: root
+        group: root
+        mode: '0600'
+      check_mode: false
+
+    # SAPStartSrv - Remove monitor, start, stop operations from SAPStartSrv
+    # These operations are not supported and not recommended.
+    # TODO: Limit deletion in future, when more supported is added in Resource Agent
+    - name: "SAP HA Install Pacemaker - Remove operations for SAPStartSrv"
+      ansible.builtin.command:
+        cmd: cibadmin -d --force --xpath "//primitive[@type='SAPStartSrv']//operations"
+      when: sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
+      changed_when: true
+
+    # SAPInstance - Remove default operations: promote, demote, start, stop
+    - name: "SAP HA Install Pacemaker - Remove operations for SAPInstance"
+      ansible.builtin.command:
+        cmd: cibadmin -d --force --xpath "//primitive[@type='SAPInstance']//op[{{ item }}]"
+      loop:
+        - "@name='promote' and @interval='0s'"
+        - "@name='demote' and @interval='0s'"
+        - "@name='start' and @interval='0s'"
+        - "@name='stop' and @interval='0s'"
+      changed_when: true
+
+    - name: "SAP HA Install Pacemaker - Disable maintenance mode"
+      ansible.builtin.expect:
+        command: crm configure property maintenance-mode=false
+        responses:
+          ".*is-managed.*": "n"
+          ".*already.*": "n"
+      check_mode: false
+      changed_when: true

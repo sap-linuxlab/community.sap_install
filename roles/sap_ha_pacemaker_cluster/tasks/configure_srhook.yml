@@ -1,47 +1,88 @@
 ---
-- name: "SAP HA Pacemaker srHook - Create srHook shared directory"
-  ansible.builtin.file:
-    path: "{{ sap_ha_pacemaker_cluster_hadr_provider_path }}"
-    state: directory
-    mode: "0755"
-    owner: "{{ sap_ha_pacemaker_cluster_hana_sid | lower }}adm"
-    group: sapsys
+- name: "SAP HA Pacemaker srHook - Check presence of global.ini"
+  ansible.builtin.stat:
+    path: "{{ sap_ha_pacemaker_cluster_hana_global_ini_path }}"
+  register: __sap_ha_pacemaker_cluster_global_ini
+  failed_when: not __sap_ha_pacemaker_cluster_global_ini.stat.exists
 
-- name: "SAP HA Pacemaker srHook - Copy srHook to shared directory"
-  ansible.builtin.copy:
-    remote_src: true
-    src: /usr/share/SAPHanaSR/srHook/SAPHanaSR.py
-    dest: "{{ sap_ha_pacemaker_cluster_hadr_provider_path }}/{{ sap_ha_pacemaker_cluster_hadr_provider_name }}.py"
-    mode: "0755"
-    owner: "{{ sap_ha_pacemaker_cluster_hana_sid | lower }}adm"
-    group: sapsys
-  # Do not run in check mode because the path is created in the previous step
-  when: not ansible_check_mode
-
-- name: "SAP HA Pacemaker srHook - Check global.ini for 'ha_dr_saphanasr'"
-  ansible.builtin.shell: |
-    grep ha_dr_saphanasr /usr/sap/{{ sap_ha_pacemaker_cluster_hana_sid | upper }}/SYS/global/hdb/custom/config/global.ini
-  register: __sap_ha_pacemaker_cluster_srhook_trace_global
-  failed_when: false
-  # This command should always run, even in check mode.
-  # It never does a change, but the return code is required for the next task.
-  check_mode: false
+- name: "SAP HA Pacemaker srHook - Get contents of global.ini"
+  ansible.builtin.command:
+    cmd: cat "{{ sap_ha_pacemaker_cluster_hana_global_ini_path }}"
+  register: __sap_ha_pacemaker_cluster_global_ini_contents
   changed_when: false
 
-- name: "SAP HA Pacemaker srHook - Update srHook in global.ini"
+# Following tasks will prepare srhook list if user input is detected
+- name: "SAP HA Pacemaker srHook - Block for user provided hooks"
+  when:
+    - sap_ha_pacemaker_cluster_hana_hooks is defined
+    - sap_ha_pacemaker_cluster_hana_hooks | length > 0
+  block:
+    - name: "SAP HA Pacemaker srHook - Use user provided hooks"
+      ansible.builtin.set_fact:
+        __sap_ha_pacemaker_cluster_hana_hooks:
+          "{{ sap_ha_pacemaker_cluster_hana_hooks }}"
+        __sap_ha_pacemaker_cluster_hana_hook_tkover: false
+        __sap_ha_pacemaker_cluster_hana_hook_chksrv: false
+
+    # tkover and chksrv variables are updated if their providers are detected
+    - name: "SAP HA Pacemaker srHook - Set tkover true if present"
+      ansible.builtin.set_fact:
+        __sap_ha_pacemaker_cluster_hana_hook_tkover: true
+      when:
+        - sap_ha_pacemaker_cluster_hana_hooks | selectattr(
+          'provider', 'search', 'tkover', 'i') | list | length > 0
+
+    - name: "SAP HA Pacemaker srHook - Set chksrv true if present"
+      ansible.builtin.set_fact:
+        __sap_ha_pacemaker_cluster_hana_hook_chksrv: true
+      when:
+        - sap_ha_pacemaker_cluster_hana_hooks | selectattr(
+          'provider', 'search', 'chksrv', 'i') | list | length > 0
+
+- name: "SAP HA Pacemaker srHook - Update srHook providers in global.ini"
   ansible.builtin.blockinfile:
-    path: /usr/sap/{{ sap_ha_pacemaker_cluster_hana_sid | upper }}/SYS/global/hdb/custom/config/global.ini
+    path: "{{ sap_ha_pacemaker_cluster_hana_global_ini_path }}"
     marker: ""
     block: |
-      [ha_dr_provider_{{ sap_ha_pacemaker_cluster_hadr_provider_name }}]
-      provider = {{ sap_ha_pacemaker_cluster_hadr_provider_name }}
-      path = {{ sap_ha_pacemaker_cluster_hadr_provider_path }}
-      execution_order = 1
+      [ha_dr_provider_{{ srhook_item.provider }}]
+      provider = {{ srhook_item.provider }}
+      path = {{ srhook_item.path }}
+      {% for option in srhook_item.options | d([]) -%}
+      {{ option.name }} = {{ option.value }}
+      {% endfor %}
+  loop: "{{ __sap_ha_pacemaker_cluster_hana_hooks }}"
+  loop_control:
+    loop_var: srhook_item
+    label: "{{ srhook_item.provider }}"
+  when: "('[ha_dr_provider_' + srhook_item.provider + ']') | lower
+    not in __sap_ha_pacemaker_cluster_global_ini_contents.stdout | lower"
 
+# Separate task to create [trace] block so hooks can be appended to it
+- name: "SAP HA Pacemaker srHook - Add [trace] block in global.ini"
+  ansible.builtin.blockinfile:
+    path: "{{ sap_ha_pacemaker_cluster_hana_global_ini_path }}"
+    marker: ""
+    block: |
       [trace]
-      ha_dr_saphanasr = info
-  when: __sap_ha_pacemaker_cluster_srhook_trace_global.rc == 1
+  when:
+    - "'[trace]' not in __sap_ha_pacemaker_cluster_global_ini_contents.stdout"
 
+# Append hooks to [trace] block if they are not present already
+- name: "SAP HA Pacemaker srHook - Update srHooks trace in global.ini"
+  ansible.builtin.lineinfile:
+    path: "{{ sap_ha_pacemaker_cluster_hana_global_ini_path }}"
+    insertafter: "^\\[trace\\]"
+    line: "ha_dr_{{ srhook_item.provider }} = info"
+  loop: "{{ __sap_ha_pacemaker_cluster_hana_hooks }}"
+  loop_control:
+    loop_var: srhook_item
+    label: "{{ srhook_item.provider }}"
+  when:
+    - "('ha_dr_' + srhook_item.provider + ' = info') | lower
+      not in __sap_ha_pacemaker_cluster_global_ini_contents.stdout | lower"
+
+# jinja2 template contains logic to add extra entries if:
+# TkOver hook is present or SAPHanaSR-angi is used.
 - name: "SAP HA Pacemaker srHook - Add srHook sudo entries"
   ansible.builtin.template:
     backup: true

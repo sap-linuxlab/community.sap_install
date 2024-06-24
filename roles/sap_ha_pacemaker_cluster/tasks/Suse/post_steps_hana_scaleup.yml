@@ -1,0 +1,32 @@
+---
+# Starting SAPHana clone immediately after cluster configuration can lead to HANA shutdown.
+# Following steps will leave enough time for resource agents to load HANA configuration
+# before disabling maintenance.
+#
+# Steps are SUSE specific and they use crmsh.
+
+- name: "SAP HA Install Pacemaker - SAPHana crm resource cleanup"
+  ansible.builtin.command:
+    cmd: crm resource cleanup {{ sap_ha_pacemaker_cluster_hana_resource_name
+     if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
+     else sap_ha_pacemaker_cluster_hanacontroller_resource_name }}
+  changed_when: true
+
+- name: "SAP HA Install Pacemaker - SAPHana clone crm resource refresh"
+  ansible.builtin.command:
+    cmd: crm resource refresh {{ sap_ha_pacemaker_cluster_hana_resource_clone_name
+     if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
+     else sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }}
+  changed_when: true
+
+- name: "SAP HA Install Pacemaker - Wait for SAP HANA to become idle"
+  ansible.builtin.command:
+    cmd: cs_wait_for_idle -s 5
+  changed_when: true
+
+- name: "SAP HA Install Pacemaker - SAPHana crm resource maintenance off"
+  ansible.builtin.command:
+    cmd: crm resource maintenance {{ sap_ha_pacemaker_cluster_hana_resource_clone_name
+     if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
+     else sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }} off
+  changed_when: true

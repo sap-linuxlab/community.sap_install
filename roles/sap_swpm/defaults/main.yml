@@ -11,6 +11,36 @@ sap_swpm_ansible_role_mode: "default"
 # advanced_templates
 # inifile_reuse
 
+########################################
+#   SWPM Ansible Role variables
+#   for setting owner, group, and permissions for the SAP files in sap_swpm_software_path
+########################################
+#
+# Set the following parameter to false to not change the owner, group, and permissions of the files in sap_swpm_software_path.
+# The default is true.
+sap_swpm_set_file_permissions: true
+#
+# The following 9 parameters define the default permission and ownership settings as per the
+# Installation of SAP ABAP Systems on UNIX : SAP HANA 2.0 Database - Using Software Provisioning Manager 2.0 guide
+# https://help.sap.com/docs/SLTOOLSET/39c32e9783f6439e871410848f61544c/c1f95d30d0ba4335919bf6e6f44263b2.html?version=CURRENT_VERSION_SWPM20
+# The guide mentions 755 as the minimum permission for the SPWM download directory and a umask setting of 022 for the user
+# which downloads the SAP software.
+#
+# Access permissions and ownership for all directories in sap_swpm_software_path, for sap_swpm_sapcar_path, and for sap_swpm_swpm_path:
+sap_swpm_software_directory_mode: '0755'
+sap_swpm_software_directory_owner: root
+sap_swpm_software_directory_group: root
+#
+# Access permissions and ownership for the SAPCAR*EXE file in sap_swpm_sapcar_path:
+sap_swpm_files_sapcar_mode: '0755'
+sap_swpm_files_sapcar_owner: root
+sap_swpm_files_sapcar_group: root
+#
+# Access permissions and ownership for all non-SAPCAR*EXE files in sap_swpm_software_path and for SWPM*.SAR in sap_swpm_swpm_path:
+sap_swpm_files_non_sapcar_mode: '0644'
+sap_swpm_files_non_sapcar_owner: root
+sap_swpm_files_non_sapcar_group: root
+
 
 ########################################
 #   SWPM Ansible Role variables
@@ -85,6 +115,7 @@ sap_swpm_inifile_list:
   - nw_config_ports
 #  - nw_config_java_ume
 #  - nw_config_java_feature_template_ids
+#  - nw_config_java_icm_credentials
 #  - nw_config_webdisp_generic
 #  - nw_config_webdisp_gateway
   - nw_config_host_agent
@@ -96,7 +127,6 @@ sap_swpm_inifile_list:
 
 ## Not in use
 #  - swpm_installation_media_download_service
-#  - solman_credentials_swpm1
 #  - solman_abap_swpm1
 #  - solman_daa_swpm1
 
@@ -115,8 +145,9 @@ sap_swpm_sapcar_path:
 sap_swpm_sapcar_file_name:
 
 # SWPM path and file name, only path is mandatory. The script will automatically get file_name
-sap_swpm_swpm_path:
+sap_swpm_swpm_path: # e.g. /software/sap_swpm
 sap_swpm_swpm_sar_file_name:
+sap_swpm_software_extract_directory: # e.g. /software/sap_swpm_extracted
 
 # Note:
 # When using SWPM2 (for modern SAP products such as S/4 B/4), using .SAR files is recommended - param value should be false
@@ -199,11 +230,15 @@ sap_swpm_virtual_hostname: "initial"
 ########################################
 #   SWPM Ansible Role variables
 #   for Default Mode
-#   - Lookup list of Feature Template IDs
+#   - Lookup list of NWAS JAVA Feature Template IDs
 ########################################
 
-sap_swpm_java_template_id_selected_list:
-  - java_engine_ee
+# Two methods exist for SAP NWAS JAVA, jload and extramile (BatchDeployer) before call to Deploy Controller Runner
+# Default to extramile for SAP NWAS JAVA, except SAP S/4HANA
+sap_swpm_java_import_method: "{{ 'jload' if 'S4H' in sap_swpm_product_catalog_id else 'extramile' }}"
+
+# Use empty list which will create inifile parameter as blank for default installation
+sap_swpm_java_template_id_selected_list: []
 
 sap_swpm_java_template_id_lookup_dictionary:
   java_nwas_as:
@@ -240,6 +275,14 @@ sap_swpm_java_template_id_lookup_dictionary:
     - 01200615324800001035 # Solution Manager, includes java_nwas_as (01200615324800000135) and java_engine_ee (01200615324800000125)
   java_demo:
     - 01200615324800002898 # Demo Applications
+  s4hana_java_as:
+    - '73554900104800002396' # SAP S/4HANA Java
+  s4hana_java_adobe_document_services:
+    - '73554900104800002328' # SAP S/4HANA Java Adobe Document Services, includes s4hana_java_as (73554900104800002396)
+  s4hana_java_enterprise_service_repository:
+    - '73554900104800002330' # SAP S/4HANA Java Enterprise Services Repository, includes s4hana_java_as (73554900104800002396)
+  s4hana_java_aex:
+    - '73554900104800002329' # SAP S/4HANA Java Advanced Adapter Engine Extnd, includes s4hana_java_as (73554900104800002396) and s4hana_java_enterprise_service_repository (73554900104800002330)
 
 
 ########################################

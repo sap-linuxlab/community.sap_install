@@ -1,8 +1,4 @@
 ---
-#- name: Enable Debugging
-#  debug:
-#    verbosity: "{{ debuglevel }}"
-#
 # Reason for noqa: Both yum and dnf support "state: latest"
 - name: Ensure that the system is updated to the latest patchlevel # noqa package-latest
   ansible.builtin.package:
@@ -25,13 +21,12 @@
     - '"SLES" in sles_baseproduct.stat.lnk_target'
     - ansible_os_family == 'Suse'
 
-- name: Output
-  ansible.builtin.debug:
-    msg:
-      - "OS Family: {{ ansible_os_family }}"
-      - "saptune: {{ __sap_hana_preconfigure_run_saptune }}"
-      - "link: {{ sles_baseproduct.stat.lnk_target }}"
-# -----------
+# - name: Output
+#   ansible.builtin.debug:
+#     msg:
+#       - "OS Family: {{ ansible_os_family }}"
+#       - "saptune: {{ __sap_hana_preconfigure_run_saptune }}"
+#       - "link: {{ sles_baseproduct.stat.lnk_target }}"
 
 - name: Prepare saptune
   when:
@@ -45,12 +40,24 @@
         state: present
         force: true
 
-    - name: Ensure saptune is installed
+    - name: Ensure latest saptune is installed
+      community.general.zypper:
+        type: package
+        name: saptune
+        state: present
+      when:
+        - sap_hana_preconfigure_saptune_version is undefined
+         or sap_hana_preconfigure_saptune_version | length == 0
+
+    - name: Ensure specific saptune version is installed
       community.general.zypper:
         type: package
         name: "saptune={{ sap_hana_preconfigure_saptune_version }}"
         state: present
         force: true
+      when:
+        - sap_hana_preconfigure_saptune_version is defined
+        - sap_hana_preconfigure_saptune_version | length > 0
 
 - name: Ensure sapconf is installed
   community.general.zypper:

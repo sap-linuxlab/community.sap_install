@@ -2,158 +2,70 @@
 # Variables containing variables must be constructed with values
 # to be fed into the included ha_cluster role
 
-# - put here all scale-up and scale-out common resources
-# - certain differences like ra agent names are provided through
-#   type specific variables
-
 # TODO: add conditionals to verify that the same resource agent is not already
 #       defined in user input variables. Conflicting user input should take precedence.
 
+# Prepare default resource defaults
 - name: "SAP HA Prepare Pacemaker - Define resource defaults for HANA clusters"
   when:
     - sap_ha_pacemaker_cluster_resource_defaults is not defined
       or sap_ha_pacemaker_cluster_resource_defaults | length == 0
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_resource_defaults:
+    sap_ha_pacemaker_cluster_resource_defaults:
       resource-stickiness: 1000
       migration-threshold: 5000
 
-- name: "SAP HA Prepare Pacemaker - Add resource: SAP HANA Topology"
+# Convert dictionary into ha_cluster format.
+- name: "SAP HA Prepare Pacemaker - prepare resource defaults for ha_cluster"
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_hana_topology] }}"
+    __sap_ha_pacemaker_cluster_resource_defaults: "{{ __resource_defaults }}"
   vars:
-    __resource_hana_topology:
-      id: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_name }}"
-      agent: "ocf:heartbeat:SAPHanaTopology"
-      instance_attrs:
-        - attrs:
-            - name: SID
-              value: "{{ sap_ha_pacemaker_cluster_hana_sid }}"
-            - name: InstanceNumber
-              value: "{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
-      operations:
-        - action: start
-          attrs:
-            - name: timeout
-              value: 600
-        - action: stop
-          attrs:
-            - name: timeout
-              value: 600
-        - action: monitor
-          attrs:
-            - name: interval
-              value: 10
-            - name: timeout
-              value: 600
-  when:
-    - __resource_hana_topology.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
-
-- name: "SAP HA Prepare Pacemaker - Add resource: SAP HANA DB"
-  ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_hana] }}"
-  vars:
-    __resource_hana:
-      id: "{{ sap_ha_pacemaker_cluster_hana_resource_name }}"
-      agent: "ocf:heartbeat:{{ sap_ha_pacemaker_cluster_ra_hana }}"
-      instance_attrs:
-        - attrs:
-            - name: SID
-              value: "{{ sap_ha_pacemaker_cluster_hana_sid }}"
-            - name: InstanceNumber
-              value: "{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
-            - name: AUTOMATED_REGISTER
-              value: "{{ sap_ha_pacemaker_cluster_hana_automated_register | string }}"
-            - name: DUPLICATE_PRIMARY_TIMEOUT
-              value: "{{ sap_ha_pacemaker_cluster_hana_duplicate_primary_timeout | string }}"
-            - name: PREFER_SITE_TAKEOVER
-              value: "{{ sap_ha_pacemaker_cluster_hana_prefer_site_takeover | string }}"
-      operations:
-        - action: start
-          attrs:
-            - name: timeout
-              value: 3600
-        - action: stop
-          attrs:
-            - name: timeout
-              value: 3600
-        - action: monitor
-          attrs:
-            - name: interval
-              value: 61
-            - name: role
-              value: Slave
-            - name: timeout
-              value: 700
-        - action: monitor
-          attrs:
-            - name: interval
-              value: 59
-            - name: role
-              value: Master
-            - name: timeout
-              value: 700
-        - action: promote
-          attrs:
-            - name: timeout
-              value: 3600
-        - action: demote
-          attrs:
-            - name: timeout
-              value: 3600
-  when:
-    - __resource_hana.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
-
-- name: "SAP HA Prepare Pacemaker - Add resource clone: SAP HANA Topology"
-  ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_hana_topology] }}"
-  vars:
-    __clone_hana_topology:
-      resource_id: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_name }}"
+    __resource_defaults:
       meta_attrs:
-        - attrs:
-            - name: clone-max
-              value: 2
-            - name: clone-node-max
-              value: 1
-            - name: interleave
-              value: "true"
-  when:
-    - __clone_hana_topology.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
+        - attrs: |-
+            {% set attrs = __sap_ha_pacemaker_cluster_resource_defaults.meta_attrs | map(attribute='attrs') | flatten -%}
+            {%- for resource_default in (sap_ha_pacemaker_cluster_resource_defaults | dict2items) -%}
+              {% if resource_default.key not in
+              (__sap_ha_pacemaker_cluster_resource_defaults.meta_attrs  | map(attribute='attrs') | flatten | map(attribute='name')) -%}
+                {% set role_attrs = attrs.extend([
+                  {
+                    'name': resource_default.key,
+                    'value': resource_default.value
+                  }
+                ]) -%}
+              {%- endif %}
+            {%- endfor %}
+            {{ attrs }}
 
-- name: "SAP HA Prepare Pacemaker - Add resource clone: SAP HANA DB"
+
+# Prepare default resource operation defaults
+- name: "SAP HA Prepare Pacemaker - Define operation defaults for HANA clusters"
+  when:
+    - sap_ha_pacemaker_cluster_operation_defaults is not defined
+      or sap_ha_pacemaker_cluster_operation_defaults | length == 0
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_resource_clones: "{{ __sap_ha_pacemaker_cluster_resource_clones + [__clone_hana] }}"
+    sap_ha_pacemaker_cluster_operation_defaults:
+      timeout: 600
+      record-pending: true
+
+# Convert dictionary into ha_cluster format.
+- name: "SAP HA Prepare Pacemaker - prepare operation defaults for ha_cluster"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_operation_defaults: "{{ __operation_defaults }}"
   vars:
-    __clone_hana:
-      resource_id: "{{ sap_ha_pacemaker_cluster_hana_resource_name }}"
+    __operation_defaults:
       meta_attrs:
-        - attrs:
-            - name: clone-max
-              value: 2
-            - name: clone-node-max
-              value: 1
-            - name: interleave
-              value: "true"
-            - name: promotable
-              value: "true"
-  when:
-    - __clone_hana.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
-
-# First start Topology, then HANA (automatically stops in reverse order)
-- name: "SAP HA Prepare Pacemaker - Add order constraint: Topology starts before DB"
-  ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_hana_topology] }}"
-  vars:
-    __constraint_order_hana_topology:
-      resource_first:
-        id: "{{ sap_ha_pacemaker_cluster_hana_topology_resource_clone_name }}"
-        action: start
-      resource_then:
-        id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
-        action: start
-      options:
-        - name: symmetrical
-          value: "false"
-  when:
-    - __constraint_order_hana_topology.resource_then not in (__sap_ha_pacemaker_cluster_constraints_order | map(attribute='resource_then'))
+        - attrs: |-
+            {% set attrs = __sap_ha_pacemaker_cluster_resource_operation_defaults.meta_attrs  | map(attribute='attrs') | flatten -%}
+            {%- for operation_default in (sap_ha_pacemaker_cluster_operation_defaults | dict2items) -%}
+              {% if operation_default.key not in
+              (__sap_ha_pacemaker_cluster_resource_operation_defaults.meta_attrs  | map(attribute='attrs') | flatten | map(attribute='name')) -%}
+                {% set role_attrs = attrs.extend([
+                  {
+                    'name': operation_default.key,
+                    'value': operation_default.value
+                  }
+                ]) -%}
+              {%- endif %}
+            {%- endfor %}
+            {{ attrs }}

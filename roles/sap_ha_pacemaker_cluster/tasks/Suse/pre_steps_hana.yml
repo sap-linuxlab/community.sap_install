@@ -1,0 +1,44 @@
+---
+# Identify if SAPHanaSR-angi package is available for installation.
+# SAPHanaSR-angi replaces SAPHanaSR and SAPHanaSR-ScaleOut.
+
+# This is destructive step if executed on running cluster
+# without proper migration from SAPHanaSR to SAPHanaSR-angi!
+
+# Requirement for package_facts Ansible Module
+- name: For SLES ensure OS Package for Python Lib of rpm bindings is enabled for System Python
+  ansible.builtin.package:
+    name: python3-rpm
+    state: present
+  when: ansible_os_family == "Suse"
+
+- name: "SAP HA Prepare Pacemaker - Gather installed packages facts"
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: "SAP HA Prepare Pacemaker - Search for SAPHanaSR-angi"
+  ansible.builtin.command:
+    cmd: zypper se SAPHanaSR-angi
+  changed_when: false
+  register: __sap_ha_pacemaker_cluster_zypper_angi_check
+  failed_when: false
+
+# package can be replaced with "rpm -e --nodeps {{ item }}"
+- name: "SAP HA Prepare Pacemaker - Remove SAPHanaSR and SAPHanaSR-doc"
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: absent
+  loop:
+    - SAPHanaSR
+    - SAPHanaSR-doc
+  when:
+    - __sap_ha_pacemaker_cluster_zypper_angi_check is defined
+    - __sap_ha_pacemaker_cluster_zypper_angi_check.rc == 0
+    - "'SAPHanaSR' in ansible_facts.packages"
+
+- name: "SAP HA Prepare Pacemaker - Set fact angi_available"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_saphanasr_angi_available: true
+  when:
+    - __sap_ha_pacemaker_cluster_zypper_angi_check is defined
+    - __sap_ha_pacemaker_cluster_zypper_angi_check.rc == 0

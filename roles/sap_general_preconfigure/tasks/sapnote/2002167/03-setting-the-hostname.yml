@@ -3,12 +3,36 @@
 - name: Configure 2002167-3
   ansible.builtin.debug:
     msg: "SAP note 2002167 Step 3: Setting the Hostname"
+  tags:
+    - sap_general_preconfigure_hostname
+    - sap_general_preconfigure_etc_hosts
+    - sap_general_preconfigure_dns_name_resolution
 
 - name: Import tasks from '../../RedHat/generic/configure-hostname.yml'
   ansible.builtin.import_tasks: ../../RedHat/generic/configure-hostname.yml
+  tags:
+    - sap_general_preconfigure_hostname
 
-- name: Import tasks from '../../RedHat/generic/configure-etc-hosts.yml'
-  ansible.builtin.import_tasks: ../../RedHat/generic/configure-etc-hosts.yml
+- name: Import role sap_maintain_etc_hosts
+  ansible.builtin.import_role:
+    name: sap_maintain_etc_hosts
+  vars:
+    sap_maintain_etc_hosts_list:
+      - node_ip: "{{ sap_general_preconfigure_ip }}"
+        node_name: "{{ sap_general_preconfigure_hostname }}"
+        node_domain: "{{ sap_general_preconfigure_domain }}"
+        state: present
+  when: sap_general_preconfigure_modify_etc_hosts
+  tags:
+    - sap_general_preconfigure_etc_hosts
+
+- name: Import tasks from '../../RedHat/generic/assert-etc-hosts.yml'
+  ansible.builtin.import_tasks: ../../RedHat/generic/assert-etc-hosts.yml
+  when: not sap_general_preconfigure_modify_etc_hosts
+  tags:
+    - sap_general_preconfigure_etc_hosts
 
 - name: Import tasks from '../../RedHat/generic/check-dns-name-resolution.yml'
   ansible.builtin.import_tasks: ../../RedHat/generic/check-dns-name-resolution.yml
+  tags:
+    - sap_general_preconfigure_dns_name_resolution

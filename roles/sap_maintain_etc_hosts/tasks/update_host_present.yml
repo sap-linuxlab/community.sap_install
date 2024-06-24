@@ -2,30 +2,46 @@
 - name: Verify that variable node_ip is set
   ansible.builtin.assert:
     that: not( ( thishost.node_ip is undefined) or ( thishost.node_ip is none) or ( thishost.node_ip | trim == '') )
-    msg: "Variable 'node_ip' is undefined or empty. Please define it in your host list."
+    msg: |
+      "The IP address of this host not known. You can solve this problem by
+       configuring your managed node accordingly or by setting one of the following variables:
+       - sap_ip
+       - sap_maintain_etc_hosts_list, member node_ip"
 
-- name: Verify that variable node_ip is in the correct format
+- name: Verify that variable node_ip is using the correct IP address format
   ansible.builtin.assert:
-    that: thishost.node_ip is ansible.utils.ip
-    msg: "Variable 'node_ip' is not an IP address. Please use the correct format"
+    that: thishost.node_ip | regex_search(sap_maintain_etc_hosts_regexp_ipv4) or
+          thishost.node_ip | regex_search(sap_maintain_etc_hosts_regexp_ipv6)
+    msg: |
+      "The IP address of this host does not have a correct format.
+       Configure the IP address appropriately in of the following variables:
+       - sap_ip
+       - sap_maintain_etc_hosts_list, member node_ip"
 
 - name: Verify that variable node_name is set
   ansible.builtin.assert:
     that: not( ( thishost.node_name is undefined) or ( thishost.node_name is none) or ( thishost.node_name | trim == '') )
-    msg: "Variable 'node_name' is undefined or empty. Please define it your host list"
+    msg: |
+      "The hostname of this host not known. You can solve this problem by
+       configuring your managed node accordingly or by setting one of the following variables:
+       - sap_hostname
+       - sap_maintain_etc_hosts_list, member node_name"
 
 - name: Ensure node_domain is set
   ansible.builtin.set_fact:
     __sap_maintain_etc_hosts_domain: "{{ thishost.node_domain | default(sap_domain) | default(ansible_domain) }}"
 
-# Necessary, if defaults are both undefined
 - name: Verify that variable domain_name is set
   ansible.builtin.assert:
     that: >
       not( ( __sap_maintain_etc_hosts_domain is undefined) or
       ( __sap_maintain_etc_hosts_domain is none) or
       ( __sap_maintain_etc_hosts_domain | trim == '') )
-    msg: "Variable 'domain_name' is undefined or empty. Please define it your host list"
+    msg: |
+      "The DNS domain of this host not known. You can solve this problem by
+       configuring your DNS accordingly or by setting one of the following variables:
+       - sap_domain
+       - sap_maintain_etc_hosts_list, member node_domain"
 
 - name: Set default values
   ansible.builtin.set_fact:
@@ -40,10 +56,10 @@
 # The following block reads the existing aliases of a host from /etc/hosts
 # and merges it with the defined aliases in the struct
 #
-# 1. select the line, where the first entry is the ip-adress thishost.node_ip
+# 1. select the line where the first entry is the ip-adress thishost.node_ip
 # 2. loop over all hostname entries in the selected line (2 bis NF=last element in line)
 # 3. stop looping when a comment sign is found (because these are comments)
-# 4. print an element, if it is not the hostname or FQDN we want to add
+# 4. print an element if it is not the hostname or FQDN we want to add
 #
 # => __sap_maintain_etc_hosts_register_aliases.stdout contains a list of aliases of thishost.node_ip
 #

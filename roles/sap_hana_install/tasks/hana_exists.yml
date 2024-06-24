@@ -63,23 +63,23 @@
   when: not __sap_hana_install_register_stat_saphostctrl.stat.exists
   block:
 
-    - name: SAP HANA Checks - Get status of '/hana/shared/{{ sap_hana_install_sid }}'
+    - name: SAP HANA Checks - Get status of '{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}'
       ansible.builtin.stat:
-        path: "/hana/shared/{{ sap_hana_install_sid }}"
+        path: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}"
       check_mode: false
       register: __sap_hana_install_register_stat_hana_shared_sid_assert
       failed_when: false
 
-    - name: SAP HANA Checks - Get contents of '/hana/shared/{{ sap_hana_install_sid }}'
+    - name: SAP HANA Checks - Get contents of '{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}'
       ansible.builtin.find:
-        paths: "/hana/shared/{{ sap_hana_install_sid }}"
+        paths: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}"
         patterns: '*'
       register: __sap_hana_install_register_files_in_hana_shared_sid_assert
       when: __sap_hana_install_register_stat_hana_shared_sid_assert.stat.exists
 
-    - name: SAP HANA Checks - Fail if directory '/hana/shared/{{ sap_hana_install_sid }}' exists and is not empty
+    - name: SAP HANA Checks - Fail if directory '{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}' exists and is not empty
       ansible.builtin.fail:
-        msg: "FAIL: Directory '/hana/shared/{{ sap_hana_install_sid }}' exists and is not empty!"
+        msg: "FAIL: Directory '{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}' exists and is not empty!"
       when:
         - __sap_hana_install_register_stat_hana_shared_sid_assert.stat.exists
         - __sap_hana_install_register_files_in_hana_shared_sid_assert.matched | int != 0

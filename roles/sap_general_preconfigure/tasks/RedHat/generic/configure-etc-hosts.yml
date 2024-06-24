@@ -3,15 +3,16 @@
 - name: Display host and domain name, and IP address before the modification
   ansible.builtin.debug:
     msg:
-      - "sap_hostname = {{ sap_hostname }}"
-      - "sap_domain = {{ sap_domain }}"
-      - "sap_ip = {{ sap_ip }}"
+      - "sap_general_preconfigure_hostname = {{ sap_general_preconfigure_hostname }}"
+      - "sap_general_preconfigure_domain = {{ sap_general_preconfigure_domain }}"
+      - "sap_general_preconfigure_ip = {{ sap_general_preconfigure_ip }}"
 
-- name: Get all hostname aliases of {{ sap_ip }}
+- name: Get all hostname aliases of {{ sap_general_preconfigure_ip }}
   ansible.builtin.shell: |
-    awk '( $1 == "{{ sap_ip }}" ) {
+    awk '( $1 == "{{ sap_general_preconfigure_ip }}" ) {
       for (i=2; i<=NF; ++i) {
-        if (( $i != "{{ sap_hostname }}" ) && ( $i != "{{ sap_hostname }}.{{ sap_domain }}" )) { printf " "$i }
+        if (( $i != "{{ sap_general_preconfigure_hostname }}" ) &&
+           ( $i != "{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}" )) { printf " "$i }
       }
     }' /etc/hosts
   register: __sap_general_preconfigure_register_sap_hostname_aliases
@@ -26,7 +27,7 @@
   block:
 
     - name: Perform the /etc/hosts completeness check
-      ansible.builtin.command: awk 'BEGIN{a=0}/{{ sap_ip }}/&&/{{ sap_hostname }}.{{ sap_domain }}/&&/{{ sap_hostname }}/{a++}END{print a}' /etc/hosts
+      ansible.builtin.command: awk 'BEGIN{a=0}/{{ sap_general_preconfigure_ip }}/&&/{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}/&&/{{ sap_general_preconfigure_hostname }}/{a++}END{print a}' /etc/hosts
       register: __sap_general_preconfigure_register_ipv4_fqdn_sap_hostname_once_check
       changed_when: false
 
@@ -39,7 +40,7 @@
       ansible.builtin.debug:
         msg:
           - "Expected:"
-          - "{{ sap_ip }} {{ sap_hostname }}.{{ sap_domain }} {{ sap_hostname }}"
+          - "{{ sap_general_preconfigure_ip }} {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} {{ sap_general_preconfigure_hostname }}"
       when:
         - __sap_general_preconfigure_register_ipv4_fqdn_sap_hostname_once_check.stdout != "1"
 
@@ -48,15 +49,15 @@
         msg:
           - "Server's ip4 address, FQDN, or hostname are not in /etc/hosts!"
           - "Expected:"
-          - "{{ sap_ip }} {{ sap_hostname }}.{{ sap_domain }} {{ sap_hostname }}"
+          - "{{ sap_general_preconfigure_ip }} {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} {{ sap_general_preconfigure_hostname }}"
       when:
         - __sap_general_preconfigure_register_ipv4_fqdn_sap_hostname_once_check.stdout != "1"
       ignore_errors: "{{ ansible_check_mode }}"
 
-# We allow more than one line containing sap_ip:
-- name: Check for duplicate entries of {{ sap_ip }} in /etc/hosts
+# We allow more than one line containing sap_general_preconfigure_ip:
+- name: Check for duplicate entries of {{ sap_general_preconfigure_ip }} in /etc/hosts
   ansible.builtin.shell: |
-    n=$(grep "^{{ sap_ip }}\s" /etc/hosts | wc -l)
+    n=$(grep "^{{ sap_general_preconfigure_ip }}\s" /etc/hosts | wc -l)
     if [ $n -gt 1 ]; then
       echo "Duplicate IP entry in /etc/hosts!"
       exit 1
@@ -68,15 +69,15 @@
   ignore_errors: yes
   when: not ansible_check_mode
 
-- name: Verify that variable sap_domain is set
+- name: Verify that variable sap_general_preconfigure_domain is set
   ansible.builtin.assert:
-    that: not( (sap_domain is undefined) or (sap_domain is none) or (sap_domain | trim == '') )
-    msg: "Variable 'sap_domain' is undefined or empty. Please define it in defaults/main.yml or via --extra-vars!"
+    that: not( (sap_general_preconfigure_domain is undefined) or (sap_general_preconfigure_domain is none) or (sap_general_preconfigure_domain | trim == '') )
+    msg: "Variable 'sap_general_preconfigure_domain' is undefined or empty. Please set it in your playbook or inventory!"
 
 - name: Report if there is more than one line with the IP address
   ansible.builtin.debug:
     msg:
-      - "More than one line containing {{ sap_ip }}. File /etc/hosts will not be modified."
+      - "More than one line containing {{ sap_general_preconfigure_ip }}. File /etc/hosts will not be modified."
   when:
     - not ansible_check_mode
     - __sap_general_preconfigure_register_duplicate_ip_check.stdout == 'Duplicate IP entry in /etc/hosts!'
@@ -85,12 +86,12 @@
 - name: Ensure that the entry in /etc/hosts is correct
   ansible.builtin.lineinfile:
     path: /etc/hosts
-    regexp: '^{{ sap_ip }}\s'
-    line: "{{ sap_ip }} {{ sap_hostname }}.{{ sap_domain }} {{ sap_hostname }}{{ __sap_general_preconfigure_register_sap_hostname_aliases.stdout }}"
+    regexp: '^{{ sap_general_preconfigure_ip }}\s'
+    line: "{{ sap_general_preconfigure_ip }} {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} {{ sap_general_preconfigure_hostname }}{{ __sap_general_preconfigure_register_sap_hostname_aliases.stdout }}"
     backup: yes
   when:
     - not ansible_check_mode
-    - sap_domain | length > 0
+    - sap_general_preconfigure_domain | length > 0
     - __sap_general_preconfigure_register_duplicate_ip_check.stdout != 'Duplicate IP entry in /etc/hosts!'
     - sap_general_preconfigure_modify_etc_hosts | bool
 
@@ -103,8 +104,8 @@
       exit 1
     fi
   with_items:
-    - '{{ sap_hostname }}.{{ sap_domain }}'
-    - '{{ sap_hostname }}'
+    - '{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}'
+    - '{{ sap_general_preconfigure_hostname }}'
   changed_when: false
   loop_control:
     loop_var: line_item

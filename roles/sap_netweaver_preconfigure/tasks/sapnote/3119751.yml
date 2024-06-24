@@ -5,23 +5,51 @@
     msg: "SAP note {{ (__sap_netweaver_preconfigure_sapnotes_versions | selectattr('number', 'match', '^3119751$') | first).number }}
           (version {{ (__sap_netweaver_preconfigure_sapnotes_versions | selectattr('number', 'match', '^3119751$') | first).version }}): Linux Requirements for SAP Kernel 754 and for SAP Kernel 788 and higher"
 
-- name: Get info about the compat-sap-c++-10.so file
-  ansible.builtin.stat:
-    path: /opt/rh/SAP/lib64/compat-sap-c++-10.so
-  register: __sap_netweaver_preconfigure_register_stat_compat_sap_cpp
+# Note: This file is only included for RHEL 8, so no further when condition is required here.
 
-- name: Create directory '{{ sap_netweaver_preconfigure_rpath }}'
+- name: Identify all 'compat-sap-c++-NUM.so' symlinks with NUM >= 10
+  ansible.builtin.find:
+    paths: '/opt/rh/SAP/lib64'
+    patterns: "compat-sap-c\\+\\+-1[0-9].so"
+    file_type: link
+    use_regex: true
+  register: __sap_netweaver_preconfigure_register_find_compat_sap_cpp
+
+# Note: The symlink compat-sap-c++-NUM.so with NUM >= 10 will be available if the role sap_general_preconfigure has been run before,
+# which is a requirement.
+- name: Fail if there is no 'compat-sap-c++-NUM.so' symlink with NUM >= 10
+  ansible.builtin.fail:
+    msg: There is no symlink '/opt/rh/SAP/lib64/compat-sap-c++-NUM.so' with NUM >= 10!
+  when: __sap_netweaver_preconfigure_register_find_compat_sap_cpp.matched == 0
+
+# Note: All following tasks depend on the previous task not having failed, so no further when condition is used below.
+- name: Set fact for the latest 'compat-sap-c++.NUM.so' symlink
+  ansible.builtin.set_fact:
+    __sap_netweaver_preconfigure_fact_compat_sap_cpp_latest: >-
+     {{ __sap_netweaver_preconfigure_register_find_compat_sap_cpp.files
+       | map(attribute = 'path')
+       | sort | last | basename }}
+
+- name: Display the identified 'compat-sap-c++-NUM.so' symlink
+  ansible.builtin.debug:
+    msg: "Symlink '/opt/rh/SAP/lib64/{{ __sap_netweaver_preconfigure_fact_compat_sap_cpp_latest }}' is present."
+
+- name: Ensure there is a symlink in directory '/opt/rh/SAP/lib64' named 'libstdc++.so.6', pointing to '{{ __sap_netweaver_preconfigure_fact_compat_sap_cpp_latest }}'
+  ansible.builtin.file:
+    src: "{{ __sap_netweaver_preconfigure_fact_compat_sap_cpp_latest }}"
+    dest: "/opt/rh/SAP/lib64/libstdc++.so.6"
+    state: link
+
+- name: Ensure directory '{{ sap_netweaver_preconfigure_rpath }}' is present
   ansible.builtin.file:
     path: "{{ sap_netweaver_preconfigure_rpath }}"
     state: directory
     owner: root
     group: root
     mode: '0755'
-  when: __sap_netweaver_preconfigure_register_stat_compat_sap_cpp.stat.exists
 
-- name: Create a link to '{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6'
+- name: Ensure there is a symlink in directory '{{ sap_netweaver_preconfigure_rpath }}' named 'libstdc++.so.6' pointing to '/opt/rh/SAP/lib64/libstdc++.so.6'
   ansible.builtin.file:
-    src: /opt/rh/SAP/lib64/compat-sap-c++-10.so
+    src: /opt/rh/SAP/lib64/libstdc++.so.6
     dest: "{{ sap_netweaver_preconfigure_rpath }}/libstdc++.so.6"
     state: link
-  when: __sap_netweaver_preconfigure_register_stat_compat_sap_cpp.stat.exists

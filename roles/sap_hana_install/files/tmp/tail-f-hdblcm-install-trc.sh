@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 while true; do
 # in case hdblcm has not yet started, we assume that it is waiting for sapdsigner to complete:
