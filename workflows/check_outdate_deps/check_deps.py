@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import os
 import re
@@ -26,7 +26,7 @@ def __build_packages_dict_from_file():
         lines = file.readlines()
         for line in lines:
             regex_pattern = re.compile(
-                "([a-zA-Z0-9-]+)==([0-9]+\.[0-9]+\.[0-9]+)")
+                r"([a-zA-Z0-9-]+)==([0-9]+\.[0-9]+\.[0-9]+)")
             matches = regex_pattern.findall(line)
             if len(matches) > 0:
                 package_name = str(matches[0][0])
@@ -41,7 +41,7 @@ def __build_packages_dict_from_output(output):
     lines = output.splitlines(output)
     for line in lines:
         regex_pattern = re.compile(
-            "([a-zA-Z0-9-]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([a-zA-Z]+)")
+            r"([a-zA-Z0-9-]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([0-9]+\.[0-9]+\.[0-9]+)\ +([a-zA-Z]+)")
         matches = regex_pattern.findall(line)
         if len(matches) > 0:
             package_name = str(matches[0][0])
@@ -119,6 +119,7 @@ def __create_pull_request(pr_data):
         print(f"ERROR: Failed to create pull request. Status code: {response.status_code}.")
         return -1
 
+
 def manage_pull_request(branch, packages_issue):
     body = f"Bumps packages in {REQUIREMENT_FILE}."
     for package in packages_issue:
@@ -145,7 +146,7 @@ def manage_pull_request(branch, packages_issue):
         else:
             print(f"ERROR: Failed to update the pull requests. Status code: {response.status_code}.")
     else:
-        print(f"ERROR: More than 1 pull-request with the same title are found! I can't update.")
+        print("ERROR: More than 1 pull-request with the same title are found! I can't update.")
 
 
 def update_branch_with_changes(branch, file_to_change):
@@ -157,8 +158,9 @@ git fetch --prune
 git stash push
 git checkout -b {branch} origin/{branch}
 git stash pop
+git checkout --theirs {REQUIREMENT_FILE}
 git add {file_to_change}
-git commit --message=\"Update {file_to_change}\"
+git commit --message=\"Update {file_to_change} on `date`\"
 git push
     """)
 
@@ -174,8 +176,8 @@ def find_replace_in_file(file_path, find_str, replace_str):
 def create_branch_if_not_exists(branch, commit_sha):
     response = requests.get(f"https://api.github.com/repos/{REPOSITORY}/branches/{branch}")
     if response.status_code == 404:
-         branch_data = {"ref": "refs/heads/" + branch, "sha": commit_sha}
-         __create_branch(branch, branch_data)
+        branch_data = {"ref": "refs/heads/" + branch, "sha": commit_sha}
+        __create_branch(branch, branch_data)
     else:
         print(f"INFO: Branch -> https://github.com/{REPOSITORY}/tree/{branch}")
 
@@ -213,7 +215,7 @@ A new version of the package is out.
 **This is the previous title and description of this issue:**
 ```
 Title: {old_title}
-Description: 
+Description:
 {old_description}
 ```
             """
@@ -221,19 +223,20 @@ Description:
             __update_issue(issue_number, issue)
             return issue_number
     else:
-        print(f"ERROR: More than 1 issues with the same title are found! I can't update.")
+        print("ERROR: More than 1 issues with the same title are found! I can't update.")
         return -1
 
 
 if __name__ == '__main__':
-    print("##### Collect datas #####")
+    print("##### Collect data #####")
     os.system(f"pip3 install -r {REQUIREMENT_FILE}")
     raw_output_outdated = subprocess.run(
         ['pip3', 'list', '--outdated'],
-        stdout=subprocess.PIPE)
+        stdout=subprocess.PIPE,
+        check=False)
     current_packages = __build_packages_dict_from_file()
     latest_packages = __build_packages_dict_from_output(raw_output_outdated.stdout.decode('utf-8'))
-    print("##### Create datas #####")
+    print("##### Create data #####")
     packages_issue = {}
     if OPEN_PR == "True":
         create_branch_if_not_exists(BRANCH, COMMIT_SHA)
@@ -251,7 +254,7 @@ if __name__ == '__main__':
                 latest_version)
 
             if OPEN_PR == "True":
-                line_current = f"{package}==[0-9]+\.[0-9]+\.[0-9]+"
+                line_current = package + r"==[0-9]+\.[0-9]+\.[0-9]+"
                 line_latest = f"{package}=={latest_version}"
                 find_replace_in_file(REQUIREMENT_FILE,
                                      line_current,

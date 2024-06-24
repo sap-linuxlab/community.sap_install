@@ -15,6 +15,35 @@
 #  when: sap_hana_install_use_master_password == 'y'
 
 ################
+# Handle fapolicyd
+################
+
+- name: SAP HANA Pre Install, fapolicyd - Ensure the presence of fapolicyd
+  ansible.builtin.package:
+    name: fapolicyd
+    state: present
+  when: sap_hana_install_use_fapolicyd
+  tags: sap_hana_install_use_fapolicyd
+
+################
+# We must ensure fapolicyd is disabled before installing SAP HANA in all cases
+# Otherwise, the installation of SAP HANA will fail
+################
+
+- name: SAP HANA Pre Install, fapolicyd - Gather package facts
+  ansible.builtin.package_facts:
+  tags: sap_hana_install_use_fapolicyd
+
+- name: SAP HANA Pre Install, fapolicyd - Disable fapolicyd
+  ansible.builtin.service:
+    name: fapolicyd
+    enabled: false
+    state: stopped
+  when:
+    - '"fapolicyd" in ansible_facts.packages'
+  tags: sap_hana_install_use_fapolicyd
+
+################
 # Prepare software path
 ################
 
@@ -77,10 +106,10 @@
         owner: root
         group: root
       loop:
-        - '/hana'
-        - '/hana/shared'
-        - '/hana/log'
-        - '/hana/data'
+        - '{{ sap_hana_install_root_path }}'
+        - '{{ sap_hana_install_shared_path }}'
+        - '{{ sap_hana_install_root_path }}/log'
+        - '{{ sap_hana_install_root_path }}/data'
       tags: sap_hana_install_chown_hana_directories
 
     # SELinux is not currently supported by SAP using SLES4SAP
@@ -90,16 +119,16 @@
         sap_hana_install_modify_selinux_labels: false
       when: ansible_os_family == "Suse"
 
-    - name: SAP HANA Pre Install - Configure '/hana' SELinux file contexts
+    - name: SAP HANA Pre Install - Configure 'sap_hana_install_root_path' SELinux file contexts
       ansible.builtin.include_role:
         name: '{{ sap_hana_install_system_roles_collection }}.selinux'
       vars:
         selinux_booleans:
           - { name: 'selinuxuser_execmod', state: 'on' }
         selinux_fcontexts:
-          - { target: '/hana(/.*)?', setype: 'usr_t' }
+          - { target: '{{ sap_hana_install_root_path }}(/.*)?', setype: 'usr_t' }
         selinux_restore_dirs:
-          - /hana
+          - '{{ sap_hana_install_root_path }}'
       when: sap_hana_install_modify_selinux_labels
 
     - name: SAP HANA Pre Install - Get info about software extract directory '{{ sap_hana_install_software_extract_directory }}'

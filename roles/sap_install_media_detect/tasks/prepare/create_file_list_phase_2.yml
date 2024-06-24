@@ -120,7 +120,7 @@
       ansible.builtin.assert:
         that:
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_kernel') | length > 0
-          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXE_') | length == 1
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXE_') | selectattr('archive_type', 'equalto', 'sapcar') | length == 1
         fail_msg: "No, or more than one, DB independent SAP Kernel file found"
       when:
         - sap_install_media_detect_kernel
@@ -129,14 +129,19 @@
       ansible.builtin.assert:
         that:
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'search', 'sap_kernel_db_') | length > 0
-          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXEDB_') | length == 1
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPEXEDB_') | selectattr('archive_type', 'equalto', 'sapcar') | length == 1
         fail_msg: "No, or more than one, DB dependent SAP Kernel file found"
       when:
         - sap_install_media_detect_kernel
         - sap_install_media_detect_kernel_db is not defined
 
     - name: SAP Install Media Detect - Prepare - Assert that exactly one matching SAP Kernel DB dependent is present
-      when: sap_install_media_detect_kernel_db is defined
+      when:
+        sap_install_media_detect_kernel_db == 'saphana' or
+        sap_install_media_detect_kernel_db == 'sapase' or
+        sap_install_media_detect_kernel_db == 'sapmaxdb' or
+        sap_install_media_detect_kernel_db == 'oracledb' or
+        sap_install_media_detect_kernel_db == 'ibmdb2'
       block:
 
         - name: SAP Install Media Detect - Prepare - Assert that exactly one SAP Kernel DB dependent for SAP HANA is present
@@ -191,7 +196,7 @@
       ansible.builtin.assert:
         that:
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_igs') | length > 0
-          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'igsexe') | length > 0
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'igsexe') | selectattr('archive_type', 'equalto', 'sapcar') | length > 0
         fail_msg: "No igsexe file found"
       when:
         - sap_install_media_detect_igs
@@ -200,7 +205,7 @@
       ansible.builtin.assert:
         that:
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_igs') | length > 0
-          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'igshelper') | length > 0
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'igshelper') | selectattr('archive_type', 'equalto', 'sapcar') | length > 0
         fail_msg: "No igshelper file found"
       when:
         - sap_install_media_detect_igs
@@ -209,7 +214,7 @@
       ansible.builtin.assert:
         that:
           - __sap_install_media_detect_fact_files_sapfile_results | selectattr('sap_file_type', 'equalto', 'sap_webdisp') | length > 0
-          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPWEBDISP_') | length == 1
+          - __sap_install_media_detect_fact_files_sapfile_results | selectattr('file', 'search', 'SAPWEBDISP_') | selectattr('archive_type', 'equalto', 'sapcar') | length == 1
         fail_msg: "No, or more than one, SAPWEBDISP file found"
       when:
         - sap_install_media_detect_webdisp

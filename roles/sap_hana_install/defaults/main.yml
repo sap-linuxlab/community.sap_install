@@ -20,14 +20,32 @@ sap_hana_install_software_extract_directory: "{{ sap_hana_install_software_direc
 # set the value to true. By default, this directory will not be removed
 sap_hana_install_cleanup_extract_directory: false
 
-# Set this variable to `yes` if you want to copy the SAR files from `sap_hana_install_software_directory`
+# Set this variable to `true` if you want to copy the SAR files from `sap_hana_install_software_directory`
 # to `sap_hana_install_software_extract_directory/sarfiles` before extracting.
 # This might be useful if the SAR files are on a slow fileshare.
-sap_hana_install_copy_sarfiles: no
+sap_hana_install_copy_sarfiles: false
 
-# Set the following variable to `yes` if you want to keep the copied SAR files. By default, the SAR files will be
+# Set the following variable to `true` if you want to keep the copied SAR files. By default, the SAR files will be
 # removed after extraction.
-sap_hana_install_keep_copied_sarfiles: no
+sap_hana_install_keep_copied_sarfiles: false
+
+# For installing SAP HANA with fapolicyd support, set the following variable to `true`:
+sap_hana_install_use_fapolicyd: false
+
+# When using fapolicyd, you can set the following variable to one of `none`, `size`, `sha256`, or `ima`. Note that before setting
+# to `ima`, it is essential to prepare the system accordingly (e.g. boot with a different kernel parameter). See the
+# RHEL 9 Managing, monitoring, and updating the kernel guide for more information on this topic.
+sap_hana_install_fapolicyd_integrity: 'sha256'
+
+# When using fapolicyd, the following variable is used to define the fapolicyd rule file in which the rules for
+# protecting shell scripts are stored. The rule file will be created in the directory '/etc/fapolicyd/rules.d'.
+# Note: The mandatory file ending '.rules' will be added in the corresponding task of this role.
+sap_hana_install_fapolicyd_rule_file: '71-sap-shellscripts'
+
+# When using fapolicyd, modify the following variable to change or add the directories which contain SAP HANA executables:
+sap_hana_install_fapolicyd_trusted_directories:
+  - "{{ sap_hana_install_root_path }}"
+  - '/usr/sap'
 
 # File name of SAPCAR*EXE in the software directory. If the variable is not set and there is more than one SAPCAR executable
 # in the software directory, the latest SAPCAR executable for the CPU architecture will be selected automatically.
@@ -39,9 +57,9 @@ sap_hana_install_keep_copied_sarfiles: no
 #  - SAPHOSTAGENT54_54-80004822.SAR
 #  - IMDB_SERVER20_060_0-80002031.SAR
 
-# Set the following variable to `yes` to let the role abort if checksum verification fails for any SAPCAR or SAR file
+# Set the following variable to `true` to let the role abort if checksum verification fails for any SAPCAR or SAR file
 # called or used by the role.
-sap_hana_install_verify_checksums: no
+sap_hana_install_verify_checksums: false
 
 # Checksum algorithm for checksum verification. Default is sha256, for which a checksum is available in the SAP software
 # download pages.
@@ -50,9 +68,9 @@ sap_hana_install_checksum_algorithm: sha256
 # In case a global checksum file is present, use the following variable to specify the full path to this file:
 #sap_hana_install_global_checksum_file: "{{ sap_hana_install_software_directory }}/SHA256"
 
-# Set the following variable to `yes` to let hdbclm verify SAR file signatures. This corresponds to the hdblcm command line
+# Set the following variable to `true` to let hdbclm verify SAR file signatures. This corresponds to the hdblcm command line
 # argument `--verify_signature`.
-sap_hana_install_verify_signature: no
+sap_hana_install_verify_signature: false
 
 # hdblcm configfile related variables:
 # Directory where to store the hdblcm configfile template and the Jinja2 template:
@@ -69,36 +87,35 @@ sap_hana_install_configfile_template_prefix: "hdblcm_configfile_template"
 # Directory where to download the Jinja2 template:
 sap_hana_install_local_configfile_directory: '/tmp'
 
-# If you would like to perform an installation check after the installation, set the following variable to 'yes'.
+# If you would like to perform an installation check after the installation, set the following variable to 'true'.
 # Note: This only works if there is no static configfile available in sap_hana_install_configfile_directory.
-sap_hana_install_check_installation: no
+sap_hana_install_check_installation: false
 
-# Only if sap_hana_install_check_installation (above) is set to 'yes', you can select which command to use by setting the
-# following variable to `yes` or `no`.
-# yes: use the command 'hdbcheck', with parameters `--remote_execution=ssh` and `--scope=system`
-# no: use the command `hdblcm --action=check_installation`
-sap_hana_install_use_hdbcheck: yes
+# Only if sap_hana_install_check_installation (above) is set to 'true', you can select which command to use by setting the
+# following variable to `true` or `false`.
+# true: use the command 'hdbcheck', with parameters `--remote_execution=ssh` and `--scope=system`
+# false: use the command `hdblcm --action=check_installation`
+sap_hana_install_use_hdbcheck: true
 
-# If the following variable is set to yes, the HANA installation check will be skipped
-sap_hana_install_force: no
+# If the following variable is set to 'true', the HANA installation check will be skipped
+sap_hana_install_force: false
 
-# If the following variable is set to `no`, the role will attempt to install SAP HANA even if there is already a sidadm user.
-# Default is `yes`.
-sap_hana_install_check_sidadm_user: yes
+# If the following variable is set to `false`, the role will attempt to install SAP HANA even if there is already a sidadm user.
+sap_hana_install_check_sidadm_user: true
 
-# If the following variable is undefined or set to `yes`, the role will perform a fresh SAP HANA installation.
-# If set to `no`, additional hosts as specified by variable sap_hana_install_addhosts will be added to
+# If the following variable is undefined or set to `true`, the role will perform a fresh SAP HANA installation.
+# If set to `false`, additional hosts as specified by variable sap_hana_install_addhosts will be added to
 # an existing HANA system.
-sap_hana_install_new_system: yes
+sap_hana_install_new_system: true
 
 # The first tenant database is using a port range not within the range of the ports of additional tenant databases.
-# In case this is not desired, you can set the following parameter to `yes` to recreate the initial tenant database.
-sap_hana_install_recreate_tenant_database: no
+# In case this is not desired, you can set the following parameter to `true` to recreate the initial tenant database.
+sap_hana_install_recreate_tenant_database: false
 
 # For compatibility of SAP HANA with SELinux in enforcing mode, the role will recursively relabel directories and files
 # in `/hana` before the installation starts and in `/usr/sap` after the installation has finished.
-# If relabeling not desired, set the following variable to `no`.
-sap_hana_install_modify_selinux_labels: yes
+# If relabeling not desired, set the following variable to `false`.
+sap_hana_install_modify_selinux_labels: true
 
 ################
 # Parameters for hdblcm:
@@ -114,7 +131,8 @@ sap_hana_install_components: 'all'
 # Instance details
 sap_hana_install_sid:
 sap_hana_install_number:
-sap_hana_install_install_path: '/hana/shared'
+sap_hana_install_root_path: "{{ '/' + sap_hana_install_install_path.split('/')[1] if sap_hana_install_install_path is defined else '/hana' }}"
+sap_hana_install_shared_path: "{{ sap_hana_install_install_path | d(sap_hana_install_root_path + '/shared') }}"
 
 # Adjust these accordingly for your installation type
 sap_hana_install_system_usage: 'custom'
@@ -140,7 +158,7 @@ sap_hana_install_use_master_password: 'y'
 #sap_hana_install_xs_org_password:
 
 # Optional steps
-sap_hana_install_update_firewall: no
+sap_hana_install_update_firewall: false
 
 # List of firewall ports for SAP HANA. Note: The structure of the variable is compatible
 # with the variable `firewall` of Linux System Role `firewall`.
@@ -166,14 +184,14 @@ sap_hana_install_firewall:
       state: 'enabled' }
 
 # The following variable is no longer used. Setting /etc/hosts entries is done in role sap_general_preconfigure.
-#sap_hana_install_update_etchosts: yes
+#sap_hana_install_update_etchosts: true
 
 # Post install parameters
 sap_hana_install_hdbuserstore_key: 'HDB_SYSTEMDB'
 sap_hana_install_nw_input_location: '/tmp'
 
 # License
-sap_hana_install_apply_license: no
+sap_hana_install_apply_license: false
 #sap_hana_install_license_path:
 #sap_hana_install_license_file_name:
 

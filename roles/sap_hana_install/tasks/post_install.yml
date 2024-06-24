@@ -97,7 +97,7 @@
     - name: SAP HANA hdblcm installation check - Construct an hdbcheck command line
       ansible.builtin.set_fact:
         __sap_hana_install_fact_installation_check_command: "set -o pipefail && ./hdbcheck -b --read_password_from_stdin=xml
-          --property_file={{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/global/hdb/install/support/hdbcheck.xml
+          --property_file={{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/global/hdb/install/support/hdbcheck.xml
           --remote_execution=ssh
           --scope=system
           -b < {{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg.xml"
@@ -118,7 +118,7 @@
     - name: SAP HANA hdblcm installation check with hdbcheck - Perform the check # noqa command-instead-of-shell
       ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
       args:
-        chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/global/hdb/install/bin"
+        chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/global/hdb/install/bin"
       register: __sap_hana_install_register_installation_check
       changed_when: false
       when: sap_hana_install_use_hdbcheck | d(true)
@@ -132,7 +132,7 @@
     - name: SAP HANA hdblcm installation check with hdblcm - Perform the check # noqa command-instead-of-shell
       ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
       args:
-        chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
+        chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/hdblcm"
       register: __sap_hana_install_register_installation_check
       changed_when: false
       when: not sap_hana_install_use_hdbcheck | d(true)
@@ -152,7 +152,7 @@
         gsub ("^\\s*hosts?: ", ""); gsub (", ", ","); print; a=0}
       }'
   args:
-    chdir: "{{ sap_hana_install_install_path }}/{{ sap_hana_install_sid }}/hdblcm"
+    chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/hdblcm"
   register: __sap_hana_install_register_install_result
   changed_when: no
   when: not ansible_check_mode
@@ -203,3 +203,108 @@
 #      - '  Host             -       {{ ansible_hostname }}'
 #      - '  FQDN             -       {{ ansible_fqdn }}'
   when: not ansible_check_mode
+
+- name: SAP HANA Post Install, fapolicyd - Update config for desired integrity level and backout if validation fails
+  when:
+    - sap_hana_install_use_fapolicyd
+    - '"fapolicyd" in ansible_facts.packages'
+  tags: sap_hana_install_use_fapolicyd
+  block:
+
+    - name: SAP HANA Post Install, fapolicyd - Ensure Ansible marker for 'integrity' is present in fapolicyd config file
+      ansible.builtin.lineinfile:
+        path: /etc/fapolicyd/fapolicyd.conf
+        regexp: '# "integrity" managed by Ansible'
+        insertbefore: '^integrity\s*=.*'
+        line: '# "integrity" managed by Ansible'
+
+    - name: SAP HANA Post Install, fapolicyd - Ensure integrity level '{{ sap_hana_install_fapolicyd_integrity }}' is configured"
+      ansible.builtin.lineinfile:
+        path: /etc/fapolicyd/fapolicyd.conf
+        regexp: '^(integrity\s*=.*)'
+        insertafter: '# "integrity" managed by Ansible'
+        line: 'integrity = {{ sap_hana_install_fapolicyd_integrity }}'
+        backup: true
+      register: __sap_hana_install_fapolicyd_conf_updated
+
+    - name: SAP HANA Post Install, fapolicyd - Validate the new version of the fapolicyd config file
+      ansible.builtin.command: fapolicyd-cli --check-config
+      changed_when: false
+
+  rescue:
+
+    - name: SAP HANA Post Install, fapolicyd - Restore fapolicyd config file from backup if validation fails
+      ansible.builtin.copy:
+        remote_src: true
+        dest: /etc/fapolicyd/fapolicyd.conf
+        src: "{{ __sap_hana_install_fapolicyd_conf_updated['backup'] }}"
+        owner: root
+        group: fapolicyd
+        mode: '0644'
+
+    - name: SAP HANA Post Install, fapolicyd - Notify about failed validation
+      ansible.builtin.fail:
+        msg: >-
+          "The update of the fapolicyd config file failed, likely because an unsupported value has been used for
+           the parameter 'sap_hana_install_fapolicyd_integrity'. The previous version has been successfully restored."
+
+- name: SAP HANA Post Install, fapolicyd - Create rule and trust files, enable fapolicyd
+  when:
+    - sap_hana_install_use_fapolicyd
+    - '"fapolicyd" in ansible_facts.packages'
+  tags: sap_hana_install_use_fapolicyd
+  block:
+
+    - name: SAP HANA Post Install, fapolicyd - Process template for creating rule file '{{ sap_hana_install_fapolicyd_rule_file }}'
+      ansible.builtin.template:
+        src: fapolicyd-rules.j2
+        dest: "/etc/fapolicyd/rules.d/{{ sap_hana_install_fapolicyd_rule_file }}.rules"
+        owner: root
+        group: fapolicyd
+        mode: '0644'
+
+# Reason for noqa: The return code of the command is always 0 no matter if there was a change or not
+    - name: SAP HANA Post Install, fapolicyd - Merge rule files # noqa no-changed-when
+      ansible.builtin.command: fagenrules --load
+      register: sap_hana_install_register_fagenrules_load
+
+    - name: SAP HANA Post Install, fapolicyd - Display the output of the command 'fagenrules --load'
+      ansible.builtin.debug:
+        msg: "{{ sap_hana_install_register_fagenrules_load.stdout_lines }}"
+
+# We want to add files which have the execute mode bit set AND which are reported as executables
+# by fapolicyd-cli -t, one for each directory of sap_hana_install_fapolicyd_trusted_directories.
+# The fapolicy trust file name will be created from the directory names by replacing '/' by '_' and
+# omitting the first '_'.
+    - name: SAP HANA Post Install, fapolicyd - Put all executable files from 'sap_hana_install_fapolicyd_trusted_directories' into fapolicyd trust files
+      ansible.builtin.shell: |
+        set -o pipefail &&
+        find {{ __sap_hana_install_item }} -type f -executable -exec fapolicyd-cli -t {} \; -print |
+        awk '/\/x-/{a=1; b=NR}
+          {
+            if(a==1 && b==(NR-1)){
+              system("fapolicyd-cli --file add "$0" --trust-file \
+                {{ __sap_hana_install_item | regex_replace('//*', '_') | regex_replace("^_", "") }}"); a=0; b=0
+            }
+          }'
+      loop: "{{ sap_hana_install_fapolicyd_trusted_directories }}"
+      loop_control:
+        loop_var: __sap_hana_install_item
+        label: >-
+          "{{ __sap_hana_install_item }} ->
+          /etc/fapolicyd/trust.d/{{ __sap_hana_install_item |
+          regex_replace('//*', '_') |
+          regex_replace('^_', '') }}"
+      changed_when: true
+
+    - name: SAP HANA Post Install, fapolicyd - Enable fapolicyd
+      ansible.builtin.service:
+        name: fapolicyd
+        enabled: true
+        state: started
+
+    - name: SAP HANA Post Install, fapolicyd - Restart fapolicyd
+      ansible.builtin.service:
+        name: fapolicyd
+        enabled: true
+        state: restarted
