@@ -15,3 +15,7 @@
 - **SVA**
   - **Thomas Bludau** - Origin developer of SAP installation Ansible automation (2019) and project co-owner
   - **Rainer Leber**  - Developer of Ansible Collection (SLES code)
+- **SUSE**
+  - SUSE SAP Emerging Technology Solutions
+    - **Marcel Mamula** - SAP solution architect and developer of Ansible Collection
+    - **Gabriele Puliti** - Developer of Ansible Collection
