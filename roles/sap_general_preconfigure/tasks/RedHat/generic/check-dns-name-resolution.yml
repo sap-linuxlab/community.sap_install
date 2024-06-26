@@ -1,23 +1,20 @@
 ---
 
-- name: Check forward dns record (A)
+- name: "Verify the correct DNS hostname to IP address resolution (A record) for {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}"
   ansible.builtin.shell: test "$(dig {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} +short)" = "{{ sap_general_preconfigure_ip }}"
   changed_when: false
- #ignore_errors: true
   register: __sap_general_preconfigure_register_dns_test_a
   failed_when: __sap_general_preconfigure_register_dns_test_a.rc != 0
 
 ### BUG: dig does not use search path in resolv.con on PPCle
-- name: Check resolv.conf settings
+- name: "Verify the correct DNS hostname to IP address resolution (A record) using the hostname and the search list for {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}"
   ansible.builtin.shell: test "$(dig {{ sap_general_preconfigure_hostname }} +search +short)" = "{{ sap_general_preconfigure_ip }}"
   changed_when: false
-#ignore_errors: true
-  register: __sap_general_preconfigure_register_dns_test_resolvconf
-  failed_when: __sap_general_preconfigure_register_dns_test_resolvconf.rc != 0
+  register: __sap_general_preconfigure_register_dns_test_searchlist
+  failed_when: __sap_general_preconfigure_register_dns_test_searchlist.rc != 0
 
-- name: Check reverse dns record (PTR)
+- name: "Verify the correct DNS IP address to FQDN resolution (PTR record) for {{ sap_general_preconfigure_ip }}"
   ansible.builtin.shell: test "$(dig -x {{ sap_general_preconfigure_ip }} +short)" = "{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}."
-  changed_when: false
- #ignore_errors: true
+  changed_when: false 
   register: __sap_general_preconfigure_register_dns_test_ptr
   failed_when: __sap_general_preconfigure_register_dns_test_ptr.rc != 0
