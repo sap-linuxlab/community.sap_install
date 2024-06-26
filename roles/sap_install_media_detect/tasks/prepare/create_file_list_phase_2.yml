@@ -21,6 +21,8 @@
   ansible.builtin.set_fact:
     __sap_install_media_detect_fact_find_result_phase_2: "{{ __sap_install_media_detect_fact_find_result_phase_2 + [item.path] }}"
   loop: "{{ __sap_install_media_detect_register_find_result_phase_2.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: SAP Install Media Detect - Prepare - Iterate over files and determine file type
   ansible.builtin.command: "{{ __sap_install_media_detect_sapfile_path }} -e --lsar_file={{ __sap_install_media_detect_rar_list.split(' ')[0] }} --sapcar_file={{ __sap_install_media_detect_fact_sapcar_path }} {{ line_item }}"
@@ -34,6 +36,8 @@
   ansible.builtin.set_fact:
     __sap_install_media_detect_fact_files_sapfile_results: "{{ __sap_install_media_detect_fact_files_sapfile_results + [__new_dict] }}"
   loop: "{{ __sap_install_media_detect_register_files_phase_2.results }}"
+  loop_control:
+    label: "{{ item.stdout.split(';')[0] }}"
   vars:
     __new_dict:
       dir: "{{ item.stdout.split(';')[0] | dirname }}"
