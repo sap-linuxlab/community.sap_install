@@ -47,9 +47,9 @@
 - name: SAP Install Media Detect - Prepare - Set fact from find result, phase 1b
   ansible.builtin.set_fact:
     __sap_install_media_detect_fact_find_result_phase_1b: "{{ __sap_install_media_detect_fact_find_result_phase_1b + [item.1.path] }}"
-  with_subelements:
-    - "{{ __sap_install_media_detect_register_find_result_phase_1b.results }}"
-    - files
+  loop: "{{ __sap_install_media_detect_register_find_result_phase_1b.results | subelements('files') }}"
+  loop_control:
+    label: "{{ item.1.path }}"
 
 # Reason for noqa: Too much additional code required for determining if anything has changed or not
 - name: SAP Install Media Detect - Prepare - Move files back to '{{ __sap_install_media_detect_software_main_directory }}' # noqa no-changed-when
