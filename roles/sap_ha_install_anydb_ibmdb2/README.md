@@ -25,6 +25,22 @@ Download IBM Db2 installation media from SAP Download Center on host, and set An
 These are listed in the default variables file, but commented-out to enforce the required variables:
 - [**sap_ha_install_anydb_ibmdb2** default parameters](defaults/main.yml)
 
+## Requirements and Dependencies
+
+This Ansible Role is applicable to IBM Db2 11.5.8 and later, where the 
+
+### Target host - Infrastructure Platforms
+
+Applicable for:
+
+- Amazon Web Services
+- Google Cloud
+- Microsoft Azure
+
+### Target host - Operating System requirements
+
+Designed for Linux operating systems, e.g. RHEL (7.x and 8.x) and SLES (15.x).
+
 ## Execution
 
 Sample Ansible Playbook Execution:
@@ -40,7 +56,6 @@ Sample Ansible Playbook Execution:
 ```yaml
 ---
 - hosts: all
-  become: true
 
   collections:
     - community.sap_install
@@ -52,8 +67,8 @@ Sample Ansible Playbook Execution:
     sap_ha_install_anydb_ibmdb2_software_directory: /software/ibmdb2_extracted
 
     - name: Execute Ansible Role sap_ha_install_anydb_ibmdb2
-      include_role:
-        name: { role: community.sap_install.sap_ha_install_anydb_ibmdb2 }
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_ha_install_anydb_ibmdb2
 ```
 
 ## License
