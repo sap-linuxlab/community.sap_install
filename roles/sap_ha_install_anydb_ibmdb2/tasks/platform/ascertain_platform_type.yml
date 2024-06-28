@@ -57,11 +57,11 @@
   ansible.builtin.set_fact:
     __sap_ha_install_anydb_ibmdb2_platform: cloud_gcp_ce_vm
 
-- name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Cloud Virtual Server
-  when:
-    - ansible_chassis_asset_tag == 'ibmcloud'
-  ansible.builtin.set_fact:
-    __sap_ha_install_anydb_ibmdb2_platform: cloud_ibmcloud_vs
+# - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Cloud Virtual Server
+#   when:
+#     - ansible_chassis_asset_tag == 'ibmcloud'
+#   ansible.builtin.set_fact:
+#     __sap_ha_install_anydb_ibmdb2_platform: cloud_ibmcloud_vs
 
 - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is Microsoft Azure Virtual Machine
   when:
@@ -70,45 +70,45 @@
   ansible.builtin.set_fact:
     __sap_ha_install_anydb_ibmdb2_platform: cloud_msazure_vm
 
-- name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Power - RSCT binary check
-  ansible.builtin.shell: |
-    set -o pipefail && rpm -qa | grep -E -e "rsct.basic"
-  register: __sap_ha_install_anydb_ibmdb2_power_rsct_check
-  changed_when: false
-  when: ansible_architecture == "ppc64le"
+# - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Power - RSCT binary check
+#   ansible.builtin.shell: |
+#     set -o pipefail && rpm -qa | grep -E -e "rsct.basic"
+#   register: __sap_ha_install_anydb_ibmdb2_power_rsct_check
+#   changed_when: false
+#   when: ansible_architecture == "ppc64le"
 
-- name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Power - RSCT binary check
-  ansible.builtin.fail:
-    msg: Please install RSCT from IBM Power Systems service and productivity tools repository
-  when:
-    - ansible_architecture == "ppc64le"
-    - __sap_ha_install_anydb_ibmdb2_power_rsct_check.stdout == ""
+# - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Power - RSCT binary check
+#   ansible.builtin.fail:
+#     msg: Please install RSCT from IBM Power Systems service and productivity tools repository
+#   when:
+#     - ansible_architecture == "ppc64le"
+#     - __sap_ha_install_anydb_ibmdb2_power_rsct_check.stdout == ""
 
-- name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Power - RSCT binary check
-  ansible.builtin.shell: |
-    /opt/rsct/bin/ctgethscid
-  register: __sap_ha_install_anydb_ibmdb2_power_rsct_hscid
-  changed_when: false
-  when:
-    - ansible_architecture == "ppc64le"
-    - __sap_ha_install_anydb_ibmdb2_power_rsct_check.stdout != ""
+# - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Power - RSCT binary check
+#   ansible.builtin.shell: |
+#     /opt/rsct/bin/ctgethscid
+#   register: __sap_ha_install_anydb_ibmdb2_power_rsct_hscid
+#   changed_when: false
+#   when:
+#     - ansible_architecture == "ppc64le"
+#     - __sap_ha_install_anydb_ibmdb2_power_rsct_check.stdout != ""
 
-- name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Power Virtual Server from IBM Cloud
-  when:
-    - ansible_architecture == "ppc64le"
-    - '"ibmcloud" in __sap_ha_install_anydb_ibmdb2_power_rsct_hscid.stdout'
-  ansible.builtin.set_fact:
-    __sap_ha_install_anydb_ibmdb2_platform: cloud_ibmcloud_powervs
+# - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Power Virtual Server from IBM Cloud
+#   when:
+#     - ansible_architecture == "ppc64le"
+#     - '"ibmcloud" in __sap_ha_install_anydb_ibmdb2_power_rsct_hscid.stdout'
+#   ansible.builtin.set_fact:
+#     __sap_ha_install_anydb_ibmdb2_platform: cloud_ibmcloud_powervs
 
-- name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM PowerVM
-  when:
-    - ansible_architecture == "ppc64le"
-    - '"ibmcloud" not in __sap_ha_install_anydb_ibmdb2_power_rsct_hscid.stdout'
-  ansible.builtin.set_fact:
-    __sap_ha_install_anydb_ibmdb2_platform: hyp_ibmpower_vm
+# - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM PowerVM
+#   when:
+#     - ansible_architecture == "ppc64le"
+#     - '"ibmcloud" not in __sap_ha_install_anydb_ibmdb2_power_rsct_hscid.stdout'
+#   ansible.builtin.set_fact:
+#     __sap_ha_install_anydb_ibmdb2_platform: hyp_ibmpower_vm
 
-#- name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is VMware vSphere"
-#  when:
-#    - ansible_virtualization_type == 'VMware'
-#  ansible.builtin.set_fact:
-#    __sap_ha_install_anydb_ibmdb2_platform: hyp_vmware_vsphere_vm
+# - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is VMware vSphere"
+#   when:
+#     - ansible_virtualization_type == 'VMware'
+#   ansible.builtin.set_fact:
+#     __sap_ha_install_anydb_ibmdb2_platform: hyp_vmware_vsphere_vm
