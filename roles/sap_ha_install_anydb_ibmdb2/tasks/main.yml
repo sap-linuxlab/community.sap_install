@@ -38,6 +38,7 @@
   ansible.builtin.import_tasks: platform/ascertain_platform_type.yml
 
 # See IBM Db2 documentation 'HADR and network address translation (NAT) support' - https://www.ibm.com/docs/en/db2/11.5?topic=support-hadr-nat
+# These are the HADR Ports used for internode communication, and are unrelated to Health Check probe port from a Load Balancer
 - name: SAP HA AnyDB - IBM Db2 HADR - Append IBM Db2 HA Ports to /etc/services
   ansible.builtin.lineinfile:
     path: /etc/services
@@ -160,11 +161,10 @@
         {{ __sap_ha_install_anydb_ibmdb2_pcmk_binary_db2cppcmk.files[0].path }} -i
 
     # db2cm script must run as root
-    - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Update corosync totem token timeout and create Linux Pacemaker cluster using db2cm
+    - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Create Linux Pacemaker cluster using db2cm
       register: __sap_ha_install_anydb_ibmdb2_config1
       when:
         - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
-        - __sap_ha_install_anydb_ibmdb2_platform == "cloud_aws_ec2_vs"
       ansible.builtin.shell: |
         export ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
         export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
@@ -175,8 +175,17 @@
         export anydb_primary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_primary].ansible_default_ipv4.interface }}"
         export anydb_secondary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_secondary].ansible_default_ipv4.interface }}"
 
-        sed -i 's/token: 10000/token: 30000/g' /etc/corosync/corosync.conf
         /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -cluster -domain db2pcmkcluster -host $anydb_primary -publicEthernet $anydb_primary_nic -host $anydb_secondary -publicEthernet $anydb_secondary_nic -remote_cmd "ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      failed_when: not __sap_ha_install_anydb_ibmdb2_config1.rc == 0 and not 'make sure there is no cluster on any of the hosts' in __sap_ha_install_anydb_ibmdb2_config1.stdout
+
+    # db2cm script must run as root
+    # Setting to be performed on both Primary and Secondary node
+    - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Update corosync totem token timeout after creating cluster
+      register: __sap_ha_install_anydb_ibmdb2_config1
+      # when:
+      #   - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+      ansible.builtin.shell: |
+        sed -i 's/token: 10000/token: 30000/g' /etc/corosync/corosync.conf
       failed_when: not __sap_ha_install_anydb_ibmdb2_config1.rc == 0 and not 'make sure there is no cluster on any of the hosts' in __sap_ha_install_anydb_ibmdb2_config1.stdout
 
     # db2cm script must run as root
@@ -201,7 +210,40 @@
         /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -instance $ibmdb2_instance -host $anydb_secondary
       failed_when: not __sap_ha_install_anydb_ibmdb2_config3.rc == 0 and not 'already exists in the resource model' in __sap_ha_install_anydb_ibmdb2_config3.stdout
 
+    # Use the IBM Db2 Command Line Processor
+    # Setting to be performed on both Primary and Secondary node
+    - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Update IBM Db2 HADR config with greater timeout allowance using db2cm
+      register: __sap_ha_install_anydb_ibmdb2_config5
+      # when:
+      #   - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+      become: true
+      become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
+      args:
+        executable: /bin/csh
+      ansible.builtin.shell: |
+        set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+        db2 UPDATE DB CFG FOR $ibmdb2_sid using HADR_PEER_WINDOW 300
+      failed_when: not __sap_ha_install_anydb_ibmdb2_config5.rc == 0 and not 'command completed successfully' in __sap_ha_install_anydb_ibmdb2_config5.stdout
+
+    # Use the IBM Db2 Command Line Processor
+    # Address SQL1363W - database must be shutdown and reactivated before the configuration parameter changes become effective
+    - name: SAP HA AnyDB - IBM Db2 HADR - Primary and Secondary Node - Shutdown and Reactivate
+      register: __sap_ha_install_anydb_ibmdb2_config5
+      # when:
+      #   - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+      become: true
+      become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
+      args:
+        executable: /bin/csh
+      ansible.builtin.shell: |
+        set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+        db2 deactivate db $ibmdb2_sid
+        db2 activate db $ibmdb2_sid
+      failed_when: not __sap_ha_install_anydb_ibmdb2_config5.rc == 0 and not 'command completed successfully' in __sap_ha_install_anydb_ibmdb2_config5.stdout
+
     # db2cm script must run as root
+    # Ensure parameter HADR_PEER_WINDOW is set, otherwise will clustering-supported-cluster-management-software
+    # "Error: Please configure HADR_PEER_WINDOW for <db_sid> on instance <db_instance> on <db_host> to a value of at least 60 seconds."
     - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Create IBM Db2 RDBMS instance config in Linux Pacemaker cluster using db2cm
       register: __sap_ha_install_anydb_ibmdb2_config4
       when:
@@ -211,22 +253,6 @@
         export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
         /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -db $ibmdb2_sid -instance $ibmdb2_instance
       failed_when: not __sap_ha_install_anydb_ibmdb2_config4.rc == 0 and not 'already exists in the resource model' in __sap_ha_install_anydb_ibmdb2_config4.stdout
-
-    # Use the IBM Db2 Command Line Processor
-    - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Update IBM Db2 HADR config with greater timeout allowance using db2cm
-      register: __sap_ha_install_anydb_ibmdb2_config5
-      when:
-        - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
-      become: true
-      become_user: db2{{ sap_system_anydb_sid | lower }}
-      args:
-        executable: /bin/csh
-      ansible.builtin.shell: |
-        set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
-        db2 UPDATE DB CFG FOR $ibmdb2_sid using HADR_PEER_WINDOW 300
-        db2 deactivate db $ibmdb2_sid
-        db2 activate db $ibmdb2_sid
-      failed_when: not __sap_ha_install_anydb_ibmdb2_config5.rc == 0 and not 'command completed successfully' in __sap_ha_install_anydb_ibmdb2_config5.stdout
 
     - name: SAP HA AnyDB - IBM Db2 HADR - Configure Linux Pacemaker on target infrastructure platform using db2cm
       ansible.builtin.include_tasks: "platform/db2cm_{{ __sap_ha_install_anydb_ibmdb2_platform }}.yml"
@@ -239,6 +265,8 @@
   when:
     - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
   ansible.builtin.shell: |
+    crm --display=plain configure show
+    echo -e "\n\n"
     crm --display=plain status full
 
 # db2cm script must run as root
@@ -249,6 +277,32 @@
   ansible.builtin.shell: |
     export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -list
+
+# Use the IBM Db2 Command Line Processor
+- name: SAP HA AnyDB - IBM Db2 HADR - Verify IBM Db2 HADR configuration
+  register: __sap_ha_install_anydb_ibmdb2_hadr_config
+  become: true
+  become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
+  args:
+    executable: /bin/csh
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+  ansible.builtin.shell: |
+    set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    db2 get db cfg for $ibmdb2_sid | grep 'Rollforward\|HADR'
+
+# Use the IBM Db2 Command Line Processor
+- name: SAP HA AnyDB - IBM Db2 HADR - Verify IBM Db2 HADR status
+  register: __sap_ha_install_anydb_ibmdb2_hadr_status
+  become: true
+  become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
+  args:
+    executable: /bin/csh
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+  ansible.builtin.shell: |
+    set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    db2pd -hadr -db $ibmdb2_sid
 
 - name: SAP HA AnyDB - IBM Db2 HADR - Display crm for IBM Db2 HA Linux Pacemaker initialisation
   when:
@@ -261,3 +315,15 @@
     - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
   ansible.builtin.debug:
     msg: "{{ __sap_ha_install_anydb_ibmdb2_init_check.stdout_lines }}"
+
+- name: SAP HA AnyDB - IBM Db2 HADR - Display IBM Db2 HADR configuration
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+  ansible.builtin.debug:
+    msg: "{{ __sap_ha_install_anydb_ibmdb2_hadr_config.stdout_lines }}"
+
+- name: SAP HA AnyDB - IBM Db2 HADR - Display IBM Db2 HADR status
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+  ansible.builtin.debug:
+    msg: "{{ __sap_ha_install_anydb_ibmdb2_hadr_status.stdout_lines }}"

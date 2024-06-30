@@ -16,6 +16,9 @@
 
 
 # db2cm script must run as root
+# When Virtual IP is already attached to OS Network Interface as Secondary IP
+# (in advance by sap_vm_temp_vip or previous db2cm run), will cause
+# "Error: ip address is pingable, use another ip address in the subnet that is not pingable."
 - name: SAP HA AnyDB - IBM Db2 HADR (AWS) - Primary Node - Create Virtual IP address for Primary Node using db2cm
   register: __sap_ha_install_anydb_ibmdb2_config_aws_1
   when:
@@ -27,9 +30,17 @@
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -primaryVIP "{{ sap_ha_install_anydb_ibmdb2_vip_primary_ip_address }}" -db $ibmdb2_sid -instance $ibmdb2_instance
   failed_when: not __sap_ha_install_anydb_ibmdb2_config_aws_1.rc == 0 and not 'already exists in the resource model' in __sap_ha_install_anydb_ibmdb2_config_aws_1.stdout
 
+# Setting to be performed on both Primary and Secondary node
+- name: SAP HA AnyDB - IBM Db2 HADR (AWS) - Primary and Secondary Node - Provide AWS CLI credentials
+  register: __sap_ha_install_anydb_ibmdb2_config_aws_credentials
+  when:
+    - __sap_ha_install_anydb_ibmdb2_platform == "cloud_aws_ec2_vs"
+  ansible.builtin.shell: |
+    aws configure set aws_access_key_id "{{ sap_ha_install_anydb_ibmdb2_aws_access_key_id }}"
+    aws configure set aws_secret_access_key "{{ sap_ha_install_anydb_ibmdb2_aws_secret_access_key }}"
 
 # db2cm script must run as root
-- name: SAP HA AnyDB - IBM Db2 HADR (AWS) - Primary Node - Provide AWS credentials and create Linux Pacemaker Fence Agent instantiation using db2cm
+- name: SAP HA AnyDB - IBM Db2 HADR (AWS) - Primary Node - Create Linux Pacemaker Fence Agent instantiation using db2cm
   register: __sap_ha_install_anydb_ibmdb2_config_aws_2
   when:
     - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
@@ -37,8 +48,6 @@
   ansible.builtin.shell: |
     export ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
     export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
-    #aws configure set aws_access_key_id "{{ sap_ha_pacemaker_cluster_aws_access_key_id }}"
-    #aws configure set aws_secret_access_key "{{ sap_ha_pacemaker_cluster_aws_secret_access_key }}"
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -aws -fence
   failed_when: not __sap_ha_install_anydb_ibmdb2_config_aws_2.rc == 0 and not 'already configured' in __sap_ha_install_anydb_ibmdb2_config_aws_2.stdout
 
@@ -51,8 +60,6 @@
   ansible.builtin.shell: |
     export ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
     export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
-    #aws configure set aws_access_key_id "{{ sap_ha_pacemaker_cluster_aws_access_key_id }}"
-    #aws configure set aws_secret_access_key "{{ sap_ha_pacemaker_cluster_aws_secret_access_key }}"
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -aws -primaryVIP "{{ sap_ha_install_anydb_ibmdb2_vip_primary_ip_address }}" -rtb "{{ sap_ha_install_anydb_ibmdb2_aws_vip_update_rt }}" -db $ibmdb2_sid -instance $ibmdb2_instance
   failed_when: not __sap_ha_install_anydb_ibmdb2_config_aws_3.rc == 0 and not 'already exists' in __sap_ha_install_anydb_ibmdb2_config_aws_3.stdout
 
@@ -74,3 +81,15 @@
 
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -enable -all
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -enable -instance $ibmdb2_instance -host $anydb_primary -publicEthernet $anydb_primary_nic -host $anydb_secondary -publicEthernet $anydb_secondary_nic -remote_cmd "ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+
+
+# Deletion commands:
+# export ibmdb2_sid=""
+# export ibmdb2_instance=""
+# export anydb_primary=""
+# /db2/$ibmdb2_instance/sqllib/bin/db2cm -delete -primaryVIP -db $ibmdb2_sid -instance $ibmdb2_instance
+# /db2/$ibmdb2_instance/sqllib/bin/db2cm -delete -aws -primaryVIP -db $ibmdb2_sid -instance $ibmdb2_instance
+# /db2/$ibmdb2_instance/sqllib/bin/db2cm -delete -aws -fence
+# /db2/$ibmdb2_instance/sqllib/bin/db2cm -delete -instance $ibmdb2_instance -host $anydb_primary
+# /db2/$ibmdb2_instance/sqllib/bin/db2cm -delete -db $ibmdb2_sid -instance $ibmdb2_instance
+# /db2/$ibmdb2_instance/sqllib/bin/db2cm -delete -cluster -db $ibmdb2_sid -instance $ibmdb2_instance
