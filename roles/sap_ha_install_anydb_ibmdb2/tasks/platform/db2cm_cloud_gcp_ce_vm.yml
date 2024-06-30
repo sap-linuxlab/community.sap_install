@@ -1,11 +1,11 @@
 ---
 
-- name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - Fence Agent Packages
-  ansible.builtin.package:
-    name:
-      - fence-agents-gce
-      # - resource-agents-gcp
-    state: present
+# - name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - Fence Agent Packages
+#   ansible.builtin.package:
+#     name:
+#       - fence-agents-gce
+#       - resource-agents-gcp
+#     state: present
 
 
 - name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - GCloud Repo Key
@@ -47,13 +47,14 @@
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -primaryVIP "{{ sap_ha_install_anydb_ibmdb2_vip_primary_ip_address }}" -db $ibmdb2_sid -instance $ibmdb2_instance
   failed_when: not __sap_ha_install_anydb_ibmdb2_config_gcp_1.rc == 0 and not 'ip address is pingable' in __sap_ha_install_anydb_ibmdb2_config_gcp_1.stdout
 
-# # Setting to be performed on both Primary and Secondary node
-# - name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - Primary and Secondary Node - Provide GCloud CLI credentials
-#   register: __sap_ha_install_anydb_ibmdb2_config_gcp_credentials
-#   when:
-#     - __sap_ha_install_anydb_ibmdb2_platform == "cloud_gcp_ce_vm"
-#   ansible.builtin.shell: |
-#     gcloud auth activate-service-account --key-file=file.json --project=name
+# Setting to be performed on both Primary and Secondary node
+- name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - Primary and Secondary Node - Provide GCloud CLI credentials
+  register: __sap_ha_install_anydb_ibmdb2_config_gcp_credentials
+  when:
+    - __sap_ha_install_anydb_ibmdb2_platform == "cloud_gcp_ce_vm"
+  ansible.builtin.shell: |
+    gcloud auth activate-service-account --key-file="{{ sap_ha_install_anydb_ibmdb2_gcp_credentials_json_file }}" --project="{{ sap_ha_install_anydb_ibmdb2_gcp_project }}"
+    gcloud debug targets list --quiet
 
 # # VERIFY - Missing fence_gce ?
 # # db2cm script must run as root
