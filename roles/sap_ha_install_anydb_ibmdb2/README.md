@@ -27,7 +27,9 @@ These are listed in the default variables file, but commented-out to enforce the
 
 ## Requirements and Dependencies
 
-This Ansible Role is applicable to IBM Db2 11.5.8 and later, where the 
+This Ansible Role is applicable to IBM Db2 11.5 certified for SAP.
+
+It is applicable to 11.5.9 and later, which provides `db2cm` binary compatibility for AWS, GCP and MS Azure.
 
 ### Target host - Infrastructure Platforms
 
