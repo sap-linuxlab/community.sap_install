@@ -55,3 +55,4 @@ Now you can run the playbook non-interactively with
 ```[bash]
 ansible-playbook community.sap_install.sap_hana_preconfigure_exec.yml -i my_inventory -e @my_vars.yml
 ```
+NOTE: If you do not define the parameter `sap_hana_group` the playbook will run against all hosts in the inventory unless limited with `-l hostname' or localhost if no inventory is defined.

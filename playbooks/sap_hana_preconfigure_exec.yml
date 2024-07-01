@@ -17,11 +17,12 @@
 # sap_hana_preconfigure_reboot_ok: defaults to false
 
 - name: Prepare system for SAP HANA Installation
-  hosts: "{{ sap_hana_group | d('localhost') }}"
+  hosts: "{{ sap_hana_group | d((groups['all'] == []) | ternary ('localhost', groups['all'] | join(','))) }}"
   become: true
   tasks:
     - name: Ansible Role Configuration
       ansible.builtin.debug:
+
       # sap_swpm_extract_directory testen !!!
 
         msg: |-
