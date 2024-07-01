@@ -16,6 +16,9 @@ Run the following command:
 ansible-playbook community.sap_install.sap_hana_preconfigure.yml
 ```
 
+This playbook runs against localhost and/or remote hosts.
+Remote hosts can be defined in an inventory in a file, or with -i on the commandline e.g. `-i inventoryfile` or `-i host1,host2,host3,` and execution can be of course limited with -l.
+Nonetheless you need to confirm the hosts in the interactive dialog.
 When you call this playbook against a remote host make sure the user can connect and assume root without a password or pass the following parameters if necessary
 
 ```[bash]
@@ -24,7 +27,7 @@ When you call this playbook against a remote host make sure the user can connect
  -K: asks for the privilige escalation password of the connection user to become root on the target host
 ```
 
-If you want to embed this playbook or run non-interactive, you need to prepare an ansible inventory that contains a group for the hosts you want to install, e.g. my_hanas (see also <https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html>).
+If you want to embed this playbook or run a non-interactive version, you need to prepare an ansible inventory that contains a group for the hosts you want to install, e.g. my_hanas (see also <https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html>).
 
 Create the file `my_inventory` similar to:
 
@@ -35,7 +38,6 @@ hana2
 ```
 
 Prepare a variable config file with the following parameters (adapt to your needs):
-
 Create a parameter file `my_vars` with similar content:
 
 ```[yaml]
@@ -55,4 +57,5 @@ Now you can run the playbook non-interactively with
 ```[bash]
 ansible-playbook community.sap_install.sap_hana_preconfigure_exec.yml -i my_inventory -e @my_vars.yml
 ```
+
 NOTE: If you do not define the parameter `sap_hana_group` the playbook will run against all hosts in the inventory unless limited with `-l hostname' or localhost if no inventory is defined.
