@@ -2,9 +2,9 @@
 
 # sap_ha_install_anydb_ibmdb2 Ansible Role
 
-Ansible Role for instantiation of IBM Db2 “Integrated Linux Pacemaker” HADR cluster
+Ansible Role for instantiation of IBM Db2 'Integrated Linux Pacemaker' HADR cluster
 
-Note: IBM Db2 with “Integrated Linux Pacemaker” can use two deployment models:
+Note: IBM Db2 with 'Integrated Linux Pacemaker' can use two deployment models:
 - Mutual Failover option, not covered by this Ansible Role
 - High Availability and Disaster Recovery (HADR) option for Idle Standby, initialised by this Ansible Role
 
