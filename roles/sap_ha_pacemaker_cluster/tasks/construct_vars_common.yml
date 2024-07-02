@@ -48,18 +48,38 @@
       + __sap_ha_pacemaker_cluster_fence_agent_packages)
       | unique }}"
 
-- name: "SAP HA Prepare Pacemaker - Add default corosync totem settings"
-  when:
-    - sap_ha_pacemaker_cluster_corosync_totem is defined
-    - sap_ha_pacemaker_cluster_corosync_totem.options is defined
-    - sap_ha_pacemaker_cluster_corosync_totem.options | length > 0
+# Prepare corosync totem variable with either:
+# - User provided sap_ha_pacemaker_cluster_corosync_totem if present
+# - Combine corosync totem from OS variables and Platform variables if present
+# - Use default corosync totem from OS variables if Platform variable is not present
+- name: "SAP HA Prepare Pacemaker - Prepare corosync totem settings"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_corosync_totem:
       options: "{{ __sap_ha_pacemaker_cluster_corosync_totem.options | default([]) + __totem_settings }}"
   vars:
+    # Identify if provided sap_ha_pacemaker_cluster_corosync_totem is defined
+    __user_totem_is_present:
+      "{{ true if (sap_ha_pacemaker_cluster_corosync_totem is defined
+        and sap_ha_pacemaker_cluster_corosync_totem.options is defined
+        and sap_ha_pacemaker_cluster_corosync_totem | length > 0) else false }}"
+
+    # Identify if __sap_ha_pacemaker_cluster_corosync_totem_platform is defined
+    __platform_totem_is_present:
+      "{{ true if (__sap_ha_pacemaker_cluster_corosync_totem_platform is defined
+        and __sap_ha_pacemaker_cluster_corosync_totem_platform.options is defined
+        and __sap_ha_pacemaker_cluster_corosync_totem_platform | length > 0) else false }}"
+
     __totem_settings: |-
+      {% if __user_totem_is_present %}
+      {% set corosync_totem = sap_ha_pacemaker_cluster_corosync_totem %}
+      {% elif __platform_totem_is_present %}
+      {% set corosync_totem = __sap_ha_pacemaker_cluster_corosync_totem_default
+       | combine(__sap_ha_pacemaker_cluster_corosync_totem_platform, recursive=True) %}
+      {% else %}
+      {% set corosync_totem = __sap_ha_pacemaker_cluster_corosync_totem_default %}
+      {% endif %}
       {% set new_opts = [] %}
-      {% for option in sap_ha_pacemaker_cluster_corosync_totem.options | dict2items -%}
+      {% for option in corosync_totem.options | dict2items -%}
         {%- set add_opts = new_opts.extend([
           {
             'name': option.key,
@@ -67,3 +87,5 @@
           }]) -%}
       {%- endfor %}
       {{ new_opts }}
+
+# TODO: Add support for ha_cluster_quorum
