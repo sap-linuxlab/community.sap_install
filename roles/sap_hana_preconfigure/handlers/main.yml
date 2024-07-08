@@ -83,6 +83,18 @@
   when:
     - sap_hana_preconfigure_reboot_ok | d(false)
 
+# Kernel update triggers zypper purge-kernels and lock after reboot.
+- name: Wait for Zypper lock to be released
+  ansible.builtin.command:
+    cmd: zypper info zypper
+  retries: 60
+  timeout: 5
+  listen: __sap_hana_preconfigure_reboot_handler
+  when:
+    - ansible_os_family == 'Suse'
+    - sap_hana_preconfigure_reboot_ok | d(false)
+  changed_when: false
+
 - name: Let the role fail if a reboot is required
   ansible.builtin.fail:
     msg: Reboot is required!
