@@ -1,13 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Fence Agent Packages
+- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Fence Agent Packages for RHEL
   ansible.builtin.package:
     name:
       - fence-agents-azure-arm
       - socat
     state: present
+  when: ansible_os_family == 'RedHat'
 
+- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Fence Agent Packages for SLES
+  ansible.builtin.package:
+    name:
+      - fence-agents
+      - socat
+    state: present
+  when: ansible_os_family == 'Suse'
 
 - name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Azure CLI Repo Key
   ansible.builtin.rpm_key:
@@ -30,6 +38,14 @@
     - ansible_os_family == "RedHat"
     - ansible_distribution_major_version == "8"
 
+- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Azure CLI Repo for SLES
+  community.general.zypper_repository:
+    name: Azure CLI
+    repo: https://packages.microsoft.com/yumrepos/azure-cli
+    state: present
+    auto_import_keys: true
+  when: ansible_os_family == 'Suse'
+
 - name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Azure CLI Package
   ansible.builtin.package:
     name: azure-cli
@@ -46,7 +62,9 @@
 # When Virtual IP is already attached to OS Network Interface as Secondary IP
 # (in advance by sap_vm_temp_vip or previous db2cm run), will cause
 # "Error: ip address is pingable, use another ip address in the subnet that is not pingable."
-- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Primary Node - Create Virtual IP address for Primary Node using db2cm
+# Reasons for noqa:
+# - no-changed-when: Db2 command will error if already exists and not perform changes
+- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Primary Node - Create Virtual IP address for Primary Node using db2cm # noqa no-changed-when
   register: __sap_ha_install_anydb_ibmdb2_config_msazure_1
   when:
     - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
@@ -58,7 +76,9 @@
   failed_when: not __sap_ha_install_anydb_ibmdb2_config_msazure_1.rc == 0 and not 'ip address is pingable' in __sap_ha_install_anydb_ibmdb2_config_msazure_1.stdout
 
 # Setting to be performed on both Primary and Secondary node
-- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Primary and Secondary Node - Provide MS Azure CLI credentials
+# Reasons for noqa:
+# - no-changed-when: Db2 mandates use of AWS CLI for credentials instead of credential configuration directly via IBM Db2 selected Pacemaker Shell (crmsh)
+- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Primary and Secondary Node - Provide MS Azure CLI credentials # noqa no-changed-when
   register: __sap_ha_install_anydb_ibmdb2_config_msazure_credentials
   when:
     - __sap_ha_install_anydb_ibmdb2_platform == "cloud_msazure_vm"
@@ -66,7 +86,9 @@
     az login --service-principal -u "{{ sap_ha_install_anydb_ibmdb2_msazure_app_client_id }}" -p "{{ sap_ha_install_anydb_ibmdb2_msazure_app_client_secret }}" --tenant "{{ sap_ha_install_anydb_ibmdb2_msazure_tenant_id }}"
 
 # db2cm script must run as root
-- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Primary Node - Create Linux Pacemaker Fence Agent instantiation using db2cm
+# Reasons for noqa:
+# - no-changed-when: Db2 command will error if already exists and not perform changes
+- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Primary Node - Create Linux Pacemaker Fence Agent instantiation using db2cm # noqa no-changed-when
   register: __sap_ha_install_anydb_ibmdb2_config_msazure_2
   when:
     - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
@@ -80,7 +102,9 @@
   failed_when: not __sap_ha_install_anydb_ibmdb2_config_msazure_2.rc == 0 and not 'already configured' in __sap_ha_install_anydb_ibmdb2_config_msazure_2.stdout
 
 # db2cm script must run as root
-- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Primary Node - Create Linux Pacemaker Resource Agent instantiation for azure-lb using db2cm
+# Reasons for noqa:
+# - no-changed-when: Db2 command will error if already exists and not perform changes
+- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Primary Node - Create Linux Pacemaker Resource Agent instantiation for azure-lb using db2cm # noqa no-changed-when
   register: __sap_ha_install_anydb_ibmdb2_config_msazure_3
   when:
     - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
@@ -94,7 +118,9 @@
   failed_when: not __sap_ha_install_anydb_ibmdb2_config_msazure_3.rc == 0 and not 'already exists' in __sap_ha_install_anydb_ibmdb2_config_msazure_3.stdout
 
 # db2cm script must run as root
-- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Primary Node - Start Linux Pacemaker cluster and IBM Db2 HADR functionality
+# Reasons for noqa:
+# - no-changed-when: Db2 command will error if already exists and not perform changes
+- name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Primary Node - Start Linux Pacemaker cluster and IBM Db2 HADR functionality # noqa no-changed-when
   register: __sap_ha_install_anydb_ibmdb2_config_msazure_4
   when:
     - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
