@@ -41,7 +41,8 @@
 # Use the IBM Db2 Performance Diagnostics tool
 # Reasons for noqa:
 # - no-changed-when: Db2 PD tool is to retrieve information and perform no change
-- name: SAP HA AnyDB - IBM Db2 HADR - Confirm if IBM HADR is already activated (i.e. re-run) # noqa no-changed-when
+# - risky-shell-pipe: csh cannot use 'set -o pipefail &&' and will error with 'set: Variable name must begin with a letter'
+- name: SAP HA AnyDB - IBM Db2 HADR - Confirm if IBM HADR is already activated (i.e. re-run) # noqa no-changed-when risky-shell-pipe
   register: __sap_ha_install_anydb_ibmdb2_hadr_initial_status
   become: true
   become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
@@ -49,7 +50,7 @@
     executable: /bin/csh
   ansible.builtin.shell: |
     set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
-    set -o pipefail && db2pd -hadr -db $ibmdb2_sid | grep 'HADR_CONNECT_STATUS =' | tr -d ' ' || echo ''
+    db2pd -hadr -db $ibmdb2_sid | grep 'HADR_CONNECT_STATUS =' | tr -d ' ' || echo ''
 
 - name: SAP HA AnyDB - IBM Db2 HADR - Warning if IBM Db2 HADR is already activated
   ansible.builtin.debug:
@@ -96,7 +97,8 @@
 # Use the IBM Db2 Command Line Processor
 # Reasons for noqa:
 # - no-changed-when: Use Db2 CLP to retrieve information and perform no change
-- name: SAP HA AnyDB - IBM Db2 HADR - Verify IBM Db2 HADR configuration # noqa no-changed-when
+# - risky-shell-pipe: csh cannot use 'set -o pipefail &&' and will error with 'set: Variable name must begin with a letter'
+- name: SAP HA AnyDB - IBM Db2 HADR - Verify IBM Db2 HADR configuration # noqa no-changed-when risky-shell-pipe
   register: __sap_ha_install_anydb_ibmdb2_hadr_config
   become: true
   become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
@@ -106,7 +108,7 @@
     - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
   ansible.builtin.shell: |
     set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
-    set -o pipefail && db2 get db cfg for $ibmdb2_sid | grep 'Rollforward\|HADR'
+    db2 get db cfg for $ibmdb2_sid | grep 'Rollforward\|HADR'
 
 # Use the IBM Db2 Command Line Processor
 # Reasons for noqa:
