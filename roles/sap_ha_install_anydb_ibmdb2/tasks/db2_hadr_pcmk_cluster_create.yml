@@ -79,11 +79,11 @@
     # - command-instead-of-module: Shell commands to match IBM Db2 documentation
     # - no-changed-when: Command is check only and performs no action
     - name: SAP HA AnyDB - IBM Db2 HADR - Verify IBM Db2 'Integrated Linux Pacemaker' is installed # noqa command-instead-of-module no-changed-when
-      register: __sap_ha_install_anydb_ibmdb2_pcmk_version_check
       ansible.builtin.shell: |
         set -o pipefail && rpm -q corosync | grep -I db2pcmk
         set -o pipefail && rpm -q pacemaker | grep -I db2pcmk
         set -o pipefail && rpm -q crmsh | grep -I db2pcmk
+      register: __sap_ha_install_anydb_ibmdb2_pcmk_version_check
 
     - name: SAP HA AnyDB - IBM Db2 HADR - Display IBM Db2 'Integrated Linux Pacemaker' installation details
       ansible.builtin.debug:
@@ -153,9 +153,6 @@
     # Reasons for noqa:
     # - no-changed-when: Db2 command will error if already exists and not perform changes
     - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Create Linux Pacemaker cluster using db2cm # noqa no-changed-when
-      register: __sap_ha_install_anydb_ibmdb2_config1
-      when:
-        - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
       ansible.builtin.shell: |
         export ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
         export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
@@ -167,6 +164,9 @@
         export anydb_secondary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_secondary].ansible_default_ipv4.interface }}"
 
         /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -cluster -domain db2pcmkcluster -host $anydb_primary -publicEthernet $anydb_primary_nic -host $anydb_secondary -publicEthernet $anydb_secondary_nic -remote_cmd "ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      register: __sap_ha_install_anydb_ibmdb2_config1
+      when:
+        - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
       failed_when: not __sap_ha_install_anydb_ibmdb2_config1.rc == 0 and not 'make sure there is no cluster on any of the hosts' in __sap_ha_install_anydb_ibmdb2_config1.stdout
 
     # Corosync setting to be performed on both Primary and Secondary node
@@ -174,35 +174,35 @@
     # - command-instead-of-module: Shell commands to match IBM Db2 documentation
     # - no-changed-when: sed will not change anything if already changed
     - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Update corosync totem token timeout after creating cluster # noqa command-instead-of-module no-changed-when
-      register: __sap_ha_install_anydb_ibmdb2_config2
       ansible.builtin.shell: |
         sed -i 's/token: 10000/token: 30000/g' /etc/corosync/corosync.conf
+      register: __sap_ha_install_anydb_ibmdb2_config2
       failed_when: not __sap_ha_install_anydb_ibmdb2_config2.rc == 0 and not 'make sure there is no cluster on any of the hosts' in __sap_ha_install_anydb_ibmdb2_config2.stdout
 
     # db2cm script must run as root
     # Reasons for noqa:
     # - no-changed-when: Db2 command will error if already exists and not perform changes
     - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Create Primary Node instance config in Linux Pacemaker cluster using db2cm # noqa no-changed-when
-      register: __sap_ha_install_anydb_ibmdb2_config3
-      when:
-        - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
       ansible.builtin.shell: |
         export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
         export anydb_primary="{{ sap_ha_install_anydb_ibmdb2_hostname_primary }}"
         /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -instance $ibmdb2_instance -host $anydb_primary
+      register: __sap_ha_install_anydb_ibmdb2_config3
+      when:
+        - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
       failed_when: not __sap_ha_install_anydb_ibmdb2_config3.rc == 0 and not 'already exists in the resource model' in __sap_ha_install_anydb_ibmdb2_config3.stdout
 
     # db2cm script must run as root
     # Reasons for noqa:
     # - no-changed-when: Db2 command will error if already exists and not perform changes
     - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Create Secondary Node instance config in Linux Pacemaker cluster using db2cm # noqa no-changed-when
-      register: __sap_ha_install_anydb_ibmdb2_config4
-      when:
-        - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
       ansible.builtin.shell: |
         export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
         export anydb_secondary="{{ sap_ha_install_anydb_ibmdb2_hostname_secondary }}"
         /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -instance $ibmdb2_instance -host $anydb_secondary
+      register: __sap_ha_install_anydb_ibmdb2_config4
+      when:
+        - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
       failed_when: not __sap_ha_install_anydb_ibmdb2_config4.rc == 0 and not 'already exists in the resource model' in __sap_ha_install_anydb_ibmdb2_config4.stdout
 
     # Use the IBM Db2 Command Line Processor
@@ -210,6 +210,9 @@
     # Reasons for noqa:
     # - no-changed-when: Db2 CLP will not error if config exists but when will attempt to skip anyway
     - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Update IBM Db2 HADR config with greater timeout allowance using db2cm # noqa no-changed-when
+      ansible.builtin.shell: |
+        set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+        db2 UPDATE DB CFG FOR $ibmdb2_sid using HADR_PEER_WINDOW 300
       register: __sap_ha_install_anydb_ibmdb2_config5
       # when:
       #   - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
@@ -217,9 +220,6 @@
       become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
       args:
         executable: /bin/csh
-      ansible.builtin.shell: |
-        set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
-        db2 UPDATE DB CFG FOR $ibmdb2_sid using HADR_PEER_WINDOW 300
       failed_when: not __sap_ha_install_anydb_ibmdb2_config5.rc == 0 and not 'command completed successfully' in __sap_ha_install_anydb_ibmdb2_config5.stdout
 
     # Use the IBM Db2 Command Line Processor
@@ -227,6 +227,10 @@
     # Reasons for noqa:
     # - no-changed-when: Db2 CLP error if config exists so prevent with attempt to skip
     - name: SAP HA AnyDB - IBM Db2 HADR - Primary and Secondary Node - Shutdown and Reactivate # noqa no-changed-when
+      ansible.builtin.shell: |
+        set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+        db2 deactivate db $ibmdb2_sid
+        db2 activate db $ibmdb2_sid
       register: __sap_ha_install_anydb_ibmdb2_config6
       # when:
       #   - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
@@ -234,10 +238,6 @@
       become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
       args:
         executable: /bin/csh
-      ansible.builtin.shell: |
-        set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
-        db2 deactivate db $ibmdb2_sid
-        db2 activate db $ibmdb2_sid
       failed_when: not __sap_ha_install_anydb_ibmdb2_config6.rc == 0 and not 'command completed successfully' in __sap_ha_install_anydb_ibmdb2_config6.stdout
 
     # db2cm script must run as root
@@ -246,13 +246,13 @@
     # Reasons for noqa:
     # - no-changed-when: Db2 CLP error if config exists so prevent with attempt to skip
     - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Create IBM Db2 RDBMS instance config in Linux Pacemaker cluster using db2cm # noqa no-changed-when
-      register: __sap_ha_install_anydb_ibmdb2_config7
-      when:
-        - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
       ansible.builtin.shell: |
         export ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
         export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
         /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -db $ibmdb2_sid -instance $ibmdb2_instance
+      register: __sap_ha_install_anydb_ibmdb2_config7
+      when:
+        - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
       failed_when: not __sap_ha_install_anydb_ibmdb2_config7.rc == 0 and not 'already exists in the resource model' in __sap_ha_install_anydb_ibmdb2_config7.stdout
 
     - name: SAP HA AnyDB - IBM Db2 HADR - Configure Linux Pacemaker on target infrastructure platform using db2cm
