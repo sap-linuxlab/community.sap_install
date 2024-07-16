@@ -170,14 +170,13 @@
       failed_when: not __sap_ha_install_anydb_ibmdb2_config1.rc == 0 and not 'make sure there is no cluster on any of the hosts' in __sap_ha_install_anydb_ibmdb2_config1.stdout
 
     # Corosync setting to be performed on both Primary and Secondary node
-    # Reasons for noqa:
-    # - command-instead-of-module: Shell commands to match IBM Db2 documentation
-    # - no-changed-when: sed will not change anything if already changed
-    - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Update corosync totem token timeout after creating cluster # noqa command-instead-of-module no-changed-when
-      ansible.builtin.shell: |
-        sed -i 's/token: 10000/token: 30000/g' /etc/corosync/corosync.conf
+    - name: SAP HA AnyDB - IBM Db2 HADR - Primary Node - Update corosync totem token timeout after creating cluster
+      ansible.builtin.lineinfile:
+        path: /etc/corosync/corosync.conf
+        regexp: '^.*token: 10000'
+        line: '        token: 30000'
+        backup: false
       register: __sap_ha_install_anydb_ibmdb2_config2
-      failed_when: not __sap_ha_install_anydb_ibmdb2_config2.rc == 0 and not 'make sure there is no cluster on any of the hosts' in __sap_ha_install_anydb_ibmdb2_config2.stdout
 
     # db2cm script must run as root
     # Reasons for noqa:
