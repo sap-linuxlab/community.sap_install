@@ -56,10 +56,16 @@
           - cluster-glue
           - crmsh
           - ibcmap4
+          - libcorosync_common4
+          - libcpg4
+          - libsam4
+          - libvotequorum8
           - libqb100
         state: absent
         disable_gpg_check: true
-      when: ansible_os_family == 'Suse'
+      when:
+        - ansible_os_family == 'Suse'
+        - __sap_ha_install_anydb_ibmdb2_hadr_initial_status.stdout != "HADR_CONNECT_STATUS=CONNECTED" # Use to avoid removal of OS Package on re-run
 
     - name: SAP HA AnyDB - IBM Db2 HADR - Install all IBM Db2 'Integrated Linux Pacemaker' RPMs for SLES
       community.general.zypper:
