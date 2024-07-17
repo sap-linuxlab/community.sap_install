@@ -842,6 +842,13 @@ sap_ha_pacemaker_cluster_resource_defaults:
   resource-stickiness: 1000
 ```
 
+### sap_ha_pacemaker_cluster_saphanasr_angi_detection
+
+- _Type:_ `string`
+- _Default:_ `True`
+
+Disabling this variable enables to use Classic SAPHanaSR agents even on server, with SAPHanaSR-angi is available.<br>
+
 ### sap_ha_pacemaker_cluster_stonith_custom
 
 - _Type:_ `list`
