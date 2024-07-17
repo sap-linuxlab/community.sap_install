@@ -38,6 +38,24 @@
     msg: IBM Db2 installation media is not available, cannot find file db2installPCMK
   when: not (__sap_ha_install_anydb_ibmdb2_check_install_media.files | length > 0)
 
+# Use the IBM Db2 Performance Diagnostics tool
+# Reasons for noqa:
+# - no-changed-when: Db2 PD tool is to retrieve information and perform no change
+# - risky-shell-pipe: csh cannot use 'set -o pipefail &&' and will error with 'set: Variable name must begin with a letter'
+- name: SAP HA AnyDB - IBM Db2 HADR - Confirm if IBM HADR is already activated (i.e. re-run) # noqa no-changed-when risky-shell-pipe
+  ansible.builtin.shell: |
+    set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    db2pd -hadr -db $ibmdb2_sid | grep 'HADR_CONNECT_STATUS =' | tr -d ' ' || echo ''
+  register: __sap_ha_install_anydb_ibmdb2_hadr_initial_status
+  become: true
+  become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
+  args:
+    executable: /bin/csh
+
+- name: SAP HA AnyDB - IBM Db2 HADR - Warning if IBM Db2 HADR is already activated
+  ansible.builtin.debug:
+    msg: WARNING - IBM Db2 HADR is already activated, some steps will be skipped and some may fail
+  when: __sap_ha_install_anydb_ibmdb2_hadr_initial_status.stdout == "HADR_CONNECT_STATUS=CONNECTED"
 
 # Determine infrastructure platform
 - name: SAP HA AnyDB - IBM Db2 HADR - Include tasks for platform detection
@@ -53,26 +71,37 @@
   ansible.builtin.import_tasks: db2_hadr_pcmk_cluster_create.yml
 
 
-- name: SAP HA AnyDB - IBM Db2 HADR - Verify crm for IBM Db2 HA Linux Pacemaker initialisation 
-  register: __sap_ha_install_anydb_ibmdb2_pcmk_check
-  when:
-    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+# Use the Pacemaker Shell 'crmsh'
+# Reasons for noqa:
+# - no-changed-when: Use crmsh to retrieve information and perform no change
+- name: SAP HA AnyDB - IBM Db2 HADR - Verify crm for IBM Db2 HA Linux Pacemaker initialisation # noqa no-changed-when
   ansible.builtin.shell: |
     crm --display=plain configure show
     echo -e "\n\n"
     crm --display=plain status full
-
-# db2cm script must run as root
-- name: SAP HA AnyDB - IBM Db2 HADR - Verify db2cm for IBM Db2 HA Linux Pacemaker initialisation
-  register: __sap_ha_install_anydb_ibmdb2_init_check
+  register: __sap_ha_install_anydb_ibmdb2_pcmk_check
   when:
     - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+
+# db2cm script must run as root
+# Reasons for noqa:
+# - no-changed-when: Use db2cm script to retrieve information and perform no change
+- name: SAP HA AnyDB - IBM Db2 HADR - Verify db2cm for IBM Db2 HA Linux Pacemaker initialisation # noqa no-changed-when
   ansible.builtin.shell: |
     export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -list
+  register: __sap_ha_install_anydb_ibmdb2_init_check
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
 
 # Use the IBM Db2 Command Line Processor
-- name: SAP HA AnyDB - IBM Db2 HADR - Verify IBM Db2 HADR configuration
+# Reasons for noqa:
+# - no-changed-when: Use Db2 CLP to retrieve information and perform no change
+# - risky-shell-pipe: csh cannot use 'set -o pipefail &&' and will error with 'set: Variable name must begin with a letter'
+- name: SAP HA AnyDB - IBM Db2 HADR - Verify IBM Db2 HADR configuration # noqa no-changed-when risky-shell-pipe
+  ansible.builtin.shell: |
+    set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    db2 get db cfg for $ibmdb2_sid | grep 'Rollforward\|HADR'
   register: __sap_ha_install_anydb_ibmdb2_hadr_config
   become: true
   become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
@@ -80,12 +109,14 @@
     executable: /bin/csh
   when:
     - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
-  ansible.builtin.shell: |
-    set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
-    db2 get db cfg for $ibmdb2_sid | grep 'Rollforward\|HADR'
 
 # Use the IBM Db2 Command Line Processor
-- name: SAP HA AnyDB - IBM Db2 HADR - Verify IBM Db2 HADR status
+# Reasons for noqa:
+# - no-changed-when: Use Db2 CLP to retrieve information and perform no change
+- name: SAP HA AnyDB - IBM Db2 HADR - Verify IBM Db2 HADR status # noqa no-changed-when
+  ansible.builtin.shell: |
+    set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    db2pd -hadr -db $ibmdb2_sid
   register: __sap_ha_install_anydb_ibmdb2_hadr_status
   become: true
   become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
@@ -93,30 +124,27 @@
     executable: /bin/csh
   when:
     - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
-  ansible.builtin.shell: |
-    set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
-    db2pd -hadr -db $ibmdb2_sid
 
 - name: SAP HA AnyDB - IBM Db2 HADR - Display crm for IBM Db2 HA Linux Pacemaker initialisation
-  when:
-    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
   ansible.builtin.debug:
     msg: "{{ __sap_ha_install_anydb_ibmdb2_pcmk_check.stdout_lines }}"
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
 
 - name: SAP HA AnyDB - IBM Db2 HADR - Display db2cm for IBM Db2 HA Linux Pacemaker initialisation
-  when:
-    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
   ansible.builtin.debug:
     msg: "{{ __sap_ha_install_anydb_ibmdb2_init_check.stdout_lines }}"
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
 
 - name: SAP HA AnyDB - IBM Db2 HADR - Display IBM Db2 HADR configuration
-  when:
-    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
   ansible.builtin.debug:
     msg: "{{ __sap_ha_install_anydb_ibmdb2_hadr_config.stdout_lines }}"
-
-- name: SAP HA AnyDB - IBM Db2 HADR - Display IBM Db2 HADR status
   when:
     - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+
+- name: SAP HA AnyDB - IBM Db2 HADR - Display IBM Db2 HADR status
   ansible.builtin.debug:
     msg: "{{ __sap_ha_install_anydb_ibmdb2_hadr_status.stdout_lines }}"
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
