@@ -74,6 +74,7 @@
 # and then having to compare the output against the list of desired repos
     - name: Run the subscription-manager command # noqa no-changed-when
       ansible.builtin.command: "{{ __sap_general_preconfigure_fact_subscription_manager_command }}"
+      tags: molecule-idempotence-notest
 
 # Reason for noqa: We need the output of the yum command
     - name: Get list of enabled repositories
@@ -104,6 +105,7 @@
   when:
     - sap_general_preconfigure_set_minor_release
     - __sap_general_preconfigure_register_subscription_manager_release.stdout != ansible_distribution_version
+  tags: molecule-idempotence-notest
 
 - name: Ensure that the required package groups are installed, RHEL except 8.1
   ansible.builtin.package:
