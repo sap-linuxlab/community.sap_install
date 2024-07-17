@@ -13,11 +13,21 @@
   loop_control:
     loop_var: line_item
 
+- name: Construct the command for getting all current parameters of file '{{ sap_general_preconfigure_etc_sysctl_sap_conf }}'
+  ansible.builtin.command: awk 'BEGIN{FS="="; printf ("sysctl ")}{printf ("%s ", $1)}' "{{ sap_general_preconfigure_etc_sysctl_sap_conf }}"
+  register: __sap_general_preconfigure_register_sap_conf_sysctl_command
+  changed_when: false
+
+- name: Get all currently active values of the parameters of file '{{ sap_general_preconfigure_etc_sysctl_sap_conf }}'
+  ansible.builtin.shell: "{{ __sap_general_preconfigure_register_sap_conf_sysctl_command.stdout }}"
+  register: __sap_general_preconfigure_register_sap_conf_sysctl_p_output_old
+  changed_when: false
+
 - name: Reload kernel parameters from file '{{ sap_general_preconfigure_etc_sysctl_sap_conf }}'
   ansible.builtin.command: sysctl -p "{{ sap_general_preconfigure_etc_sysctl_sap_conf }}"
-  register: __sap_general_preconfigure_register_sap_conf_sysctl_p_output
-  changed_when: true
+  register: __sap_general_preconfigure_register_sap_conf_sysctl_p_output_new
+  changed_when: __sap_general_preconfigure_register_sap_conf_sysctl_p_output_old.stdout != __sap_general_preconfigure_register_sap_conf_sysctl_p_output_new.stdout
 
 - name: Display kernel parameters after setting kernel.pid_max
   ansible.builtin.debug:
-    var: __sap_general_preconfigure_register_sap_conf_sysctl_p_output.stdout_lines
+    var: __sap_general_preconfigure_register_sap_conf_sysctl_p_output_new.stdout_lines
