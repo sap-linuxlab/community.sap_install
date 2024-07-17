@@ -66,11 +66,21 @@
       loop_control:
         loop_var: line_item
 
-# Reason for noqa: We unconditionally reload the kernel parameters without first checking the current values
-    - name: Reload kernel parameters from file '/etc/sysctl.d/ibm_largesend.conf' # noqa no-changed-when
+    - name: Construct the command for getting all current parameters of file '/etc/sysctl.d/ibm_largesend.conf'
+      ansible.builtin.command: awk 'BEGIN{FS="="; printf ("sysctl ")}{printf ("%s ", $1)}' /etc/sysctl.d/ibm_largesend.conf
+      register: __sap_hana_preconfigure_register_ibm_largesend_sysctl_command
+      changed_when: false
+
+    - name: Get all currently active values of the parameters of file '/etc/sysctl.d/ibm_largesend.conf'
+      ansible.builtin.shell: "{{ __sap_hana_preconfigure_register_ibm_largesend_sysctl_command.stdout }}"
+      register: __sap_hana_preconfigure_register_ibm_largesend_sysctl_p_output_old
+      changed_when: false
+
+    - name: Reload kernel parameters from file '/etc/sysctl.d/ibm_largesend.conf'
       ansible.builtin.command: sysctl -p /etc/sysctl.d/ibm_largesend.conf
-      register: __sap_hana_preconfigure_register_ibm_largesend_sysctl_p_output
+      register: __sap_hana_preconfigure_register_ibm_largesend_sysctl_p_output_new
+      changed_when: __sap_hana_preconfigure_register_ibm_largesend_sysctl_p_output_old.stdout != __sap_hana_preconfigure_register_ibm_largesend_sysctl_p_output_new.stdout
 
     - name: Display largesend kernel parameters
       ansible.builtin.debug:
-        var: __sap_hana_preconfigure_register_ibm_largesend_sysctl_p_output.stdout_lines
+        var: __sap_hana_preconfigure_register_ibm_largesend_sysctl_p_output_new.stdout_lines
