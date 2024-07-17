@@ -30,7 +30,9 @@
       register: __sap_hana_preconfigure_register_netapp_sysctl_command
       changed_when: false
 
-    - name: Get all currently active values of the parameters of file '{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}'
+# Reason for noqa: when adding 'set -o pipefail', the complete string is attempted to be executed as a single command. Also
+#   the command after the pipe is not expected to fail.
+    - name: Get all currently active values of the parameters of file '{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}' # noqa risky-shell-pipe
       ansible.builtin.shell: "{{ __sap_hana_preconfigure_register_netapp_sysctl_command.stdout }} | sed 's,\t, ,g'"
       register: __sap_hana_preconfigure_register_netapp_sysctl_p_output_old
       changed_when: false
