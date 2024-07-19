@@ -66,6 +66,9 @@
       loop_control:
         loop_var: line_item
 
+# Note: The sole purpose of the following two tasks is to collect the current value(s) of the kernel parameters
+# in '/etc/sysctl.d/ibm_largesend.conf' so that the "Reload kernel parameters from file ..." task
+# can correctly report its 'changed' state. See also https://github.com/sap-linuxlab/community.sap_install/issues/752 .
     - name: Construct the command for getting all current parameters of file '/etc/sysctl.d/ibm_largesend.conf'
       ansible.builtin.command: awk 'BEGIN{FS="="; printf ("sysctl ")}{printf ("%s ", $1)}' /etc/sysctl.d/ibm_largesend.conf
       register: __sap_hana_preconfigure_register_ibm_largesend_sysctl_command
