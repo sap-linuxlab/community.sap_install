@@ -326,13 +326,6 @@ Network related linux kernel parameter settings for platform ppc64le.<br>
 
 Set to `true` to also set NetApp NFS required kernel parameters.<br>
 
-### sap_hana_preconfigure_use_netapp_settings_nfsv3
-- _Type:_ `bool`
-- _Default:_ `false`
-
-If `sap_hana_preconfigure_use_netapp_settings_nfs` is set to `true` and NFS Version 3 is to be used,<br>
-this parameter must be set to `true` as well.<br>
-
 ### sap_hana_preconfigure_install_ibm_power_tools
 - _Type:_ `bool`
 - _Default:_ `true`
