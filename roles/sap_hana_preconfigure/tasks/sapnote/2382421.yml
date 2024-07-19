@@ -11,7 +11,7 @@
   when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_2382421 | d(false)
   block:
 
-    - name: Modify entries in file '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}'
+    - name: Ensure correct entries in file '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}'
       ansible.builtin.lineinfile:
         path: "{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}"
         create: yes
@@ -67,11 +67,24 @@
             line: "net.core.rmem_max={{ __sap_hana_preconfigure_register_sysctl_ipv4_tcp_rmem.stdout.split()[-1] }}"
             state: present
 
-# Reason for noqa: We unconditionally reload the kernel parameters without first checking the current values
-    - name: Reload kernel parameters from file '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}' # noqa no-changed-when
+# Note: The sole purpose of the following two tasks is to collect the current value(s) of the kernel parameters
+# in __sap_hana_preconfigure_etc_sysctl_saphana_conf so that the "Reload kernel parameters from file ..." task
+# can correctly report its 'changed' state. See also https://github.com/sap-linuxlab/community.sap_install/issues/752 .
+    - name: Construct the command for getting all current parameters of file '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}'
+      ansible.builtin.command: awk 'BEGIN{FS="="; printf ("sysctl ")}{printf ("%s ", $1)}' "{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}"
+      register: __sap_hana_preconfigure_register_saphana_conf_sysctl_command
+      changed_when: false
+
+    - name: Get all currently active values of the parameters of file '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}'
+      ansible.builtin.command: "{{ __sap_hana_preconfigure_register_saphana_conf_sysctl_command.stdout }}"
+      register: __sap_hana_preconfigure_register_saphana_conf_sysctl_p_output_old
+      changed_when: false
+
+    - name: Reload kernel parameters from file '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}'
       ansible.builtin.command: sysctl -p "{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}"
-      register: __sap_hana_preconfigure_register_saphana_conf_sysctl_p_output
+      register: __sap_hana_preconfigure_register_saphana_conf_sysctl_p_output_new
+      changed_when: __sap_hana_preconfigure_register_saphana_conf_sysctl_p_output_old.stdout != __sap_hana_preconfigure_register_saphana_conf_sysctl_p_output_new.stdout
 
     - name: Display kernel parameters for network tuning
       ansible.builtin.debug:
-        var: __sap_hana_preconfigure_register_saphana_conf_sysctl_p_output.stdout_lines
+        var: __sap_hana_preconfigure_register_saphana_conf_sysctl_p_output_new.stdout_lines
