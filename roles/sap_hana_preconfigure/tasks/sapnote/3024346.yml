@@ -66,11 +66,10 @@
       ansible.builtin.debug:
         var: __sap_hana_preconfigure_register_netapp_sysctl_p_output_new.stdout_lines
 
-    - name: Set kernel tunable for NFSv3 as per SAP note 3024346
+    - name: Set kernel tunable 'tcp_max_slot_table_entries' to '128' in file '/etc/modprobe.d/sunrpc.conf'
       ansible.builtin.lineinfile:
         path: /etc/modprobe.d/sunrpc.conf
-        create: yes
+        create: true
         mode: 0644
         regexp: '^options sunrpc tcp_max_slot_table_entries'
         line: options sunrpc tcp_max_slot_table_entries=128
-      when: sap_hana_preconfigure_use_netapp_settings_nfsv3
