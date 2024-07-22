@@ -1,0 +1,248 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Set Facts
+  ansible.builtin.set_fact:
+    __sap_ha_install_anydb_ibmdb2_ibmcloud_resource_name: res_fence_ibm_vpc
+    __sap_ha_install_anydb_ibmdb2_ibmcloud_agent_name: stonith:fence_ibm_vpc
+    __sap_ha_install_anydb_ibmdb2_ibmcloud_vip_method_alb: service:haproxy
+    __sap_ha_install_anydb_ibmdb2_ibmcloud_vip_method_alb_primary_resource_name: "{{ sap_ha_install_anydb_ibmdb2_sid }}prim"
+
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Fence Agent Packages for RHEL
+  ansible.builtin.package:
+    name:
+      - fence-agents-ibm-vpc
+      - haproxy
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Fence Agent Packages for SLES
+  ansible.builtin.package:
+    name:
+      - fence-agents
+      - haproxy
+    state: present
+  when: ansible_os_family == 'Suse'
+
+
+# Reasons for noqa:
+# - no-changed-when: There is no ansible fact with the fully qualified VM Instance ID. We get this information from the SMBIOS/DMI
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Primary Node - Register Instance ID # noqa no-changed-when
+  ansible.builtin.shell: |
+    dmidecode -s system-family
+  register: __sap_ha_install_anydb_ibmdb2_ibmcloud_fence_primary_instance_id_shell
+  changed_when: false
+  check_mode: false
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+
+# Reasons for noqa:
+# - no-changed-when: There is no ansible fact with the fully qualified VM Instance ID. We get this information from the SMBIOS/DMI
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Secondary Node - Register Instance ID # noqa no-changed-when
+  ansible.builtin.shell: |
+    dmidecode -s system-family
+  register: __sap_ha_install_anydb_ibmdb2_ibmcloud_fence_secondary_instance_id_shell
+  changed_when: false
+  check_mode: false
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_secondary == inventory_hostname_short
+
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Set Facts
+  ansible.builtin.set_fact:
+    __sap_ha_install_anydb_ibmdb2_ibmcloud_fence_primary_instance_id: "{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_primary].__sap_ha_install_anydb_ibmdb2_ibmcloud_fence_primary_instance_id_shell.stdout }}"
+    __sap_ha_install_anydb_ibmdb2_ibmcloud_fence_secondary_instance_id: "{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_secondary].__sap_ha_install_anydb_ibmdb2_ibmcloud_fence_secondary_instance_id_shell.stdout }}"
+
+
+# - name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Create haproxy log directory for rsyslog
+#   ansible.builtin.file:
+#     path: /var/log/haproxy
+#     state: directory
+#     mode: '0755'
+#
+# - name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Create haproxy config for rsyslog
+#   ansible.builtin.copy:
+#     dest: /etc/rsyslog.d/haproxy.conf
+#     mode: '0644'
+#     content: |
+#       # Additional socket in haproxy's chroot
+#       # to allow logging via /dev/log to chroot'ed HAProxy processes
+#       $AddUnixListenSocket /var/lib/haproxy/dev/log
+#
+#       # Send HAProxy messages to a dedicated logfile
+#       :programname,startswith,"haproxy" /var/log/haproxy/haproxy.log
+#
+# - name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - rsyslog service restart
+#   ansible.builtin.service:
+#     name: rsyslog
+#     state: restarted
+#     enabled: true
+
+
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Check if haproxy service template exists
+  ansible.builtin.stat:
+    path: /etc/systemd/system/haproxy@.service
+  register: __sap_ha_install_anydb_ibmdb2_register_haproxy_template
+
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Create haproxy service template
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/haproxy@.service
+    remote_src: true
+    src: /usr/lib/systemd/system/haproxy.service
+    mode: '0644'
+  when:
+    - not __sap_ha_install_anydb_ibmdb2_register_haproxy_template.stat.exists
+
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Update haproxy service template description
+  ansible.builtin.lineinfile:
+    backup: true
+    path: /etc/systemd/system/haproxy@.service
+    regexp: '^Description='
+    line: 'Description=HAProxy Load Balancer %i'
+    state: present
+    insertafter: '^[Unit]$'
+  notify: "systemd daemon-reload"
+
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Update haproxy service template environment
+  ansible.builtin.lineinfile:
+    backup: true
+    path: /etc/systemd/system/haproxy@.service
+    regexp: '^Environment='
+    line: 'Environment="CONFIG=/etc/haproxy/haproxy-%i.cfg" "PIDFILE=/run/haproxy-%i.pid"'
+    state: present
+    insertafter: '^[Service]$'
+  notify: "systemd daemon-reload"
+
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Create haproxy config
+  ansible.builtin.blockinfile:
+    backup: false
+    create: true
+    path: "/etc/haproxy/haproxy-{{ __sap_ha_install_anydb_ibmdb2_ibmcloud_vip_method_alb_primary_resource_name }}.cfg"
+    mode: "0644"
+    owner: root
+    group: root
+    marker: "# {mark} Created by Ansible role sap_ha_pacemaker_cluster"
+    block: |
+      global
+          chroot      /var/lib/haproxy
+          pidfile     /var/run/haproxy-%i.pid
+          user        haproxy
+          group       haproxy
+          daemon
+
+      defaults
+          mode                    tcp
+          log                     global
+          option                  dontlognull
+          option                  redispatch
+          retries                 3
+          timeout queue           1m
+          timeout connect         10s
+          timeout client          1m
+          timeout server          1m
+          timeout check           10s
+          maxconn                 3000
+
+      # Listener for SAP healthcheck
+      listen healthcheck
+          bind *:{{ sap_ha_install_anydb_ibmdb2_ibmcloud_health_check_port }}
+
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - haproxy service start (without enable on boot)
+  ansible.builtin.service:
+    name: haproxy
+    state: started
+    enabled: false # Do not start on boot
+
+
+# Reasons for noqa:
+# - no-changed-when: crmsh command equivalent to db2cm
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Primary Node - Create Resource (STONITH) with Fence Agent # noqa no-changed-when
+  ansible.builtin.shell: |
+    crm configure primitive \
+    "{{ __sap_ha_install_anydb_ibmdb2_ibmcloud_resource_name }}" \
+    "{{ __sap_ha_install_anydb_ibmdb2_ibmcloud_agent_name }}" \
+    params \
+    region="{{ sap_ha_install_anydb_ibmdb2_ibmcloud_region }}" \
+    apikey="{{ sap_ha_install_anydb_ibmdb2_ibmcloud_api_key }}" \
+    pcmk_monitor_timeout="600" \
+    pcmk_host_map="{{ sap_ha_install_anydb_ibmdb2_hostname_primary }}:{{ __sap_ha_install_anydb_ibmdb2_ibmcloud_fence_primary_instance_id }};{{ sap_ha_install_anydb_ibmdb2_hostname_secondary }}:{{ __sap_ha_install_anydb_ibmdb2_ibmcloud_fence_secondary_instance_id }}" \
+    op monitor interval=60s \
+    op start interval=0s timeout=20s \
+    op stop interval=0s timeout=20s \
+    meta \
+    is-managed=true \
+    migration-threshold=5000
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_platform == "cloud_ibmcloud_vs"
+
+
+# Reasons for noqa:
+# - no-changed-when: crmsh command equivalent to db2cm
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Primary Node - Enable STONITH using CIB Bootstrap Options # noqa no-changed-when
+  ansible.builtin.shell: |
+    crm configure property cib-bootstrap-options: stonith-enabled=true
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_platform == "cloud_ibmcloud_vs"
+
+
+# Reasons for noqa:
+# - no-changed-when: crmsh command equivalent to db2cm
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Primary Node - Create Resource HAProxy Listener for Load Balancer Health Check Probe # noqa no-changed-when
+  ansible.builtin.shell: |
+    crm configure primitive \
+    "hc_rsc_vip_{{ __sap_ha_install_anydb_ibmdb2_ibmcloud_vip_method_alb_primary_resource_name }}" \
+    {{ __sap_ha_install_anydb_ibmdb2_ibmcloud_vip_method_alb }}@{{ __sap_ha_install_anydb_ibmdb2_ibmcloud_vip_method_alb_primary_resource_name }} \
+    op monitor interval=10s timeout=20s \
+    op start interval=0s timeout=100s \
+    op stop interval=0s timeout=100s \
+    meta \
+    is-managed=true \
+    migration-threshold=5000
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_platform == "cloud_ibmcloud_vs"
+
+
+# Reasons for noqa:
+# - no-changed-when: crmsh command equivalent to db2cm
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Primary Node - Identify target IBM Db2 resource clone name # noqa no-changed-when
+  ansible.builtin.shell: |
+    set -o pipefail && crm config show type:primitive | tr '\n' ' ' | sed 's| primitive |\n|g' | grep dbname | sed 's| db2hadr.*||'
+  register: __sap_ha_install_anydb_ibmdb2_discover_pcmk_resource_name
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_platform == "cloud_ibmcloud_vs"
+
+
+# Constraint - Colocation
+# Ensure HAProxy Listener is started only on the PCMK Primary node
+# Change score 'INFINITY:' or 'inf:' used by Health Check Listeners for Azure and GCP, instead use score '2000:'
+# Reasons for noqa:
+# - no-changed-when: crmsh command equivalent to db2cm
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Primary Node - Create Constraint Colocation of HAProxy Listener for Load Balancer Health Check Probe # noqa no-changed-when
+  ansible.builtin.shell: |
+    crm configure colocation \
+    "colocation-hc_rsc_vip_{{ __sap_ha_install_anydb_ibmdb2_ibmcloud_vip_method_alb_primary_resource_name }}" \
+    2000: \
+    "hc_rsc_vip_{{ __sap_ha_install_anydb_ibmdb2_ibmcloud_vip_method_alb_primary_resource_name }}:Started" \
+    {{ __sap_ha_install_anydb_ibmdb2_discover_pcmk_resource_name.stdout }}-clone:Master
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_platform == "cloud_ibmcloud_vs"
+
+
+# Constraint - Order
+# On failover, when Db2 is promoted to PCMK Secondary node then ensure HAProxy Listener is moved at same time
+# Reasons for noqa:
+# - no-changed-when: crmsh command equivalent to db2cm
+- name: SAP HA AnyDB - IBM Db2 HADR (IBM Cloud) - Primary Node - Create Constraint Order of HAProxy Listener for Load Balancer Health Check Probe # noqa no-changed-when
+  ansible.builtin.shell: |
+    crm configure order \
+    "order-{{ __sap_ha_install_anydb_ibmdb2_discover_pcmk_resource_name.stdout }}-then-hc_rsc_vip_{{ __sap_ha_install_anydb_ibmdb2_ibmcloud_vip_method_alb_primary_resource_name }}" \
+    Mandatory: \
+    "{{ __sap_ha_install_anydb_ibmdb2_discover_pcmk_resource_name.stdout }}-clone:promote" \
+    "hc_rsc_vip_{{ __sap_ha_install_anydb_ibmdb2_ibmcloud_vip_method_alb_primary_resource_name }}:start"
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_platform == "cloud_ibmcloud_vs"
