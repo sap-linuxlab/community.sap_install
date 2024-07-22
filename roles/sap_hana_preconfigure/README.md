@@ -420,6 +420,7 @@ The saptune solution to apply (SLES for SAP Applications).<br>
 - _Default:_ `false`
 
 On Azure, TCP timestamps, reuse and recycle should be disabled (SLES for SAP Applications).<br>
+If the variable is set, an override file for saptune will be created (/etc/saptune/override/2382421) to set net.ipv4.tcp_timestamps and net.ipv4.tcp_tw_reuse to 0.<br>
 Set this parameter to `true` on Azure.<br>
 
 <!-- END: Role Input Parameters for sap_hana_preconfigure -->
