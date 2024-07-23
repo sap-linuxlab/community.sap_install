@@ -399,7 +399,7 @@ sap_hana_preconfigure_db_group_name: dba
 
 ### sap_hana_preconfigure_saptune_version
 - _Type:_ `str`
-- _Default:_ `'3.0.2'`
+- _Default:_ `''`
 
 Version of saptune to install (SLES for SAP Applications).<br>
 This will replace the current installed version if present, even downgrade if necessary.<br>
