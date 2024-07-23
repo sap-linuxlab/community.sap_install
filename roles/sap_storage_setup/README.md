@@ -17,6 +17,13 @@ This Ansible Role is agnostic, and will run on any Infrastructure Platform. Only
 
 Please note, while this Ansible Role has protection against overwrite of existing disks and filesystems - sensible review and care is required for any automation of disk storage. Please review the documentation and samples/examples carefully. It is strongly suggested to initially execute the Ansible Playbook calling this Ansible Role, with `ansible-playbook --check` for Check Mode - this will perform no changes to the host and show which changes would be made.
 
+In addition, this Ansible Role:
+
+- Does not permit static definition for mountpoint to use a specific device (e.g. `/dev/sdk`). The definition will define the disk size to use for the mountpoint, and match accordingly.
+- Enforces 1 mountpoint will use 1 LVM Logical Volume (LV) that consumes 100% of an LVM Volume Group (VG), with the LVM Volume Group (VG) consuming 100% of 1..n LVM Physical Volumes (PV).
+    - For granular control of LVM setup, the suggestion is to instead use Ansible Role `storage` from the `fedora.linux_system_roles` Ansible Colletion or the Ansible Roles `lvg/lvol/filesystem` from `community.general` Ansible Collection
+
+
 ## Requirements
 
 The Ansible Role requires the `community.general` Ansible Collection (uses the `lvg`, `lvol` and `filesystem` Ansible Modules).
