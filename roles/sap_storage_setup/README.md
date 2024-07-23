@@ -21,7 +21,7 @@ In addition, this Ansible Role:
 
 - Does not permit static definition for mountpoint to use a specific device (e.g. `/dev/sdk`). The definition will define the disk size to use for the mountpoint, and match accordingly.
 - Enforces 1 mountpoint will use 1 LVM Logical Volume (LV) that consumes 100% of an LVM Volume Group (VG), with the LVM Volume Group (VG) consuming 100% of 1..n LVM Physical Volumes (PV).
-    - For granular control of LVM setup, the suggestion is to instead use Ansible Role `storage` from the `fedora.linux_system_roles` Ansible Colletion or the Ansible Roles `lvg/lvol/filesystem` from `community.general` Ansible Collection
+    - For granular control of LVM setup, the suggestion is to instead use Ansible Role `storage` from the `fedora.linux_system_roles` Ansible Collection or the Ansible Roles `lvg/lvol/filesystem` from `community.general` Ansible Collection
 
 
 ## Requirements
