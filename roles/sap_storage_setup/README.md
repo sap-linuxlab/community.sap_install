@@ -17,6 +17,13 @@ This Ansible Role is agnostic, and will run on any Infrastructure Platform. Only
 
 Please note, while this Ansible Role has protection against overwrite of existing disks and filesystems - sensible review and care is required for any automation of disk storage. Please review the documentation and samples/examples carefully. It is strongly suggested to initially execute the Ansible Playbook calling this Ansible Role, with `ansible-playbook --check` for Check Mode - this will perform no changes to the host and show which changes would be made.
 
+In addition, this Ansible Role:
+
+- Does not permit static definition for mountpoint to use a specific device (e.g. `/dev/sdk`). The definition will define the disk size to use for the mountpoint, and match accordingly.
+- Enforces 1 mountpoint will use 1 LVM Logical Volume (LV) that consumes 100% of an LVM Volume Group (VG), with the LVM Volume Group (VG) consuming 100% of 1..n LVM Physical Volumes (PV).
+    - For granular control of LVM setup, the suggestion is to instead use Ansible Role `storage` from the `fedora.linux_system_roles` Ansible Collection or the Ansible Roles `lvg/lvol/filesystem` from `community.general` Ansible Collection
+
+
 ## Requirements
 
 The Ansible Role requires the `community.general` Ansible Collection (uses the `lvg`, `lvol` and `filesystem` Ansible Modules).
@@ -62,9 +69,9 @@ Red Hat for SAP Community of Practice, Janine Fuchs, IBM Lab for SAP Solutions
 
 Minimum required parameters:
 
-- [sap_storage_setup_definition](#sap_storage_setup_definition)
-- [sap_storage_setup_host_type](#sap_storage_setup_host_type)
-- [sap_storage_setup_sid](#sap_storage_setup_sid)
+- [sap_storage_setup_definition](#sap_storage_setup_definition-required)
+- [sap_storage_setup_host_type](#sap_storage_setup_host_type-required)
+- [sap_storage_setup_sid](#sap_storage_setup_sid-required)
 
 
 ### sap_storage_setup_definition <sup>required</sup>
@@ -110,14 +117,24 @@ Example:
 
 ```yaml
 sap_storage_setup_definition:
-- disk_size: 100G
-  filesystem_type: xfs
-  mountpoint: /hana/data
-  name: hanadata
-- disk_size: 100G
-  filesystem_type: xfs
-  mountpoint: /hana/log
-  name: hanalog
+
+  # Block Storage volume
+  - name: hana_data                # required: string, filesystem name used to generate lvm_lv_name and lvm_vg_name
+    mountpoint: /hana/data         # required: string, directory path where the filesystem is mounted
+    disk_size: 100                 # required: integer, size in GB
+    filesystem_type: xfs           # optional: string, value 'xfs'. Use 'swap' to create swap filesystem
+
+  # File Storage volume
+  - name: hana_shared              # required: string, reference name
+    mountpoint: /hana/shared       # required: string, directory path where the filesystem is mounted
+    nfs_server: nfs.corp:/         # required: string, server and parent directory of the NFS Server; value default from var sap_storage_setup_nfs_server
+
+  # Swap as file instead of Block Storage volume
+  # See SAP Note 1597355 - Swap-space recommendation for Linux
+  - name: swap                     # required: string, reference name
+    swap_path: /swapfile           # required: string, directory path where swap file is created
+    disk_size: 4                   # required: integer, size in GB of swap file
+    filesystem_type: swap          # required: string, must be value 'swap'
 ```
 
 ### sap_storage_setup_host_type <sup>required</sup>
