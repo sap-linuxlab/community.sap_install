@@ -7,29 +7,31 @@
 # The packages of the following lists will be installed by the 'ha_cluster' Linux System Role.
 # Any packages that are pre-requisites for variable construction must be installed before, e.g.
 # in the preconfigure-* tasks.
-sap_ha_pacemaker_cluster_fence_agent_packages:
-  "{{ sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_msazure_vm | default([]) }}"
+__sap_ha_pacemaker_cluster_fence_agent_packages_platform:
+  "{{ __sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_msazure_vm | default([]) }}"
 
 __sap_ha_pacemaker_cluster_platform_extra_packages:
   "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_msazure_vm | default([]) }}"
 
 __sap_ha_pacemaker_cluster_repos:
-  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
-    name: High Availability
-  - id: "rhui-microsoft-azure-rhel8-sap-ha"
-    name: Microsoft Azure RPMs for Red Hat Enterprise Linux 8 (rhel8-sap-ha)
+  "{{ __sap_ha_pacemaker_cluster_repos_dict.cloud_msazure_vm | default([]) }}"
 
-# Predefine
-__sap_ha_pacemaker_cluster_msazure_hosts: []
 
-# Fencing via MS Azure Managed Service Identity (MSI) per cluster node
-sap_ha_pacemaker_cluster_stonith_default:
-  id: "res_fence_azure_arm"
-  agent: "stonith:fence_azure_arm"
-  options:
-    msi: true
-    subscriptionId: "{{ sap_ha_pacemaker_cluster_msazure_subscription_id }}"
-    resourceGroup: "{{ sap_ha_pacemaker_cluster_msazure_resource_group }}"
+# Stonith dictionary for default stonith agents.
+# Custom stonith resource can be defined using sap_ha_pacemaker_cluster_stonith_custom
+__sap_ha_pacemaker_cluster_stonith_default_dict:
+  fence_azure_arm:
+    id: "rsc_fence_azure_arm"
+    agent: "stonith:fence_azure_arm"
+    options:
+      msi: true
+      subscriptionId: "{{ sap_ha_pacemaker_cluster_msazure_subscription_id }}"
+      resourceGroup: "{{ sap_ha_pacemaker_cluster_msazure_resource_group }}"
+
+# Select __sap_ha_pacemaker_cluster_stonith_default
+__sap_ha_pacemaker_cluster_stonith_default:
+  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict.fence_azure_arm }}"
+
 
 # Default corosync options - Platform specific
 __sap_ha_pacemaker_cluster_corosync_totem_platform:

@@ -4,37 +4,57 @@
 #
 # TODO: make sure to first respect 'ha_cluster' native variables
 
-sap_ha_pacemaker_cluster_fence_agent_packages:
-  "{{ sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_aws | default([]) }}"
+# Package definition
+__sap_ha_pacemaker_cluster_fence_agent_packages_platform:
+  "{{ __sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_aws_ec2_vs | default([]) }}"
 
 __sap_ha_pacemaker_cluster_platform_extra_packages:
-  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_aws | default([]) }}"
+  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_aws_ec2_vs | default([]) }}"
 
 __sap_ha_pacemaker_cluster_repos:
-  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
-    name: High Availability
+  "{{ __sap_ha_pacemaker_cluster_repos_dict.cloud_aws_ec2_vs | default([]) }}"
 
-# Predefine
-__sap_ha_pacemaker_cluster_aws_instances: []
 
-# When aws credentials and region are not defined it will
-# default to using the aws cli configuration.
-# The aws cli is currently configured anyway for the standard AWS VIP resource.
-sap_ha_pacemaker_cluster_stonith_default:
-  id: "rsc_fence_aws"
-  # SUSE officially supports only stonith:external/ec2 for AWS.
-  agent: "{{ 'stonith:fence_aws' if ansible_os_family != 'Suse' else 'stonith:external/ec2' }}"
-  options:
-    # Fencing action delay is recommended. Default: 0
-    pcmk_delay_max: "{{ 0 if ansible_os_family != 'Suse' else 15 }}"
-#    access_key: "{{ sap_ha_pacemaker_cluster_aws_access_key_id }}"
-#    secret_key: "{{ sap_ha_pacemaker_cluster_aws_secret_access_key }}"
-#    region: "{{ sap_ha_pacemaker_cluster_aws_region }}"
+# Stonith dictionary for default stonith agents.
+# Custom stonith resource can be defined using sap_ha_pacemaker_cluster_stonith_custom
+__sap_ha_pacemaker_cluster_stonith_default_dict:
+  fence_aws:
+    id: "rsc_fence_aws"
+    # AWS Fence agent is not recommended.
+    agent: "stonith:fence_aws"
+    options:
+      # Fencing action delay is recommended. Default: 0
+      # Production pcmk_delay_max is recommended 30-60
+      pcmk_delay_max: 15
+      # AWS Credentials are not defined here, because they override attached
+      # IAM Role or IAM Instance Profile
+      # access_key: "{{ sap_ha_pacemaker_cluster_aws_access_key_id }}"
+      # secret_key: "{{ sap_ha_pacemaker_cluster_aws_secret_access_key }}"
+      # region: "{{ sap_ha_pacemaker_cluster_aws_region }}"
+
+  external_ec2:
+    id: "rsc_fence_aws"
+    # SUSE Recommends stonith:external/ec2 instead of fence_aws
+    agent: "stonith:external/ec2"
+    options:
+      # Fencing action delay is recommended. Default: 0
+      # Production pcmk_delay_max is recommended 30-60
+      pcmk_delay_max: 15
+      tag: pacemaker  # tag instance with pacemaker: {{ ansible_hostname }}
+      # profile: default  # Additional tag to use awscli config
+
+# Select __sap_ha_pacemaker_cluster_stonith_default
+# SUSE does not support stonith:fence_aws
+__sap_ha_pacemaker_cluster_stonith_default:
+  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict.external_ec2 if ansible_os_family == 'Suse'
+   else __sap_ha_pacemaker_cluster_stonith_default_dict.fence_aws }}"
+
 
 # Default corosync options - Platform specific
 __sap_ha_pacemaker_cluster_corosync_totem_platform:
   options:
     token: 30000
+
 
 # Platform specific VIP handling
 sap_ha_pacemaker_cluster_vip_method: aws_vpc_move_ip

@@ -4,32 +4,33 @@
 #
 # TODO: make sure to first respect 'ha_cluster' native variables
 
-sap_ha_pacemaker_cluster_fence_agent_packages:
-  "{{ sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_gcp | default([]) }}"
+__sap_ha_pacemaker_cluster_fence_agent_packages_platform:
+  "{{ __sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_gcp_ce_vm | default([]) }}"
 
 __sap_ha_pacemaker_cluster_platform_extra_packages:
-  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_gcp | default([]) }}"
+  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_gcp_ce_vm | default([]) }}"
 
 __sap_ha_pacemaker_cluster_repos:
-  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
-    name: High Availability
+  "{{ __sap_ha_pacemaker_cluster_repos_dict.cloud_gcp_ce_vm | default([]) }}"
 
-# Predefine
-__sap_ha_pacemaker_cluster_gcp_hosts: []
 
-sap_ha_pacemaker_cluster_stonith_default:
-  id: "res_fence_gce"
-  agent: "stonith:fence_gce"
-  options:
-    project: "{{ sap_ha_pacemaker_cluster_gcp_project }}"
-    zone: "{{ sap_ha_pacemaker_cluster_gcp_region_zone }}"
-    pcmk_reboot_timeout: 300
-    pcmk_monitor_retries: 4
-    pcmk_delay_max: 30
+# Stonith dictionary for default stonith agents.
+# Custom stonith resource can be defined using sap_ha_pacemaker_cluster_stonith_custom
+__sap_ha_pacemaker_cluster_stonith_default_dict:
+  fence_gce:
+    id: "rsc_fence_gce"
+    agent: "stonith:fence_gce"
+    options:
+      project: "{{ sap_ha_pacemaker_cluster_gcp_project }}"
+      zone: "{{ sap_ha_pacemaker_cluster_gcp_region_zone }}"
+      pcmk_reboot_timeout: 300
+      pcmk_monitor_retries: 4
+      pcmk_delay_max: 30
 
-# Platform specific VIP handling
-sap_ha_pacemaker_cluster_vip_method: gcp_nlb_reserved_ip_haproxy # gcp_vpc_move_route
-sap_ha_pacemaker_cluster_vip_group_prefix: group_
+# Select __sap_ha_pacemaker_cluster_stonith_default
+__sap_ha_pacemaker_cluster_stonith_default:
+  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict.fence_gce }}"
+
 
 # GCP needs haproxy and ports defined
 sap_ha_pacemaker_cluster_healthcheck_hana_primary_port: "620{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
@@ -42,6 +43,7 @@ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port: "620{{ sap_ha_pacemaker
 sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
 sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
 
+
 # Default corosync options - Platform specific
 __sap_ha_pacemaker_cluster_corosync_totem_platform:
   options:
@@ -49,6 +51,11 @@ __sap_ha_pacemaker_cluster_corosync_totem_platform:
     token_retransmits_before_loss_const: 10
     join: 60
     max_messages: 20
+
+
+# Platform specific VIP handling
+sap_ha_pacemaker_cluster_vip_method: gcp_nlb_reserved_ip_haproxy # gcp_vpc_move_route
+sap_ha_pacemaker_cluster_vip_group_prefix: group_
 
 __sap_ha_pacemaker_cluster_available_vip_agents:
 

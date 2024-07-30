@@ -102,12 +102,6 @@ argument_specs:
               node_ip: 192.168.5.1
             - hana_site: DC02
 
-      sap_ha_pacemaker_cluster_fence_agent_minimal_packages:
-        type: list
-        default: ['fence-agents-all']
-        description:
-          - The minimal set of fence agent packages that will be installed.
-
       sap_ha_pacemaker_cluster_resource_defaults:
         type: dict
         default:
@@ -181,6 +175,8 @@ argument_specs:
               - The resource options listed in dictionary format, one option per line.
               - Requires the mandatory options for the particular stonith resource agent to be
                 defined, otherwise the setup will fail.
+              - "Example: stonith:fence_sbd agent requires devices option with list of SBD disks."
+              - "Example: stonith:external/sbd agent does not require devices option, but `sap_ha_pacemaker_cluster_sbd_devices`."
             required: true
 
         example:
@@ -193,6 +189,56 @@ argument_specs:
                 password: login-user-password
                 pcmk_host_list: node1,node2
                 power_wait: 3
+
+      sap_ha_pacemaker_cluster_sbd_enabled:
+        type: bool
+        description:
+          - Set this parameter to 'true' to enable workflow to add Stonith SBD resource.
+          - Stonith SBD resource has to be provided as part of `sap_ha_pacemaker_cluster_stonith_custom`.
+          - "Default SBD agents are: stonith:external/sbd for SLES and stonith:fence_sbd for RHEL"
+
+        example:
+          sap_ha_pacemaker_cluster_sbd_enabled: true
+          sap_ha_pacemaker_cluster_stonith_custom:
+            - name: rsc_stonith_sbd
+              agent: stonith:external/sbd
+              options:
+                pcmk_delay_max: 15
+          sap_ha_pacemaker_cluster_sbd_devices:
+            - /dev/disk/by-id/scsi-3600
+
+      sap_ha_pacemaker_cluster_sbd_devices:
+        type: list
+        description:
+          - Required if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.
+          - Provide list of block devices for Stonith SBD agent
+
+        example:
+          sap_ha_pacemaker_cluster_sbd_devices:
+            - /dev/disk/by-id/scsi-3600
+
+      sap_ha_pacemaker_cluster_sbd_options:
+        type: list
+        description:
+          - Optional if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.
+          - Provide list SBD specific options that are added into SBD configuration file.
+
+        example:
+          sap_ha_pacemaker_cluster_sbd_options:
+            - name: startmode
+              value: clean
+
+      sap_ha_pacemaker_cluster_sbd_watchdog:
+        type: str
+        description:
+          - Optional if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.
+          - Provide watchdog name to override default /dev/watchdog
+
+      sap_ha_pacemaker_cluster_sbd_watchdog_modules:
+        type: list
+        description:
+          - Optional if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.
+          - Provide list of watchdog kernel modules to be loaded (creates /dev/watchdog* devices).
 
       sap_ha_pacemaker_cluster_cluster_properties:
         type: dict
@@ -251,7 +297,9 @@ argument_specs:
         type: list
         description:
           - Additional fence agent packages to be installed.
-          - This is automatically combined with `sap_ha_pacemaker_cluster_fence_agent_minimal_packages`.
+          - "This is automatically combined with default packages in:"
+          - "`__sap_ha_pacemaker_cluster_fence_agent_packages_minimal`"
+          - "`__sap_ha_pacemaker_cluster_fence_agent_packages_platform`"
 
       sap_ha_pacemaker_cluster_hacluster_user_password:
         description:
@@ -321,7 +369,7 @@ argument_specs:
         default: "msl_SAPHana_<SID>_HDB<Instance Number>"
         description:
           - Customize the cluster resource name of the SAP HANA DB resource master slave clone.
-          - Master Slave clone is specific to SAPHana resource on SUSE.
+          - Master Slave clone is specific to Classic SAPHana resource on SUSE (non-angi).
 
       sap_ha_pacemaker_cluster_hanacontroller_resource_name:
         default: "rsc_SAPHanaCon_<SID>_HDB<Instance Number>"
@@ -798,6 +846,10 @@ argument_specs:
           - AWS secret key, paired with the access key for instance control.
           - Mandatory for the cluster setup on AWS EC2 instances.
 
+      sap_ha_pacemaker_cluster_aws_credentials_setup:
+        description:
+          - Set this parameter to 'true' to store AWS credentials into /root/.aws/credentials.
+          - "Required: `sap_ha_pacemaker_cluster_aws_access_key_id` and `sap_ha_pacemaker_cluster_aws_secret_access_key`"
 
       ##########################################################################
       # Platforms: GCP specific parameters

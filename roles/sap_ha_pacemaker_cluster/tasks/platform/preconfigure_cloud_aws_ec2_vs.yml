@@ -20,7 +20,16 @@
     owner: root
     path: /root/.aws/config
 
+# New variable to disable default saving of AWS credentials file.
+# Reason: It overrides attached IAM Role or IAM Instance Profile.
 - name: "SAP HA Prepare Pacemaker - AWS EC2 VS - Store awscli credentials"
+  when:
+    - sap_ha_pacemaker_cluster_aws_credentials_setup is defined
+      and sap_ha_pacemaker_cluster_aws_credentials_setup
+    - sap_ha_pacemaker_cluster_aws_access_key_id is defined
+      and sap_ha_pacemaker_cluster_aws_access_key_id | length > 0
+    - sap_ha_pacemaker_cluster_aws_secret_access_key is defined
+      and sap_ha_pacemaker_cluster_aws_secret_access_key | length > 0
   ansible.builtin.blockinfile:
     backup: true
     block: |
