@@ -16,16 +16,46 @@ __sap_ha_pacemaker_cluster_repos:
 
 # Stonith dictionary for default stonith agents.
 # Custom stonith resource can be defined using sap_ha_pacemaker_cluster_stonith_custom
+# Documentation sources:
+# HANA:
+#   SLES: https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-sles#set_up_fencing
+#   RHEL: https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel#set_up_fencing
+# NWAS:
+#   SLES: https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-sles#set_up_fencing
+#   RHEL: https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-rhel#set_up_fencing
+# NOTE: fence_gce parameters are identical across all listed documents.
+
 __sap_ha_pacemaker_cluster_stonith_default_dict:
   fence_gce:
-    id: "rsc_fence_gce"
+    id: "rsc_fence_gce_{{ ansible_hostname }}"
     agent: "stonith:fence_gce"
-    options:
-      project: "{{ sap_ha_pacemaker_cluster_gcp_project }}"
-      zone: "{{ sap_ha_pacemaker_cluster_gcp_region_zone }}"
-      pcmk_reboot_timeout: 300
-      pcmk_monitor_retries: 4
-      pcmk_delay_max: 30
+    instance_attrs:
+      - attrs:
+          - name: port
+            value: "{{ ansible_hostname }}"
+          - name: project
+            value: "{{ sap_ha_pacemaker_cluster_gcp_project }}"
+          - name: zone
+            value: "{{ sap_ha_pacemaker_cluster_gcp_region_zone }}"
+          - name: pcmk_delay_max
+            value: 30
+          - name: pcmk_monitor_retries
+            value: 4
+          - name: pcmk_reboot_timeout
+            value: 300
+    operations:
+      - action: start
+        attrs:
+          - name: interval
+            value: 0
+          - name: timeout
+            value: 60
+      - action: monitor
+        attrs:
+          - name: interval
+            value: 300
+          - name: timeout
+            value: 120
 
 # Select __sap_ha_pacemaker_cluster_stonith_default
 __sap_ha_pacemaker_cluster_stonith_default:
