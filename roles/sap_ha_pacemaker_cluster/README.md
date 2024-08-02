@@ -881,9 +881,11 @@ sap_ha_pacemaker_cluster_sbd_devices:
 sap_ha_pacemaker_cluster_sbd_enabled: true
 sap_ha_pacemaker_cluster_stonith_custom:
 - agent: stonith:external/sbd
-  name: rsc_stonith_sbd
-  options:
-    pcmk_delay_max: 15
+  id: stonith_sbd
+  instance_attrs:
+  - attrs:
+    - name: pcmk_delay_max
+      value: 15
 ```
 
 ### sap_ha_pacemaker_cluster_sbd_options
@@ -891,7 +893,7 @@ sap_ha_pacemaker_cluster_stonith_custom:
 - _Type:_ `list`
 
 Optional if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.<br>
-Provide list SBD specific options that are added into SBD configuration file.<br>
+Provide list of SBD specific options that are added into SBD configuration file.<br>
 
 Example:
 
@@ -904,6 +906,7 @@ sap_ha_pacemaker_cluster_sbd_options:
 ### sap_ha_pacemaker_cluster_sbd_watchdog
 
 - _Type:_ `str`
+- _Default:_ `/dev/watchdog`
 
 Optional if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.<br>
 Provide watchdog name to override default /dev/watchdog<br>
@@ -915,32 +918,65 @@ Provide watchdog name to override default /dev/watchdog<br>
 Optional if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.<br>
 Provide list of watchdog kernel modules to be loaded (creates /dev/watchdog* devices).<br>
 
+Example:
+
+```yaml
+sap_ha_pacemaker_cluster_sbd_watchdog_modules:
+- softdog
+```
+
 ### sap_ha_pacemaker_cluster_stonith_custom
 
 - _Type:_ `list`
 
 Custom list of STONITH resource(s) to be configured in the cluster.<br>
 This definition override any defaults the role would apply otherwise.<br>
+Definition follows structure of ha_cluster_resource_primitives in linux-system-roles/ha_cluster<br>
 
 - **agent**<br>
     Resource agent name, must contain the prefix "stonith:" to avoid mismatches or failures.
+- **id**<br>
+    Parameter `id` is required.<br>Name that will be used as the resource ID (name).
+- **instance_attrs**<br>
+    Defines resource agent params as list of name/value pairs.<br>Requires the mandatory options for the particular stonith resource agent to be defined, otherwise the setup will fail.<br>Example: stonith:fence_sbd agent requires devices option with list of SBD disks.<br>Example: stonith:external/sbd agent does not require devices option, but `sap_ha_pacemaker_cluster_sbd_devices`.
+- **meta_attrs**<br>
+    Defines meta attributes as list of name/value pairs.
 - **name**<br>
-    Name that will be used as the resource ID (name).
+    WARNING! This option will be removed in future release.
+- **operations**<br>
+    Defines list of resource agent operations.
 - **options**<br>
-    The resource options listed in dictionary format, one option per line.<br>Requires the mandatory options for the particular stonith resource agent to be defined, otherwise the setup will fail.<br>Example: stonith:fence_sbd agent requires devices option with list of SBD disks.<br>Example: stonith:external/sbd agent does not require devices option, but `sap_ha_pacemaker_cluster_sbd_devices`.
+    WARNING! This option will be removed in future release.
 
 Example:
 
 ```yaml
 sap_ha_pacemaker_cluster_stonith_custom:
 - agent: stonith:fence_rhevm
+  instance_attrs:
+  - attrs:
+    - name: ip
+      value: rhevm-server
+    - name: username
+      value: login-user
+    - name: password
+      value: login-user-password
+    - name: pcmk_host_list
+      value: node1,node2
+    - name: power_wait
+      value: 3
+  meta_attrs:
+  - attrs:
+    - name: target-role
+      value: Started
   name: my-fence-resource
-  options:
-    ip: rhevm-server
-    password: login-user-password
-    pcmk_host_list: node1,node2
-    power_wait: 3
-    username: login-user
+  operations:
+  - action: start
+    attrs:
+    - name: interval
+      value: 0
+    - name: timeout
+      value: 180
 ```
 
 ### sap_ha_pacemaker_cluster_storage_definition

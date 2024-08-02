@@ -26,13 +26,17 @@ __sap_ha_pacemaker_cluster_repos:
 # NOTE: fence_gce parameters are identical across all listed documents.
 
 __sap_ha_pacemaker_cluster_stonith_default_dict:
-  fence_gce:
+  generic:
+    # fence_gce agent is created for every host in cluster
     id: "rsc_fence_gce_{{ ansible_hostname }}"
     agent: "stonith:fence_gce"
     instance_attrs:
       - attrs:
+          # GCP does not use pcmk_host_map, instead it specifies port
+          # fence_gce supports plug parameter, but all documentations mention only port.
           - name: port
             value: "{{ ansible_hostname }}"
+
           - name: project
             value: "{{ sap_ha_pacemaker_cluster_gcp_project }}"
           - name: zone
@@ -59,7 +63,7 @@ __sap_ha_pacemaker_cluster_stonith_default_dict:
 
 # Select __sap_ha_pacemaker_cluster_stonith_default
 __sap_ha_pacemaker_cluster_stonith_default:
-  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict.fence_gce }}"
+  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict.generic }}"
 
 
 # GCP needs haproxy and ports defined

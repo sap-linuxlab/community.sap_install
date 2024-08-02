@@ -91,12 +91,6 @@
 
 # Prepare default stonith method based on __sap_ha_pacemaker_cluster_stonith_default loaded
 # from platform __sap_ha_pacemaker_cluster_stonith_default_dict dictionary.
-# Resulting primitive stonith resource is combination of:
-# 1. platform specific default: id, agent and options
-# 2. pcmk_host_map: string of hosts assembled in include_vars_platform
-
-# Note: the 'ha_cluster' LSR only calls the stonith creation for ONE host
-#       -> the definition must contain the resources for all hosts, if multiple
 
 - name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resource definition from platform default"
   when:
@@ -212,24 +206,30 @@
 
 # sap_ha_pacemaker_cluster_stonith_custom input was redesigned to use ha_cluster structure.
 # Following task will remain until next release to ensure compatibility with previous structure.
-- name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resources from custom definition"
+
+# TODO: Remove Tech debt task in future release, once options and name are no longer supported.
+- name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resources from custom definition - Legacy"
   when:
     - sap_ha_pacemaker_cluster_stonith_custom is defined
-     and sap_ha_pacemaker_cluster_stonith_custom | length > 0
-     and sap_ha_pacemaker_cluster_stonith_custom is iterable
-     and sap_ha_pacemaker_cluster_stonith_custom is not string
+      and sap_ha_pacemaker_cluster_stonith_custom | length > 0
+      and sap_ha_pacemaker_cluster_stonith_custom is iterable
+      and sap_ha_pacemaker_cluster_stonith_custom is not string
+    # Tech Debt: Execute only if name and options are provided, previously required parameters.
+    - stonith_item.name is defined and stonith_item.name | length > 0
+      and stonith_item.options is defined and stonith_item.options | length > 0
+    # Keep following conditional after removing Tech Debt
     - __stonith_resource_element.id not in (__sap_ha_pacemaker_cluster_stonith_resource | default([]) | map(attribute='id'))
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_stonith_resource: "{{ __sap_ha_pacemaker_cluster_stonith_resource | default([]) + [__stonith_resource_element] }}"
   vars:
     __stonith_resource_element:
       # Ensure that resource name conforms with naming convention rsc_
-      id: "{{ item.name if item.name.startswith('rsc_') else 'rsc_' ~ item.name }}"  # "rsc_{{ item.name }}"
-      agent: "{{ item.agent }}"
+      id: "{{ stonith_item.name if stonith_item.name.startswith('rsc_') else 'rsc_' ~ stonith_item.name }}"  # "rsc_{{ stonith_item.name }}"
+      agent: "{{ stonith_item.agent }}"
       instance_attrs:
         - attrs: |-
             {% set attrs = [] -%}
-            {%- for option in (item.options | dict2items) -%}
+            {%- for option in (stonith_item.options | dict2items) -%}
               {% set aopts = attrs.extend([
                 {
                   'name': option.key,
@@ -240,7 +240,25 @@
             {{ attrs }}
   loop: "{{ sap_ha_pacemaker_cluster_stonith_custom }}"
   loop_control:
-    label: "{{ item.name }}"
+    label: "{{ stonith_item.name if stonith_item.name is defined else stonith_item.id }}"
+    loop_var: stonith_item
+
+
+- name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resources from custom definition"
+  when:
+    - sap_ha_pacemaker_cluster_stonith_custom is defined
+     and sap_ha_pacemaker_cluster_stonith_custom | length > 0
+     and sap_ha_pacemaker_cluster_stonith_custom is iterable
+     and sap_ha_pacemaker_cluster_stonith_custom is not string
+    - stonith_item.id is defined and stonith_item.id | length > 0
+    - stonith_item.id not in (__sap_ha_pacemaker_cluster_stonith_resource | default([]) | map(attribute='id'))
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_stonith_resource:
+      "{{ __sap_ha_pacemaker_cluster_stonith_resource | default([]) + [stonith_item] }}"
+  loop: "{{ sap_ha_pacemaker_cluster_stonith_custom }}"
+  loop_control:
+    label: "{{ stonith_item.name if stonith_item.name is defined else stonith_item.id }}"
+    loop_var: stonith_item
 
 
 # The STONITH resource is an element in the cluster_resource_primitives list
@@ -254,4 +272,4 @@
         +
         (__sap_ha_pacemaker_cluster_stonith_resource | from_yaml)
       }}
-  no_log: true  # stonith resources usually contain secrets
+  no_log: true  # stonith resources can contain secrets

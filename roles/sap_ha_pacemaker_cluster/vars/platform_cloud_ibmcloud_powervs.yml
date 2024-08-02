@@ -17,7 +17,7 @@ __sap_ha_pacemaker_cluster_repos:
 # Stonith dictionary for default stonith agents.
 # Custom stonith resource can be defined using sap_ha_pacemaker_cluster_stonith_custom
 __sap_ha_pacemaker_cluster_stonith_default_dict:
-  fence_ibm_powervs:
+  generic:
     id: "rsc_fence_ibm_powervs"
     agent: "stonith:fence_ibm_powervs"
     instance_attrs:
@@ -47,6 +47,9 @@ __sap_ha_pacemaker_cluster_stonith_default_dict:
           - name: proxy
             value: "{{ sap_ha_pacemaker_cluster_ibmcloud_powervs_forward_proxy_url | default('') }}"
 
+          # String of cluster hosts defined in include_vars_platform
+          - name: pcmk_host_map
+            value: "{{ __sap_ha_pacemaker_cluster_pcmk_host_map }}"
           - name: pcmk_reboot_timeout
             value: 600
           - name: pcmk_monitor_timeout
@@ -56,7 +59,7 @@ __sap_ha_pacemaker_cluster_stonith_default_dict:
 
 # Select __sap_ha_pacemaker_cluster_stonith_default
 __sap_ha_pacemaker_cluster_stonith_default:
-  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict.fence_ibm_powervs }}"
+  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict.generic }}"
 
 
 # Platform specific VIP handling
