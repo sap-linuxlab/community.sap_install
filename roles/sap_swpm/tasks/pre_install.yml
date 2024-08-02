@@ -1,6 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+- name: SAP SWPM Pre Install - Rename variables
+  ansible.builtin.set_fact:
+    sap_swpm_inifile_sections_list: "{{ sap_swpm_inifile_list | d(sap_swpm_inifile_sections_list) }}"
+    sap_swpm_inifile_parameters_dict: "{{ sap_swpm_inifile_custom_values_dictionary | d(sap_swpm_inifile_parameters_dict) }}"
+  tags: always
+
 ################
 # Run Preinstallation Steps Based on Run Mode
 ################
@@ -10,23 +16,6 @@
   tags:
     - sap_swpm_generate_inifile
     - sap_swpm_sapinst_commandline
-
-################
-# Set sapinst command
-################
-
-- name: SAP SWPM Pre Install - Set sapinst command
-  vars:
-    sap_swpm_swpm_command_guiserver: "{{ 'SAPINST_START_GUISERVER=false' if not sap_swpm_swpm_observer_mode else '' }}"
-    sap_swpm_swpm_command_observer: "{{ 'SAPINST_REMOTE_ACCESS_USER=' + sap_swpm_swpm_remote_access_user + ' SAPINST_REMOTE_ACCESS_USER_IS_TRUSTED=true' if sap_swpm_swpm_observer_mode and sap_swpm_swpm_remote_access_user is defined and sap_swpm_swpm_remote_access_user | length > 0 else '' }}"
-  ansible.builtin.set_fact:
-    sap_swpm_swpm_command_inifile: "SAPINST_INPUT_PARAMETERS_URL={{ sap_swpm_tmpdir.path }}/inifile.params"
-    sap_swpm_swpm_command_product_id: "SAPINST_EXECUTE_PRODUCT_ID={{ sap_swpm_product_catalog_id }}"
-    # If SWPM is running a normal install Ansible Variable sap_swpm_swpm_command_virtual_hostname is blank
-    # IF SWPM is running a HA installation, Ansible Variable sap_swpm_swpm_command_virtual_hostname is set and contains "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }} IS_HOST_LOCAL_USING_STRING_COMPARE=true"
-    # If SWPM is running a MP Stack XML installation, Ansible Variable sap_swpm_swpm_command_mp_stack is set and contains "SAPINST_STACK_XML={{ sap_swpm_mp_stack_path }} + '/' (if needed) + {{ sap_swpm_mp_stack_file_name }}"
-    sap_swpm_swpm_command_extra_args: "SAPINST_SKIP_DIALOGS=true {{ sap_swpm_swpm_command_guiserver }} {{ sap_swpm_swpm_command_observer }} {{ sap_swpm_swpm_command_virtual_hostname }} {{ sap_swpm_swpm_command_mp_stack }}"
-  tags: sap_swpm_sapinst_commandline
 
 ################
 # Pre Install Optional Tasks
@@ -39,7 +28,9 @@
     file: pre_install/firewall.yml
     apply:
       tags: sap_swpm_setup_firewall
-  when: "sap_swpm_setup_firewall | bool"
+  when:
+    - sap_swpm_run_sapinst
+    - "sap_swpm_setup_firewall | bool"
   tags: sap_swpm_setup_firewall
 
 # /etc/hosts
@@ -49,7 +40,9 @@
     file: pre_install/update_etchosts.yml
     apply:
       tags: sap_swpm_update_etchosts
-  when: "sap_swpm_update_etchosts | bool"
+  when:
+    - sap_swpm_run_sapinst
+    - "sap_swpm_update_etchosts | bool"
   tags: sap_swpm_update_etchosts
 
 ################
@@ -81,3 +74,32 @@
       - '   The installation can take up to 3 hours. Run the following command as root'
       - '   on {{ ansible_hostname }} to display the installation logs:'
       - '   # tail -f $(cat /tmp/sapinst_instdir/.lastInstallationLocation)/sapinst.log'
+
+################
+# Set sapinst command
+################
+
+- name: SAP SWPM Pre Install - Set the sapinst command parameters
+  vars:
+    sap_swpm_swpm_command_guiserver: "{{ 'SAPINST_START_GUISERVER=false' if not sap_swpm_swpm_observer_mode else '' }}"
+    sap_swpm_swpm_command_observer: "{{ 'SAPINST_REMOTE_ACCESS_USER=' + sap_swpm_swpm_remote_access_user + ' SAPINST_REMOTE_ACCESS_USER_IS_TRUSTED=true' if sap_swpm_swpm_observer_mode and sap_swpm_swpm_remote_access_user is defined and sap_swpm_swpm_remote_access_user | length > 0 else '' }}"
+  ansible.builtin.set_fact:
+    sap_swpm_swpm_command_inifile: "SAPINST_INPUT_PARAMETERS_URL={{ sap_swpm_tmpdir.path }}/inifile.params"
+    sap_swpm_swpm_command_product_id: "SAPINST_EXECUTE_PRODUCT_ID={{ sap_swpm_product_catalog_id }}"
+    # If SWPM is running a normal install Ansible Variable sap_swpm_swpm_command_virtual_hostname is blank
+    # IF SWPM is running a HA installation, Ansible Variable sap_swpm_swpm_command_virtual_hostname is set and contains "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }} IS_HOST_LOCAL_USING_STRING_COMPARE=true"
+    # If SWPM is running a MP Stack XML installation, Ansible Variable sap_swpm_swpm_command_mp_stack is set and contains "SAPINST_STACK_XML={{ sap_swpm_mp_stack_path }} + '/' (if needed) + {{ sap_swpm_mp_stack_file_name }}"
+    sap_swpm_swpm_command_extra_args: "SAPINST_SKIP_DIALOGS=true {{ sap_swpm_swpm_command_guiserver }} {{ sap_swpm_swpm_command_observer }} {{ sap_swpm_swpm_command_virtual_hostname }} {{ sap_swpm_swpm_command_mp_stack }}"
+  tags: sap_swpm_sapinst_commandline
+
+- name: Set fact for the sapinst command line
+  ansible.builtin.set_fact:
+    __sap_swpm_sapinst_command: "umask {{ sap_swpm_umask | d('022') }} ; ./sapinst {{ sap_swpm_swpm_command_inifile }}
+    {{ sap_swpm_swpm_command_product_id }}
+    {{ sap_swpm_swpm_command_extra_args }}"
+  tags: sap_swpm_sapinst_commandline
+
+- name: Display the sapinst command line
+  ansible.builtin.debug:
+    msg: "SAP SWPM install command: '{{ __sap_swpm_sapinst_command }}'"
+  tags: sap_swpm_sapinst_commandline

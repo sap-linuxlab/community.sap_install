@@ -1,11 +1,30 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# Create temporary directory
-- name: SAP SWPM Pre Install - Create temporary directory
+- name: SAP SWPM Pre Install - Create temporary directory on control node
   ansible.builtin.tempfile:
     state: directory
-    suffix: swpmconfig
+    suffix: _swpm_tmp
+  delegate_to: localhost
+  register: sap_swpm_tmpdir_local
+  tags:
+    - sap_swpm_generate_inifile
+    - sap_swpm_sapinst_commandline
+
+- name: SAP SWPM Pre Install - Make the temporary directory on control node world readable
+  ansible.builtin.file:
+    path: "{{ sap_swpm_tmpdir_local.path }}"
+    state: directory
+    mode: '0777'
+  delegate_to: localhost
+  tags:
+    - sap_swpm_generate_inifile
+    - sap_swpm_sapinst_commandline
+
+- name: SAP SWPM Pre Install - Create temporary directory on managed node
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: _swpm_config
   register: sap_swpm_tmpdir
   tags:
     - sap_swpm_generate_inifile
@@ -21,21 +40,25 @@
   when: sap_swpm_use_password_file == "y"
   tags: sap_swpm_generate_inifile
 
-# Run SWPM inifile generation based on ansible role mode
-- name: SAP SWPM Pre Install - generate swpm inifile
-  ansible.builtin.include_tasks: "swpm_inifile_generate_{{ sap_swpm_ansible_role_mode }}.yml"
+# Create the SWPM inifile
+## Run SWPM inifile generation based on ansible role mode
+- name: SAP SWPM Pre Install - Generate the SWPM inifile
+  ansible.builtin.include_tasks: "swpm_inifile_generate.yml"
+#  ansible.builtin.include_tasks: "swpm_inifile_generate_{{ sap_swpm_ansible_role_mode }}.yml"
   tags: sap_swpm_generate_inifile
 
-- name: SAP SWPM Pre Install - Display the location of file 'inifile.params'
-  ansible.builtin.debug:
-    msg: "{{ sap_swpm_tmpdir.path }}/inifile.params"
-  tags: sap_swpm_generate_inifile
+#- name: SAP SWPM Pre Install - Display the location of file 'inifile.params'
+#  ansible.builtin.debug:
+#    msg: "/tmp/inifile.params"
+#    msg: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+#  tags: sap_swpm_generate_inifile
 
 # Set fact for SWPM path
 - name: SAP SWPM Pre Install - Set fact for SWPM path when extract directory defined
   ansible.builtin.set_fact:
     sap_swpm_sapinst_path: "{{ sap_swpm_software_extract_directory }}"
   when:
+    - sap_swpm_run_sapinst
     - sap_swpm_software_extract_directory is defined
     - not (sap_swpm_software_extract_directory is none or (sap_swpm_software_extract_directory | length == 0))
 
@@ -44,6 +67,7 @@
   ansible.builtin.set_fact:
     sap_swpm_sapinst_path: "{{ (sap_swpm_swpm_path | regex_replace('\\/$', '')) + '/extracted' }}"
   when:
+    - sap_swpm_run_sapinst
     - sap_swpm_software_extract_directory is undefined or (sap_swpm_software_extract_directory is none or (sap_swpm_software_extract_directory | length) == 0)
 
 - name: SAP SWPM Pre Install - Ensure directory '{{ sap_swpm_sapinst_path }}' exists
@@ -51,6 +75,7 @@
     path: "{{ sap_swpm_sapinst_path }}"
     state: directory
     mode: '0755'
+  when: sap_swpm_run_sapinst
 
 # Extract SWPM
 - name: SAP SWPM Pre Install - Extract SWPM
@@ -62,3 +87,4 @@
   args:
     chdir: "{{ sap_swpm_sapinst_path }}"
   changed_when: "'SAPCAR: processing archive' in sap_swpm_extractswpm.stdout"
+  when: sap_swpm_run_sapinst

@@ -5,7 +5,8 @@
 #   SWPM Ansible Role variables
 ########################################
 
-sap_swpm_ansible_role_mode: "default"
+# We do not use role modes any more:
+# sap_swpm_ansible_role_mode: "default"
 # default
 # default_templates
 # advanced
@@ -45,21 +46,20 @@ sap_swpm_files_non_sapcar_group: root
 
 ########################################
 #   SWPM Ansible Role variables
-#   for Inifile Reuse, Advanced, and Defaults/Advanced Templates Mode
+#   for creating the sapinst inifile
 ########################################
+
+# Have the role run the sapinst command with an existing inifile or after creating the inifile:
+sap_swpm_run_sapinst: true
 
 # Inifile Reuse Mode
 sap_swpm_inifile_reuse_source:
 sap_swpm_inifile_reuse_destination:
 
-# Advanced Mode
-#sap_swpm_inifile_custom_values_dictionary:
+#sap_swpm_inifile_parameters_dict:
 #  archives.downloadBasket: /software/download_basket
 #  NW_getFQDN.FQDN: poc.cloud
 ## add.additional.parameters: ''
-
-# Default/Advanced Templates Mode
-#sap_swpm_templates_product_input: ""
 
 
 ########################################
@@ -68,7 +68,7 @@ sap_swpm_inifile_reuse_destination:
 #   - List of inifile parameters to generate
 ########################################
 
-sap_swpm_inifile_list:
+sap_swpm_inifile_sections_list:
   - swpm_installation_media
   - swpm_installation_media_swpm2_hana
 #  - swpm_installation_media_swpm1
@@ -156,7 +156,7 @@ sap_swpm_software_extract_directory: # e.g. /software/sap_swpm_extracted
 sap_swpm_software_use_media: 'false'
 
 # Main path that this role will look for .SAR files
-sap_swpm_software_path:
+sap_swpm_software_path: /software/sapfiles
 ## This directory path should include these files:
 ##   - igs*sar
 ##   - igshelper*sar
@@ -164,6 +164,10 @@ sap_swpm_software_path:
 ##   - SAPEXE_*SAR
 ##   - IMDB_CLIENT*SAR
 ##   - SAPHOSTAGENT*SAR
+
+# Directory in which a sapinst inifile which is to be used by the role can be stored:
+sap_swpm_inifile_directory: "{{ sap_swpm_software_path }}/inifiles"
+#sap_swpm_local_inifile_directory: '/tmp/inifiles'
 
 # SWPM1 - paths that this role will look for CD Media software
 sap_swpm_cd_export_pt1_path:
