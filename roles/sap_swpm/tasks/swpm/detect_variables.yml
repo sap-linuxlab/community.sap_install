@@ -6,7 +6,8 @@
   ansible.builtin.command: |
     awk 'BEGIN{IGNORECASE=1;a=0}
       /Product ID/&&a==0{a=1; gsub ("#", ""); gsub ("\047", ""); product_id=$NF}
-      END{print product_id}' {{ sap_swpm_tmpdir.path }}/inifile.params
+      END{print product_id}' {{ sap_swpm_tmpdir_local.path }}/inifile.params
+  delegate_to: localhost
   register: sap_swpm_inifile_product_id_detect
   changed_when: false
   when: not sap_swpm_product_catalog_id is defined
@@ -25,7 +26,8 @@
 # Detect Software Path
 - name: SAP SWPM - Detect Software Path
   ansible.builtin.command: |
-    awk '!/^#/&&/archives.downloadBasket/{print $3}' {{ sap_swpm_tmpdir.path }}/inifile.params
+    awk '!/^#/&&/archives.downloadBasket/{print $3}' {{ sap_swpm_tmpdir_local.path }}/inifile.params
+  delegate_to: localhost
   register: sap_swpm_inifile_software_path
   changed_when: false
   when: not sap_swpm_software_path is defined
@@ -44,7 +46,8 @@
 # Detect SID
 - name: SAP SWPM - Detect SID
   ansible.builtin.command: |
-    awk '!/^#/&&/NW_GetSidNoProfiles.sid/{print $3}' {{ sap_swpm_tmpdir.path }}/inifile.params
+    awk '!/^#/&&/NW_GetSidNoProfiles.sid/{print $3}' {{ sap_swpm_tmpdir_local.path }}/inifile.params
+  delegate_to: localhost
   register: sap_swpm_inifile_sid
   changed_when: false
   when: not sap_swpm_sid is defined
@@ -63,7 +66,8 @@
 # Detect FQDN
 - name: SAP SWPM - Detect FQDN
   ansible.builtin.command: |
-    awk '!/^#/&&/NW_getFQDN.FQDN/{print $3}' {{ sap_swpm_tmpdir.path }}/inifile.params
+    awk '!/^#/&&/NW_getFQDN.FQDN/{print $3}' {{ sap_swpm_tmpdir_local.path }}/inifile.params
+  delegate_to: localhost
   register: sap_swpm_inifile_fqdn
   changed_when: false
   when: not sap_swpm_fqdn is defined

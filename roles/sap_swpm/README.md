@@ -157,66 +157,42 @@ Sample Ansible Playbook Execution
 
 - Apply firewall rules for SAP HANA (optional - no by default)
 
-- Process SAP SWPM `inifile.params` based on inputs
+- At this stage, a sapinst inifile is created by the role on the control node if not already present.
+
+  - If a file `inifile.params` is located on the managed node in the directory specified in `sap_swpm_inifile_directory`,
+    the role will not create a new one but rather download this file to the control node.
+
+  - If such a file does not exist, the role will create an SAP SWPM `inifile.params` file by one of the following methods:
+
+    Method 1: Predefined sections of the file inifile_params.j2 will be used to create the file `inifile.params`.
+              The variable `sap_swpm_inifile_sections_list` determines which sections will be used. All other sections will be ignored.
+              The inifile parameters themselves will be set according to other role parameters. 
+              Example: The inifile parameter `archives.downloadBasket` will be set to the content of the role parameter
+              `sap_swpm_software_path`
+
+    Method 2: The file `inifile.params` will be configured from the content of the dictionary `sap_swpm_inifile_parameters_dict`.
+              This dictionary is defined like in the following example:
+
+```
+sap_swpm_inifile_parameters_dict:
+  archives.downloadBasket: /software/download_basket
+  NW_getFQDN.FQDN: poc.cloud
+```
+
+   It is also possible to use method 1 for creating the inifile and then replace or set additional variables using method 2:
+   Just define both of the related parameters, `sap_swpm_inifile_sections_list` and `sap_swpm_inifile_parameters_dict`.
+
+- The file inifile.params is then transferred to a temporary directory on the control node, to be used by the sapinst process.
 
 ### SAP SWPM
 
-- Execute SWPM
+- Execute SWPM. This and the remaining steps can be skipped by setting the default of the parameter `sap_swpm_run_sapinst` to `false`.
 
 ### Post-Install
 
 - Set expiry of Unix created users to 'never'
 
 - Apply firewall rules for SAP NW (optional - no by default)
-
-
-## Execution Modes
-
-Every SAP Software installation via SAP Software Provisioning Manager (SWPM) is possible, there are different Ansible Role execution modes available:
-
-- Default (`sap_swpm_templates_product_input: default`), run software install tasks using easy Ansible Variable to generate SWPM Unattended installations
-    - Default Templates (`sap_swpm_templates_product_input: default_templates`), optional use of templating definitions for repeated installations
-- Advanced (`sap_swpm_templates_product_input: advanced`), run software install tasks with Ansible Variables one-to-one matched to SWPM Unattended Inifile parameters to generate bespoke SWPM Unattended installations
-    - Advanced Templates (`sap_swpm_templates_product_input: advanced_templates`), optional use of templating definitions for repeated installations
-- Inifile Reuse (`sap_swpm_templates_product_input: inifile_reuse`), run previously-defined installations with an existing SWPM Unattended inifile.params
-
-### Default Templates mode variables
-
-Example using all inifile list parameters with the Default Templates mode to install SAP ECC EhP8 on IBM Db2:
-
-```
-sap_swpm_ansible_role_mode: default_templates
-sap_swpm_templates_product_input: default_templates
-
-sap_swpm_templates_install_dictionary:
-
-  template_name_ecc_ehp8_ibmdb2:
-
-    sap_swpm_product_catalog_id: NW_ABAP_OneHost:BS2016.ERP608.DB6.PD
-    sap_swpm_inifile_dictionary:
-      sap_swpm_sid:
-      ...
-    sap_swpm_inifile_list:
-    - swpm_installation_media
-    - swpm_installation_media_swpm1
-    - swpm_installation_media_swpm1_exportfiles
-    - swpm_installation_media_swpm1_ibmdb2
-    - sum_config
-    - credentials
-    - credentials_anydb_ibmdb2
-    - db_config_anydb_all
-    - db_config_anydb_ibmdb2
-    - db_connection_nw_anydb_ibmdb2
-    - nw_config_anydb
-    - nw_config_other
-    - nw_config_central_services_abap
-    #  - nw_config_central_services_java
-    - nw_config_primary_application_server_instance
-    - nw_config_ports
-    - nw_config_host_agent
-    #  - nw_config_post_abap_reports
-    - sap_os_linux_user
-```
 
 ## Tags
 

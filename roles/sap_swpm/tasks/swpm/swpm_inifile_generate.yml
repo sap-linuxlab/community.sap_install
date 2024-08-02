@@ -1,0 +1,163 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Determine Installation Type, e.g. System Copy, HA, Maintenance Planner, ...
+- name: SAP SWPM default mode - Determine Installation Type
+  ansible.builtin.include_tasks:
+    file: ../pre_install/install_type.yml
+    apply:
+      tags: sap_swpm_generate_inifile
+  tags: sap_swpm_generate_inifile
+
+# Password Facts
+- name: SAP SWPM Pre Install - Set password facts when ABAP
+  ansible.builtin.set_fact:
+    sap_swpm_db_schema: "{{ sap_swpm_db_schema_abap }}"
+    sap_swpm_db_schema_password: "{{ sap_swpm_db_schema_abap_password }}"
+  when: "'ABAP' in sap_swpm_product_catalog_id"
+  tags: sap_swpm_generate_inifile
+
+- name: SAP SWPM Pre Install - Set password facts when Java
+  ansible.builtin.set_fact:
+    sap_swpm_db_schema: "{{ sap_swpm_db_schema_java }}"
+    sap_swpm_db_schema_password: "{{ sap_swpm_db_schema_java_password }}"
+  when: "'Java' in sap_swpm_product_catalog_id"
+  tags: sap_swpm_generate_inifile
+
+- name: SAP SWPM Pre Install - Set other user passwords using master password
+  ansible.builtin.set_fact:
+    sap_swpm_sapadm_password: "{{ sap_swpm_master_password }}"
+    sap_swpm_sap_sidadm_password: "{{ sap_swpm_master_password }}"
+    sap_swpm_diagnostics_agent_password: "{{ sap_swpm_master_password }}"
+  tags: sap_swpm_generate_inifile
+
+- name: SAP SWPM Pre Install - Ensure the sapinst inifile directory '{{ sap_swpm_inifile_directory }}' exists
+  ansible.builtin.file:
+    path: "{{ sap_swpm_inifile_directory }}"
+    state: directory
+    owner: 'root'
+    group: 'root'
+    mode: '0755'
+
+- name: SAP SWPM Pre Install - Check if file '{{ sap_swpm_inifile_directory }}/inifile.params' exists
+  ansible.builtin.stat:
+    path: "{{ sap_swpm_inifile_directory }}/inifile.params"
+  check_mode: no
+  register: __sap_swpm_register_stat_sapinst_inifile
+
+- name: SAP SWPM Pre Install - Notify about existing sapinst inifile
+  ansible.builtin.debug:
+    msg: "INFO: Using existing sapinst inifile '{{ sap_swpm_inifile_directory }}/inifile.params'."
+  when: __sap_swpm_register_stat_sapinst_inifile.stat.exists
+
+- name: SAP SWPM Pre Install - Slurp the remote 'inifile.params' for copying to managed node
+  ansible.builtin.slurp:
+    src: "{{ sap_swpm_inifile_directory }}/inifile.params"
+  register: sap_swpm_slurped_remote_inifile
+  when: __sap_swpm_register_stat_sapinst_inifile.stat.exists
+
+- name: SAP SWPM Pre Install - Copy 'inifile.params' to the control node
+  ansible.builtin.copy:
+    content: "{{ sap_swpm_slurped_remote_inifile['content'] | b64decode }}"
+    dest: "{{ sap_swpm_tmpdir_local.path }}/inifile.params"
+    owner: 'root'
+    group: 'root'
+    mode: '0640'
+  delegate_to: localhost
+  when: __sap_swpm_register_stat_sapinst_inifile.stat.exists
+
+# Note: Attempting to fetch and store into sap_swpm_tmpdir_local.path results in a 'Permission denied' error.
+#- name: SAP SWPM Pre Install - Download existing sapinst inifile to '{{ sap_swpm_local_inifile_directory }}'
+#  ansible.builtin.fetch:
+#    src: "{{ sap_swpm_inifile_directory }}/inifile.params"
+#    dest: "{{ sap_swpm_tmpdir_local.path }}/"
+##    dest: "{{ sap_swpm_local_inifile_directory }}/"
+#    flat: true
+#  become: true
+#  when: __sap_swpm_register_stat_sapinst_inifile.stat.exists
+
+#- name: SAP SWPM Pre Install - Copy sapinst inifile to '{{ sap_swpm_tmpdir_local.path }}'
+#  ansible.builtin.copy:
+#    src: "{{ sap_swpm_local_inifile_directory }}/inifile.params"
+#    dest: "{{ sap_swpm_tmpdir_local.path }}/inifile.params"
+#  delegate_to: localhost
+#  when: __sap_swpm_register_stat_sapinst_inifile.stat.exists
+
+- name: SAP SWPM Pre Install - Create the SWPM inifile 'inifile.params' dynamically
+  when:
+    - not __sap_swpm_register_stat_sapinst_inifile.stat.exists
+  block:
+
+# Generate inifile.params, step 1: Process SWPM Configfile template locally for creating inifile.params
+    - name: SAP SWPM Pre Install - Process SWPM inifile template for for creating 'inifile.params'
+      ansible.builtin.template:
+        src: "{{ role_path }}/templates/inifile_params.j2"
+        dest: "{{ sap_swpm_tmpdir_local.path }}/inifile.params"
+        owner: 'root'
+        group: 'root'
+        mode: '0640'
+      delegate_to: localhost
+      when:
+        - sap_swpm_inifile_sections_list is defined
+        - sap_swpm_inifile_sections_list | length > 0
+      tags: sap_swpm_generate_inifile
+
+# Generate inifile.params, step 2: Use any entries from sap_swpm_inifile_parameters_dict
+    - name: SAP SWPM Pre Install - Replace existing, or add missing, any inifile.params entries from sap_swpm_inifile_parameters_dict
+      ansible.builtin.lineinfile:
+        path: "{{ sap_swpm_tmpdir_local.path }}/inifile.params"
+        create: true
+        state: present
+        line: "{{ sap_swpm_line_item.key }} = {{ sap_swpm_line_item.value }}"
+        regexp: "^{{ sap_swpm_line_item.key }}[\\s]*=[\\s]*.*"
+        owner: 'root'
+        group: 'root'
+        mode: '0640'
+      loop: "{{ sap_swpm_inifile_parameters_dict | dict2items }}"
+      loop_control:
+        loop_var: sap_swpm_line_item
+      register: replace_result
+      delegate_to: localhost
+      when:
+        - sap_swpm_inifile_parameters_dict is defined
+        - sap_swpm_inifile_parameters_dict | length > 0
+      tags: sap_swpm_generate_inifile
+
+- name: SAP SWPM Pre Install - Display the path of the local 'inifile.params'
+  ansible.builtin.debug:
+    msg: "The local inifile.params is: '{{ sap_swpm_tmpdir_local.path }}/inifile.params'"
+  tags: sap_swpm_generate_inifile
+
+- name: SAP SWPM Pre Install - Detect Variables
+  ansible.builtin.include_tasks:
+    file: detect_variables.yml
+    apply:
+      tags: sap_swpm_generate_inifile
+  tags: sap_swpm_generate_inifile
+
+- name: SAP SWPM Pre Install - Slurp the local 'inifile.params' for copying to managed node
+  ansible.builtin.slurp:
+    src: "{{ sap_swpm_tmpdir_local.path }}/inifile.params"
+  register: sap_swpm_slurped_local_inifile
+  delegate_to: localhost
+  tags: sap_swpm_generate_inifile
+
+- name: SAP SWPM Pre Install - Copy 'inifile.params' to the managed node
+  ansible.builtin.copy:
+    content: "{{ sap_swpm_slurped_local_inifile['content'] | b64decode }}"
+    dest: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+    owner: 'root'
+    group: 'root'
+    mode: '0640'
+  tags: sap_swpm_generate_inifile
+
+- name: SAP SWPM Pre Install - Display the path of the remote 'inifile.params'
+  ansible.builtin.debug:
+    msg: "The local inifile.params has been copied to: '{{ sap_swpm_tmpdir.path }}/inifile.params'"
+  tags: sap_swpm_generate_inifile
+
+# Requires variables - sap_swpm_software_path (e.g. /software/download_basket), sap_swpm_sapcar_path (e.g. /software/sapcar), sap_swpm_swpm_path (e.g. /software/swpm)
+# Prepare Software
+- name: SAP SWPM advanced mode - Prepare Software
+  ansible.builtin.include_tasks: prepare_software.yml
+  when: sap_swpm_run_sapinst
