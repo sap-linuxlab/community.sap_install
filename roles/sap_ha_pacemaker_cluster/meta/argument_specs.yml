@@ -210,7 +210,7 @@ argument_specs:
 
         example:
           sap_ha_pacemaker_cluster_stonith_custom:
-            - name: "my-fence-resource"
+            - id: "my-fence-resource"
               agent: "stonith:fence_rhevm"
               instance_attrs:
                 - attrs:
@@ -892,17 +892,23 @@ argument_specs:
       sap_ha_pacemaker_cluster_aws_access_key_id:
         description:
           - AWS access key to allow control of instances (for example for fencing operations).
-          - Mandatory for the cluster nodes setup on AWS EC2 instances.
+          - "Mandatory for the cluster nodes setup on AWS EC2 instances, when:"
+          - "1. IAM Role or Instance profile is not attached to EC2 instance."
+          - "2. `sap_ha_pacemaker_cluster_aws_credentials_setup` is `true`"
 
       sap_ha_pacemaker_cluster_aws_secret_access_key:
         description:
           - AWS secret key, paired with the access key for instance control.
-          - Mandatory for the cluster setup on AWS EC2 instances.
+          - "Mandatory for the cluster nodes setup on AWS EC2 instances, when:"
+          - "1. IAM Role or Instance profile is not attached to EC2 instance."
+          - "2. `sap_ha_pacemaker_cluster_aws_credentials_setup` is `true`"
 
       sap_ha_pacemaker_cluster_aws_credentials_setup:
         description:
           - Set this parameter to 'true' to store AWS credentials into /root/.aws/credentials.
-          - "Required: `sap_ha_pacemaker_cluster_aws_access_key_id` and `sap_ha_pacemaker_cluster_aws_secret_access_key`"
+          - "Requires: `sap_ha_pacemaker_cluster_aws_access_key_id` and `sap_ha_pacemaker_cluster_aws_secret_access_key`"
+          - "Mandatory for the cluster nodes setup on AWS EC2 instances, when:"
+          - "1. IAM Role or Instance profile is not attached to EC2 instance."
 
       ##########################################################################
       # Platforms: GCP specific parameters

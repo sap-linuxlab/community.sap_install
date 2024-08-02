@@ -146,14 +146,18 @@ Additional minimum requirements depend on the type of cluster setup and on the t
 - _Type:_ `string`
 
 AWS access key to allow control of instances (for example for fencing operations).<br>
-Mandatory for the cluster nodes setup on AWS EC2 instances.<br>
+Mandatory for the cluster nodes setup on AWS EC2 instances, when:<br>
+1. IAM Role or Instance profile is not attached to EC2 instance.<br>
+2. `sap_ha_pacemaker_cluster_aws_credentials_setup` is `true`<br>
 
 ### sap_ha_pacemaker_cluster_aws_credentials_setup
 
 - _Type:_ `string`
 
 Set this parameter to 'true' to store AWS credentials into /root/.aws/credentials.<br>
-Required: `sap_ha_pacemaker_cluster_aws_access_key_id` and `sap_ha_pacemaker_cluster_aws_secret_access_key`<br>
+Requires: `sap_ha_pacemaker_cluster_aws_access_key_id` and `sap_ha_pacemaker_cluster_aws_secret_access_key`<br>
+Mandatory for the cluster nodes setup on AWS EC2 instances, when:<br>
+1. IAM Role or Instance profile is not attached to EC2 instance.<br>
 
 ### sap_ha_pacemaker_cluster_aws_region
 
@@ -167,7 +171,9 @@ Mandatory for cluster nodes setup on AWS EC2 instances.<br>
 - _Type:_ `string`
 
 AWS secret key, paired with the access key for instance control.<br>
-Mandatory for the cluster setup on AWS EC2 instances.<br>
+Mandatory for the cluster nodes setup on AWS EC2 instances, when:<br>
+1. IAM Role or Instance profile is not attached to EC2 instance.<br>
+2. `sap_ha_pacemaker_cluster_aws_credentials_setup` is `true`<br>
 
 ### sap_ha_pacemaker_cluster_aws_vip_update_rt
 
@@ -953,6 +959,7 @@ Example:
 ```yaml
 sap_ha_pacemaker_cluster_stonith_custom:
 - agent: stonith:fence_rhevm
+  id: my-fence-resource
   instance_attrs:
   - attrs:
     - name: ip
@@ -969,7 +976,6 @@ sap_ha_pacemaker_cluster_stonith_custom:
   - attrs:
     - name: target-role
       value: Started
-  name: my-fence-resource
   operations:
   - action: start
     attrs:
