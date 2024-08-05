@@ -40,12 +40,26 @@
   when: sap_swpm_use_password_file == "y"
   tags: sap_swpm_generate_inifile
 
+# Determine Installation Type, e.g. System Copy, HA, Maintenance Planner, ...
+- name: SAP SWPM default mode - Determine Installation Type
+  ansible.builtin.include_tasks:
+    file: install_type.yml
+    apply:
+      tags: sap_swpm_generate_inifile
+  tags: sap_swpm_generate_inifile
+
 # Create the SWPM inifile
 ## Run SWPM inifile generation based on ansible role mode
 - name: SAP SWPM Pre Install - Generate the SWPM inifile
-  ansible.builtin.include_tasks: "swpm_inifile_generate.yml"
+  ansible.builtin.include_tasks: "generate_inifile_params.yml"
 #  ansible.builtin.include_tasks: "swpm_inifile_generate_{{ sap_swpm_ansible_role_mode }}.yml"
   tags: sap_swpm_generate_inifile
+
+# Requires variables - sap_swpm_software_path (e.g. /software/download_basket), sap_swpm_sapcar_path (e.g. /software/sapcar), sap_swpm_swpm_path (e.g. /software/swpm)
+# Prepare Software
+- name: SAP SWPM advanced mode - Prepare Software
+  ansible.builtin.include_tasks: prepare_software.yml
+  when: sap_swpm_run_sapinst
 
 #- name: SAP SWPM Pre Install - Display the location of file 'inifile.params'
 #  ansible.builtin.debug:
