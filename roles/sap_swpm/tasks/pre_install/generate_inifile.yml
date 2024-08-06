@@ -6,6 +6,7 @@
   ansible.builtin.include_tasks: "set_password_facts.yml"
   tags: sap_swpm_generate_inifile
 
+# The following task is used for checking if an inifile exists on the managed node
 - name: SAP SWPM Pre Install - Ensure the sapinst inifile directory '{{ sap_swpm_inifile_directory }}' exists
   ansible.builtin.file:
     path: "{{ sap_swpm_inifile_directory }}"
@@ -13,20 +14,20 @@
     owner: 'root'
     group: 'root'
     mode: '0755'
-  tags: sap_swpm_generate_inifile
 
 - name: SAP SWPM Pre Install - Check if file '{{ sap_swpm_inifile_directory }}/inifile.params' exists
   ansible.builtin.stat:
     path: "{{ sap_swpm_inifile_directory }}/inifile.params"
   check_mode: no
   register: __sap_swpm_register_stat_sapinst_inifile
-  tags: sap_swpm_generate_inifile
 
 - name: SAP SWPM Pre Install - Notify about existing sapinst inifile
   ansible.builtin.debug:
     msg: "INFO: Using existing sapinst inifile '{{ sap_swpm_inifile_directory }}/inifile.params'."
   when: __sap_swpm_register_stat_sapinst_inifile.stat.exists
 
+# Note: Attempting to fetch and store into sap_swpm_tmpdir_local.path results in a 'Permission denied' error.
+# So we are using 'slurp'+'copy' for this purpose.
 - name: SAP SWPM Pre Install - Slurp the remote 'inifile.params' for copying to managed node
   ansible.builtin.slurp:
     src: "{{ sap_swpm_inifile_directory }}/inifile.params"
@@ -43,26 +44,11 @@
   delegate_to: localhost
   when: __sap_swpm_register_stat_sapinst_inifile.stat.exists
 
-# Note: Attempting to fetch and store into sap_swpm_tmpdir_local.path results in a 'Permission denied' error.
-#- name: SAP SWPM Pre Install - Download existing sapinst inifile to '{{ sap_swpm_local_inifile_directory }}'
-#  ansible.builtin.fetch:
-#    src: "{{ sap_swpm_inifile_directory }}/inifile.params"
-#    dest: "{{ sap_swpm_tmpdir_local.path }}/"
-##    dest: "{{ sap_swpm_local_inifile_directory }}/"
-#    flat: true
-#  become: true
-#  when: __sap_swpm_register_stat_sapinst_inifile.stat.exists
-
-#- name: SAP SWPM Pre Install - Copy sapinst inifile to '{{ sap_swpm_tmpdir_local.path }}'
-#  ansible.builtin.copy:
-#    src: "{{ sap_swpm_local_inifile_directory }}/inifile.params"
-#    dest: "{{ sap_swpm_tmpdir_local.path }}/inifile.params"
-#  delegate_to: localhost
-#  when: __sap_swpm_register_stat_sapinst_inifile.stat.exists
-
+# We are creating the inifile dynamically in one of the two cases:
+# 1 - The tag sap_swpm_generate_inifile is specified
+# 2 - There is no file 'inifile.params' available in 'sap_swpm_inifile_directory'
 - name: SAP SWPM Pre Install - Create the SWPM inifile 'inifile.params' dynamically
-  when:
-    - not __sap_swpm_register_stat_sapinst_inifile.stat.exists
+  when: "'sap_swpm_generate_inifile' in ansible_run_tags or (not __sap_swpm_register_stat_sapinst_inifile.stat.exists)"
   block:
 
 # Generate inifile.params, step 1: Process SWPM Configfile template locally for creating inifile.params
@@ -108,16 +94,16 @@
 - name: SAP SWPM Pre Install - Detect Variables
   ansible.builtin.include_tasks:
     file: detect_variables_from_inifile.yml
-    apply:
-      tags: sap_swpm_generate_inifile
-  tags: sap_swpm_generate_inifile
+#    apply:
+#      tags: sap_swpm_generate_inifile
+#  tags: sap_swpm_generate_inifile
 
 - name: SAP SWPM Pre Install - Slurp the local 'inifile.params' for copying to managed node
   ansible.builtin.slurp:
     src: "{{ sap_swpm_tmpdir_local.path }}/inifile.params"
   register: sap_swpm_slurped_local_inifile
   delegate_to: localhost
-  tags: sap_swpm_generate_inifile
+#  tags: sap_swpm_generate_inifile
 
 - name: SAP SWPM Pre Install - Copy 'inifile.params' to the managed node
   ansible.builtin.copy:
@@ -126,9 +112,9 @@
     owner: 'root'
     group: 'root'
     mode: '0640'
-  tags: sap_swpm_generate_inifile
+#  tags: sap_swpm_generate_inifile
 
 - name: SAP SWPM Pre Install - Display the path of the remote 'inifile.params'
   ansible.builtin.debug:
     msg: "The local inifile.params has been copied to: '{{ sap_swpm_tmpdir.path }}/inifile.params'"
-  tags: sap_swpm_generate_inifile
+#  tags: sap_swpm_generate_inifile
