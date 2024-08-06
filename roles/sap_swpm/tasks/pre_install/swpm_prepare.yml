@@ -17,18 +17,14 @@
 #    state: directory
 #    mode: '0777'
 #  delegate_to: localhost
-#  tags:
-#    - sap_swpm_generate_inifile
-#    - sap_swpm_sapinst_commandline
 
 - name: SAP SWPM Pre Install - Create temporary directory on managed node
   ansible.builtin.tempfile:
     state: directory
     suffix: _swpm_config
   register: sap_swpm_tmpdir
-#  tags:
-#    - sap_swpm_generate_inifile
-#    - sap_swpm_sapinst_commandline
+  tags:
+    - sap_swpm_sapinst_commandline
 
 # Copy password file to the same location as inifile.params
 - name: SAP SWPM Pre Install - Copy password file to the same location as inifile.params
@@ -38,7 +34,6 @@
     remote_src: yes
     mode: '0640'
   when: sap_swpm_use_password_file == "y"
-#  tags: sap_swpm_generate_inifile
 
 # Determine Installation Type, e.g. System Copy, HA, Maintenance Planner, ...
 - name: SAP SWPM default mode - Determine Installation Type
