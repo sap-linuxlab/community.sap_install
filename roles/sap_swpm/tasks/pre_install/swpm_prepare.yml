@@ -35,30 +35,24 @@
     mode: '0640'
   when: sap_swpm_use_password_file == "y"
 
-# Determine Installation Type, e.g. System Copy, HA, Maintenance Planner, ...
-- name: SAP SWPM default mode - Determine Installation Type
-  ansible.builtin.include_tasks:
-    file: install_type.yml
-    apply:
-      tags: sap_swpm_generate_inifile
-  tags: sap_swpm_generate_inifile
-
 # Create the SWPM inifile
 - name: SAP SWPM Pre Install - Generate the SWPM inifile
   ansible.builtin.include_tasks: "generate_inifile.yml"
   tags: sap_swpm_generate_inifile
+
+# Determine Installation Type, e.g. System Copy, HA, Maintenance Planner, ...
+- name: SAP SWPM default mode - Determine Installation Type
+  ansible.builtin.include_tasks:
+    file: install_type.yml
+#    apply:
+#      tags: sap_swpm_generate_inifile
+#  tags: sap_swpm_generate_inifile
 
 # Requires variables - sap_swpm_software_path (e.g. /software/download_basket), sap_swpm_sapcar_path (e.g. /software/sapcar), sap_swpm_swpm_path (e.g. /software/swpm)
 # Prepare Software
 - name: SAP SWPM Pre Install - Prepare Software
   ansible.builtin.include_tasks: prepare_software.yml
   when: sap_swpm_run_sapinst
-
-#- name: SAP SWPM Pre Install - Display the location of file 'inifile.params'
-#  ansible.builtin.debug:
-#    msg: "/tmp/inifile.params"
-#    msg: "{{ sap_swpm_tmpdir.path }}/inifile.params"
-#  tags: sap_swpm_generate_inifile
 
 # Set fact for SWPM path
 - name: SAP SWPM Pre Install - Set fact for SWPM path when extract directory defined
