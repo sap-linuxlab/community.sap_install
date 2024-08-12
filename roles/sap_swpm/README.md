@@ -182,7 +182,7 @@ sap_swpm_inifile_parameters_dict:
    It is also possible to use method 1 for creating the inifile and then replace or set additional variables using method 2:
    Just define both of the related parameters, `sap_swpm_inifile_sections_list` and `sap_swpm_inifile_parameters_dict`.
 
-- The file inifile.params is then transferred to a temporary directory on the control node, to be used by the sapinst process.
+- The file inifile.params is then transferred to a temporary directory on the managed node, to be used by the sapinst process.
 
 ### SAP SWPM
 
