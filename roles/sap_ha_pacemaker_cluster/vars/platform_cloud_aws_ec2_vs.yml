@@ -181,9 +181,41 @@ __sap_ha_pacemaker_cluster_stonith_default:
 
 
 # Default corosync options - Platform specific
+# These options combined with __sap_ha_pacemaker_cluster_corosync_totem_default (Same options are overwritten).
+# Documentation sources:
+# HANA:
+#   SLES: https://docs.aws.amazon.com/sap/latest/sap-hana/sap-hana-on-aws-cluster-configuration.html#sap-hana-on-aws-create-the-corosync-configuration-file
+#         https://documentation.suse.com/sbp/sap-15/html/SLES4SAP-hana-sr-guide-perfopt-15-aws/index.html#id-example-for-etccorosynccorosync-conf
+#   RHEL: https://docs.aws.amazon.com/sap/latest/sap-hana/sap-hana-on-aws-cluster-configuration-1.html#sap-hana-on-aws-corosync-increase
+# NWAS:
+#   SLES: https://docs.aws.amazon.com/sap/latest/sap-netweaver/sap-netweaver-ha-setup.html#associations
+#   RHEL: https://docs.aws.amazon.com/sap/latest/sap-netweaver/rhel-sap-netweaver-ha-setup.html#associations
+__sap_ha_pacemaker_cluster_corosync_totem_platform_dict:
+  redhat_hana:
+    options:
+      token: 30000
+
+  redhat_nwas:
+    options:
+      token: 30000
+
+  suse_hana:
+    options:
+      token: 30000
+      consensus: 36000
+      token_retransmits_before_loss_const: 6
+      clear_node_high_bit: 'yes'
+
+  suse_nwas:
+    options:
+      token: 30000
+      consensus: 36000
+      clear_node_high_bit: 'yes'
+
 __sap_ha_pacemaker_cluster_corosync_totem_platform:
-  options:
-    token: 30000
+  "{{ __sap_ha_pacemaker_cluster_corosync_totem_platform_dict[ansible_os_family | lower ~ '_hana']
+    if sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+   else __sap_ha_pacemaker_cluster_corosync_totem_platform_dict[ansible_os_family | lower ~ '_nwas'] }}"
 
 
 # Platform specific VIP handling
