@@ -66,6 +66,30 @@ __sap_ha_pacemaker_cluster_stonith_default:
   "{{ __sap_ha_pacemaker_cluster_stonith_default_dict.generic }}"
 
 
+# Default corosync options - Platform specific
+# These options combined with __sap_ha_pacemaker_cluster_corosync_totem_default (Same options are overwritten).
+# Documentation sources:
+# HANA:
+#   SLES: https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-sles#create_the_corosync_configuration_files
+#   RHEL: https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel#edit_the_corosyncconf_default_settings
+# NWAS:
+#   SLES: https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-sles#create_the_corosync_configuration_files
+#   RHEL: https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-rhel#update_the_corosync_configuration_files
+__sap_ha_pacemaker_cluster_corosync_totem_platform_dict:
+  redhat:
+    options:
+      token: 20000
+      token_retransmits_before_loss_const: 10
+      join: 60
+      max_messages: 20
+  suse:
+    options:
+      token: 20000
+
+__sap_ha_pacemaker_cluster_corosync_totem_platform:
+  "{{ __sap_ha_pacemaker_cluster_corosync_totem_platform_dict[ansible_os_family | lower] }}"
+
+
 # GCP needs haproxy and ports defined
 sap_ha_pacemaker_cluster_healthcheck_hana_primary_port: "620{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
 sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port: >-
@@ -76,15 +100,6 @@ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_port: "620{{ sap_ha_pacemake
 sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}"
 sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
 sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
-
-
-# Default corosync options - Platform specific
-__sap_ha_pacemaker_cluster_corosync_totem_platform:
-  options:
-    token: 20000
-    token_retransmits_before_loss_const: 10
-    join: 60
-    max_messages: 20
 
 
 # Platform specific VIP handling

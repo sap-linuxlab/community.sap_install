@@ -99,9 +99,23 @@ __sap_ha_pacemaker_cluster_stonith_default:
 
 
 # Default corosync options - Platform specific
+# These options combined with __sap_ha_pacemaker_cluster_corosync_totem_default (Same options are overwritten).
+# Documentation sources:
+#   SLES: https://learn.microsoft.com/en-us/azure/sap/workloads/high-availability-guide-suse-pacemaker?tabs=msi#install-the-cluster 15.A
+#   RHEL: https://learn.microsoft.com/en-us/azure/sap/workloads/high-availability-guide-suse-pacemaker?tabs=msi#install-the-cluster
+# NOTE: Azure does not differentiate between HANA and ASCS pacemaker setup.
+__sap_ha_pacemaker_cluster_corosync_totem_platform_dict:
+  redhat:
+    options:
+      token: 30000
+  suse:
+    options:
+      token: 30000
+      consensus: 36000
+
 __sap_ha_pacemaker_cluster_corosync_totem_platform:
-  options:
-    token: 30000
+  "{{ __sap_ha_pacemaker_cluster_corosync_totem_platform_dict[ansible_os_family | lower] }}"
+
 
 # Platform specific VIP handling
 sap_ha_pacemaker_cluster_vip_method: azure_lb
