@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# Detect Product ID
+# Detect and set Product ID
 - name: SAP SWPM Pre Install - Detect Product ID from inifile
   ansible.builtin.command: |
     awk 'BEGIN{IGNORECASE=1;a=0}
@@ -10,6 +10,13 @@
   delegate_to: localhost
   register: sap_swpm_inifile_product_id_detect
   changed_when: false
+
+- name: SAP SWPM Pre Install - Report if 'sap_swpm_product_catalog_id' has been defined differently
+  ansible.builtin.debug:
+    msg: "NOTE: The Product ID in '{{ sap_swpm_tmpdir_local.path }}/inifile.params' is different from the role parameter 'sap_swpm_inifile_product_id_detect'."
+  when:
+    - sap_swpm_product_catalog_id
+    - sap_swpm_inifile_product_id_detect.stdout != sap_swpm_product_catalog_id
 
 - name: SAP SWPM Pre Install - Set SAP product ID
   ansible.builtin.set_fact:
@@ -23,6 +30,13 @@
   register: sap_swpm_inifile_software_path_detect
   changed_when: false
 
+- name: SAP SWPM Pre Install - Report if 'sap_swpm_software_path' has been defined differently
+  ansible.builtin.debug:
+    msg: "NOTE: The Software Path in '{{ sap_swpm_tmpdir_local.path }}/inifile.params' is different from the role parameter 'sap_swpm_software_path'."
+  when:
+    - sap_swpm_software_path
+    - sap_swpm_inifile_software_path_detect.stdout != sap_swpm_software_path
+
 - name: SAP SWPM Pre Install - Set Software Path
   ansible.builtin.set_fact:
     sap_swpm_software_path: "{{ sap_swpm_inifile_software_path_detect.stdout }}"
@@ -35,17 +49,31 @@
   register: sap_swpm_inifile_sid_detect
   changed_when: false
 
-- name: SAP SWPM Pre Install - Set SID from inifile
+- name: SAP SWPM Pre Install - Report if 'sap_swpm_sid' has been defined differently
+  ansible.builtin.debug:
+    msg: "NOTE: The SID in '{{ sap_swpm_tmpdir_local.path }}/inifile.params' is different from the role parameter 'sap_swpm_sid'."
+  when:
+    - sap_swpm_sid
+    - sap_swpm_inifile_sid_detect.stdout != sap_swpm_sid
+
+- name: SAP SWPM Pre Install - Set SID
   ansible.builtin.set_fact:
     sap_swpm_sid: "{{ sap_swpm_inifile_sid_detect.stdout }}"
 
-# Detect FQDN
+# Detect and set FQDN
 - name: SAP SWPM Pre Install - Detect FQDN from inifile
   ansible.builtin.command: |
     awk '!/^#/&&/NW_getFQDN.FQDN/{print $3}' {{ sap_swpm_tmpdir_local.path }}/inifile.params
   delegate_to: localhost
   register: sap_swpm_inifile_fqdn_detect
   changed_when: false
+
+- name: SAP SWPM Pre Install - Report if 'sap_swpm_fqdn' has been defined differently
+  ansible.builtin.debug:
+    msg: "NOTE: The FQDN in '{{ sap_swpm_tmpdir_local.path }}/inifile.params' is different from the role parameter 'sap_swpm_fqdn'."
+  when:
+    - sap_swpm_fqdn
+    - sap_swpm_inifile_sid_detect.stdout != sap_swpm_fqdn
 
 - name: SAP SWPM Pre Install - Set FQDN
   ansible.builtin.set_fact:
