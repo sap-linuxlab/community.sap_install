@@ -63,58 +63,16 @@ This role has been tested and working for the following SAP products
 ### Input Parameters
 
 The inputs are critical for running this role
-    - Determines the installation type
-    - Incomplete parameters will result to failure
-    - Wrong parameters will result to failure
+    - Incomplete parameters will result in failure
+    - Wrong parameters will result in failure
 
 Create an input file which contains all relevant installation information.
 Sample input files are stored in the [inputs](/playbooks/vars) folder of this Ansible collection. Use the samples as guide for your desired installation
 
 ### Default Parameters
 
-### Default Parameters
-
 Please check the default parameters file for more information on other parameters that can be used as an input:
 - [**sap_swpm** default parameters](defaults/main.yml)
-
-Sample Playbooks and sample parameters are shown in the Ansible Collection `/playbooks` directory.
-
-The Ansible Collection `/playbooks` directory includes sample playbooks for using the `sap_swpm` Ansible Role in the following 'modes':
-- Default
-- Default Templates
-- Advanced
-- Advanced Templates
-- Inifile Reuse
-
-The Ansible Collection `/playbooks/vars` directory includes sample variable files for:
-- `sap_swpm` 'Default mode' to generate inifile.params of...
-  - SAP BW/4HANA OneHost
-  - SAP S/4HANA Distributed - ASCS, DBCI, ERS, PAS
-  - SAP S/4HANA OneHost
-  - SAP S/4HANA System Copy OneHost
-  - SAP Solution Manager (ABAP)
-  - SAP Solution Manager (JAVA)
-  - SAP Web Dispatcher
-  - SAP System Rename
-- `sap_swpm` 'Default Templates mode' to generate inifile.params of...
-  - SAP S/4HANA OneHost
-  - SAP S/4HANA System Copy OneHost
-  - SAP System Rename
-- `sap_swpm` 'Advanced mode' to generate inifile.params of...
-  - SAP S/4HANA OneHost
-- `sap_swpm` 'Advanced Templates mode' to generate inifile.params of...
-  - SAP BW/4HANA OneHost
-  - SAP S/4HANA Distributed - ASCS, DBCI, ERS, PAS
-  - SAP S/4HANA OneHost
-  - SAP S/4HANA System Copy OneHost
-  - SAP Solution Manager (ABAP)
-  - SAP Solution Manager (JAVA)
-  - SAP Web Dispatcher
-  - SAP System Rename
-- `sap_swpm` 'Inifile Reuse mode' inifile.params file for...
-  - SAP S/4HANA OneHost
-
-NOTE: these are only sample files, they are meant to be edited by the user before execution and do not cover all scenarios possible (the Ansible Role can execute ant SAP SWPM installation)
 
 ## Execution
 
@@ -133,7 +91,7 @@ Sample Ansible Playbook Execution
 - hosts: all
   become: true
   roles:
-    - { role: sap_swpm }
+    - sap_swpm
 ```
 
 ## Execution Flow
@@ -153,22 +111,22 @@ Sample Ansible Playbook Execution
 
 - Get all .SAR filenames  from `sap_swpm_software_path`
 
-- Update `/etc/hosts` (optional - yes by default)
+- Update `/etc/hosts` (optional - `false` by default)
 
-- Apply firewall rules for SAP HANA (optional - no by default)
+- Apply firewall rules for SAP HANA (optional - `false` by default)
 
-- At this stage, a sapinst inifile is created by the role on the control node if not already present.
+- At this stage, the role is searching for a sapinst inifile on the managed node, or it will create one:
 
   - If a file `inifile.params` is located on the managed node in the directory specified in `sap_swpm_inifile_directory`,
     the role will not create a new one but rather download this file to the control node.
 
-  - If such a file does not exist, the role will create an SAP SWPM `inifile.params` file by one of the following methods:
+  - If such a file does *not* exist, the role will create an SAP SWPM `inifile.params` file by one of the following methods:
 
     Method 1: Predefined sections of the file inifile_params.j2 will be used to create the file `inifile.params`.
-              The variable `sap_swpm_inifile_sections_list` determines which sections will be used. All other sections will be ignored.
-              The inifile parameters themselves will be set according to other role parameters. 
+              The variable `sap_swpm_inifile_sections_list` contains a list of sections which will part of the file `inifile.params`.
+              All other sections will be ignored. The inifile parameters themselves will be set according to other role parameters. 
               Example: The inifile parameter `archives.downloadBasket` will be set to the content of the role parameter
-              `sap_swpm_software_path`
+              `sap_swpm_software_path`.
 
     Method 2: The file `inifile.params` will be configured from the content of the dictionary `sap_swpm_inifile_parameters_dict`.
               This dictionary is defined like in the following example:
@@ -182,7 +140,7 @@ sap_swpm_inifile_parameters_dict:
    It is also possible to use method 1 for creating the inifile and then replace or set additional variables using method 2:
    Just define both of the related parameters, `sap_swpm_inifile_sections_list` and `sap_swpm_inifile_parameters_dict`.
 
-- The file inifile.params is then transferred to a temporary directory on the managed node, to be used by the sapinst process.
+- The file `inifile.params` is then transferred to a temporary directory on the managed node, to be used by the sapinst process.
 
 ### SAP SWPM
 
@@ -192,12 +150,13 @@ sap_swpm_inifile_parameters_dict:
 
 - Set expiry of Unix created users to 'never'
 
-- Apply firewall rules for SAP NW (optional - no by default)
+- Apply firewall rules for SAP NW (optional - false by default)
 
 ## Tags
 
 With the following tags, the role can be called to perform certain activities only:
-- tag `sap_swpm_generate_inifile`: Only create the sapinst inifile. This can be useful for checking if the inifile is created as desired.
+- tag `sap_swpm_generate_inifile`: Only create the sapinst inifile, without running most of the preinstall steps.
+  This can be useful for checking if the inifile is created as desired.
 - tag `sap_swpm_sapinst_commandline`: Only show the sapinst command line.
 - tag `sap_swpm_pre_install`: Perform all preinstallation steps, then exit.
 - tag `sap_swpm_setup_firewall`: Only perform the firewall preinstallation settings (but only if variable `sap_swpm_setup_firewall` is set to `true`).
