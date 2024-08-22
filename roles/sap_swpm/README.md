@@ -67,12 +67,62 @@ The inputs are critical for running this role
     - Wrong parameters will result in failure
 
 Create an input file which contains all relevant installation information.
-Sample input files are stored in the [inputs](/playbooks/vars) folder of this Ansible collection. Use the samples as guide for your desired installation
+Sample input files are stored in the [inputs](/playbooks/vars) folder of this Ansible collection. Use the samples as guide for your desired installation.
 
 ### Default Parameters
 
 Please check the default parameters file for more information on other parameters that can be used as an input:
 - [**sap_swpm** default parameters](defaults/main.yml)
+
+### Migrating playbooks from previous versions of sap_swpm
+The following role parameter is no longer used because there are no role `modes` any more:
+#### sap_swpm_ansible_role_mode
+
+The following two role parameters have been renamed, without automatic conversion between old and new name:
+
+#### sap_swpm_inifile_list -> sap_swpm_inifile_sections_list
+Previous name: sap_swpm_inifile_list
+New name: sap_swpm_inifile_sections_list
+Reason: This variable contains sections of the sapinst input file, `inifile.params`.
+The new variable name is reflecting this purpose.
+
+#### sap_swpm_inifile_custom_values_dictionary -> sap_swpm_inifile_parameters_dict
+Previous name: sap_swpm_inifile_custom_values_dictionary
+New name: sap_swpm_inifile_parameters_dict
+Reason: This variable contains parameter names and values of the sapinst input file, `inifile.params`.
+The new variable name is reflecting this purpose.
+
+#### Migration from the `*_templates` modes of the previous version of sap_swpm
+The role `sap_swpm` does no longer use the dictionary `sap_swpm_templates_install_dictionary`.
+This dictionary was used in the previous role modes `default_templates` and `advanced_templates.
+
+Because of this, required low level members of `sap_swpm_templates_install_dictionary` have to be redefined to top level variables.
+Creating top level variables from low level members of a dict can be done:
+
+- in a separate task using ansible.builtin.set_fact before calling sap_swpm, or
+
+- in the task calling sap_swpm with a vars: section of the task calling sap_swpm.
+
+Be aware of the following limitation: You cannot define a variable in the same task in which you use this variable to access a member
+of another variable. Any variable which is used to access low level dict members has to be defined before, in a separate task.
+
+Example:
+For defining `sap_swpm_product_catalog_id` from a low level member of `sap_swpm_templates_install_dictionary`, use the following code:
+
+```
+# Step 1: Define level 2 dict member for accessing level 3 dict member in the following task
+- name: Define variable sap_swpm_templates_product_input
+  ansible.builtin.set_fact:
+    sap_swpm_templates_product_input: "{{ sap_swpm_templates_product_input_prefix }}_nwas_ascs_ha"
+
+# Step 2: Define top level variable from level 3 dict member
+- name: Define variables sap_swpm_product_catalog_id and sap_swpm_inifile_sections_list
+  ansible.builtin.set_fact:
+    sap_swpm_product_catalog_id: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_product_catalog_id'] }}"
+    sap_swpm_inifile_sections_list: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input][sap_swpm_inifile_sections_list] }}"
+    sap_swpm_inifile_parameters_dict: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_parameters_dict'] }}"
+
+```
 
 ## Execution
 
