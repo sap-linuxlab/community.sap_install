@@ -17,8 +17,8 @@ ansible-playbook community.sap_install.sap_hana_preconfigure.yml
 ```
 
 This playbook runs against localhost and/or remote hosts.
-Remote hosts can be defined in an inventory in a file, or with -i on the commandline e.g. `-i inventoryfile` or `-i host1,host2,host3,` and execution can be of course limited with -l.
-Nonetheless you need to confirm the hosts in the interactive dialog.
+Remote hosts can be defined in an inventory file, or with -i on the commandline e.g. `-i inventoryfile` or `-i host1,host2,host3,` and execution can be limited with -l.
+You need to confirm the hosts in the interactive dialog.
 When you call this playbook against a remote host make sure the user can connect and assume root without a password or pass the following parameters if necessary
 
 ```[bash]
@@ -38,7 +38,7 @@ hana2
 ```
 
 Prepare a variable config file with the following parameters (adapt to your needs):
-Create a parameter file `my_vars` with similar content:
+Create a parameter file `my_vars.yml` with similar content:
 
 ```[yaml]
     # sap_playbook_parameter_confirm: false 
