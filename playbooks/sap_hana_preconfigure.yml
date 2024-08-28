@@ -31,29 +31,40 @@
           *****************************************************************************
           ""
 
-- name: Collecting Variables
+- name: Collecting Parameters for OS preparation or check to install SAP HANA
   hosts: localhost
+  gather_facts: false
 
-  vars_prompt:
-    - name: "sap_systems"
-      prompt: "Enter comma separated list of systems that you want to check or prepare for SAP HANA"
-      private: false
-      default: "{{ (groups['all'] == []) | ternary ('localhost', 'all') }}"
-      # default: "{{ (groups['all'] == []) | ternary ('localhost', groups['all'] | join(',')) }}"
-
-    - name: "sap_domain"
-      prompt: "Enter DNS Domainname of your SAP systems (leave empty for using system defaul): "
-      private: false
-      default: "{{ sap_domain | d('') }}"
-
-    - name: "assert"
-      prompt: "Do you want to check the current setup only (assert mode)? (y/n)"
-      private: false
-      default: "n"
+  vars:
+    - sap_systems: "{{ (groups['all'] == []) | ternary ('localhost', 'all') }}"
+      # sap_systems: "{{ (groups['all'] == []) | ternary ('localhost', groups['all'] | join(',')) }}"
 
   tasks:
+    - name: Get minimal facts
+      ansible.builtin.setup:
+        gather_subset:
+          - '!all'
+
+    - name: Target systems for hana installation
+      ansible.builtin.pause:
+        prompt: "Enter comma separated list of systems that you want to check or prepare for SAP HANA: [{{ sap_systems }}]"
+        echo: true
+      register: _sap_systems
+
+    - name: SAP server DNS domain must not be empty
+      ansible.builtin.pause:
+        prompt: "Enter DNS Domainname of your SAP systems: [{{ sap_domain | d(ansible_domain) }}]"
+        echo: true
+      register: _sap_domain
+
+    - name: Run mode
+      ansible.builtin.pause:
+        prompt: "Do you want to check the current setup only (assert mode)? (y/n) [n]"
+        echo: true
+      register: _assert_mode
+
     - name: Input addtional parameters if no assert mode is defined
-      when: assert != "y"
+      when: _assert_mode.user_input != "y"
       block:
         - ansible.builtin.pause: # noqa name[missing] - role default true
             prompt: "Do you want the system to update /etc/hosts for SAP? (y/n) [y]"
@@ -75,34 +86,34 @@
 
     - name: Prepare inventory
       when:
-        - sap_systems != 'localhost'
-        - sap_systems != 'all'
+        - _sap_systems.user_input is defined
+        - _sap_systems.user_input| trim != ''
       ansible.builtin.add_host:
         groups: sap_hana_prepare_hosts
         name: '{{ item }}'
-      loop: '{{ sap_systems | split(",") | list }}'
+      loop: '{{ _sap_systems.user_input | split(",") | list }}'
 
     - name: Configure Role Variables
       ansible.builtin.set_fact:
-        sap_domain: '{{ sap_domain }}'
+        sap_domain: '{{ ((_sap_domain.user_input | trim) != "") | ternary(_sap_domain.user_input, sap_domain | d(ansible_domain)) }}'
         ### redhat.sap_install.sap_general_preconfigure
         sap_general_preconfigure_modify_etc_hosts: '{{ (_sap_update_hosts.user_input is defined) and (_sap_update_hosts.user_input == "n") | ternary(false, true) }}' # default true
         sap_general_preconfigure_update: '{{ (_sap_update.user_input is defined) and (_sap_update.user_input == "y") | ternary(true, false) }}' # default false
         sap_general_preconfigure_fail_if_reboot_required: '{{ (_sap_fail_if_reboot_required.user_input is defined) and (_sap_fail_if_reboot_required.user_input == "n") | ternary(false, true) }}' # default true
-        sap_general_preconfigure_assert: '{{ (assert=="y") | ternary(true,false) }}'
+        sap_general_preconfigure_assert: '{{ (_assert_mode.user_input == "y") | ternary(true, false) }}'
         # sap_general_preconfigure_system_roles_collection: 'redhat.rhel_system_roles'
         ### redhat.sap_install.sap_hana_preconfigure
         sap_hana_preconfigure_update: '{{ (_sap_update.user_input is defined) and (_sap_update.user_input == "y") | ternary(true, false) }}' # default false
         sap_hana_preconfigure_fail_if_reboot_required: '{{ (_sap_fail_if_reboot_required.user_input is defined) and (_sap_fail_if_reboot_required.user_input == "n") | ternary(false, true) }}' # default true
         sap_hana_preconfigure_reboot_ok: '{{ (_sap_reboot.user_input is defined) and (_sap_reboot.user_input == "y") | ternary(true, false) }}' # default false
-        sap_hana_preconfigure_assert: '{{ (assert=="y") | ternary(true,false) }}'
+        sap_hana_preconfigure_assert: '{{ (_assert_mode.user_input == "y") | ternary(true, false) }}'
         # sap_hana_preconfigure_system_roles_collection: 'redhat.rhel_system_roles'
 
 - name: Run sap_hana_prepare_exec playbook
   ansible.builtin.import_playbook: sap_hana_preconfigure_exec.yml
   vars:
     sap_playbook_parameter_confirm: true
-    sap_hana_group: "{{ ( groups['sap_hana_prepare_hosts'] is defined) | ternary ('sap_hana_prepare_hosts',omit) }}"
+    sap_hana_group: "{{ (groups['sap_hana_prepare_hosts'] is defined) | ternary ('sap_hana_prepare_hosts',sap_systems) }}"
     sap_domain: "{{ hostvars['localhost']['sap_domain'] }}"
     sap_general_preconfigure_modify_etc_hosts: "{{ hostvars['localhost']['sap_general_preconfigure_modify_etc_hosts'] }}"
     sap_general_preconfigure_update: "{{ hostvars['localhost']['sap_general_preconfigure_update'] }}"
