@@ -24,7 +24,7 @@ When you call this playbook against a remote host make sure the user can connect
 ```[bash]
  -u <connection user>: User that establishes the ssh connection
  -k: asks for password or passphrase of the connection user, if required for ssh
- -K: asks for the privilige escalation password of the connection user to become root on the target host
+ -K: asks for the privilege escalation password of the connection user to become root on the target host
 ```
 
 If you want to embed this playbook or run a non-interactive version, you need to prepare an ansible inventory that contains a group for the hosts you want to install, e.g. my_hanas (see also <https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html>).
