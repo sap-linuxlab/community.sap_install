@@ -94,7 +94,7 @@ The new variable name is reflecting this purpose.
 
 #### Migration from the `*_templates` modes of the previous version of sap_swpm
 The role `sap_swpm` does no longer use the dictionary `sap_swpm_templates_install_dictionary`.
-This dictionary was used in the previous role modes `default_templates` and `advanced_templates.
+This dictionary was used in the previous role modes `default_templates` and `advanced_templates`.
 
 Because of this, required low level members of `sap_swpm_templates_install_dictionary` have to be redefined to top level variables.
 Creating top level variables from low level members of a dict can be done:
