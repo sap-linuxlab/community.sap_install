@@ -8,11 +8,12 @@ import json
 
 TOKEN = str(os.environ.get("GITHUB_TOKEN"))
 REPOSITORY = str(os.environ.get("GITHUB_REPOSITORY"))
-COMMIT_SHA = str(os.environ.get("GITHUB_SHA"))
+COMMIT_SHA = str(os.environ.get("COMMIT_SHA"))
 REQUIREMENT_FILE = str(os.environ.get("REQUIREMENT_FILE"))
 HEADERS = {
     "Authorization": f"token {TOKEN}",
-    "Accept": "application/vnd.github+json"
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28"
 }
 OPEN_PR = os.environ.get("OPEN_PR")
 OPEN_PR_BASE = os.environ.get("OPEN_PR_BASE")
@@ -156,7 +157,7 @@ git config --global user.email "dependencybot@linuxlab"
 git config --global user.name "DependencyBot"
 git fetch --prune
 git stash push
-git checkout -b {branch} origin/{branch}
+git checkout {branch}
 git stash pop
 git checkout --theirs {REQUIREMENT_FILE}
 git add {file_to_change}
