@@ -1,10 +1,45 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-# Overwrite HA_CLUSTER repository ID to use E4S repository
-# - an alternative logic could be to enable the repo before running ha_cluster
+# Default repositories if platform does not override them.
+# This selection does not affect imported __ha_cluster_repos due to precedence.
 __sap_ha_pacemaker_cluster_repos:
   - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
     name: High Availability
+
+# Dictionary with repos for each platform
+__sap_ha_pacemaker_cluster_repos_dict:
+  cloud_aws_ec2_vs:
+    - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
+      name: High Availability
+  cloud_gcp_ce_vm:
+    - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
+      name: High Availability
+  cloud_ibmcloud_powervs:
+    - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
+      name: High Availability E4S (4-Year) for Power, little endian
+    # - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-eus-rpms"
+    #   name: High Availability EUS (2-Year) for Power, little endian
+    # - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-rpms"
+    #   name: High Availability for Power, little endian
+  cloud_ibmcloud_vs:
+    - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
+      name: High Availability E4S (4-Year)
+    # - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-eus-rpms"
+    #   name: High Availability EUS (2-Year)
+    # - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-rpms"
+    #   name: High Availability
+  cloud_msazure_vm:
+    - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
+      name: High Availability
+    - id: "rhui-microsoft-azure-rhel8-sap-ha"
+      name: Microsoft Azure RPMs for Red Hat Enterprise Linux 8 (rhel8-sap-ha)
+  hyp_ibmpower_vm:
+    - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
+      name: High Availability E4S (4-Year) for Power, little endian
+    # - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-eus-rpms"
+    #   name: High Availability EUS (2-Year) for Power, little endian
+    # - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-rpms"
+    #   name: High Availability for Power, little endian
 
 __sap_ha_pacemaker_cluster_halib_package: sap-cluster-connector
 
@@ -28,14 +63,14 @@ __sap_ha_pacemaker_cluster_corosync_totem_default:
 
 # Make sure that there is always the minimal default fed into the included role.
 # This is combined with the custom list 'sap_ha_pacemaker_cluster_fence_agent_packages'.
-sap_ha_pacemaker_cluster_fence_agent_minimal_packages:
+__sap_ha_pacemaker_cluster_fence_agent_packages_minimal:
   - fence-agents-all
 
 # Dictionary with fence packages for each platform
-sap_ha_pacemaker_cluster_fence_agent_packages_dict:
-  cloud_aws:
+__sap_ha_pacemaker_cluster_fence_agent_packages_dict:
+  cloud_aws_ec2_vs:
     - fence-agents-aws
-  cloud_gcp:
+  cloud_gcp_ce_vm:
     - fence-agents-gce
   cloud_ibmcloud_powervs:
     - fence-agents-ibm-powervs
@@ -48,9 +83,9 @@ sap_ha_pacemaker_cluster_fence_agent_packages_dict:
 
 # Dictionary with extra platform specific packages
 __sap_ha_pacemaker_cluster_platform_extra_packages_dict:
-  cloud_aws:
+  cloud_aws_ec2_vs:
     - awscli
-  cloud_gcp:
+  cloud_gcp_ce_vm:
     - resource-agents-gcp
   cloud_msazure_vm:
     - socat

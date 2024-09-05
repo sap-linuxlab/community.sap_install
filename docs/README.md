@@ -90,13 +90,13 @@ N.B. The Ansible Collection works with SLES from version 15 SP3 and upwards, for
 ### Execution/Controller host - Operating System requirements
 
 Execution of Ansible Playbooks using this Ansible Collection have been tested with:
-- Python 3.9.7 and above (i.e. CPython distribution)
-- Ansible Core 2.12.0 and above _(included with optional installation of Ansible Community Edition 5.0 and above)_
+- Python 3.10.14 and above (i.e. CPython distribution)
+- Ansible Core 2.16.9 and above _(included with optional installation of Ansible Community Edition 5.0 and above)_
 - OS: macOS with Homebrew, RHEL, SLES, and containers in Task Runners (e.g. Azure DevOps)
 
 #### Ansible Core version
 
-This Ansible Collection was designed for maximum backwards compatibility, with full compatibility starting from Ansible Core 2.12.0 and above.
+This Ansible Collection was designed for maximum backwards compatibility, with full compatibility starting from Ansible Core 2.16.9 and above.
 
 **Note 1:** Ansible 2.9 was the last release before the Ansible project was split into Ansible Core and Ansible Community Edition, and was before Ansible Collections functionality was introduced. This Ansible Collection should execute when Ansible 2.9 is used, but it is not recommended and errors should be expected (and will not be resolved).
 

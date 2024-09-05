@@ -13,8 +13,8 @@ This Ansible Role provides:
 - setup and instantiation of Linux Pacemaker cluster (using `ha_cluster` Linux System Role)
 
 This Ansible Role has been tested for the following SAP Software Solution scenario deployments:
-- SAP HANA Scale-up High Availability
-- `Beta:` SAP NetWeaver (ABAP) AS ASCS and ERS High Availability
+- SAP HANA Scale-up High Availability (SAPHanaSR Classic and SAPHanaSR-angi)
+- SAP NetWeaver (ABAP) AS ASCS and ERS High Availability
 - `Experimental:` SAP NetWeaver (ABAP) AS PAS and AAS High Availability
 - `Experimental:` SAP NetWeaver (JAVA) AS SCS and ERS High Availability
 
@@ -71,8 +71,8 @@ The Ansible Control System (where Ansible is executed from) must have:
 - Ansible Core 2.9+
 - Access to dependency Ansible Collections and Ansible Roles:
   - **Upstream**:
-    - Ansible Collection [`community.sap_install` from Ansible Galaxy](https://galaxy.ansible.com/community/sap_install) version `1.3.0` or later
-    - Ansible Collection [`fedora.linux_system_roles` from Ansible Galaxy](https://galaxy.ansible.com/fedora/linux_system_roles) version `1.20.0` or later
+    - Ansible Collection [`community.sap_install` from Ansible Galaxy](https://galaxy.ansible.com/community/sap_install) version `1.4.1` or later
+    - Ansible Collection [`fedora.linux_system_roles` from Ansible Galaxy](https://galaxy.ansible.com/fedora/linux_system_roles) version `1.82.0` or later
   - **Supported (Downstream)** via Red Hat Ansible Automation Platform (AAP) license:
     - Ansible Collection [`redhat.sap_install` from Red Hat Ansible Automation Platform Hub](https://console.redhat.com/ansible/automation-hub/repo/published/redhat/sap_install) version `1.3.0` or later
     - Ansible Collection [`redhat.rhel_system_roles` from Red Hat Ansible Automation Platform Hub](https://console.redhat.com/ansible/automation-hub/repo/published/redhat/rhel_system_roles) version `1.20.0` or later
@@ -146,7 +146,18 @@ Additional minimum requirements depend on the type of cluster setup and on the t
 - _Type:_ `string`
 
 AWS access key to allow control of instances (for example for fencing operations).<br>
-Mandatory for the cluster nodes setup on AWS EC2 instances.<br>
+Mandatory for the cluster nodes setup on AWS EC2 instances, when:<br>
+1. IAM Role or Instance profile is not attached to EC2 instance.<br>
+2. `sap_ha_pacemaker_cluster_aws_credentials_setup` is `true`<br>
+
+### sap_ha_pacemaker_cluster_aws_credentials_setup
+
+- _Type:_ `string`
+
+Set this parameter to 'true' to store AWS credentials into /root/.aws/credentials.<br>
+Requires: `sap_ha_pacemaker_cluster_aws_access_key_id` and `sap_ha_pacemaker_cluster_aws_secret_access_key`<br>
+Mandatory for the cluster nodes setup on AWS EC2 instances, when:<br>
+1. IAM Role or Instance profile is not attached to EC2 instance.<br>
 
 ### sap_ha_pacemaker_cluster_aws_region
 
@@ -160,7 +171,9 @@ Mandatory for cluster nodes setup on AWS EC2 instances.<br>
 - _Type:_ `string`
 
 AWS secret key, paired with the access key for instance control.<br>
-Mandatory for the cluster setup on AWS EC2 instances.<br>
+Mandatory for the cluster nodes setup on AWS EC2 instances, when:<br>
+1. IAM Role or Instance profile is not attached to EC2 instance.<br>
+2. `sap_ha_pacemaker_cluster_aws_credentials_setup` is `true`<br>
 
 ### sap_ha_pacemaker_cluster_aws_vip_update_rt
 
@@ -259,19 +272,14 @@ Set this parameter to 'false' if the SAP HA interface should not be installed an
 Additional extra packages to be installed, for instance specific resource packages.<br>
 For SAP clusters configured by this role, the relevant standard packages for the target scenario are automatically included.<br>
 
-### sap_ha_pacemaker_cluster_fence_agent_minimal_packages
-
-- _Type:_ `list`
-- _Default:_ `['fence-agents-all']`
-
-The minimal set of fence agent packages that will be installed.<br>
-
 ### sap_ha_pacemaker_cluster_fence_agent_packages
 
 - _Type:_ `list`
 
 Additional fence agent packages to be installed.<br>
-This is automatically combined with `sap_ha_pacemaker_cluster_fence_agent_minimal_packages`.<br>
+This is automatically combined with default packages in:<br>
+`__sap_ha_pacemaker_cluster_fence_agent_packages_minimal`<br>
+`__sap_ha_pacemaker_cluster_fence_agent_packages_platform`<br>
 
 ### sap_ha_pacemaker_cluster_gcp_project
 
@@ -460,7 +468,7 @@ When set to "true" (default) a failover to secondary will be initiated on resour
 - _Default:_ `msl_SAPHana_<SID>_HDB<Instance Number>`
 
 Customize the cluster resource name of the SAP HANA DB resource master slave clone.<br>
-Master Slave clone is specific to SAPHana resource on SUSE.<br>
+Master Slave clone is specific to Classic SAPHana resource on SUSE (non-angi).<br>
 
 ### sap_ha_pacemaker_cluster_hana_resource_clone_name
 
@@ -849,32 +857,132 @@ sap_ha_pacemaker_cluster_resource_defaults:
 
 Disabling this variable enables to use Classic SAPHanaSR agents even on server, with SAPHanaSR-angi is available.<br>
 
+### sap_ha_pacemaker_cluster_sbd_devices
+
+- _Type:_ `list`
+
+Required if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.<br>
+Provide list of block devices for Stonith SBD agent<br>
+
+Example:
+
+```yaml
+sap_ha_pacemaker_cluster_sbd_devices:
+- /dev/disk/by-id/scsi-3600
+```
+
+### sap_ha_pacemaker_cluster_sbd_enabled
+
+- _Type:_ `bool`
+
+Set this parameter to 'true' to enable workflow to add Stonith SBD resource.<br>
+Stonith SBD resource has to be provided as part of `sap_ha_pacemaker_cluster_stonith_custom`.<br>
+Default SBD agents are: stonith:external/sbd for SLES and stonith:fence_sbd for RHEL<br>
+
+Example:
+
+```yaml
+sap_ha_pacemaker_cluster_sbd_devices:
+- /dev/disk/by-id/scsi-3600
+sap_ha_pacemaker_cluster_sbd_enabled: true
+sap_ha_pacemaker_cluster_stonith_custom:
+- agent: stonith:external/sbd
+  id: stonith_sbd
+  instance_attrs:
+  - attrs:
+    - name: pcmk_delay_max
+      value: 15
+```
+
+### sap_ha_pacemaker_cluster_sbd_options
+
+- _Type:_ `list`
+
+Optional if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.<br>
+Provide list of SBD specific options that are added into SBD configuration file.<br>
+
+Example:
+
+```yaml
+sap_ha_pacemaker_cluster_sbd_options:
+- name: startmode
+  value: clean
+```
+
+### sap_ha_pacemaker_cluster_sbd_watchdog
+
+- _Type:_ `str`
+- _Default:_ `/dev/watchdog`
+
+Optional if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.<br>
+Provide watchdog name to override default /dev/watchdog<br>
+
+### sap_ha_pacemaker_cluster_sbd_watchdog_modules
+
+- _Type:_ `list`
+
+Optional if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.<br>
+Provide list of watchdog kernel modules to be loaded (creates /dev/watchdog* devices).<br>
+
+Example:
+
+```yaml
+sap_ha_pacemaker_cluster_sbd_watchdog_modules:
+- softdog
+```
+
 ### sap_ha_pacemaker_cluster_stonith_custom
 
 - _Type:_ `list`
 
 Custom list of STONITH resource(s) to be configured in the cluster.<br>
 This definition override any defaults the role would apply otherwise.<br>
+Definition follows structure of ha_cluster_resource_primitives in linux-system-roles/ha_cluster<br>
 
 - **agent**<br>
     Resource agent name, must contain the prefix "stonith:" to avoid mismatches or failures.
+- **id**<br>
+    Parameter `id` is required.<br>Name that will be used as the resource ID (name).
+- **instance_attrs**<br>
+    Defines resource agent params as list of name/value pairs.<br>Requires the mandatory options for the particular stonith resource agent to be defined, otherwise the setup will fail.<br>Example: stonith:fence_sbd agent requires devices option with list of SBD disks.<br>Example: stonith:external/sbd agent does not require devices option, but `sap_ha_pacemaker_cluster_sbd_devices`.
+- **meta_attrs**<br>
+    Defines meta attributes as list of name/value pairs.
 - **name**<br>
-    Name that will be used as the resource ID (name).
+    WARNING! This option will be removed in future release.
+- **operations**<br>
+    Defines list of resource agent operations.
 - **options**<br>
-    The resource options listed in dictionary format, one option per line.<br>Requires the mandatory options for the particular stonith resource agent to be defined, otherwise the setup will fail.
+    WARNING! This option will be removed in future release.
 
 Example:
 
 ```yaml
 sap_ha_pacemaker_cluster_stonith_custom:
 - agent: stonith:fence_rhevm
-  name: my-fence-resource
-  options:
-    ip: rhevm-server
-    password: login-user-password
-    pcmk_host_list: node1,node2
-    power_wait: 3
-    username: login-user
+  id: my-fence-resource
+  instance_attrs:
+  - attrs:
+    - name: ip
+      value: rhevm-server
+    - name: username
+      value: login-user
+    - name: password
+      value: login-user-password
+    - name: pcmk_host_list
+      value: node1,node2
+    - name: power_wait
+      value: 3
+  meta_attrs:
+  - attrs:
+    - name: target-role
+      value: Started
+  operations:
+  - action: start
+    attrs:
+    - name: interval
+      value: 0
+    - name: timeout
+      value: 180
 ```
 
 ### sap_ha_pacemaker_cluster_storage_definition

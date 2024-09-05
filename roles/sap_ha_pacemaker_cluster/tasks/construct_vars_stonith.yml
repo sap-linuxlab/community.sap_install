@@ -21,17 +21,17 @@
       or
       (
         sap_ha_pacemaker_cluster_stonith_custom is not defined
-        and sap_ha_pacemaker_cluster_stonith_default is defined
+        and __sap_ha_pacemaker_cluster_stonith_default is defined
         and
         (
-          sap_ha_pacemaker_cluster_stonith_default == ''
-          or sap_ha_pacemaker_cluster_stonith_default | length == 0
+          __sap_ha_pacemaker_cluster_stonith_default == ''
+          or __sap_ha_pacemaker_cluster_stonith_default | length == 0
         )
       )
       or
       (
         sap_ha_pacemaker_cluster_stonith_custom is not defined
-        and sap_ha_pacemaker_cluster_stonith_default is not defined
+        and __sap_ha_pacemaker_cluster_stonith_default is not defined
       )
   block:
 
@@ -59,9 +59,9 @@
   ansible.builtin.set_fact:
     sap_ha_pacemaker_cluster_cluster_properties:
       "{{ sap_ha_pacemaker_cluster_cluster_properties | combine({'priority-fencing-delay':
-          sap_ha_pacemaker_cluster_stonith_default.options.pcmk_delay_max | int * 2})
-        if sap_ha_pacemaker_cluster_stonith_default.options.pcmk_delay_max is defined
-        and sap_ha_pacemaker_cluster_stonith_default.options.pcmk_delay_max | int != 0
+          __sap_ha_pacemaker_cluster_stonith_default.options.pcmk_delay_max | int * 2})
+        if __sap_ha_pacemaker_cluster_stonith_default.options.pcmk_delay_max is defined
+        and __sap_ha_pacemaker_cluster_stonith_default.options.pcmk_delay_max | int != 0
         else sap_ha_pacemaker_cluster_cluster_properties }}"
 
 - name: "SAP HA Prepare Pacemaker - (STONITH) Define cluster properties"
@@ -88,82 +88,148 @@
           {%- endfor %}
           {{ attrs }}
 
-# Combine the default stonith resource config from
-# - assembled pcmk_host_map
-#   (see platform tasks: __sap_ha_pacemaker_cluster_pcmk_host_map)
-# - fence agent specific required options
-#   (see platform vars: sap_ha_pacemaker_cluster_stonith_default)
-# - generic pacemaker fence resource options
-#   (see defaults: sap_ha_pacemaker_cluster_fence_options)
 
-# Note: the 'ha_cluster' LSR only calls the stonith creation for ONE host
-#       -> the definition must contain the resources for all hosts, if multiple
+# Prepare default stonith method based on __sap_ha_pacemaker_cluster_stonith_default loaded
+# from platform __sap_ha_pacemaker_cluster_stonith_default_dict dictionary.
 
 - name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resource definition from platform default"
   when:
-    - sap_ha_pacemaker_cluster_stonith_default is defined
-    - sap_ha_pacemaker_cluster_stonith_default | length > 0
+    - __sap_ha_pacemaker_cluster_stonith_default is defined
+    - __sap_ha_pacemaker_cluster_stonith_default | length > 0
     - sap_ha_pacemaker_cluster_stonith_custom is not defined
-    - __stonith_resource_element.id not in (__sap_ha_pacemaker_cluster_stonith_resource | default([])| map(attribute='id'))
+      or sap_ha_pacemaker_cluster_stonith_custom | length == 0
+    - (hostvars[stonith_host_item].__sap_ha_pacemaker_cluster_stonith_default).id
+     not in (__sap_ha_pacemaker_cluster_stonith_resource | default([])| map(attribute='id'))
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_stonith_resource: "{{ __sap_ha_pacemaker_cluster_stonith_resource | default([]) + [__stonith_resource_element] }}"
-  vars:
-    __stonith_resource_element:
-      id: "{{ sap_ha_pacemaker_cluster_stonith_default.id + __plug_suffix }}"
-      agent: "{{ sap_ha_pacemaker_cluster_stonith_default.agent }}"
-      instance_attrs:
-        - attrs: >-
-            {% set attrs = [] -%}
-            {% if __sap_ha_pacemaker_cluster_pcmk_host_map | length > 0 -%}
-              {% set map = attrs.extend([
-                {
-                  'name': 'pcmk_host_map',
-                  'value': __sap_ha_pacemaker_cluster_pcmk_host_map
-                }]) -%}
-            {%- else -%}
-              {% set map = attrs.extend([
-                {
-                  'name': 'plug',
-                  'value': stonith_host_item
-                }]) -%}
-            {%- endif %}
-            {%- if sap_ha_pacemaker_cluster_stonith_default.options is defined
-                and sap_ha_pacemaker_cluster_stonith_default.options | length > 0 -%}
-              {%- for agent_opt in (sap_ha_pacemaker_cluster_stonith_default.options | default({}) | dict2items) -%}
-                {% set aopts = attrs.extend([
-                  {
-                    'name': agent_opt.key,
-                    'value': agent_opt.value
-                  }]) -%}
-              {%- endfor %}
-            {%- endif -%}
-            {{ attrs }}
-
-    __plug_suffix: >-
-      {%- if __sap_ha_pacemaker_cluster_pcmk_host_map | length == 0 -%}
-        _{{ stonith_host_item }}
-      {%- else %}{% endif -%}
-
+    __sap_ha_pacemaker_cluster_stonith_resource:
+      "{{ __sap_ha_pacemaker_cluster_stonith_resource | default([])
+       + [hostvars[stonith_host_item].__sap_ha_pacemaker_cluster_stonith_default] }}"
   loop: "{{ ansible_play_hosts_all }}"
   loop_control:
     loop_var: stonith_host_item
     label: "{{ stonith_host_item }}"
 
+# Requirements to run SBD block:
+# sap_ha_pacemaker_cluster_sbd_enabled is true
+# sap_ha_pacemaker_cluster_sbd_devices is defined, list and not empty
+# sap_ha_pacemaker_cluster_stonith_custom is defined, list and not empty
+# __sap_ha_pacemaker_cluster_sbd_enabled is not defined
+- name: "SAP HA Prepare Pacemaker - (STONITH SBD) Prepare SBD configuration"
+  when:
+    - sap_ha_pacemaker_cluster_sbd_enabled is defined
+     and sap_ha_pacemaker_cluster_sbd_enabled
+    - sap_ha_pacemaker_cluster_sbd_devices is defined
+     and sap_ha_pacemaker_cluster_sbd_devices | length > 0
+     and sap_ha_pacemaker_cluster_sbd_devices is iterable
+     and sap_ha_pacemaker_cluster_sbd_devices is not string
+    - sap_ha_pacemaker_cluster_stonith_custom is defined
+     and sap_ha_pacemaker_cluster_stonith_custom | length > 0
+     and sap_ha_pacemaker_cluster_stonith_custom is iterable
+     and sap_ha_pacemaker_cluster_stonith_custom is not string
+    - __sap_ha_pacemaker_cluster_sbd_enabled is not defined
+  block:
+    # Create sbd_options for ha_cluster_sbd_options when
+    # ha_cluster_sbd_options is not defined or it is empty or not List
+    # ha_cluster_sbd_options is defined but it does not contain required startmode
+    - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Create sbd_options"
+      when:
+        - not sap_ha_pacemaker_cluster_sbd_options is defined
+          or sap_ha_pacemaker_cluster_sbd_options | length == 0
+          or not sap_ha_pacemaker_cluster_sbd_options is iterable
+          or (sap_ha_pacemaker_cluster_sbd_options is defined
+           and sap_ha_pacemaker_cluster_sbd_options | selectattr('name', 'equalto', 'startmode') | list | length == 0)
+        # Skip if startmode is already present
+        - not (sap_ha_pacemaker_cluster_sbd_options is defined
+            and sap_ha_pacemaker_cluster_sbd_options | selectattr('name', 'equalto', 'startmode') | list | length > 0)
+        # Skip if ha_cluster_sbd_options are provided
+        - __sap_ha_pacemaker_cluster_sbd_options is not defined
+          or __sap_ha_pacemaker_cluster_sbd_options | length == 0
+      ansible.builtin.set_fact:
+        __sap_ha_pacemaker_cluster_sbd_options: >-
+          {%- if sap_ha_pacemaker_cluster_sbd_options is defined
+           and (sap_ha_pacemaker_cluster_sbd_options | selectattr('name', 'equalto', 'startmode') | list | length == 0) -%}
+            {{ sap_ha_pacemaker_cluster_sbd_options + [{'name': 'startmode', 'value': __sbd_startmode}]}}
+          {%- else -%}
+            {{ [{'name': 'startmode', 'value': __sbd_startmode}] }}
+          {%- endif -%}
+      vars:
+        __sbd_startmode: "{{ 'clean' if sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0 else 'always' }}"
 
-- name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resources from custom definition"
+
+    # Create dictionary with SBD specific parameters for ha_cluster
+    # Omit parameters if they are already present in provided dictionary sap_ha_pacemaker_cluster_ha_cluster
+    - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Create ha_cluster parameters for SBD"
+      ansible.builtin.set_fact:
+        __sap_ha_pacemaker_cluster_ha_cluster_stonith: >-
+          {{
+            dict(
+              sbd_devices=(sap_ha_pacemaker_cluster_sbd_devices if sap_ha_pacemaker_cluster_sbd_devices is defined
+                and sap_ha_pacemaker_cluster_sbd_devices | length > 0 and not __sap_ha_pacemaker_cluster_ha_cluster_sbd_devices_exists
+                else omit),
+              sbd_watchdog=(sap_ha_pacemaker_cluster_sbd_watchdog if sap_ha_pacemaker_cluster_sbd_watchdog is defined
+                and sap_ha_pacemaker_cluster_sbd_watchdog | length > 0 and not __sap_ha_pacemaker_cluster_ha_cluster_sbd_watchdog_exists
+                else omit),
+              sbd_watchdog_modules=(sap_ha_pacemaker_cluster_sbd_watchdog_modules
+                if sap_ha_pacemaker_cluster_sbd_watchdog_modules is defined
+                and sap_ha_pacemaker_cluster_sbd_watchdog_modules | length > 0
+                and not __sap_ha_pacemaker_cluster_ha_cluster_sbd_watchdog_modules_exists
+                else omit)
+            )
+          }}
+      vars:
+        # Detect if parameters were already provided in sap_ha_pacemaker_cluster_ha_cluster
+        __sap_ha_pacemaker_cluster_ha_cluster_sbd_devices_exists:
+          "{{ true if __sap_ha_pacemaker_cluster_ha_cluster is defined
+           and __sap_ha_pacemaker_cluster_ha_cluster.sbd_devices is defined
+           and __sap_ha_pacemaker_cluster_ha_cluster.sbd_devices | length > 0
+           and __sap_ha_pacemaker_cluster_ha_cluster.sbd_devices is iterable else false }}"
+        __sap_ha_pacemaker_cluster_ha_cluster_sbd_watchdog_exists:
+          "{{ true if __sap_ha_pacemaker_cluster_ha_cluster is defined
+           and __sap_ha_pacemaker_cluster_ha_cluster.sbd_watchdog is defined
+           and __sap_ha_pacemaker_cluster_ha_cluster.sbd_watchdog | length > 0 else false }}"
+        __sap_ha_pacemaker_cluster_ha_cluster_sbd_watchdog_modules_exists:
+          "{{ true if __sap_ha_pacemaker_cluster_ha_cluster is defined
+           and __sap_ha_pacemaker_cluster_ha_cluster.sbd_watchdog_modules is defined
+           and __sap_ha_pacemaker_cluster_ha_cluster.sbd_watchdog_modules | length > 0
+           and __sap_ha_pacemaker_cluster_ha_cluster.sbd_watchdog_modules is iterable else false }}"
+
+
+    - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Include sbd fence agent"
+      ansible.builtin.set_fact:
+        __sap_ha_pacemaker_cluster_fence_agent_packages:
+          "{{ __sap_ha_pacemaker_cluster_fence_agent_packages + ['sbd'] }}"
+
+    - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Set __sap_ha_pacemaker_cluster_sbd_enabled"
+      ansible.builtin.set_fact:
+        __sap_ha_pacemaker_cluster_sbd_enabled: true
+
+
+# sap_ha_pacemaker_cluster_stonith_custom input was redesigned to use ha_cluster structure.
+# Following task will remain until next release to ensure compatibility with previous structure.
+
+# TODO: Remove Tech debt task in future release, once options and name are no longer supported.
+- name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resources from custom definition - Legacy"
   when:
     - sap_ha_pacemaker_cluster_stonith_custom is defined
+      and sap_ha_pacemaker_cluster_stonith_custom | length > 0
+      and sap_ha_pacemaker_cluster_stonith_custom is iterable
+      and sap_ha_pacemaker_cluster_stonith_custom is not string
+    # Tech Debt: Execute only if name and options are provided, previously required parameters.
+    - stonith_item.name is defined and stonith_item.name | length > 0
+      and stonith_item.options is defined and stonith_item.options | length > 0
+    # Keep following conditional after removing Tech Debt
     - __stonith_resource_element.id not in (__sap_ha_pacemaker_cluster_stonith_resource | default([]) | map(attribute='id'))
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_stonith_resource: "{{ __sap_ha_pacemaker_cluster_stonith_resource | default([]) + [__stonith_resource_element] }}"
   vars:
     __stonith_resource_element:
-      id: "res_{{ item.name }}"
-      agent: "{{ item.agent }}"
+      # Ensure that resource name conforms with naming convention rsc_
+      id: "{{ stonith_item.name if stonith_item.name.startswith('rsc_') else 'rsc_' ~ stonith_item.name }}"  # "rsc_{{ stonith_item.name }}"
+      agent: "{{ stonith_item.agent }}"
       instance_attrs:
         - attrs: |-
             {% set attrs = [] -%}
-            {%- for option in (item.options | dict2items) -%}
+            {%- for option in (stonith_item.options | dict2items) -%}
               {% set aopts = attrs.extend([
                 {
                   'name': option.key,
@@ -174,7 +240,25 @@
             {{ attrs }}
   loop: "{{ sap_ha_pacemaker_cluster_stonith_custom }}"
   loop_control:
-    label: "{{ item.name }}"
+    label: "{{ stonith_item.name if stonith_item.name is defined else stonith_item.id }}"
+    loop_var: stonith_item
+
+
+- name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resources from custom definition"
+  when:
+    - sap_ha_pacemaker_cluster_stonith_custom is defined
+     and sap_ha_pacemaker_cluster_stonith_custom | length > 0
+     and sap_ha_pacemaker_cluster_stonith_custom is iterable
+     and sap_ha_pacemaker_cluster_stonith_custom is not string
+    - stonith_item.id is defined and stonith_item.id | length > 0
+    - stonith_item.id not in (__sap_ha_pacemaker_cluster_stonith_resource | default([]) | map(attribute='id'))
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_stonith_resource:
+      "{{ __sap_ha_pacemaker_cluster_stonith_resource | default([]) + [stonith_item] }}"
+  loop: "{{ sap_ha_pacemaker_cluster_stonith_custom }}"
+  loop_control:
+    label: "{{ stonith_item.name if stonith_item.name is defined else stonith_item.id }}"
+    loop_var: stonith_item
 
 
 # The STONITH resource is an element in the cluster_resource_primitives list
@@ -188,4 +272,4 @@
         +
         (__sap_ha_pacemaker_cluster_stonith_resource | from_yaml)
       }}
-  no_log: true  # stonith resources usually contain secrets
+  no_log: true  # stonith resources can contain secrets
