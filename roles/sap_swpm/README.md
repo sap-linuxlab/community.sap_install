@@ -109,26 +109,17 @@ of a dict can be done:
 
 - in the task calling `sap_swpm` with a `vars`: section of the task calling `sap_swpm`.
 
-Be aware of the following limitation: You cannot define a variable in the same task in
-which you use this variable to access a member of another variable. Any variable which
-is used to access low level dict members has to be defined before, in a *separate task*.
-
 Example:
-For defining `sap_swpm_product_catalog_id` from a low level member of `sap_swpm_templates_install_dictionary`, use the following code:
 
 ```
-# Step 1: Define level 2 dict member for accessing level 3 dict member in the following task
-- name: Define variable sap_swpm_templates_product_input
-  ansible.builtin.set_fact:
-    sap_swpm_templates_product_input: "{{ sap_swpm_templates_product_input_prefix }}_nwas_ascs_ha"
+- name: Execute the role sap_swpm
+  ansible.builtin.include_role:
+    name: community.sap_install.sap_swpm
+  vars:
+    sap_swpm_templates_product_input: "sap_s4hana_2023_distributed_nwas_ascs_ha"
 
-# Step 2: Define top level variable from level 3 dict member
-- name: Define variables sap_swpm_product_catalog_id and sap_swpm_inifile_sections_list
-  ansible.builtin.set_fact:
     sap_swpm_product_catalog_id: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_product_catalog_id'] }}"
-    sap_swpm_inifile_sections_list: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input][sap_swpm_inifile_sections_list] }}"
-    sap_swpm_inifile_parameters_dict: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_parameters_dict'] }}"
-
+    sap_swpm_inifile_sections_list: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_list'] }}"
 ```
 
 ## Execution
