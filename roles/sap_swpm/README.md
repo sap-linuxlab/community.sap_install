@@ -80,47 +80,59 @@ The following role parameter is no longer used because there are no role `modes`
 
 #### sap_swpm_ansible_role_mode
 
-The following two role parameters have been renamed. If the new variables are not defined, the old ones are converted to the new ones.
+The following two role parameters have been renamed. If the new variables are undefined and the old ones are defined,
+the old ones are converted to the new ones.
 
 #### sap_swpm_inifile_list -> sap_swpm_inifile_sections_list
 
-**Previous name**: sap_swpm_inifile_list\
-**New name**: sap_swpm_inifile_sections_list\
+**Previous name**: `sap_swpm_inifile_list`\
+**New name**: `sap_swpm_inifile_sections_list`\
 **Reason**: This variable contains sections of the sapinst input file, `inifile.params`.
 The new variable name is reflecting this purpose.
 
 #### sap_swpm_inifile_custom_values_dictionary -> sap_swpm_inifile_parameters_dict
 
-**Previous name**: sap_swpm_inifile_custom_values_dictionary\
-**New name**: sap_swpm_inifile_parameters_dict\
+**Previous name**: `sap_swpm_inifile_custom_values_dictionary`\
+**New name**: `sap_swpm_inifile_parameters_dict`\
 **Reason**: This variable contains parameter names and values of the
 sapinst input file, `inifile.params`. The new variable name is reflecting this purpose.
 
-#### Migration from the `*_templates` modes of the previous version of `sap_swpm`
+#### sap_swpm_inifile_dictionary -> sap_swpm_role_parameters_dict
 
-The role `sap_swpm` does no longer use the dictionary `sap_swpm_templates_install_dictionary`.
-This dictionary was used in the previous role modes `default_templates` and `advanced_templates`.
+**Previous name**: `sap_swpm_inifile_dictionary`\
+**New name**: `sap_swpm_role_parameters_dict`\
+**Reason**: This dictionary contains parameter names and values of the role `sap_swpm`.
+The new variable name is reflecting this purpose.\
+**Note**: This variable was only used as a member of `sap_swpm_templates_install_dictionary`, in the
+previous `default_templates` mode.
 
-Because of this change, required low level members of `sap_swpm_templates_install_dictionary` have to be
-redefined to top level variables. Creating top level variables from low level members
-of a dict can be done:
+#### Using sap_swpm_templates_install_dictionary
 
-- in a separate task using `ansible.builtin.set_fact` before calling `sap_swpm`, or
+The dictionary named `sap_swpm_templates_install_dictionary` can hold all necessary variables
+needed by the role `sap_swpm` for different SAP products. See the `Ansible Playbooks for SAP` for examples.
 
-- in the task calling `sap_swpm` with a `vars`: section of the task calling `sap_swpm`.
+The role `sap_swpm` redefines low level members of this dictionary to top level
+variables. The dictionary may contain either the definitions for the previous
+version of the role (used in the previous role modes `default_templates` and `advanced_templates`),
+or an updated definition of the dictionary containing the new variable names.
+The role will fail if both old and new variable names are defined in the dictionary.
+Variables on the top level take precedences over those members of `sap_swpm_templates_install_dictionary` with the same name.
 
-Example:
+Following is the complete list of conversions of members of the dictionary `sap_swpm_templates_install_dictionary`, where `sap_prod` is an
+example entry for `sap_swpm_templates_product_input`:
+- `sap_swpm_templates_install_dictionary[sap_prod]['sap_swpm_product_catalog_id']` -> `sap_swpm_product_catalog_id`
+- `sap_swpm_templates_install_dictionary[sap_prod]['sap_swpm_inifile_sections_list']` -> `sap_swpm_inifile_sections_list`
+- `sap_swpm_templates_install_dictionary[sap_prod]['sap_swpm_inifile_parameters_dict']` -> `sap_swpm_inifile_parameters_dict`
+- `sap_swpm_templates_install_dictionary[sap_prod]['sap_swpm_role_parameters_dict']` -> `sap_swpm_role_parameters_dict` -> top level role variables\
+  Example: `sap_swpm_install_saphostagent: 'true'`
 
-```
-- name: Execute the role sap_swpm
-  ansible.builtin.include_role:
-    name: community.sap_install.sap_swpm
-  vars:
-    sap_swpm_templates_product_input: "sap_s4hana_2023_distributed_nwas_ascs_ha"
+Former `default_templates` mode:
+- `sap_swpm_templates_install_dictionary[sap_prod]['sap_swpm_inifile_list']` -> `sap_swpm_inifile_sections_list`
+- `sap_swpm_templates_install_dictionary[sap_prod]['sap_swpm_inifile_dictionary']` -> top level role variables\
+  Example: `sap_swpm_install_saphostagent: 'true'`
 
-    sap_swpm_product_catalog_id: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_product_catalog_id'] }}"
-    sap_swpm_inifile_sections_list: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_list'] }}"
-```
+Former `advanced_templates` mode:
+- `sap_swpm_templates_install_dictionary[sap_prod]['sap_swpm_inifile_custom_values_dictionary']` -> `sap_swpm_inifile_parameters_dict`
 
 ## Execution
 
@@ -170,23 +182,17 @@ Sample Ansible Playbook Execution
 
   - If such a file does *not* exist, the role will create an SAP SWPM `inifile.params` file by one of the following methods:
 
-    Method 1: Predefined sections of the file `inifile_params.j2` will be used to create the file `inifile.params`.
-              The variable `sap_swpm_inifile_sections_list` contains a list of sections which will part of the file `inifile.params`.
-              All other sections will be ignored. The inifile parameters themselves will be set according to other role parameters.
-              Example: The inifile parameter `archives.downloadBasket` will be set to the content of the role parameter
-              `sap_swpm_software_path`.
+    Method 1: Predefined sections of the file `inifile_params.j2` will be used to create the file `inifile.params`. The variable `sap_swpm_inifile_sections_list` contains a list of sections which will part of the file `inifile.params`. All other sections will be ignored. The inifile parameters themselves will be set according to other role parameters. Example: The inifile parameter `archives.downloadBasket` will be set to the content of the role parameter `sap_swpm_software_path`.
 
-    Method 2: The file `inifile.params` will be configured from the content of the dictionary `sap_swpm_inifile_parameters_dict`.
-              This dictionary is defined like in the following example:
+    Method 2: The file `inifile.params` will be configured from the content of the dictionary `sap_swpm_inifile_parameters_dict`. This dictionary is defined like in the following example:
 
 ```
 sap_swpm_inifile_parameters_dict:
   archives.downloadBasket: /software/download_basket
-  NW_getFQDN.FQDN: poc.cloud
+  NW_getFQDN.FQDN: example.com
 ```
 
-   It is also possible to use method 1 for creating the inifile and then replace or set additional variables using method 2:
-   Just define both of the related parameters, `sap_swpm_inifile_sections_list` and `sap_swpm_inifile_parameters_dict`.
+It is also possible to use method 1 for creating the inifile and then replace or set additional variables using method 2: Define both of the related parameters, `sap_swpm_inifile_sections_list` and `sap_swpm_inifile_parameters_dict`.
 
 - The file `inifile.params` is then transferred to a temporary directory on the managed node, to be used by the sapinst process.
 

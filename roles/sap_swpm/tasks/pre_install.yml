@@ -1,10 +1,129 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP SWPM Pre Install - Rename variables
+- name: SAP SWPM Pre Install - Define 'sap_swpm_inifile_sections_list' from 'sap_swpm_inifile_list' if necessary
   ansible.builtin.set_fact:
-    sap_swpm_inifile_sections_list: "{{ sap_swpm_inifile_list | d(sap_swpm_inifile_sections_list | d([])) }}"
-    sap_swpm_inifile_parameters_dict: "{{ sap_swpm_inifile_custom_values_dictionary | d(sap_swpm_inifile_parameters_dict) | d({}) }}"
+    sap_swpm_inifile_sections_list: "{{ sap_swpm_inifile_list }}"
+  when:
+    - sap_swpm_inifile_sections_list is undefined
+    - sap_swpm_inifile_list is defined
+  tags: always
+
+- name: SAP SWPM Pre Install - Define 'sap_swpm_inifile_parameters_dict' from 'sap_swpm_inifile_custom_values_dictionary' if necessary
+  ansible.builtin.set_fact:
+    sap_swpm_inifile_parameters_dict: "{{ sap_swpm_inifile_custom_values_dictionary }}"
+  when:
+    - sap_swpm_inifile_parameters_dict is undefined
+    - sap_swpm_inifile_custom_values_dictionary is defined
+  tags: always
+
+- name: SAP SWPM Pre Install - Define variables from 'sap_swpm_templates_install_dictionary' if present
+  when: sap_swpm_templates_install_dictionary is defined
+  tags: always
+  block:
+
+    - name: SAP SWPM Pre Install - Display 'sap_swpm_templates_product_input'
+      ansible.builtin.debug:
+        msg:
+          - "sap_swpm_templates_product_input: >{{ sap_swpm_templates_product_input }}<"
+
+    - name: SAP SWPM Pre Install - Ensure that only one of 'sap_swpm_inifile_sections_list' and 'sap_swpm_inifile_list' is defined in the dict
+      ansible.builtin.fail:
+        msg:
+          - "FAIL: In 'sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]', both"
+          - "'sap_swpm_inifile_sections_list' and 'sap_swpm_inifile_list' are defined!"
+          - "Only one of these variables may be defined in 'sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]'."
+      when:
+        - sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_sections_list'] is defined
+        - sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_list'] is defined
+
+    - name: SAP SWPM Pre Install - Ensure that only one of 'sap_swpm_inifile_parameters_dict' or 'sap_swpm_inifile_custom_values_dictionary' is defined in the dict
+      ansible.builtin.fail:
+        msg:
+          - "FAIL: In 'sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]', both"
+          - "'sap_swpm_inifile_parameters_dict', and 'sap_swpm_inifile_custom_values_dictionary', are defined!"
+          - "Only one of these variables may be defined in 'sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]'."
+      when:
+        - sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_parameters_dict'] is defined
+        - sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_custom_values_dictionary'] is defined
+
+# Define sap_swpm_product_catalog_id from low level member, or use top level variable if defined. Top level variable has precedence.
+    - name: SAP SWPM Pre Install - Define 'sap_swpm_product_catalog_id' from low level member with the same name
+      ansible.builtin.set_fact:
+        sap_swpm_product_catalog_id: "{{ sap_swpm_product_catalog_id |
+          d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_product_catalog_id']) }}"
+      when: sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_product_catalog_id'] is defined
+
+    - name: SAP SWPM Pre Install - Display sap_swpm_product_catalog_id
+      ansible.builtin.debug:
+        msg: "sap_swpm_product_catalog_id: >{{ sap_swpm_product_catalog_id }}<"
+
+# Define sap_swpm_inifile_sections_list from low level member, or use top level variable if defined. Top level variable has precedence.
+    - name: SAP SWPM Pre Install - Define 'sap_swpm_inifile_sections_list' from low level member
+      ansible.builtin.set_fact:
+        sap_swpm_inifile_sections_list: "{{ sap_swpm_inifile_sections_list |
+          d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_list']) |
+          d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_sections_list']) }}"
+      when: sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_list'] is defined or
+            sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_sections_list'] is defined
+
+# Define sap_swpm_role_parameters_dict from low level member. Top level variable does not exist.
+    - name: SAP SWPM Pre Install - Define 'sap_swpm_role_parameters_dict' from low level member
+      ansible.builtin.set_fact:
+        sap_swpm_role_parameters_dict: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_dictionary'] |
+          d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_role_parameters_dict']) }}"
+      when: sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_dictionary'] is defined or
+            sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_role_parameters_dict'] is defined
+
+# Define role variables from low level member, looping over 'sap_swpm_role_parameters_dict':
+# Reason for noqa: We are setting variables from the content of a dict, and the variable names are in the dict keys.
+    - name: SAP SWPM Pre Install - Define role variables from low level member, looping over 'sap_swpm_role_parameters_dict' # noqa var-naming[no-jinja]
+      ansible.builtin.set_fact:
+        "{{ line_item.key }}": "{{ lookup('vars', line_item.key, default=line_item.value) }}"
+      loop: "{{ sap_swpm_role_parameters_dict | dict2items }}"
+      loop_control:
+        loop_var: line_item
+      when: sap_swpm_role_parameters_dict is defined
+
+    - name: SAP SWPM Pre Install - Display all vars of 'sap_swpm_role_parameters_dict'
+      ansible.builtin.debug:
+        msg: "{{ line_item.key }}: {{ lookup('vars', line_item.key) }}"
+      loop: "{{ sap_swpm_role_parameters_dict | dict2items }}"
+      loop_control:
+        loop_var: line_item
+
+    - name: SAP SWPM Pre Install - Looking for any differences...
+      ansible.builtin.set_fact:
+        different_values_sap_swpm_role_parameters_dict:
+          "{{ different_values_sap_swpm_role_parameters_dict | d({}) | combine({line_item.key: line_item.value}) }}"
+      loop: "{{ sap_swpm_role_parameters_dict | dict2items }}"
+      loop_control:
+        loop_var: line_item
+      when:
+        - line_item.value != lookup('vars', line_item.key)
+      ignore_errors: true
+
+    - name: SAP SWPM Pre Install - Display any differences
+      ansible.builtin.debug:
+        msg:
+          - "Note: The following values from"
+          - "sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_role_parameters_dict']"
+          - "are ignored because they have already been defined on the top level, as follows:"
+          - "{{ different_values_sap_swpm_role_parameters_dict }}"
+
+# Define sap_swpm_inifile_parameters_dict from low level member, or use top level variable if defined. Top level variable has precedence.
+    - name: SAP SWPM Pre Install - Define 'sap_swpm_inifile_parameters_dict' from low level member
+      ansible.builtin.set_fact:
+        sap_swpm_inifile_parameters_dict: "{{ sap_swpm_inifile_parameters_dict |
+          d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_custom_values_dictionary']) |
+          d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_parameters_dict']) }}"
+      when: sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_custom_values_dictionary'] is defined or
+            sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_parameters_dict'] is defined
+
+- name: SAP SWPM Pre Install - Define the main inifile creation parameters as empty if necessary
+  ansible.builtin.set_fact:
+    sap_swpm_inifile_sections_list: "{{ sap_swpm_inifile_sections_list | d([]) }}"
+    sap_swpm_inifile_parameters_dict: "{{ sap_swpm_inifile_parameters_dict | d({}) }}"
   tags: always
 
 ################
