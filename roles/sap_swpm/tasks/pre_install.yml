@@ -80,26 +80,28 @@
     - name: SAP SWPM Pre Install - Define role variables from low level member, looping over 'sap_swpm_role_parameters_dict' # noqa var-naming[no-jinja]
       ansible.builtin.set_fact:
         "{{ line_item.key }}": "{{ lookup('vars', line_item.key, default=line_item.value) }}"
-      loop: "{{ sap_swpm_role_parameters_dict | dict2items }}"
+      loop: "{{ sap_swpm_role_parameters_dict | dict2items if sap_swpm_role_parameters_dict is mapping else [] }}"
       loop_control:
         loop_var: line_item
-      when: sap_swpm_role_parameters_dict is defined
+      when: sap_swpm_role_parameters_dict is defined and sap_swpm_role_parameters_dict
 
     - name: SAP SWPM Pre Install - Display all vars of 'sap_swpm_role_parameters_dict'
       ansible.builtin.debug:
         msg: "{{ line_item.key }}: {{ lookup('vars', line_item.key) }}"
-      loop: "{{ sap_swpm_role_parameters_dict | dict2items }}"
+      loop: "{{ sap_swpm_role_parameters_dict | dict2items if sap_swpm_role_parameters_dict is mapping else [] }}"
       loop_control:
         loop_var: line_item
+      when: sap_swpm_role_parameters_dict is defined and sap_swpm_role_parameters_dict
 
     - name: SAP SWPM Pre Install - Looking for any differences...
       ansible.builtin.set_fact:
         different_values_sap_swpm_role_parameters_dict:
           "{{ different_values_sap_swpm_role_parameters_dict | d({}) | combine({line_item.key: line_item.value}) }}"
-      loop: "{{ sap_swpm_role_parameters_dict | dict2items }}"
+      loop: "{{ sap_swpm_role_parameters_dict | dict2items if sap_swpm_role_parameters_dict is mapping else [] }}"
       loop_control:
         loop_var: line_item
       when:
+        - sap_swpm_role_parameters_dict is defined and sap_swpm_role_parameters_dict
         - line_item.value != lookup('vars', line_item.key)
       ignore_errors: true
 
@@ -110,6 +112,7 @@
           - "sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_role_parameters_dict']"
           - "are ignored because they have already been defined on the top level, as follows:"
           - "{{ different_values_sap_swpm_role_parameters_dict }}"
+      when: sap_swpm_role_parameters_dict is defined and sap_swpm_role_parameters_dict
 
 # Define sap_swpm_inifile_parameters_dict from low level member, or use top level variable if defined. Top level variable has precedence.
     - name: SAP SWPM Pre Install - Define 'sap_swpm_inifile_parameters_dict' from low level member
