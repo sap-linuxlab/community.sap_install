@@ -3,7 +3,7 @@
 
 The playbooks starting with `sample-` in this directory can be used as examples for your own playbooksi and cannot be called directly from the commandline.
 The other playbooks can be called directly with a prepared variable file or imported in your own playbooks or workflows.
-The playbooks can run agianst localhost, all hosts or defined group.
+The playbooks can run against localhost, all hosts or defined group.
 
 ## Usage of playbooks
 
