@@ -103,7 +103,15 @@ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port: "620{{ sap_ha_pacemaker
 
 
 # Platform specific VIP handling
-sap_ha_pacemaker_cluster_vip_method: gcp_nlb_reserved_ip_haproxy # gcp_vpc_move_route
+# Google documentation differs for each OS:
+# SUSE - VIP: IPaddr2, Healthcheck: No pacemaker resources, but directly as part of NLB healthcheck
+#   HANA: https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-sles#create_a_local_cluster_ip_resource_for_the_vip_address
+#   NWAS: https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-sles#create_the_vip_resources
+# RHEL - VIP: IPaddr2, Healthcheck: haproxy
+#   HANA: https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel#create_a_virtual_ip_address_resource
+#   NWAS: https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-rhel#create_a_virtual_ip_address_resource
+sap_ha_pacemaker_cluster_vip_method: "{{ __sap_ha_pacemaker_cluster_vip_method_dict.cloud_gcp_ce_vm | default('gcp_nlb_reserved_ip_haproxy') }}"
+
 sap_ha_pacemaker_cluster_vip_group_prefix: group_
 
 __sap_ha_pacemaker_cluster_available_vip_agents:
