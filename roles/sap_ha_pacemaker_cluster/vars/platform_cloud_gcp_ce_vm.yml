@@ -104,7 +104,7 @@ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port: "620{{ sap_ha_pacemaker
 
 # Platform specific VIP handling
 # Google documentation differs for each OS:
-# SUSE - VIP: IPaddr2, Healthcheck: No pacemaker resources, but directly as part of NLB healthcheck
+# SUSE - VIP: IPaddr2, Healthcheck: anything using socat
 #   HANA: https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-sles#create_a_local_cluster_ip_resource_for_the_vip_address
 #   NWAS: https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-sles#create_the_vip_resources
 # RHEL - VIP: IPaddr2, Healthcheck: haproxy
@@ -158,4 +158,10 @@ __sap_ha_pacemaker_cluster_available_vip_agents:
   # (which uses execution via GCloud CLI, and is itself a fork of external/gcp:route)
   gcp_vpc_move_route:
     agent: "ocf:heartbeat:gcp-vpc-move-route"
+    with: ipaddr
+
+  # This is dummy resource to run socat process for Health checks on SUSE
+  # https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-sles#create_the_health_check_resources
+  gcp_anything_socat:
+    agent: "anything"
     with: ipaddr
