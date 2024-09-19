@@ -111,12 +111,12 @@ previous `default_templates` mode.
 The dictionary named `sap_swpm_templates_install_dictionary` can hold all necessary variables
 needed by the role `sap_swpm` for different SAP products. See the `Ansible Playbooks for SAP` for examples.
 
-The role `sap_swpm` redefines low level members of this dictionary to top level
-variables. The dictionary may contain either the definitions for the previous
-version of the role (used in the previous role modes `default_templates` and `advanced_templates`),
+The role `sap_swpm` defines top level variables from low level members of this dictionary.
+The dictionary may contain either the definitions for the previous version of the role
+(used in the previous role modes `default_templates` and `advanced_templates`),
 or an updated definition of the dictionary containing the new variable names.
 The role will fail if both old and new variable names are defined in the dictionary.
-Variables on the top level take precedences over those members of `sap_swpm_templates_install_dictionary` with the same name.
+Variables on the top level will be overridden by members of `sap_swpm_templates_install_dictionary` with the same name.
 
 Following is the complete list of conversions of members of the dictionary `sap_swpm_templates_install_dictionary`, where `sap_prod` is an
 example entry for `sap_swpm_templates_product_input`:
