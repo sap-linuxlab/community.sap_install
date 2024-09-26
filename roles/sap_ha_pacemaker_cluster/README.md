@@ -8,19 +8,25 @@
 Ansible Role `sap_ha_pacemaker_cluster` is used to install and configure Linux Pacemaker High Availability clusters for SAP HANA and SAP Netweaver systems on various infrastructure platforms.
 <!-- END Description -->
 
-## Prerequisites
+<!-- BEGIN Dependencies -->
+## Dependencies
+- `fedora.linux_system_roles`
+    - Roles:
+        - `ha_cluster`
+
+Install required collections by `ansible-galaxy install -vv -r meta/collection-requirements.yml`.
+<!-- END Dependencies -->
+
 <!-- BEGIN Prerequisites -->
+## Prerequisites
 Infrastructure:
 - It is required to create them manually or using [sap_vm_provision](https://github.com/sap-linuxlab/community.sap_infrastructure/tree/main/roles/sap_vm_provision) role, because this role does not create any Cloud platform resources that are required by Resource Agents.
 
-Collection dependency:
-1. `fedora.linux_system_roles`
-
 Managed nodes:
-1. Supported SAP system is installed
-2. SAP HANA System Replication is configured for SAP HANA HA cluster
-3. Operating system has access to all required packages
-4. All required ports are open (details below)
+- Supported SAP system is installed. See [Recommended](#recommended) section.
+- SAP HANA System Replication is configured for SAP HANA HA cluster. See [Recommended](#recommended) section.
+- Operating system has access to all required packages
+- All required ports are open (details below)
 
 | SAP HANA System Replication process | Port |
 | --- | --- |
@@ -41,10 +47,10 @@ Managed nodes:
 
 ## Execution
 <!-- BEGIN Execution -->
-**:warning: This ansible role will destroy and then recreate Linux Pacemaker cluster in process.**
+**:warning: This ansible role will destroy and then recreate Linux Pacemaker cluster in process.**</br>
 :warning: Do not execute this Ansible Role against existing Linux Pacemaker clusters unless you know what you are doing and you prepare inputs according to existing cluster.
 
-Role can be execute separately or as part of [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
+Role can be executed independently or as part of [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
 
 ### Supported Platforms
 | Platform | Status | Notes |
@@ -68,13 +74,32 @@ Role can be execute separately or as part of [ansible.playbooks_for_sap](https:/
 | SAP NetWeaver (ABAP) ASCS and ERS 2 nodes | Simple Mount | :heavy_check_mark: |
 <!-- END Execution -->
 
+<!-- BEGIN Execution Recommended -->
+### Recommended
+It is recommended to execute this role together with other roles in this collection, in the following order:</br>
+#### SAP HANA cluster
+1. [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure)
+2. [sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_preconfigure)
+3. [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect)
+4. [sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_install)
+5. [sap_ha_install_hana_hsr](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_install_hana_hsr)
+6. *`sap_ha_pacemaker_cluster`*
+
+#### SAP Netweaver cluster
+1. [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure)
+2. [sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_netweaver_preconfigure) 
+3. [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect)
+4. [sap_swpm](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_swpm)
+5. *`sap_ha_pacemaker_cluster`*
+<!-- END Execution Recommended -->
+
 ### Execution Flow
 <!-- BEGIN Execution Flow -->
 1. Assert that required inputs were provided.
 2. Detect target infrastructure platform and prepare recommended inputs unless they were provided.
-3. Prepare variables with all cluster parameters and resources
+3. Prepare variables with all cluster parameters and resources.
 4. Execute role `ha_cluster` from Ansible Collection `fedora.linux_system_roles` with prepared inputs.
-5. Execute SAP product specific post tasks and verify cluster is running
+5. Execute SAP product specific post tasks and verify cluster is running.
 <!-- END Execution Flow -->
 
 ### Example
@@ -104,14 +129,13 @@ Role can be execute separately or as part of [ansible.playbooks_for_sap](https:/
             node_ip: "10.10.10.10"
             node_role: primary
             hana_site: DC01
+
           - node_name: h01hana1
             node_ip: "10.10.10.11"
             node_role: secondary
             hana_site: DC02
         sap_ha_pacemaker_cluster_replication_type: none
         sap_ha_pacemaker_cluster_vip_resource_group_name: viphdb
-
-        sap_hana_cluster_nodes:
 ```
 <!-- END Execution Example -->
 

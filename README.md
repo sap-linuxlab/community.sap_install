@@ -82,7 +82,7 @@ See [Installing collections](https://docs.ansible.com/ansible/latest/collections
 More deployment scenarios are available in [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) repository.
 
 ### Ansible Roles
-All included roles can be execute separately or as part of [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
+All included roles can be executed independently or as part of [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
 
 | Name | Summary |
 | :--- | :--- |
@@ -135,6 +135,9 @@ You can find the release notes of this collection in [Changelog file](https://gi
 
 ### Variable Precedence Rules
 Please follow [Ansible Precedence guidelines](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable) on how to pass variables when using this collection.
+
+### Getting Started
+More information on how to execute Ansible playbooks is in [Getting started guide](https://github.com/sap-linuxlab/community.sap_install/blob/main/docs/getting_started/README.md).
 
 
 ## License

@@ -1,161 +1,126 @@
+<!-- BEGIN Title -->
 # sap_storage_setup Ansible Role
+<!-- END Title -->
+![Ansible Lint for sap_storage_setup](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint-sap_storage_setup.yml/badge.svg)
 
-Ansible Role for preparing a host with the storage requirements of an SAP System (prior to software installation)
+## Description
+<!-- BEGIN Description -->
+Ansible Role `sap_storage_setup` is used to prepare a host with the storage requirements of an SAP System (prior to software installation).
 
-## Scope
-
-This Ansible Role provides:
-- local/block storage volumes setup as LVM Logical Volumes, Filesystem formatting and mount to defined directory path
-- remote/file storage mount (and subdirectories as required)
-- swap file or swap partition
-
-This Ansible Role has been tested for the following SAP software deployment types:
-- SAP HANA Scale-up, Scale-out and Scale-up High Availability
-- SAP NetWeaver AS in Sandbox (Two-Tier/OneHost), Standard (Three-Tier/DualHost), Distributed (Multi-Tier) and Distributed High Availability
+This role can prepare host with:
+- Local block storage volume setup as LVM Logical Volumes, Filesystem formatting and mount to defined directory path
+- Remote file storage mount (and subdirectories as required)
+- SWAP file or SWAP partition
 
 This Ansible Role is agnostic, and will run on any Infrastructure Platform. Only LVM is used for local/block storage, to allow for further expansion if the SAP System requires further storage space in the future.
+<!-- END Description -->
 
-Please note, while this Ansible Role has protection against overwrite of existing disks and filesystems - sensible review and care is required for any automation of disk storage. Please review the documentation and samples/examples carefully. It is strongly suggested to initially execute the Ansible Playbook calling this Ansible Role, with `ansible-playbook --check` for Check Mode - this will perform no changes to the host and show which changes would be made.
+<!-- BEGIN Dependencies -->
+## Dependencies
+- `community.general`
+    - Modules:
+        - `lvg`
+        - `lvol`
+        - `filesystem`
+Install required collection by `ansible-galaxy install community.general`.
+<!-- END Dependencies -->
 
-In addition, this Ansible Role:
-
-- Does not permit static definition for mountpoint to use a specific device (e.g. `/dev/sdk`). The definition will define the disk size to use for the mountpoint, and match accordingly.
-- Enforces 1 mountpoint will use 1 LVM Logical Volume (LV) that consumes 100% of an LVM Volume Group (VG), with the LVM Volume Group (VG) consuming 100% of 1..n LVM Physical Volumes (PV).
-    - For granular control of LVM setup, the suggestion is to instead use Ansible Role `storage` from the `fedora.linux_system_roles` Ansible Collection or the Ansible Roles `lvg/lvol/filesystem` from `community.general` Ansible Collection
-
-
-## Requirements
-
-The Ansible Role requires the `community.general` Ansible Collection (uses the `lvg`, `lvol` and `filesystem` Ansible Modules).
-
-Before using this Ansible Role, please make sure that the required collections are installed; for example, by using the command `ansible-galaxy install community.general`
-
+<!-- BEGIN Prerequisites -->
 ## Prerequisites
+Managed nodes:
+- All local/block storage volumes must be attached to the host
+- All remote/file storage mounts must be available with host accessibility (e.g. port 2049).
+<!-- END Prerequisites -->
 
-All local/block storage volumes must be attached to the host, and all remote/file storage mounts must be available with host accessibility (e.g. port 2049).
+## Execution
+<!-- BEGIN Execution -->
+**:warning: Do not execute this Ansible Role against existing SAP systems unless you know what you are doing and you prepare inputs to avoid unintended changes caused by default inputs.**</br>
+:warning: While this Ansible Role has protection against overwrite of existing disks and filesystems - sensible review and care is required for any automation of disk storage. Please review the documentation and samples/examples carefully. It is strongly suggested to initially execute the Ansible Playbook calling this Ansible Role, with `ansible-playbook --check` for Check Mode - this will perform no changes to the host and show which changes would be made.
 
-## Variables and Parameters
+Role can be executed independently or as part of [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
 
-The 3 critical variables are:
-- `sap_storage_setup_definition` - a list with a dictionary for each mountpoint (e.g. /hana/data) for the host
-- `sap_storage_setup_host_type` - a list which defines SAP Software on the host (e.g. list containing both hana_primary and nwas_abap_ascs values if creating a Sandbox Two-Tier/OneHost)
-- `sap_storage_setup_sid` - a string with the SAP System ID of the logical system (e.g. D01)
+**Considerations**
+- This role does not permit static definition for mountpoint to use a specific device (e.g. `/dev/sdk`). The definition will define the disk size to use for the mountpoint, and match accordingly.
+- This role enforces that 1 mountpoint will use 1 LVM Logical Volume (LV) that consumes 100% of an LVM Volume Group (VG), with the LVM Volume Group (VG) consuming 100% of 1..n LVM Physical Volumes (PV).
+    - Following roles and modules offer alternative for more granular control of LVM setup:
+        - Role `storage` from [fedora.linux_system_roles](https://github.com/linux-system-roles/storage)
+        - Modules `filesystem`, `lvg`, `lvol` from [community.general](https://galaxy.ansible.com/ui/repo/published/community/general/)
+<!-- END Execution -->
 
-## Execution Flow
+<!-- BEGIN Execution Recommended -->
+<!-- END Execution Recommended -->
 
-The Ansible Role is sequential:
-- Get host facts
-- Create list of unused disk devices
-- Match/Map unused disk devices to the `sap_storage_setup_definition`
-- Create LVM Logical Volumes (and prerequisite LVM Volume Groups and LVM Physical Volumes)
-- Create swap file or swap partition
-- Mount NFS temporarily, create required subdirectories, unmount and mount subdictory on the NFS share
+### Execution Flow
+<!-- BEGIN Execution Flow -->
+1. Gather facts about hosts.
+2. Create list of unused disk devices
+3. Match/Map unused disk devices to the `sap_storage_setup_definition`
+4. Create LVM Logical Volumes (and prerequisite LVM Volume Groups and LVM Physical Volumes)
+5. Create swap file or swap partition
+6. Mount NFS temporarily, create required subdirectories, unmount and mount subdirectory on the NFS share
+<!-- END Execution Flow -->
 
-## Sample
+<!-- BEGIN Execution Example -->
+Example playbook to configure SAP HANA OneHost node on AWS that includes:
+- 3 disks for `/hana/data`, `/hana/log` and ` /hana/shared`
+- Remote filesystem for `/software`
+- SWAP
+```yaml
+---
+- name: Ansible Play for SAP HANA HA storage setup
+  hosts: hana_primary
+  become: true
+  tasks:
+    - name: Execute Ansible Role sap_storage_setup
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_storage_setup
+      vars:
+        sap_storage_setup_sid: "H01"
+        sap_storage_setup_host_type: "hana_primary"
+        sap_storage_setup_definition:
+          - name: hana_data
+            mountpoint: /hana/data
+            disk_size: 150
+            filesystem_type: xfs
 
-Please see a full sample using multiple hosts to create an SAP S/4HANA Distributed deployment in the [/playbooks](../../playbooks/) directory of the Ansible Collection `sap_install`.
+          - name: hana_log
+            mountpoint: /hana/log
+            disk_size: 100
+            filesystem_type: xfs
+
+          - name: hana_shared
+            mountpoint: /hana/shared
+            disk_size: 200
+            filesystem_type: xfs
+
+          - name: software
+            mountpoint: /software
+            nfs_path: /software
+            nfs_server: "fs-00000000000000000.efs.eu-central-1.amazonaws.com:/software"
+            nfs_filesystem_type: "nfs4"
+            nfs_mount_options: "vers=4.1,hard,timeo=600,retrans=2,acl"
+
+          - name: swap
+            disk_size: 96
+            filesystem_type: swap
+```
+<!-- END Execution Example -->
+
+<!-- BEGIN Role Tags -->
+<!-- END Role Tags -->
+
+<!-- BEGIN Further Information -->
+<!-- END Further Information -->
 
 ## License
-
+<!-- BEGIN License -->
 Apache 2.0
+<!-- END License -->
 
-## Author Information
+## Maintainers
+<!-- BEGIN Maintainers -->
+- [Janine Fuchs](https://github.com/ja9fuchs)
+<!-- END Maintainers -->
 
-Red Hat for SAP Community of Practice, Janine Fuchs, IBM Lab for SAP Solutions
-
----
-<!-- BEGIN: Role Input Parameters -->
 ## Role Input Parameters
-
-Minimum required parameters:
-
-- [sap_storage_setup_definition](#sap_storage_setup_definition-required)
-- [sap_storage_setup_host_type](#sap_storage_setup_host_type-required)
-- [sap_storage_setup_sid](#sap_storage_setup_sid-required)
-
-
-### sap_storage_setup_definition <sup>required</sup>
-
-- _Type:_ `list`
-
-Describes the filesystems to be configured.<br>
-
-- **disk_size**<br>
-    Size of the disk device that is used for the filesystem.<br>For filesystems with no LVM logical volume striping, this is the total size of the filesystem.<br>For filesystems with LVM LV striping defined (`lvm_lv_stripes`), this is the size of each disk. The resulting filesystem size will be `disk_size` multiplied by `lvm_lv_stripes` (=disks).
-- **filesystem_type**<br>
-    _Default:_ `xfs`<br>
-    The type of filesystem that will be created on the logical volume.
-- **lvm_lv_name**<br>
-    The name of the LVM volume.<br>The default name is derived from the name value of the filesystem definition entry, for example 'lv_hanalog'.
-- **lvm_lv_stripe_size**<br>
-    When setting up a striped volume, the stripe size can be defined.<br>Example format - "128K".
-- **lvm_lv_stripes**<br>
-    _Default:_ `1`<br>
-    Number of disks that will be configured in a striped volume.<br>This requires the availability of the same amount of unused disks, which must be of the size defined in `disk_size`.
-- **lvm_vg_name**<br>
-    The name of the LVM volume group.<br>The default name is derived from the name value of the filesystem definition entry, for example 'vg_hanalog'.
-- **lvm_vg_physical_extent_size**<br>
-    _Default:_ `4`<br>
-    Adjustable size of the physical extents of the volume group in LVM.
-- **mountpoint**<br>
-    The path to where the filesystem will be mounted.<br>This can be left out for the definition of a swap volume.
-- **name**<br>
-    A name of the filesystem definition entry.<br>This name is used to generate volume group name and logical volume name.
-- **nfs_filesystem_type**<br>
-    _Default:_ `nfs4`<br>
-    The type of the NFS filesystem, for example `nfs`, `nfs4`.
-- **nfs_mount_options**<br>
-    Mount options to use for the NFS mount.<br>Generic default is `hard,acl`.<br>Defaults depend on the specific platform detected by the role or defined explicitly.
-- **nfs_path**<br>
-    When defining an NFS filesystem, this is the directory path of the filesystem to be mounted.
-- **nfs_server**<br>
-    When defining an NFS filesystem, this is the address of the NFS server.<br>The address must contain the root path, in which the mount directories exist or will be created.<br>For example, `192.168.1.100:/`.
-- **swap_path**<br>
-    The path to the swap file.<br>When this option is defined for a swap filesystem definition, it will create a swap file on an existing filesystem.
-
-Example:
-
-```yaml
-sap_storage_setup_definition:
-
-  # Block Storage volume
-  - name: hana_data                # required: string, filesystem name used to generate lvm_lv_name and lvm_vg_name
-    mountpoint: /hana/data         # required: string, directory path where the filesystem is mounted
-    disk_size: 100                 # required: integer, size in GB
-    filesystem_type: xfs           # optional: string, value 'xfs'. Use 'swap' to create swap filesystem
-
-  # File Storage volume
-  - name: hana_shared              # required: string, reference name
-    mountpoint: /hana/shared       # required: string, directory path where the filesystem is mounted
-    nfs_server: nfs.corp:/         # required: string, server and parent directory of the NFS Server; value default from var sap_storage_setup_nfs_server
-
-  # Swap as file instead of Block Storage volume
-  # See SAP Note 1597355 - Swap-space recommendation for Linux
-  - name: swap                     # required: string, reference name
-    swap_path: /swapfile           # required: string, directory path where swap file is created
-    disk_size: 4                   # required: integer, size in GB of swap file
-    filesystem_type: swap          # required: string, must be value 'swap'
-```
-
-### sap_storage_setup_host_type <sup>required</sup>
-
-
-The type of service the target system is going to be configured for.<br>
-This can be a list of multiple types which apply to a single host.<br>
-If not defined, the default will be inherited from the global parameter `sap_host_type`. One of these parameters must be defined.<br>
-
-### sap_storage_setup_multipath_enable_and_detect
-
-- _Type:_ `bool`
-- _Default:_ `False`
-
-Define if multipathing should be enabled and dynamic multipath devices detected and used for the filesystem setup.<br>
-
-### sap_storage_setup_sid <sup>required</sup>
-
-- _Type:_ `str`
-
-SID of the SAP service.<br>
-If not defined, the default will be inherited from the global parameter `sap_system_sid`. One of these parameters must be defined.<br>
-
-<!-- END: Role Input Parameters -->
+All input parameters used by role are described in [INPUT_PARAMETERS.md](https://github.com/sap-linuxlab/community.sap_install/blob/main/roles/sap_storage_setup/INPUT_PARAMETERS.md)
