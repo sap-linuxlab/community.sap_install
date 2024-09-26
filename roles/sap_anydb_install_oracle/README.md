@@ -7,15 +7,21 @@
 Ansible role `sap_anydb_install_oracle` is used to install Oracle Database 19.x for SAP system.
 <!-- END Description -->
 
-## Prerequisites
+<!-- BEGIN Dependencies -->
+<!-- END Dependencies -->
+
 <!-- BEGIN Prerequisites -->
+## Prerequisites
 Managed nodes:
-1. Installation media present and `sap_anydb_install_oracle_extract_path` updated. Download can be completed using [community.sap_launchpad](https://github.com/sap-linuxlab/community.sap_launchpad) Ansible Collection.
+- Directory with installation media is present and `sap_anydb_install_oracle_extract_path` updated. Download can be completed using [community.sap_launchpad](https://github.com/sap-linuxlab/community.sap_launchpad) Ansible Collection.
 <!-- END Prerequisites -->
 
 ## Execution
 <!-- BEGIN Execution -->
 <!-- END Execution -->
+
+<!-- BEGIN Execution Recommended -->
+<!-- END Execution Recommended -->
 
 ### Execution Flow
 <!-- BEGIN Execution Flow -->

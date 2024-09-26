@@ -6,6 +6,15 @@ Minimum required parameters for all clusters:
 
 Additional minimum requirements depend on the type of cluster setup and on the target platform.
 
+### sap_ha_pacemaker_cluster_hacluster_user_password
+
+- _Type:_ `string`
+
+**Mandatory Input Parameter.**</br>
+The password of the `hacluster` user which is created during pacemaker installation.<br>
+Inherits the value of `ha_cluster_hacluster_password`, when defined.<br>
+
+
 ### sap_ha_pacemaker_cluster_aws_access_key_id
 
 - _Type:_ `string`
@@ -179,13 +188,6 @@ sap_ha_pacemaker_cluster_ha_cluster:
   - 192.168.2.10
   node_name: nodeA
 ```
-
-### sap_ha_pacemaker_cluster_hacluster_user_password <sup>required</sup>
-
-- _Type:_ `string`
-
-The password of the `hacluster` user which is created during pacemaker installation.<br>
-Inherits the value of `ha_cluster_hacluster_password`, when defined.<br>
 
 ### sap_ha_pacemaker_cluster_hana_automated_register
 
@@ -1015,6 +1017,4 @@ Name of the SAPInstance resource for NetWeaver PAS.<br>
 - _Default:_ `rsc_vip_<SID>_HDB<Instance Number>_readonly`
 
 Customize the name of the resource managing the Virtual IP of read-only access to the secondary HANA instance.<br>
-
-
 <!-- END Role Input Parameters -->
