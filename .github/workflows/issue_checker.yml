@@ -1,0 +1,22 @@
+---
+
+name: Issue automation title filler
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+
+jobs:
+  check_outdate_dependencies:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Run issue check
+        uses: ./workflows/issue_checker
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ISSUE_NUMBER: ${{ github.event.issue.number }}
