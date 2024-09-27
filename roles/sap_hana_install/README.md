@@ -358,6 +358,9 @@ With the following tags, the role can be called to perform certain activities on
 - tag `sap_hana_install_hdblcm_commandline`: Only show the hdblcm command line, without processing
   the hdblcm template. This can be useful for checking the hdblcm command line options, especially
   when using the `addhosts` function.
+- tag `sap_hana_install_create_hdblcm_configfile`: Only create the hdblcm configfile, without
+  performing any additional preinstallation checks. The configfile will be created using hdblcm,
+  so the SAP HANA software will be extracted if not already done.
 - tag `sap_hana_install_preinstall`: Only perform pre-install activities. This includes selecting
   the SAPCAR EXE file, extracting the SAR files if necessary, searching for hdblcm, and creating
   the hdblcm configfile.
