@@ -5,9 +5,9 @@
 
 ## Description
 <!-- BEGIN Description -->
-Ansible Role for instantiation of IBM Db2 'Integrated Linux Pacemaker' HADR cluster
+The Ansible Role for instantiation of IBM Db2 'Integrated Linux Pacemaker' HADR cluster.
 
-Note: IBM Db2 with 'Integrated Linux Pacemaker' can use two deployment models:
+**NOTE:** IBM Db2 with 'Integrated Linux Pacemaker' can use two deployment models:
 - Mutual Failover option, **not** covered by this Ansible Role
 - High Availability and Disaster Recovery (HADR) option for Idle Standby, initialized by this Ansible Role
 <!-- END Description -->
@@ -82,5 +82,30 @@ Apache 2.0
 - [Sean Freeman](https://github.com/sean-freeman)
 <!-- END Maintainers -->
 
-## Role Input Parameters
-All input parameters used by role are described in [INPUT_PARAMETERS.md](https://github.com/sap-linuxlab/community.sap_install/blob/main/roles/sap_ha_install_anydb_ibmdb2/INPUT_PARAMETERS.md)
+## Role Variables
+<!-- BEGIN Role Variables -->
+### sap_ha_install_anydb_ibmdb2_hostname_primary
+
+- _Type:_ `string`
+
+Enter IBM Db2 Primary node hostname
+
+
+### sap_ha_install_anydb_ibmdb2_hostname_secondary
+
+- _Type:_ `string`
+
+Enter IBM Db2 Secondary node hostname
+
+### sap_ha_install_anydb_ibmdb2_sid
+
+- _Type:_ `string`
+
+Enter IBM Db2 System ID
+
+### sap_ha_install_anydb_ibmdb2_software_directory
+
+- _Type:_ `string`
+
+Enter IBM Db2 installation media path
+<!-- END Role Variables -->
