@@ -4,9 +4,7 @@
 
 ## Description
 <!-- BEGIN Description -->
-Ansible Role `sap_netweaver_preconfigure` is used to ensure that Managed nodes are configured to host SAP Netweaver systems according to SAP Notes after [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure) role was executed.
-
-This role performs installation of required packages for running SAP Netweaver systems and configuration of Operating system parameters.
+The Ansible role `sap_netweaver_preconfigure` installs additional required packages and performs additional OS configuration steps according to applicable SAP notes for installing and running SAP ABAP Application Platform (formerly known as SAP NetWeaver) after the role [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure) has been executed.
 <!-- END Description -->
 
 <!-- BEGIN Dependencies -->
@@ -23,8 +21,6 @@ Managed nodes:
 **:warning: Do not execute this Ansible Role against existing SAP systems unless you know what you are doing and you prepare inputs to avoid unintended changes caused by default inputs.**
 
 **NOTE: It is recommended to execute `timesync` role from Ansible Collection `fedora.linux_system_roles` before or after executing this role.**
-
-Role can be executed independently or as part of [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
 <!-- END Execution -->
 
 <!-- BEGIN Execution Recommended -->
@@ -68,6 +64,8 @@ Example of execution together with prerequisite role [sap_general_preconfigure](
 <!-- END Role Tags -->
 
 <!-- BEGIN Further Information -->
+## Further Information
+For more examples on how to use this role in different installation scenarios, refer to the [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
 <!-- END Further Information -->
 
 ## License
@@ -80,5 +78,82 @@ Apache 2.0
 - [Bernd Finger](https://github.com/berndfinger)
 <!-- END Maintainers -->
 
-## Role Input Parameters
-All input parameters used by role are described in [INPUT_PARAMETERS.md](https://github.com/sap-linuxlab/community.sap_install/blob/main/roles/sap_netweaver_preconfigure/INPUT_PARAMETERS.md)
+## Role Variables
+<!-- BEGIN Role Variables -->
+### sap_netweaver_preconfigure_config_all
+- _Type:_ `bool`
+- _Default:_ `true`
+
+If set to `false`, the role will only execute or verify the installation or configuration steps of SAP notes.<br>
+Default is to perform installation and configuration steps.<br>
+
+### sap_netweaver_preconfigure_installation
+- _Type:_ `bool`
+- _Default:_ `false`
+
+If `sap_netweaver_preconfigure_config_all` is set to `false`, set this variable to `true` to perform only the<br>
+installation steps of SAP notes.<br>
+
+### sap_netweaver_preconfigure_configuration
+- _Type:_ `bool`
+- _Default:_ `false`
+
+If `sap_netweaver_preconfigure_config_all` is set to `false`, set this variable to `true` to perform only the<br>
+configuration steps of SAP notes.<br>
+
+### sap_netweaver_preconfigure_assert
+- _Type:_ `bool`
+- _Default:_ `false`
+
+If set to `true`, the role will run in assertion mode instead of the default configuration mode.<br>
+
+### sap_netweaver_preconfigure_assert_ignore_errors
+- _Type:_ `bool`
+- _Default:_ `false`
+
+In assertion mode, the role will abort when encountering any assertion error.<br>
+If this parameter is set to `false`, the role will *not* abort when encountering an assertion error.<br>
+This is useful if the role is used for reporting a system's SAP notes compliance.<br>
+
+### sap_netweaver_preconfigure_min_swap_space_mb
+- _Type:_ `str`
+- _Default:_ `20480`
+
+Specifies the minimum amount of swap space on the system required by SAP NetWeaver.<br>
+If this requirement is not met, the role will abort.<br>
+Set your own value to override the default of `20480`.<br>
+
+### sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured
+- _Type:_ `bool`
+- _Default:_ `true`
+
+If the system does not have the minimum amount of swap space configured as defined<br>
+in parameter `sap_netweaver_preconfigure_min_swap_space_mb`, the role will abort.<br>
+By setting this parameter to `false`, the role will not abort in such cases.<br>
+
+### sap_netweaver_preconfigure_rpath
+- _Type:_ `str`
+- _Default:_ `/usr/sap/lib`
+
+Specifies the SAP kernel's `RPATH`. This is where the SAP kernel is searching for libraries, and where the role<br>
+is creating a link named `libstdc++.so.6` pointing to `/opt/rh/SAP/lib64/compat-sap-c++-10.so`,<br>
+so that newer SAP kernels which are built with GCC10 can find the required symbols.<br>
+
+### sap_netweaver_preconfigure_use_adobe_doc_services
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Set this parameter to `true` when using Adobe Document Services, to ensure all required packages are installed.<br>
+
+### sap_netweaver_preconfigure_saptune_version
+- _Type:_ `str`
+
+(SUSE specific) Specifies the saptune version.
+
+### sap_netweaver_preconfigure_saptune_solution
+- _Type:_ `str`
+- _Default:_ `NETWEAVER`
+
+(SUSE specific) Specifies the saptune solution to apply.<br>
+Available values: `NETWEAVER`, `NETWEAVER+HANA`, `S4HANA-APP+DB`, `S4HANA-APPSERVER`, `S4HANA-DBSERVER`
+<!-- END Role Variables -->

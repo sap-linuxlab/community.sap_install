@@ -5,7 +5,7 @@
 
 ## Description
 <!-- BEGIN Description -->
-Ansible Role `sap_hana_install` is used to install SAP HANA database using HDBLCM.
+The Ansible role `sap_hana_install` installs SAP HANA using the SAP HANA database lifecycle manager (HDBLCM).
 <!-- END Description -->
 
 <!-- BEGIN Dependencies -->
@@ -143,7 +143,6 @@ of this file will not be reflected.
 
 ## Execution
 <!-- BEGIN Execution -->
-Role can be executed independently or as part of [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
 <!-- END Execution -->
 
 <!-- BEGIN Execution Recommended -->
@@ -374,6 +373,8 @@ With the following tags, the role can be called to perform certain activities on
 <!-- END Role Tags -->
 
 <!-- BEGIN Further Information -->
+## Further Information
+For more examples on how to use this role in different installation scenarios, refer to the [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
 <!-- END Further Information -->
 
 ## License
@@ -386,5 +387,57 @@ Apache 2.0
 - [Bernd Finger](https://github.com/berndfinger)
 <!-- END Maintainers -->
 
-## Role Input Parameters
-All input parameters used by role are described in [INPUT_PARAMETERS.md](https://github.com/sap-linuxlab/community.sap_install/blob/main/roles/sap_hana_install/INPUT_PARAMETERS.md)
+## Role Variables
+<!-- BEGIN Role Variables -->
+### sap_hana_install_sid
+
+- _Type:_ `string`
+
+Enter SAP HANA System ID (SID).
+
+### sap_hana_install_number
+
+- _Type:_ `string`
+
+Enter SAP HANA Instance number.
+
+### sap_hana_install_fapolicyd_integrity
+
+- _Type:_ `string`
+- _Default:_ `sha256`
+
+Select `fapolicyd` integrity check option.</br>
+Available values: `none`, `size`, `sha256`, `ima`.
+
+### sap_hana_install_check_sidadm_user
+
+- _Type:_ `bool`
+- _Default:_ `True`
+
+Set to `False` to install SAP HANA even if the `sidadm` user exists.</br>
+Default is `True`, in which case the installation will not be performed if the `sidadm` user exists.
+
+### sap_hana_install_new_system
+
+- _Type:_ `bool`
+- _Default:_ `True`
+
+Set to `False` to use existing SAP HANA database and add more hosts using variable `sap_hana_install_addhosts`.</br>
+Default is `True`, in which case fresh SAP HANA installation will be performed.
+
+### sap_hana_install_update_firewall
+
+- _Type:_ `bool`
+- _Default:_ `False`
+
+The role can be configured to also set the required firewall ports for SAP HANA. If this is desired, set the variable `sap_hana_install_update_firewall` to `yes` (default is `no`).</br>
+The firewall ports are defined in a variable which is compatible with the variable structure used by Linux System Role `firewall`.</br>
+The firewall ports for SAP HANA are defined in member `port` of the first field of variable `sap_hana_install_firewall` (`sap_hana_install_firewall[0].port`), see file `defaults/main.yml`.</br>
+If the member `state` is set to `enabled`, the ports will be enabled. If the member `state` is set to `disabled`, the ports will be disabled, which might be useful for testing.</br>
+
+Certain parameters have identical meanings, for supporting different naming schemes in playbooks and inventories.</br>
+You can find those in the task `Rename some variables used by hdblcm configfile` of the file `tasks/main.yml`.</br>
+Example: The parameter `sap_hana_install_number`, which is used by the role to define the hdblm parameter `number` (= SAP HANA instance number)</br>
+ can be defined by setting `sap_hana_instance_number`, `sap_hana_install_instance_nr`, `sap_hana_install_instance_number`, or `sap_hana_install_number`.</br>
+ The order of precedence is from left to right.
+<!-- END Role Variables -->
