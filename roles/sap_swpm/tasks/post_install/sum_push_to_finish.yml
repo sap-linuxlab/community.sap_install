@@ -1,5 +1,5 @@
 ---
-# Will keep pushing SUM through the two key stopping points until it finishes
+# Will keep pushing SUM through the two key manual steps until it finishes
 # This allows to fully automate the SWPM+SUM installation process
 # Based on research by @sean-freeman
 
@@ -126,7 +126,7 @@
       # X-Requested-With: XMLHttpRequest
   register: _sap_swpm_sum_push
   failed_when: _sap_swpm_sum_push.status != 200
-   
+
 # Post confirmation to SUM that no SPAU is required. This will move SUM to the next step.
 - name: Move SUM to the next step
   ansible.builtin.uri:
@@ -161,4 +161,3 @@
   retries: 60
   delay: 60
   failed_when: _sap_swpm_sum_push.status != 200 or '<dialogId>SUM4ABAP|MAIN_POSTCLEAN|EXIT|UnitWizard</dialogId>' not in _sap_swpm_sum_push.content
-  
