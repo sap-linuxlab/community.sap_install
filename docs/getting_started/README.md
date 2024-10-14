@@ -6,6 +6,7 @@ In this folder you will find sample files, a few additional tips for using the p
   - [Inventory and variable parameters](#inventory-and-variable-parameters)
   - [Security parameters](#security-parameters)
   - [Other useful options](#other-useful-options)
+  - [Improve readability of playbook output in terminal](#improve-readability-of-playbook-output-in-terminal)
 
 ## How to run playbooks
 
@@ -95,3 +96,34 @@ These are not all available options, but ones that may help getting familiar wit
   Be careful to choose a task which covers pre-requisites, i.e. tasks that discover information which is used in subsequent tasks have to be run to fulfill conditionals.
 - `-C` attempts a dry-run of the playbook without applying actual changes. This is limited to simple tasks that do not require other changes already been done in previous tasks.
 - `--step` this executes the playbook but will prompt for every task to be run or skipped. At the prompt it can also be told to continue and not ask again, however. Useful to slow down execution and review each tasks result before proceeding with the next task.
+
+### Improve readability of playbook output in terminal
+Note: For terminals with dark background, replace the color code `30m` by `37m`.
+In case you need to make an invisible font readable on a terminal with dark background, run the following command in the terminal:
+```yaml
+printf "\033[37mreadable font\n"
+```
+In case you need to make an invisible font readable on a terminal with bright background, run the following command in the terminal:
+```yaml
+printf "\033[30mreadable font\n"
+```
+
+Execution of `sap_general_preconfigure` playbook with a nice compact and colored output, this time for two hosts:
+```console
+ansible-playbook sap.yml -l host_1,host_2 -e "{sap_general_preconfigure_assert: yes, sap_general_preconfigure_assert_ignore_errors: yes}" |
+awk '{sub ("    \"msg\": ", "")}
+  /TASK/{task_line=$0}
+  /fatal:/{fatal_line=$0; nfatal[host]++}
+  /...ignoring/{nfatal[host]--; if (nfatal[host]<0) nfatal[host]=0}
+  /^[a-z]/&&/: \[/{gsub ("\\[", ""); gsub ("]", ""); gsub (":", ""); host=$2}
+  /SAP note/{print "\033[30m[" host"] "$0}
+  /FAIL:/{nfail[host]++; print "\033[31m[" host"] "$0}
+  /WARN:/{nwarn[host]++; print "\033[33m[" host"] "$0}
+  /PASS:/{npass[host]++; print "\033[32m[" host"] "$0}
+  /INFO:/{print "\033[34m[" host"] "$0}
+  /changed/&&/unreachable/{print "\033[30m[" host"] "$0}
+  END{print ("---"); for (var in npass) {printf ("[%s] ", var); if (nfatal[var]>0) {
+        printf ("\033[31mFATAL ERROR!!! Playbook might have been aborted!!!\033[30m Last TASK and fatal output:\n"); print task_line, fatal_line
+     }
+     else printf ("\033[31mFAIL: %d  \033[33mWARN: %d  \033[32mPASS: %d\033[30m\n", nfail[var], nwarn[var], npass[var])}}'
+```

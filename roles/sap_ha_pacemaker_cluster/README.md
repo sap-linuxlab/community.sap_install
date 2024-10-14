@@ -1,145 +1,179 @@
-<!-- BEGIN: Role Introduction -->
+<!-- BEGIN Title -->
 # sap_ha_pacemaker_cluster Ansible Role
-
+<!-- END Title -->
 ![Ansible Lint for sap_ha_pacemaker_cluster](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint-sap_ha_pacemaker_cluster.yml/badge.svg)
 
-Ansible Role for installation and configuration of Linux Pacemaker for High Availability of SAP Systems run on various Infrastructure Platforms.
+## Description
+<!-- BEGIN Description -->
+The Ansible Role `sap_ha_pacemaker_cluster` is used to install and configure Linux Pacemaker High Availability clusters for SAP HANA and SAP Netweaver systems on various infrastructure platforms.
+<!-- END Description -->
 
-## Scope
+<!-- BEGIN Dependencies -->
+## Dependencies
+- `fedora.linux_system_roles`
+    - Roles:
+        - `ha_cluster`
 
-This Ansible Role provides:
-- installation of Linux Pacemaker packages and dependencies
-- configuration of Linux Pacemaker cluster with all relevant fencing agent and resource agent for an Infrastructure Platform and SAP Software (SAP HANA or SAP NetWeaver)
-- setup and instantiation of Linux Pacemaker cluster (using `ha_cluster` Linux System Role)
+Install required collections by `ansible-galaxy install -vv -r meta/collection-requirements.yml`.
+<!-- END Dependencies -->
 
-This Ansible Role has been tested for the following SAP Software Solution scenario deployments:
-- SAP HANA Scale-up High Availability (SAPHanaSR Classic and SAPHanaSR-angi)
-- SAP NetWeaver (ABAP) AS ASCS and ERS High Availability
-- `Experimental:` SAP NetWeaver (ABAP) AS PAS and AAS High Availability
-- `Experimental:` SAP NetWeaver (JAVA) AS SCS and ERS High Availability
-
-This Ansible Role contains Infrastructure Platform specific alterations for:
-- AWS EC2 Virtual Servers
-- `Beta:` Microsoft Azure Virtual Machines
-- `Experimental:` Google Cloud Compute Engine Virtual Machine
-- `Experimental:` IBM Cloud Virtual Server
-- `Experimental:` IBM Power Virtual Server from IBM Cloud
-- `Experimental:` IBM PowerVC hypervisor Virtual Machine
-
-Please note, this Ansible Role `sap_ha_pacemaker_cluster` is acting as a wrapper and generates the parameter definitions for a given SAP System, Infrastructure Platform specific variables and other additional steps to complete the SAP High Availability setup using Linux Pacemaker clusters.
-
-### Warnings :warning:
-
-- :warning: Do **not** execute this Ansible Role against already configured Linux Pacemaker cluster nodes; unless you know what you are doing and have prepared the input variables for the Ansible Role according to / matching to the existing Linux Pacemaker setup!
-- :warning: Infrastructure Platforms not explicitly listed as available/tested are very unlikely to work.
-
-## Functionality
-
-_All of the following functionality is provided as **Technology Preview**._
-
-### SAP HANA scale-up (performance-optimized) with SAP HANA System Replication, High Availability using Linux Pacemaker 2-node cluster
-
-| Platform | Usability |
-| -------- | --------- |
-| :heavy_check_mark: physical server | expected to work with any fencing method that is supported by the `ha_cluster` Linux System Role |
-| :heavy_check_mark: OVirt VM | tested and working |
-| :heavy_check_mark: AWS EC2 VS | platform detection and awscli setup included, tested and expected to work |
-
-### SAP NetWeaver (ABAP) ASCS and ERS, High Availability using Linux Pacemaker 2-node cluster
-
-| Platform | Usability |
-| -------- | --------- |
-| :heavy_check_mark: physical server | expected to work with any fencing method that is supported by the `ha_cluster` Linux System Role |
-| :heavy_check_mark: OVirt VM | tested and working |
-| :heavy_check_mark: AWS EC2 VS | platform detection and awscli setup included, tested and expected to work |
-
-## Requirements
-
-The Ansible Role requires the SAP HANA Database Server or SAP NetWeaver Application Server software installation to already exist on the target host/s.
-
-The target host must be either:
-- Red Hat
-  - OS version: Registered RHEL4SAP (HA and US) 8.4+
-  - OS package repositories enabled: SAP and High Availability
-- SUSE
-  - OS version: Registered SLES for SAP 15+ (SLES4SAP 15+)
-  - OS package repositories enabled: HA Extension is part of registered SLES4SAP
-
-
-
-The Ansible Control System (where Ansible is executed from) must have:
-- Ansible Core 2.9+
-- Access to dependency Ansible Collections and Ansible Roles:
-  - **Upstream**:
-    - Ansible Collection [`community.sap_install` from Ansible Galaxy](https://galaxy.ansible.com/community/sap_install) version `1.4.1` or later
-    - Ansible Collection [`fedora.linux_system_roles` from Ansible Galaxy](https://galaxy.ansible.com/fedora/linux_system_roles) version `1.82.0` or later
-  - **Supported (Downstream)** via Red Hat Ansible Automation Platform (AAP) license:
-    - Ansible Collection [`redhat.sap_install` from Red Hat Ansible Automation Platform Hub](https://console.redhat.com/ansible/automation-hub/repo/published/redhat/sap_install) version `1.3.0` or later
-    - Ansible Collection [`redhat.rhel_system_roles` from Red Hat Ansible Automation Platform Hub](https://console.redhat.com/ansible/automation-hub/repo/published/redhat/rhel_system_roles) version `1.20.0` or later
-  - **Supported (Downstream)** via RHEL4SAP license:
-    - RHEL System Roles for SAP RPM Package `rhel-system-roles-sap-3.6.0` or later
-    - RHEL System Roles RPM Package `rhel-system-roles-1.20.0` or later
-
+<!-- BEGIN Prerequisites -->
 ## Prerequisites
+Infrastructure:
+- It is required to create them manually or using [sap_vm_provision](https://github.com/sap-linuxlab/community.sap_infrastructure/tree/main/roles/sap_vm_provision) role, because this role does not create any Cloud platform resources that are required by Resource Agents.
 
-All SAP Software must be installed, and all remote/file storage mounts must be available with correct permissions defined by SAP documentation. For SAP HANA High Availability, SAP HANA System Replication must already be installed.
+Managed nodes:
+- Supported SAP system is installed. See [Recommended](#recommended) section.
+- SAP HANA System Replication is configured for SAP HANA HA cluster. See [Recommended](#recommended) section.
+- Operating system has access to all required packages
+- All required ports are open (details below)
 
-In addition, the following network ports must be available:
-
-| **SAP Technical Application and Component** | **Port** |
+| SAP HANA System Replication process | Port |
 | --- | --- |
-| **_SAP HANA System Replication_** | |
-| hdbnameserver<br/><sub> used for log and data shipping from a primary site to a secondary site.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_no>`01 |
-| hdbnameserver<br/><sub> unencrypted metadata communication between sites.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_no>`02 |
-| hdbnameserver<br/><sub> used for encrypted metadata communication between sites.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_no>`06 |
-| hdbindexserver<br/><sub> used for first MDC Tenant database schema</sub> | 4`<sap_hana_instance_no>`03 |
-| hdbxsengine<br/><sub> used for SAP HANA XSC/XSA</sub> | 4`<sap_hana_instance_no>`07|
-| hdbscriptserver<br/><sub> used for log and data shipping from a primary site to a secondary site.<br/>Tenant port number plus 10,000</sub> | 4`<sap_hana_instance_no>`40-97 |
-| hdbxsengine<br/><sub> used for log and data shipping from a primary site to a secondary site.<br/>Tenant port number plus 10,000</sub> | 4`<sap_hana_instance_no>`40-97 |
-| **_Linux Pacemaker_** | |
+| hdbnameserver<br/><sub> used for log and data shipping from a primary site to a secondary site.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_number>`01 |
+| hdbnameserver<br/><sub> unencrypted metadata communication between sites.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_number>`02 |
+| hdbnameserver<br/><sub> used for encrypted metadata communication between sites.<br/>System DB port number plus 10,000</sub> | 4`<sap_hana_instance_number>`06 |
+| hdbindexserver<br/><sub> used for first MDC Tenant database schema</sub> | 4`<sap_hana_instance_number>`03 |
+| hdbxsengine<br/><sub> used for SAP HANA XSC/XSA</sub> | 4`<sap_hana_instance_number>`07|
+| hdbscriptserver<br/><sub> used for log and data shipping from a primary site to a secondary site.<br/>Tenant port number plus 10,000</sub> | 4`<sap_hana_instance_number>`40-97 |
+| hdbxsengine<br/><sub> used for log and data shipping from a primary site to a secondary site.<br/>Tenant port number plus 10,000</sub> | 4`<sap_hana_instance_number>`40-97 |
+
+| Linux Pacemaker process | Port |
+| --- | --- |
 | pcsd<br/><sub> cluster nodes requirement for node-to-node communication</sub> | 2224 (TCP)|
 | pacemaker<br/><sub> cluster nodes requirement for Pacemaker Remote service daemon</sub> | 3121 (TCP) |
 | corosync<br/><sub> cluster nodes requirement for node-to-node communication</sub> | 5404-5412 (UDP) |
+<!-- END Prerequisites -->
 
-## Execution Flow
+## Execution
+<!-- BEGIN Execution -->
+**:warning: This ansible role will destroy and then recreate Linux Pacemaker cluster in process.**</br>
+:warning: Do not execute this Ansible Role against existing Linux Pacemaker clusters unless you know what you are doing and you prepare inputs according to existing cluster.
 
-The Ansible Role is sequential:
-- Validate input Ansible Variables
-- Identify host's Infrastructure Platform
-- Generate Linux Pacemaker definition for given Infrastructure Platform and SAP Software
-- Execute `ha_cluster` Ansible Role with Linux Pacemaker definition
-- Instantiate Linux Pacemaker cluster
+### Supported Platforms
+| Platform | Status | Notes |
+| -------- | --------- | --------- |
+| Physical server | :heavy_check_mark: | Need to specify valid fence agent |
+| AWS EC2 Virtual Servers | :heavy_check_mark: | |
+| Google Cloud Compute Engine Virtual Machine | :heavy_check_mark: | |
+| Microsoft Azure Virtual Machines | :heavy_check_mark: | |
+| IBM Cloud Virtual Server | :heavy_check_mark: | |
+| IBM Power Virtual Server from IBM Cloud | :heavy_check_mark: | |
+| IBM PowerVC hypervisor Virtual Machine | :heavy_check_mark: | |
+| OVirt VM | :heavy_check_mark: | |
 
-## Tips
+### Supported scenarios
 
-Check out the [role variables of the `ha_cluster` Linux System Role](https://github.com/linux-system-roles/ha_cluster/blob/main/README.md) for additional possible settings that can be applied when using the `sap_ha_pacemaker_cluster` role.
+| Platform | Variant | Status |
+| -------- | --------- | --------- |
+| SAP HANA scale-up (performance-optimized) 2 nodes | SAPHanaSR Classic | :heavy_check_mark: |
+| SAP HANA scale-up (performance-optimized) 2 nodes | SAPHanaSR-angi | :heavy_check_mark: |
+| SAP NetWeaver (ABAP) ASCS and ERS 2 nodes | Classic | :heavy_check_mark: |
+| SAP NetWeaver (ABAP) ASCS and ERS 2 nodes | Simple Mount | :heavy_check_mark: |
+<!-- END Execution -->
 
-For example:<br>
-Adding `ha_cluster_start_on_boot: false` to disable the automatic start of cluster services on boot.
+<!-- BEGIN Execution Recommended -->
+### Recommended
+It is recommended to execute this role together with other roles in this collection, in the following order:</br>
+#### SAP HANA cluster
+1. [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure)
+2. [sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_preconfigure)
+3. [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect)
+4. [sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_install)
+5. [sap_ha_install_hana_hsr](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_install_hana_hsr)
+6. *`sap_ha_pacemaker_cluster`*
 
-## Sample
+#### SAP Netweaver cluster
+1. [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure)
+2. [sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_netweaver_preconfigure) 
+3. [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect)
+4. [sap_swpm](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_swpm)
+5. *`sap_ha_pacemaker_cluster`*
+<!-- END Execution Recommended -->
 
-Please see a full sample using multiple hosts to create an SAP S/4HANA Distributed deployment in the [/playbooks](../../playbooks/) directory of the Ansible Collection `sap_install`.
+### Execution Flow
+<!-- BEGIN Execution Flow -->
+1. Assert that required inputs were provided.
+2. Detect target infrastructure platform and prepare recommended inputs unless they were provided.
+3. Prepare variables with all cluster parameters and resources.
+4. Execute role `ha_cluster` from Ansible Collection `fedora.linux_system_roles` with prepared inputs.
+5. Execute SAP product specific post tasks and verify cluster is running.
+<!-- END Execution Flow -->
+
+### Example
+<!-- BEGIN Execution Example -->
+```yaml
+---
+- name: Ansible Play for SAP HANA HA Scale-up cluster setup
+  hosts: hana_primary, hana_secondary
+  become: true
+  tasks:
+    - name: Execute Ansible Role sap_ha_pacemaker_cluster
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_ha_pacemaker_cluster
+      vars:
+        sap_ha_pacemaker_cluster_cluster_name: clusterhdb
+        sap_ha_pacemaker_cluster_hacluster_user_password: 'clusterpass'
+
+        sap_ha_pacemaker_cluster_sap_type: saphana_scaleup
+        sap_ha_pacemaker_cluster_host_type:
+          - hana_scaleup_perf
+
+        sap_ha_pacemaker_cluster_hana_sid: "H01"
+        sap_ha_pacemaker_cluster_hana_instance_nr: "01"
+
+        sap_ha_pacemaker_cluster_cluster_nodes:
+          - node_name: h01hana0
+            node_ip: "10.10.10.10"
+            node_role: primary
+            hana_site: DC01
+
+          - node_name: h01hana1
+            node_ip: "10.10.10.11"
+            node_role: secondary
+            hana_site: DC02
+        sap_ha_pacemaker_cluster_replication_type: none
+        sap_ha_pacemaker_cluster_vip_resource_group_name: viphdb
+```
+<!-- END Execution Example -->
+
+<!-- BEGIN Role Tags -->
+<!-- END Role Tags -->
+
+<!-- BEGIN Further Information -->
+## Further Information
+For more examples on how to use this role in different installation scenarios, refer to the [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
+
+Cluster can be further customized with inputs available from underlying role [ha_cluster](https://github.com/linux-system-roles/ha_cluster/blob/main/README.md), which will take precedence over `sap_ha_pacemaker_cluster` inputs.
+<!-- END Further Information -->
 
 ## License
-
+<!-- BEGIN License -->
 Apache 2.0
+<!-- END License -->
 
-## Author Information
+## Maintainers
+<!-- BEGIN Maintainers -->
+- [Janine Fuchs](https://github.com/ja9fuchs)
+- [Marcel Mamula](https://github.com/marcelmamula)
+<!-- END Maintainers -->
 
-Red Hat for SAP Community of Practice, Janine Fuchs, IBM Lab for SAP Solutions
-
-<!-- END: Role Introduction -->
-
----
-<!-- BEGIN: Role Input Parameters -->
-## Role Input Parameters
-
+## Role Variables
+<!-- BEGIN Role Variables -->
 Minimum required parameters for all clusters:
 
 - [sap_ha_pacemaker_cluster_hacluster_user_password](#sap_ha_pacemaker_cluster_hacluster_user_password)
 
 Additional minimum requirements depend on the type of cluster setup and on the target platform.
+
+### sap_ha_pacemaker_cluster_hacluster_user_password
+
+- _Type:_ `string`
+
+**Mandatory Input Parameter.**</br>
+The password of the `hacluster` user which is created during pacemaker installation.<br>
+Inherits the value of `ha_cluster_hacluster_password`, when defined.<br>
+
 
 ### sap_ha_pacemaker_cluster_aws_access_key_id
 
@@ -314,13 +348,6 @@ sap_ha_pacemaker_cluster_ha_cluster:
   - 192.168.2.10
   node_name: nodeA
 ```
-
-### sap_ha_pacemaker_cluster_hacluster_user_password <sup>required</sup>
-
-- _Type:_ `string`
-
-The password of the `hacluster` user which is created during pacemaker installation.<br>
-Inherits the value of `ha_cluster_hacluster_password`, when defined.<br>
 
 ### sap_ha_pacemaker_cluster_hana_automated_register
 
@@ -877,7 +904,7 @@ sap_ha_pacemaker_cluster_sbd_devices:
 
 Set this parameter to 'true' to enable workflow to add Stonith SBD resource.<br>
 Stonith SBD resource has to be provided as part of `sap_ha_pacemaker_cluster_stonith_custom`.<br>
-Default SBD agents are: stonith:external/sbd for SLES and stonith:fence_sbd for RHEL<br>
+Default SBD agents are: `stonith:external/sbd` for SUSE and `stonith:fence_sbd` for Red Hat.<br>
 
 Example:
 
@@ -1042,9 +1069,10 @@ Default address of the NFS server, if not defined individually by filesystem.<br
 - _Type:_ `string`
 - _Default:_ `fedora.linux_system_roles`
 
-Reference to the Ansible Collection used for the Linux System Roles.<br>
-For community/upstream, use 'fedora.linux_system_roles'.<br>
-For RHEL System Roles for SAP, or Red Hat Automation Hub, use 'redhat.rhel_system_roles'.<br>
+Set which Ansible Collection to use for the Linux System Roles.<br>
+Available values:
+- `fedora.linux_system_roles` - for community/upstream.<br>
+- `redhat.rhel_system_roles` - for the RHEL System Roles for SAP, or for Red Hat Automation Hub.<br>
 
 ### sap_ha_pacemaker_cluster_vip_client_interface
 
@@ -1150,5 +1178,4 @@ Name of the SAPInstance resource for NetWeaver PAS.<br>
 - _Default:_ `rsc_vip_<SID>_HDB<Instance Number>_readonly`
 
 Customize the name of the resource managing the Virtual IP of read-only access to the secondary HANA instance.<br>
-
-<!-- END: Role Input Parameters -->
+<!-- END Role Variables -->

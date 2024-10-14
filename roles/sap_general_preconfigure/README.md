@@ -1,32 +1,144 @@
+<!-- BEGIN Title -->
 # sap_general_preconfigure Ansible Role
+<!-- END Title -->
+![Ansible Lint for sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint-sap_general_preconfigure.yml/badge.svg)
 
-This role installs required packages and performs configuration steps which are required for installing and running SAP NetWeaver or SAP HANA. Specific installation and configuration steps on top of these basic steps are performed with roles sap-netweaver-preconfigure and sap-hana-preconfigure. Future implementations may reduce the scope of this role, for example if certain installation or configuration steps are done in the more specific roles.
+## Description
+<!-- BEGIN Description -->
+The Ansible role `sap_general_preconfigure` installs required packages and performs basic OS configuration steps according to applicable SAP notes for installing and running SAP HANA or SAP ABAP Application Platform (formerly known as SAP NetWeaver).
 
-For SLES systems, this role may not be necessary.  The majority of SAP preparation and tuning is covered by `saptune` which is configured in the `sap_hana_preconfigure` and `sap_netweaver_preconfigure` roles.
+Specific installation and configuration steps then have to be performed with the roles [sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_preconfigure) and [sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_netweaver_preconfigure).
+<!-- END Description -->
 
-## Requirements
+<!-- BEGIN Dependencies -->
+## Dependencies
+- `fedora.linux_system_roles`
+    - Roles:
+        - `selinux`
+- `community.sap_install` (This collection)
+    - Roles:
+        - `sap_maintain_etc_hosts`
 
-The role requires additional collections which are specified in `meta/collection-requirements.yml`. Before using this role,
-make sure that the required collections are installed, for example by using the following command:
+Install required collections by `ansible-galaxy install -vv -r meta/collection-requirements.yml`.
+<!-- END Dependencies -->
 
-`ansible-galaxy install -vv -r meta/collection-requirements.yml`
+<!-- BEGIN Prerequisites -->
+## Prerequisites
 
-To use this role, your system needs to be installed according to:
-- RHEL 7: SAP note 2002167, Red Hat Enterprise Linux 7.x: Installation and Upgrade, section "Installing Red Hat Enterprise Linux 7"
-- RHEL 8: SAP note 2772999, Red Hat Enterprise Linux 8.x: Installation and Configuration, section "Installing Red Hat Enterprise Linux 8".
-- RHEL 9: SAP note 3108316, Red Hat Enterprise Linux 9.x: Installation and Configuration, section "Installing Red Hat Enterprise Linux 9".
+(Red Hat specific) Ensure system is installed according to:
+- RHEL 8: SAP note 2772999, Red Hat Enterprise Linux 8.x: Installation and Configuration, section `Installing Red Hat Enterprise Linux 8`.
+- RHEL 9: SAP note 3108316, Red Hat Enterprise Linux 9.x: Installation and Configuration, section `Installing Red Hat Enterprise Linux 9`.
 
-Note
-----
-Do not run this role against an SAP or other production system. The role will enforce a certain configuration on the managed node(s), which might not be intended.
+<!-- END Prerequisites -->
 
-<!-- BEGIN: Role Input Parameters for sap_general_preconfigure -->
-## Role Input Parameters
+## Execution
+<!-- BEGIN Execution -->
+**:warning: Do not execute this Ansible Role against existing SAP systems unless you know what you are doing and you prepare inputs to avoid unintended changes caused by default inputs.**
+<!-- END Execution -->
 
-#### Minimum required parameters:
+<!-- BEGIN Execution Recommended -->
+<!-- END Execution Recommended -->
 
-This role does not require any parameter to be set in the playbook or inventory.
+### Execution Flow
+<!-- BEGIN Execution Flow -->
+1. Assert that required inputs were provided.
+2. Install required packages and patch system if `sap_general_preconfigure_update:true`
+3. Apply configurations based on SAP Notes
+4. Reboot Managed nodes if packages were installed or patched and `sap_general_preconfigure_reboot_ok: true`
+<!-- END Execution Flow -->
 
+### Example
+<!-- BEGIN Execution Example -->
+```yaml
+---
+- name: Ansible Play for SAP HANA HA Scale-up preconfigure
+  hosts: hana_primary, hana_secondary
+  become: true
+  tasks:
+    - name: Execute Ansible Role sap_general_preconfigure
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_general_preconfigure
+```
+Further referenced as `example.yml`
+<!-- END Execution Example -->
+
+<!-- BEGIN Role Tags -->
+### Role Tags
+With the following tags, the role can be called to perform certain activities only:
+- tag `sap_general_preconfigure_installation`: Perform only the installation tasks
+- tag `sap_general_preconfigure_configuration`: Perform only the configuration tasks
+- tag `sap_general_preconfigure_3108316`: Perform only the tasks(s) related to this SAP note.
+- tag `sap_general_preconfigure_2772999_03`: Perform only the tasks(s) related to step 3 of the SAP note.
+- tag `sap_general_preconfigure_etc_hosts`: Perform only the tasks(s) related to this step. This step might be one of multiple
+  configuration activities of a SAP note. Also this step might be valid for multiple RHEL major releases.
+
+<details>
+  <summary><b>How to run sap_general_preconfigure with tags</b></summary>
+
+  #### Perform only installation tasks:
+  ```console
+  ansible-playbook sap.yml --tags=sap_general_preconfigure_installation
+  ```
+
+  #### Perform only configuration tasks:
+  ```console
+  ansible-playbook sap.yml --tags=sap_general_preconfigure_configuration
+  ```
+
+  #### Verify and modify /etc/hosts file:
+  ```console
+  ansible-playbook sap.yml --tags=sap_general_preconfigure_etc_hosts
+  ```
+
+  #### Perform all configuration steps except verifying and modifying the /etc/hosts file
+  ```
+  ansible-playbook sap.yml --tags=sap_general_preconfigure_configuration --skip_tags=sap_general_preconfigure_etc_hosts
+  ```
+
+  #### (Red Hat) Perform configuration activities related to SAP note 3108316 (RHEL 9)
+  ```
+  ansible-playbook sap.yml --tags=sap_general_preconfigure_3108316
+  ```
+
+  #### (Red Hat) Perform configuration activities related to step 2 (SELinux settings) of SAP note 3108316 (RHEL 9)
+  ```
+  ansible-playbook sap.yml --tags=sap_general_preconfigure_3108316_02
+  ```
+
+  #### (Red Hat) Perform all configuration activities except those related to step 2 (SELinux settings) of SAP note 3108316 (RHEL 9 specific)
+  ```
+  ansible-playbook sap-general-preconfigure.yml --tags=sap_general_preconfigure_configuration --skip_tags=sap_general_preconfigure_3108316_02
+  ```
+</details>
+<!-- END Role Tags -->
+
+<!-- BEGIN Further Information -->
+## Further Information
+For more examples on how to use this role in different installation scenarios, refer to the [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
+<!-- END Further Information -->
+
+## License
+<!-- BEGIN License -->
+Apache 2.0
+<!-- END License -->
+
+## Maintainers
+<!-- BEGIN Maintainers -->
+- [Bernd Finger](https://github.com/berndfinger)
+<!-- END Maintainers -->
+
+## Role Variables
+<!-- BEGIN Role Variables -->
+### Controlling execution with input parameters
+Extended Check (assert) run, aborting for any error which has been found:
+```yaml
+ansible-playbook sap.yml -l remote_host -e "{sap_general_preconfigure_assert: yes}"
+```
+
+Extended Check (assert) run, not aborting even if an error has been found:
+```yaml
+ansible-playbook sap.yml -l remote_host -e "{sap_general_preconfigure_assert: yes,sap_general_preconfigure_assert_ignore_errors: no}"
+```
 
 ### sap_general_preconfigure_config_all
 - _Type:_ `bool`
@@ -72,13 +184,11 @@ This is useful if the role is used for reporting a system's SAP notes compliance
 ### sap_general_preconfigure_system_roles_collection
 - _Type:_ `str`
 - _Default:_ `'fedora.linux_system_roles'`
-- _Possible Values:_<br>
-  - `fedora.linux_system_roles`
-  - `redhat.rhel_system_roles`
 
 Set which Ansible Collection to use for the Linux System Roles.<br>
-For community/upstream, use 'fedora.linux_system_roles'<br>
-For the RHEL System Roles for SAP, or for Red Hat Automation Hub, use 'redhat.rhel_system_roles'<br>
+Available values:
+- `fedora.linux_system_roles` - for community/upstream.<br>
+- `redhat.rhel_system_roles` - for the RHEL System Roles for SAP, or for Red Hat Automation Hub.<br>
 
 ### sap_general_preconfigure_enable_repos
 - _Type:_ `bool`
@@ -331,125 +441,4 @@ Example:
 ```yaml
 sap_general_preconfigure_db_group_name: dba
 ```
-
-<!-- END: Role Input Parameters for sap_general_preconfigure -->
-
-## Tags (RHEL systems only)
-
-With the following tags, the role can be called to perform certain activities only:
-- tag `sap_general_preconfigure_installation`: Perform only the installation tasks
-- tag `sap_general_preconfigure_configuration`: Perform only the configuration tasks
-- tag `sap_general_preconfigure_3108316`: Perform only the tasks(s) related to this SAP note.
-- tag `sap_general_preconfigure_2772999_03`: Perform only the tasks(s) related to step 3 of the SAP note.
-- tag `sap_general_preconfigure_etc_hosts`: Perform only the tasks(s) related to this step. This step might be one of multiple
-  configuration activities of a SAP note. Also this step might be valid for multiple RHEL major releases.
-
-Sample call for only performing all installation and configuration tasks (sample playbook name sap.yml, see the next section for
-an example). This is the default behavior. If no tag is specified, all installation and configuration tasks are enabled:
-```
-# ansible-playbook sap.yml
-```
-
-Sample call for only performing all installation tasks:
-```
-# ansible-playbook sap.yml --tags=sap_general_preconfigure_installation
-```
-
-Sample call for only performing all configuration tasks:
-```
-# ansible-playbook sap.yml --tags=sap_general_preconfigure_configuration
-```
-
-Sample call for only verifying and modifying the /etc/hosts file:
-```
-# ansible-playbook sap.yml --tags=sap_general_preconfigure_etc_hosts
-```
-
-Sample call for performing all configuration steps except verifying and modifying the /etc/hosts file:
-```
-# ansible-playbook sap.yml --tags=sap_general_preconfigure_configuration --skip_tags=sap_general_preconfigure_etc_hosts
-```
-
-Sample call for only performing the configuration activities related to SAP note 3108316 (RHEL 9 specific):
-```
-# ansible-playbook sap.yml --tags=sap_general_preconfigure_3108316
-```
-
-Sample call for performing all configuration activities except those related to step 2 (SELinux settings) of SAP note 3108316 (RHEL 9 specific):
-Sample call for only performing the configuration activities related to step 2 (SELinux settings) of SAP note 3108316 (RHEL 9 specific):
-```
-# ansible-playbook sap.yml --tags=sap_general_preconfigure_3108316_02
-```
-
-Sample call for performing all configuration activities except those related to step 2 (SELinux settings) of SAP note 3108316 (RHEL 9 specific):
-```
-# ansible-playbook sap-general-preconfigure.yml --tags=sap_general_preconfigure_configuration --skip_tags=sap_general_preconfigure_3108316_02
-```
-
-## Dependencies
-
-This role does not depend on any other role.
-
-## Example Playbook
-
-Simple playbook, named sap.yml:
-```yaml
----
-- hosts: all
-  roles:
-    - role: sap_general_preconfigure
-```
-
-## Example Usage
-
-Normal run:
-```yaml
-ansible-playbook sap.yml -l remote_host
-```
-
-Extended Check (assert) run, aborting for any error which has been found:
-```yaml
-ansible-playbook sap.yml -l remote_host -e "{sap_general_preconfigure_assert: yes}"
-```
-
-Extended Check (assert) run, not aborting even if an error has been found:
-```yaml
-ansible-playbook sap.yml -l remote_host -e "{sap_general_preconfigure_assert: yes, sap_general_preconfigure_assert_ignore_errors: no}"
-```
-
-Same as above, with a nice compact and colored output, this time for two hosts:
-```yaml
-ansible-playbook sap.yml -l host_1,host_2 -e "{sap_general_preconfigure_assert: yes, sap_general_preconfigure_assert_ignore_errors: yes}" |
-awk '{sub ("    \"msg\": ", "")}
-  /TASK/{task_line=$0}
-  /fatal:/{fatal_line=$0; nfatal[host]++}
-  /...ignoring/{nfatal[host]--; if (nfatal[host]<0) nfatal[host]=0}
-  /^[a-z]/&&/: \[/{gsub ("\\[", ""); gsub ("]", ""); gsub (":", ""); host=$2}
-  /SAP note/{print "\033[30m[" host"] "$0}
-  /FAIL:/{nfail[host]++; print "\033[31m[" host"] "$0}
-  /WARN:/{nwarn[host]++; print "\033[33m[" host"] "$0}
-  /PASS:/{npass[host]++; print "\033[32m[" host"] "$0}
-  /INFO:/{print "\033[34m[" host"] "$0}
-  /changed/&&/unreachable/{print "\033[30m[" host"] "$0}
-  END{print ("---"); for (var in npass) {printf ("[%s] ", var); if (nfatal[var]>0) {
-        printf ("\033[31mFATAL ERROR!!! Playbook might have been aborted!!!\033[30m Last TASK and fatal output:\n"); print task_line, fatal_line
-     }
-     else printf ("\033[31mFAIL: %d  \033[33mWARN: %d  \033[32mPASS: %d\033[30m\n", nfail[var], nwarn[var], npass[var])}}'
-```
-Note: For terminals with dark background, replace the color code `30m` by `37m`.
-In case you need to make an invisible font readable on a terminal with dark background, run the following command in the terminal:
-```yaml
-printf "\033[37mreadable font\n"
-```
-In case you need to make an invisible font readable on a terminal with bright background, run the following command in the terminal:
-```yaml
-printf "\033[30mreadable font\n"
-```
-
-## License
-
-Apache license 2.0
-
-## Author Information
-
-Red Hat for SAP Community of Practice, Bernd Finger, Markus Koch, Rainer Leber
+<!-- END Role Variables -->
