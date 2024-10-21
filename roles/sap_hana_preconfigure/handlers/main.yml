@@ -71,9 +71,20 @@
 
 - name: "Run grubby for enabling TSX"
   ansible.builtin.command: grubby --args="tsx=on" --update-kernel=ALL
-  register: __sap_hana_preconfigure_register_grubby_update
   changed_when: true
   listen: __sap_hana_preconfigure_grubby_update_handler
+  notify: __sap_hana_preconfigure_reboot_handler
+
+- name: "Run grubby for disabling THP"
+  ansible.builtin.command: grubby --args="transparent_hugepage=never" --update-kernel=ALL
+  changed_when: true
+  listen: __sap_hana_preconfigure_grubby_thp_never_handler
+  notify: __sap_hana_preconfigure_reboot_handler
+
+- name: "Run grubby for setting THP to madvise"
+  ansible.builtin.command: grubby --args="transparent_hugepage=madvise" --update-kernel=ALL
+  changed_when: true
+  listen: __sap_hana_preconfigure_grubby_thp_madvise_handler
   notify: __sap_hana_preconfigure_reboot_handler
 
 - name: Reboot the managed node
