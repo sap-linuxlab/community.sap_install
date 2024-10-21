@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Get boot command line
+  ansible.builtin.slurp:
+    src: /proc/cmdline
+  register: __sap_hana_preconfigure_register_proc_cmdline_thp
+
+- name: Set THP to 'never' at boot time
+  ansible.builtin.command: /bin/true
+  notify: __sap_hana_preconfigure_grubby_thp_never_handler
+  changed_when: true
+  when:
+    - ansible_distribution == 'RedHat'
+    - ansible_distribution_major_version == '8' or
+      ansible_distribution_version == '9.0' or
+      ansible_distribution_version == '9.1'
+    - not ( __sap_hana_preconfigure_register_proc_cmdline_thp['content'] | b64decode | regex_findall('transparent_hugepage=never') )
+  tags: grubconfig
+
+- name: Set THP to 'madvise' at boot time
+  ansible.builtin.command: /bin/true
+  notify: __sap_hana_preconfigure_grubby_thp_madvise_handler
+  changed_when: true
+  when:
+    - ansible_distribution == 'RedHat'
+    - ansible_distribution_major_version == '9' and
+        __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int >= 2
+    - not ( __sap_hana_preconfigure_register_proc_cmdline_thp['content'] | b64decode | regex_findall('transparent_hugepage=madvise') )
+  tags: grubconfig
