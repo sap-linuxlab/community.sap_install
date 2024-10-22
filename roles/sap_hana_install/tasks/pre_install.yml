@@ -55,6 +55,7 @@
     - name: SAP HANA Pre Install - Normalize directory path
       ansible.builtin.set_fact:
         __sap_hana_install_fact_software_directory: "{{ sap_hana_install_software_directory | regex_replace('\\/$', '') }}"
+      tags: sap_hana_install_create_hdblcm_configfile
 
     - name: SAP HANA Pre Install - Check availability of software directory '{{ __sap_hana_install_fact_software_directory }}'
       ansible.builtin.stat:
@@ -138,6 +139,7 @@
       check_mode: no
       register: __sap_hana_install_register_stat_software_extract_directory
       failed_when: no
+      tags: sap_hana_install_create_hdblcm_configfile
 
     - name: SAP HANA Pre Install - Change ownership of software extract directory '{{ sap_hana_install_software_extract_directory }}'
       ansible.builtin.file:
@@ -164,11 +166,13 @@
         patterns: 'SAP_HANA_DATABASE'
       register: __sap_hana_install_register_find_directory_sap_hana_database_initial
       when: __sap_hana_install_register_stat_software_extract_directory.stat.exists
+      tags: sap_hana_install_create_hdblcm_configfile
 
     - name: SAP HANA Pre Install - Set directory of 'hdblcm' from successful find result
       when:
         - __sap_hana_install_register_stat_software_extract_directory.stat.exists
         - __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is defined
+      tags: sap_hana_install_create_hdblcm_configfile
       block:
 
         - name: SAP HANA Pre Install - Set fact for 'hdblcm' installer directory if found initially
@@ -190,6 +194,7 @@
 
     - name: SAP HANA Pre Install - Extract SAR files if file 'hdblcm' was not found initially
       when: __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is not defined
+      tags: sap_hana_install_create_hdblcm_configfile
       block:
 
         - name: SAP HANA Pre Install - Run hdblcm prepare
@@ -248,6 +253,7 @@
   tags:
     - sap_hana_install_hdblcm_commandline
     - sap_hana_install_check_installation
+    - sap_hana_install_create_hdblcm_configfile
 
 - name: SAP HANA Pre Install - Fill variable __sap_hana_install_register_tmpdir for check mode only
   ansible.builtin.set_fact:
