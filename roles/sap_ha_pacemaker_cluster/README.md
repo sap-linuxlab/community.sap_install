@@ -613,20 +613,20 @@ Mandatory for the cluster setup on MS Azure instances.<br>
 Instance number of the NetWeaver ABAP AAS instance.<br>
 Mandatory for NetWeaver AAS cluster configuration.<br>
 
-### sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1
+### sap_ha_pacemaker_cluster_nwas_cs_ensa1
 
 - _Type:_ `bool`
 - _Default:_ `False`
 
-The standard NetWeaver ASCS/ERS cluster will be set up as ENSA2.<br>
+The standard NetWeaver Central Services (ASCS or SCS) cluster will be set up as ENSA2.<br>
 Set this parameter to 'true' to configure it as ENSA1.<br>
 
-### sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
+### sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
 
 - _Type:_ `bool`
 - _Default:_ `True`
 
-Enables preferred method for ASCS ERS ENSA2 clusters - Simple Mount<br>
+Enables preferred method for Central Services (ASCS or SCS) ENSA2 clusters - Simple Mount.<br>
 Set this parameter to 'true' to configure ENSA2 Simple Mount.<br>
 
 ### sap_ha_pacemaker_cluster_nwas_abap_ascs_filesystem_resource_name
@@ -643,11 +643,11 @@ Name of the filesystem resource for the ASCS instance.<br>
 
 NetWeaver ASCS resource group stickiness to prefer the ASCS group to stay on the node it was started on.<br>
 
-### sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr
+### sap_ha_pacemaker_cluster_nwas_ascs_instance_nr
 
 - _Type:_ `string`
 
-Instance number of the NetWeaver ABAP ASCS instance.<br>
+Instance number of the NetWeaver ABAP Central Services (ASCS) instance.<br>
 Mandatory for NetWeaver ASCS/ERS cluster configuration.<br>
 
 ### sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_automatic_recover_bool
@@ -657,21 +657,21 @@ Mandatory for NetWeaver ASCS/ERS cluster configuration.<br>
 
 NetWeaver ASCS instance resource option "AUTOMATIC_RECOVER".<br>
 
-### sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_ensa1_failure_timeout
+### sap_ha_pacemaker_cluster_nwas_cs_sapinstance_ensa1_failure_timeout
 
 - _Type:_ `string`
 - _Default:_ `60`
 
-NetWeaver ASCS instance failure-timeout attribute.<br>
-Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1`). Default setup is ENSA2.<br>
+NetWeaver Central Services (ASCS or SCS) instance failure-timeout attribute.<br>
+Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_nwas_cs_ensa1`). Default setup is ENSA2.<br>
 
-### sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_ensa1_migration_threshold
+### sap_ha_pacemaker_cluster_nwas_cs_sapinstance_ensa1_migration_threshold
 
 - _Type:_ `string`
 - _Default:_ `1`
 
-NetWeaver ASCS instance migration-threshold setting attribute.<br>
-Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1`). Default setup is ENSA2.<br>
+NetWeaver Central Services (ASCS or SCS) instance migration-threshold setting attribute.<br>
+Only used for ENSA1 setups (see `sap_ha_pacemaker_cluster_nwas_cs_ensa1`). Default setup is ENSA2.<br>
 
 ### sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name
 
@@ -766,7 +766,7 @@ Name of the ERS SAPstartSrv resource for simple mount.<br>
 Instance number of the NetWeaver ABAP PAS instance.<br>
 Mandatory for NetWeaver PAS cluster configuration.<br>
 
-### sap_ha_pacemaker_cluster_nwas_abap_sid
+### sap_ha_pacemaker_cluster_nwas_sid
 
 - _Type:_ `string`
 
@@ -1116,7 +1116,7 @@ Mandatory for NetWeaver AAS cluster setup.<br>
 
 Name of the SAPInstance resource for NetWeaver AAS.<br>
 
-### sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address
+### sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address
 
 - _Type:_ `string`
 
@@ -1130,14 +1130,14 @@ Mandatory for NetWeaver ASCS/ERS cluster setup.<br>
 
 Name of the NetWeaver ASCS resource group.<br>
 
-### sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name
+### sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_name
 
 - _Type:_ `string`
 - _Default:_ `rsc_vip_<SID>_ASCS<ASCS-instance-number>`
 
 Name of the SAPInstance resource for NetWeaver ASCS.<br>
 
-### sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address
+### sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address
 
 - _Type:_ `string`
 
@@ -1151,7 +1151,7 @@ Mandatory for NetWeaver ASCS/ERS cluster setup.<br>
 
 Name of the NetWeaver ERS resource group.<br>
 
-### sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name
+### sap_ha_pacemaker_cluster_vip_nwas_ers_resource_name
 
 - _Type:_ `string`
 - _Default:_ `rsc_vip_<SID>_ERS<ERS-instance-number>`

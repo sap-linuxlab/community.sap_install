@@ -15,17 +15,31 @@
           sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name:
             sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port
         } }}"
+
       nwas_abap_ascs_ers: "{{
         {
-          sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name:
-            sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address | regex_replace('/.*', ''),
-          sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name:
-            sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address | regex_replace('/.*', ''),
-          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_resource_name:
-            sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_port,
-          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_resource_name:
-            sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port
+          sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_name:
+            sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address | regex_replace('/.*', ''),
+          sap_ha_pacemaker_cluster_vip_nwas_ers_resource_name:
+            sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address | regex_replace('/.*', ''),
+          sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_port,
+          sap_ha_pacemaker_cluster_healthcheck_nwas_ers_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_nwas_ers_port
         } }}"
+
+      nwas_java_scs_ers: "{{
+        {
+          sap_ha_pacemaker_cluster_vip_nwas_scs_resource_name:
+            sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address | regex_replace('/.*', ''),
+          sap_ha_pacemaker_cluster_vip_nwas_ers_resource_name:
+            sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address | regex_replace('/.*', ''),
+          sap_ha_pacemaker_cluster_healthcheck_nwas_scs_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_nwas_scs_port,
+          sap_ha_pacemaker_cluster_healthcheck_nwas_ers_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_nwas_ers_port
+        } }}"
+
       nwas_abap_pas_aas: "{{
         {
           sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name:
@@ -63,7 +77,7 @@
 - name: "SAP HA Prepare Pacemaker - Combine VIP parameters"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_vip_resource_definition:
-      "{{ __sap_ha_pacemaker_cluster_vip_resource_definition | default({})
+      "{{ __sap_ha_pacemaker_cluster_vip_resource_definition | d({})
         | combine(__sap_ha_pacemaker_cluster_all_vip_fact[vip_item])
         | dict2items | rejectattr('value', 'equalto', '') | list | items2dict }}"
   loop: "{{ sap_ha_pacemaker_cluster_host_type }}"

@@ -48,8 +48,8 @@
 - name: "SAP HA Prepare Pacemaker - Include variable construction for VIP resources"
   ansible.builtin.import_tasks: include_construct_vip_resources.yml
 
-# Include construction task files for different scenarios.
 
+# SAP HANA Scenarios
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP HANA common"
   ansible.builtin.include_tasks:
     file: construct_vars_hana_common.yml
@@ -70,23 +70,31 @@
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
     - __sap_ha_pacemaker_cluster_saphanasr_angi_available
 
+
+# Common variables for Netweaver scenarios
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver common"
   ansible.builtin.include_tasks:
-    file: construct_vars_nwas_common.yml
+    file: "{{ item }}"
+  loop:
+    - construct_vars_nwas_common.yml
+    - gather_vars_nwas.yml
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap') | length > 0
+      or sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java') | length > 0
 
-- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ABAP ASCS/ERS"
+
+# SAP ASCS/ERS Scenarios
+- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ASCS/ERS"
   ansible.builtin.include_tasks:
     file: construct_vars_nwas_abap_ascs_ers.yml
   loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
   loop_control:
     loop_var: nwas_build_item
   when:
-    - "'nwas_abap_ascs' in nwas_build_item"
-    - not sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
+    - "'nwas_abap_ascs_ers' in nwas_build_item"
+    - not sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
 
-- name: SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ABAP ASCS/ERS
+- name: SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ASCS/ERS Simple Mount
     Simple Mount # noqa name[template]
   ansible.builtin.include_tasks:
     file: construct_vars_nwas_abap_ascs_ers_simple_mount.yml
@@ -94,11 +102,34 @@
   loop_control:
     loop_var: nwas_build_item
   when:
-    - "'nwas_abap_ascs' in nwas_build_item"
-    - sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount
-    # TODO: Remove rule when SAPStartSrv resource agents are available on Red Hat
-    - ansible_os_family == 'Suse'
+    - "'nwas_abap_ascs_ers' in nwas_build_item"
+    - sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
 
+
+# SAP SCS/ERS Scenarios
+- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver SCS/ERS"
+  ansible.builtin.include_tasks:
+    file: construct_vars_nwas_java_scs_ers.yml
+  loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
+  loop_control:
+    loop_var: nwas_build_item
+  when:
+    - "'nwas_java_scs_ers' in nwas_build_item"
+    - not sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
+
+- name: SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver SCS/ERS Simple Mount
+    Simple Mount # noqa name[template]
+  ansible.builtin.include_tasks:
+    file: construct_vars_nwas_java_scs_ers_simple_mount.yml
+  loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
+  loop_control:
+    loop_var: nwas_build_item
+  when:
+    - "'nwas_java_scs_ers' in nwas_build_item"
+    - sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
+
+
+# SAP PAS/AAS Scenarios
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ABAP PAS/AAS"
   ansible.builtin.include_tasks:
     file: construct_vars_nwas_abap_pas_aas.yml
@@ -108,14 +139,6 @@
   when:
     - "'nwas_abap_pas' in nwas_build_item"
 
-- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver Java SCS/ERS"
-  ansible.builtin.include_tasks:
-    file: construct_vars_nwas_java_scs_ers.yml
-  loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
-  loop_control:
-    loop_var: nwas_build_item
-  when:
-    - "'nwas_java' in nwas_build_item"
 
 # Include constraints construction after the related resources were constructed.
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP Hana VIP constraints"
@@ -182,6 +205,16 @@
         group: root
         owner: root
         mode: "0600"
+
+
+    # TODO REMOVE
+    - name: Debug __sap_ha_pacemaker_cluster_resource_primitives
+      ansible.builtin.debug:
+        var: __sap_ha_pacemaker_cluster_resource_primitives
+    - name: Pause
+      ansible.builtin.pause:
+        minutes: 1200
+
 
     # Cluster installation and configuration through the dedicated
     # linux system role 'ha_cluster'
