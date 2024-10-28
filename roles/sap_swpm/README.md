@@ -414,7 +414,9 @@ Define DDIC user password in client 000 for new install, or existing for restore
 - _Type:_ `string`
 
 Define virtual hostname when installing High Available instances (e.g. SAP ASCS/ERS cluster).
-
+The role attempts to resolve `sap_swpm_virtual_hostname` on the managed node, using DNS and /etc/hosts, and will fail
+if this hostname resolution fails. The role will also fail if the IPv4 address for `sap_swpm_virtual_hostname` is
+not part of the IPv4 addresses of the managed node.
 
 ### Variables specific to SAP HANA Database Installation
 
