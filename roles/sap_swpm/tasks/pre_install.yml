@@ -119,6 +119,23 @@
     sap_swpm_inifile_parameters_dict: "{{ sap_swpm_inifile_parameters_dict | d({}) }}"
   tags: always
 
+# Assert correct hostname and IP resolution of virtual hostname and IP if:
+# - sapinst is requested to be run, and
+# - /etc/hosts file is requested to be updated, and
+# - sap_swpm_virtual_hostname has been defined
+
+- name: SAP SWPM Pre Install - Assert hostname resolution for HA
+  ansible.builtin.include_tasks:
+    file: pre_install/assert_hostname_resolution_for_ha.yml
+    apply:
+      tags: sap_swpm_update_etchosts
+  when:
+    - sap_swpm_run_sapinst
+    - sap_swpm_update_etchosts
+    - sap_swpm_virtual_hostname | type_debug != 'NoneType'
+    - sap_swpm_virtual_hostname | length > 0
+  tags: sap_swpm_update_etchosts
+
 ################
 # Run Preinstallation Steps Based on Run Mode
 ################
@@ -146,18 +163,6 @@
   tags: sap_swpm_setup_firewall
 
 # /etc/hosts
-
-- name: SAP SWPM Pre Install - Assert hostname resolution for HA
-  ansible.builtin.include_tasks:
-    file: pre_install/assert_hostname_resolution_for_ha.yml
-    apply:
-      tags: sap_swpm_update_etchosts
-  when:
-    - sap_swpm_run_sapinst
-    - sap_swpm_update_etchosts
-    - sap_swpm_virtual_hostname | type_debug != 'NoneType'
-    - sap_swpm_virtual_hostname | length > 0
-  tags: sap_swpm_update_etchosts
 
 - name: SAP SWPM Pre Install - Update /etc/hosts
   ansible.builtin.include_tasks:
