@@ -9,12 +9,12 @@
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapstartsrv] }}"
   vars:
     __resource_sapstartsrv:
-      id: "{{ sap_ha_pacemaker_cluster_nwas_scs_sapstartsrv_resource_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_nwas_scs_sapstartsrv_resource_name }}"
       agent: "{{ __sap_ha_pacemaker_cluster_resource_agents.sapstartsrv }}"
       instance_attrs:
         - attrs:
             - name: InstanceName
-              value: "{{ sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name }}"
+              value: "{{ __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name }}"
   when:
     - __resource_sapstartsrv.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
 
@@ -24,12 +24,12 @@
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapstartsrv] }}"
   vars:
     __resource_sapstartsrv:
-      id: "{{ sap_ha_pacemaker_cluster_nwas_ers_sapstartsrv_resource_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapstartsrv_resource_name }}"
       agent: "{{ __sap_ha_pacemaker_cluster_resource_agents.sapstartsrv }}"
       instance_attrs:
         - attrs:
             - name: InstanceName
-              value: "{{ sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name }}"
+              value: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name }}"
   when:
     - __resource_sapstartsrv.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
 
@@ -40,22 +40,22 @@
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapinstance] }}"
   vars:
     __resource_sapinstance:
-      id: "{{ sap_ha_pacemaker_cluster_nwas_scs_sapinstance_resource_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_resource_name }}"
       agent: "ocf:heartbeat:SAPInstance"
       instance_attrs:
         - attrs:
             - name: InstanceName
-              value: "{{ sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name }}"
+              value: "{{ __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name }}"
             - name: START_PROFILE
-              value: "{{ sap_ha_pacemaker_cluster_nwas_scs_sapinstance_start_profile_string }}"
+              value: "{{ __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_start_profile_string }}"
             - name: AUTOMATIC_RECOVER
-              value: "{{ sap_ha_pacemaker_cluster_nwas_cs_sapinstance_automatic_recover_bool | string }}"
+              value: "{{ __sap_ha_pacemaker_cluster_nwas_cs_sapinstance_automatic_recover_bool | string }}"
             - name: MINIMAL_PROBE
               value: true
       meta_attrs:
         - attrs:
             - name: resource-stickiness
-              value: "{{ sap_ha_pacemaker_cluster_nwas_cs_sapinstance_resource_stickiness }}"
+              value: "{{ __sap_ha_pacemaker_cluster_nwas_cs_sapinstance_resource_stickiness }}"
       operations:
         # TODO: Add values for start and stop when they are published.
         - action: monitor
@@ -76,16 +76,16 @@
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapinstance_ers] }}"
   vars:
     __resource_sapinstance_ers:
-      id: "{{ sap_ha_pacemaker_cluster_nwas_ers_sapinstance_resource_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_resource_name }}"
       agent: "ocf:heartbeat:SAPInstance"
       instance_attrs:
         - attrs:
             - name: InstanceName
-              value: "{{ sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name }}"
+              value: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name }}"
             - name: START_PROFILE
-              value: "{{ sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string }}"
+              value: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string }}"
             - name: AUTOMATIC_RECOVER
-              value: "{{ sap_ha_pacemaker_cluster_nwas_ers_sapinstance_automatic_recover_bool | string }}"
+              value: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_automatic_recover_bool | string }}"
             - name: IS_ERS
               value: true
             - name: MINIMAL_PROBE
@@ -114,14 +114,14 @@
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__scs_group] }}"
   vars:
     __scs_group:
-      id: "{{ sap_ha_pacemaker_cluster_vip_nwas_scs_resource_group_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_scs_resource_group_name }}"
       resource_ids: |
         {% set resource_ids_list = [] %}
         {%- for resource in
-          sap_ha_pacemaker_cluster_vip_nwas_scs_resource_name,
-          sap_ha_pacemaker_cluster_nwas_scs_sapstartsrv_resource_name,
-          sap_ha_pacemaker_cluster_nwas_scs_sapinstance_resource_name,
-          sap_ha_pacemaker_cluster_healthcheck_nwas_scs_resource_name %}
+          __sap_ha_pacemaker_cluster_vip_nwas_scs_resource_name,
+          __sap_ha_pacemaker_cluster_nwas_scs_sapstartsrv_resource_name,
+          __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_resource_name,
+          __sap_ha_pacemaker_cluster_healthcheck_nwas_scs_resource_name %}
           {%- if resource | length > 0
             and resource in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')) %}
             {%- set ids = resource_ids_list.append(resource) %}
@@ -145,14 +145,14 @@
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__ers_group] }}"
   vars:
     __ers_group:
-      id: "{{ sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name }}"
       resource_ids: |
         {% set resource_ids_list = [] %}
         {%- for resource in
-          sap_ha_pacemaker_cluster_vip_nwas_ers_resource_name,
-          sap_ha_pacemaker_cluster_nwas_ers_sapstartsrv_resource_name,
-          sap_ha_pacemaker_cluster_nwas_ers_sapinstance_resource_name,
-          sap_ha_pacemaker_cluster_healthcheck_nwas_ers_resource_name %}
+          __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_name,
+          __sap_ha_pacemaker_cluster_nwas_ers_sapstartsrv_resource_name,
+          __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_resource_name,
+          __sap_ha_pacemaker_cluster_healthcheck_nwas_ers_resource_name %}
           {%- if resource | length > 0
             and resource in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')) %}
             {%- set ids = resource_ids_list.append(resource) %}
@@ -177,12 +177,12 @@
     __sap_ha_pacemaker_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation + [__constraint_colo_ers] }}"
   vars:
     __constraint_colo_ers:
-      id: "{{ sap_ha_pacemaker_cluster_nwas_colocation_scs_no_ers_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_nwas_colocation_scs_no_ers_name }}"
       resource_leader:
-        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_scs_resource_group_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_scs_resource_group_name }}"
         role: started
       resource_follower:
-        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name }}"
       options:
         - name: score
           value: -5000
@@ -195,12 +195,12 @@
     __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_scs_ers] }}"
   vars:
     __constraint_order_scs_ers:
-      id: "{{ sap_ha_pacemaker_cluster_nwas_order_scs_first_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_nwas_order_scs_first_name }}"
       resource_first:
-        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_scs_resource_group_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_scs_resource_group_name }}"
         role: started
       resource_then:
-        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name }}"
       options:
         - name: symmetrical
           value: "false"

@@ -4,8 +4,8 @@
 - name: "SAP HA Prepare Pacemaker - (SAP HANA) Validate SAP System ID"
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_hana_sid | length == 3
-      - sap_ha_pacemaker_cluster_hana_sid not in __sap_ha_pacemaker_cluster_sid_prohibited
+      - __sap_ha_pacemaker_cluster_hana_sid | length == 3
+      - __sap_ha_pacemaker_cluster_hana_sid not in __sap_ha_pacemaker_cluster_sid_prohibited
     fail_msg: |
       Host type = {{ sap_ha_pacemaker_cluster_host_type }}
       Requires:'sap_ha_pacemaker_cluster_hana_sid' to be defined as 3 capital letters!
@@ -15,15 +15,8 @@
 - name: "SAP HA Prepare Pacemaker - (SAP HANA) Validate SAP Instance Number"
   ansible.builtin.assert:
     that:
-      - (
-          sap_ha_pacemaker_cluster_hana_instance_nr | type_debug != 'int'
-          and sap_ha_pacemaker_cluster_hana_instance_nr | length == 2
-        )
-        or
-        (
-          sap_ha_pacemaker_cluster_hana_instance_nr | type_debug == 'int'
-          and sap_ha_pacemaker_cluster_hana_instance_nr is regex("^[0-9][0-9]$")
-        )
+      - (__sap_ha_pacemaker_cluster_hana_instance_nr | string) | length == 2
+      - (__sap_ha_pacemaker_cluster_hana_instance_nr | string) is match('^[0-9]{2}$')
     fail_msg: |
 
       Host type = {{ sap_ha_pacemaker_cluster_host_type }}
@@ -35,52 +28,17 @@
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
 
 
-# - name: "SAP HA Prepare Pacemaker - (SAP NetWeaver) Validate SAP System ID"
-#   ansible.builtin.assert:
-#     that:
-#       - sap_ha_pacemaker_cluster_nwas_sid | length == 3
-#       - sap_ha_pacemaker_cluster_nwas_sid not in __sap_ha_pacemaker_cluster_sid_prohibited
-#     fail_msg: |
-#       Host type = {{ sap_ha_pacemaker_cluster_host_type }}
-#       Requires 'sap_ha_pacemaker_cluster_nwas_sid' to be defined as 3 capital letters!
-#   when:
-#     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas') | length > 0
-
-# TODO: Remove backwards compatibility to nwas_abap_ascs
 - name: "SAP HA Prepare Pacemaker - (SAP NetWeaver) Validate SAP System ID"
   ansible.builtin.assert:
     that:
-      - __nwas_sid | length == 3
-      - __nwas_sid not in __sap_ha_pacemaker_cluster_sid_prohibited
+      - __sap_ha_pacemaker_cluster_nwas_sid | length == 3
+      - __sap_ha_pacemaker_cluster_nwas_sid not in __sap_ha_pacemaker_cluster_sid_prohibited
     fail_msg: |
       Host type = {{ sap_ha_pacemaker_cluster_host_type }}
-      Current value: {{ __nwas_sid }}
+      Current value: {{ __sap_ha_pacemaker_cluster_nwas_sid }}
       Requires 'sap_ha_pacemaker_cluster_nwas_sid' to be defined as 3 capital letters!
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas') | length > 0
-  vars:
-    __nwas_sid: "{{ sap_ha_pacemaker_cluster_nwas_abap_sid | d(sap_swpm_sid) | d('')
-      if sap_ha_pacemaker_cluster_nwas_sid | length == 0 else sap_ha_pacemaker_cluster_nwas_sid }}"
-
-
-# TODO: Remove backwards compatibility to nwas_abap_ascs
-- name: "SAP HA Prepare Pacemaker - (SAP NetWeaver) Backwards compatibility: Instance Number ASCS/ERS"
-  when:
-    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
-  ansible.builtin.set_fact:
-    sap_ha_pacemaker_cluster_nwas_ascs_instance_nr:
-      "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr | d(sap_swpm_ascs_instance_nr) | d('')
-      if sap_ha_pacemaker_cluster_nwas_ascs_instance_nr | length == 0
-        and sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr is defined
-        and sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr | length > 0
-      else sap_ha_pacemaker_cluster_nwas_ascs_instance_nr }}"
-
-    sap_ha_pacemaker_cluster_nwas_ers_instance_nr:
-      "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr | d(sap_swpm_ers_instance_nr) | d('')
-      if sap_ha_pacemaker_cluster_nwas_ers_instance_nr | length == 0
-        and sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr is defined
-        and sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr | length > 0
-      else sap_ha_pacemaker_cluster_nwas_ers_instance_nr }}"
 
 
 # Validate SAP Instance Number
@@ -98,15 +56,15 @@
       Add quotes if the number starts with a 0!
 
       Required:
-      {% if sap_ha_pacemaker_cluster_host_type == 'nwas_abap_ascs_ers' %}
+      {% if sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0 %}
       - sap_ha_pacemaker_cluster_nwas_ascs_instance_nr
       - sap_ha_pacemaker_cluster_nwas_ers_instance_nr
 
-      {% elif sap_ha_pacemaker_cluster_host_type == 'nwas_java_scs_ers' %}
+      {% elif sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java_scs_ers') | length > 0 %}
       - sap_ha_pacemaker_cluster_nwas_scs_instance_nr
       - sap_ha_pacemaker_cluster_nwas_ers_instance_nr
 
-      {% elif sap_ha_pacemaker_cluster_host_type == 'nwas_abap_pas_aas' %}
+      {% elif sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_pas_aas') | length > 0 %}
       - sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr
       - sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr
 
@@ -115,11 +73,11 @@
       {% endif %}
 
   loop:
-    - sap_ha_pacemaker_cluster_nwas_ascs_instance_nr
-    - sap_ha_pacemaker_cluster_nwas_scs_instance_nr
-    - sap_ha_pacemaker_cluster_nwas_ers_instance_nr
-    - sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr
-    - sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr
+    - __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr
+    - __sap_ha_pacemaker_cluster_nwas_scs_instance_nr
+    - __sap_ha_pacemaker_cluster_nwas_ers_instance_nr
+    # - __sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr
+    # - __sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr
   loop_control:
     loop_var: item
   vars:
@@ -141,34 +99,14 @@
       - sap_ha_pacemaker_cluster_storage_definition
 
 
-# TODO: Remove backwards compatibility to nwas_abap_ascs
-- name: "SAP HA Prepare Pacemaker - (SAP NetWeaver) Backwards compatibility: Instance Names"
-  when:
-    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
-      or sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java_scs_ers') | length > 0
-  ansible.builtin.set_fact:
-    sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name:
-      "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name | d('')
-      if sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name | length == 0
-        and sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name is defined
-        and sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name | length > 0
-      else sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name }}"
-
-    sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name:
-      "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name | d('')
-      if sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name | length == 0
-        and sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name is defined
-        and sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name | length > 0
-      else sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name }}"
-
 # Ensure that SAP profile names are defined
 - name: "SAP HA Prepare Pacemaker - (SAP NetWeaver ASCS) Validate SAP instance name"
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name is defined
-      - sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name | length > 0
+      - __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name is defined
+      - __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name | length > 0
     fail_msg: |
       Host type = {{ sap_ha_pacemaker_cluster_host_type }}
       ASCS Instance Name is mandatory: sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name
@@ -178,20 +116,20 @@
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java_scs_ers') | length > 0
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name is defined
-      - sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name | length > 0
+      - __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name is defined
+      - __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name | length > 0
     fail_msg: |
       Host type = {{ sap_ha_pacemaker_cluster_host_type }}
       SCS Instance Name is mandatory: sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name
 
 - name: "SAP HA Prepare Pacemaker - (SAP NetWeaver ERS) Validate SAP instance name"
   when:
-    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap') | length > 0
-      or sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java') | length > 0
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
+      or sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java_scs_ers') | length > 0
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name is defined
-      - sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name | length > 0
+      - __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name is defined
+      - __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name | length > 0
     fail_msg: |
       Host type = {{ sap_ha_pacemaker_cluster_host_type }}
       ERS Instance Name is mandatory: sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name
@@ -203,7 +141,7 @@
     that:
       - sap_ha_pacemaker_cluster_vip_client_interface is defined
       - sap_ha_pacemaker_cluster_vip_client_interface | length > 0
-    fail_msg:
+    fail_msg: |
       Multiple interfaces are found on the system.
 
       {{ ansible_interfaces | to_nice_yaml }}
@@ -224,54 +162,62 @@
 - name: "SAP HA Prepare Pacemaker - (HANA primary) Verify that the VIP is defined"
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_vip_hana_primary_ip_address is defined
-      - sap_ha_pacemaker_cluster_vip_hana_primary_ip_address | length > 0
-    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_hana_primary_ip_address' is not defined."
+      - __sap_ha_pacemaker_cluster_vip_hana_primary_ip_address is defined
+      - __sap_ha_pacemaker_cluster_vip_hana_primary_ip_address | length > 0
+    fail_msg: |
+      Host type = {{ sap_ha_pacemaker_cluster_host_type }}
+      Required input 'sap_ha_pacemaker_cluster_vip_hana_primary_ip_address' is not defined or empty.
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - (NetWeaver ASCS) Verify that the VIP is defined"
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address is defined
-      - sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address | length > 0
-    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address' is not defined."
+      - __sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address is defined
+      - __sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address | length > 0
+    fail_msg: |
+      Host type = {{ sap_ha_pacemaker_cluster_host_type }}
+      Required input 'sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address' is not defined or empty.
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - (NetWeaver SCS) Verify that the VIP is defined"
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address is defined
-      - sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address | length > 0
-    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address' is not defined."
+      - __sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address is defined
+      - __sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address | length > 0
+    fail_msg: |
+      Host type = {{ sap_ha_pacemaker_cluster_host_type }}
+      Required input 'sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address' is not defined or empty.
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java_scs_ers') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - (NetWeaver ERS) Verify that the VIP is defined"
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address is defined
-      - sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address | length > 0
-    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address' is not defined."
+      - __sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address is defined
+      - __sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address | length > 0
+    fail_msg: |
+      Host type = {{ sap_ha_pacemaker_cluster_host_type }}
+      Required input 'sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address' is not defined or empty.
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
       or sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java_scs_ers') | length > 0
 
-# - name: "SAP HA Prepare Pacemaker - (NetWeaver PAS) Verify that the VIP is defined"
-#   ansible.builtin.assert:
-#     that:
-#       - sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address is defined
-#       - sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address | length > 0
-#     fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address' is not defined."
-#   when:
-#     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_pas') | length > 0
+- name: "SAP HA Prepare Pacemaker - (NetWeaver PAS) Verify that the VIP is defined"
+  ansible.builtin.assert:
+    that:
+      - __sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address is defined
+      - __sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address | length > 0
+    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address' is not defined."
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_pas') | length > 0
 
-# - name: "SAP HA Prepare Pacemaker - (NetWeaver AAS) Verify that the ERS VIP is defined"
-#   ansible.builtin.assert:
-#     that:
-#       - sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address is defined
-#       - sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address | length > 0
-#     fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address' is not defined."
-#   when:
-#     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_pas_aas') | length > 0
+- name: "SAP HA Prepare Pacemaker - (NetWeaver AAS) Verify that the ERS VIP is defined"
+  ansible.builtin.assert:
+    that:
+      - __sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address is defined
+      - __sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address | length > 0
+    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address' is not defined."
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_pas_aas') | length > 0

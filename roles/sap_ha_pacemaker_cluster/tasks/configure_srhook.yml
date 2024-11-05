@@ -2,13 +2,13 @@
 ---
 - name: "SAP HA Pacemaker srHook - Check presence of global.ini"
   ansible.builtin.stat:
-    path: "{{ sap_ha_pacemaker_cluster_hana_global_ini_path }}"
+    path: "{{ __sap_ha_pacemaker_cluster_hana_global_ini_path }}"
   register: __sap_ha_pacemaker_cluster_global_ini
   failed_when: not __sap_ha_pacemaker_cluster_global_ini.stat.exists
 
 - name: "SAP HA Pacemaker srHook - Get contents of global.ini"
   ansible.builtin.command:
-    cmd: cat "{{ sap_ha_pacemaker_cluster_hana_global_ini_path }}"
+    cmd: cat "{{ __sap_ha_pacemaker_cluster_hana_global_ini_path }}"
   register: __sap_ha_pacemaker_cluster_global_ini_contents
   changed_when: false
 
@@ -42,7 +42,7 @@
 
 - name: "SAP HA Pacemaker srHook - Update srHook providers in global.ini"
   ansible.builtin.blockinfile:
-    path: "{{ sap_ha_pacemaker_cluster_hana_global_ini_path }}"
+    path: "{{ __sap_ha_pacemaker_cluster_hana_global_ini_path }}"
     marker: ""
     block: |
       [ha_dr_provider_{{ srhook_item.provider }}]
@@ -61,7 +61,7 @@
 # Separate task to create [trace] block so hooks can be appended to it
 - name: "SAP HA Pacemaker srHook - Add [trace] block in global.ini"
   ansible.builtin.blockinfile:
-    path: "{{ sap_ha_pacemaker_cluster_hana_global_ini_path }}"
+    path: "{{ __sap_ha_pacemaker_cluster_hana_global_ini_path }}"
     marker: ""
     block: |
       [trace]
@@ -71,7 +71,7 @@
 # Append hooks to [trace] block if they are not present already
 - name: "SAP HA Pacemaker srHook - Update srHooks trace in global.ini"
   ansible.builtin.lineinfile:
-    path: "{{ sap_ha_pacemaker_cluster_hana_global_ini_path }}"
+    path: "{{ __sap_ha_pacemaker_cluster_hana_global_ini_path }}"
     insertafter: "^\\[trace\\]"
     line: "ha_dr_{{ srhook_item.provider }} = info"
   loop: "{{ __sap_ha_pacemaker_cluster_hana_hooks }}"

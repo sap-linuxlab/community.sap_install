@@ -7,9 +7,9 @@
     __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_vip] }}"
   vars:
     __constraint_order_vip:
-      id: "{{ sap_ha_pacemaker_cluster_hana_order_hana_vip_primary_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_hana_order_hana_vip_primary_name }}"
       resource_first:
-        id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
         action: promote
       resource_then:
         id: "{{ __res_or_grp }}"
@@ -23,14 +23,14 @@
     __res_or_grp: |-
       {% if sap_ha_pacemaker_cluster_vip_group_prefix | length > 0 and
         __sap_ha_pacemaker_cluster_resource_groups | map(attribute='id')
-        | select('match', sap_ha_pacemaker_cluster_vip_group_prefix + sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
-        {{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}
+        | select('match', sap_ha_pacemaker_cluster_vip_group_prefix + __sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
+        {{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ __sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}
       {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
-        | select('match', sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
-        {{ sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}
+        | select('match', __sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
+        {{ __sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}
       {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
-        | select('match', sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name) -%}
-        {{ sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name }}
+        | select('match', __sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name) -%}
+        {{ __sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name }}
       {%- else -%}
         none_found
       {%- endif -%}
@@ -46,9 +46,9 @@
     __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_vip] }}"
   vars:
     __constraint_order_vip:
-      id: "{{ sap_ha_pacemaker_cluster_hana_order_hana_vip_secondary_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_hana_order_hana_vip_secondary_name }}"
       resource_first:
-        id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
         action: start
       resource_then:
         id: "{{ __res_or_grp }}"
@@ -62,14 +62,14 @@
     __res_or_grp: |-
       {% if sap_ha_pacemaker_cluster_vip_group_prefix | length > 0 and
         __sap_ha_pacemaker_cluster_resource_groups | map(attribute='id')
-        | select('match', sap_ha_pacemaker_cluster_vip_group_prefix + sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name) -%}
-        {{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}
+        | select('match', sap_ha_pacemaker_cluster_vip_group_prefix + __sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name) -%}
+        {{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ __sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}
       {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
-        | select('match', sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name) -%}
-        {{ sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}
+        | select('match', __sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name) -%}
+        {{ __sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}
       {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
-        | select('match', sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name) -%}
-        {{ sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name }}
+        | select('match', __sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name) -%}
+        {{ __sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name }}
       {%- else -%}
         none_found
       {%- endif -%}
@@ -86,11 +86,12 @@
     __sap_ha_pacemaker_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation + [__constraint_colo_vip] }}"
   vars:
     __constraint_colo_vip:
-      id: "{{ sap_ha_pacemaker_cluster_hana_colocation_hana_vip_primary_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_hana_colocation_hana_vip_primary_name }}"
       resource_leader:
         # SAPHana is replaced by SAP HANA Controller for SAPHanaSR-angi
-        id: "{{ sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name if __sap_ha_pacemaker_cluster_saphanasr_angi_available
-           else sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name
+          if __sap_ha_pacemaker_cluster_saphanasr_angi_available
+           else __sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
         # SUSE SAPHanaSR is using Master Slave clone using Master/Slave roles
         role: "{{ 'master' if ansible_os_family == 'Suse' and not __sap_ha_pacemaker_cluster_saphanasr_angi_available
          else 'promoted' }}"
@@ -110,14 +111,14 @@
     __res_or_grp: |-
       {% if sap_ha_pacemaker_cluster_vip_group_prefix | length > 0 and
         __sap_ha_pacemaker_cluster_resource_groups | map(attribute='id')
-        | select('match', sap_ha_pacemaker_cluster_vip_group_prefix + sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
-        {{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}
+        | select('match', sap_ha_pacemaker_cluster_vip_group_prefix + __sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
+        {{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ __sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}
       {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
-        | select('match', sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
-        {{ sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}
+        | select('match', __sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
+        {{ __sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}
       {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
-        | select('match', sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name) -%}
-        {{ sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name }}
+        | select('match', __sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name) -%}
+        {{ __sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name }}
       {%- else -%}
         none_found
       {%- endif -%}
@@ -127,7 +128,7 @@
       {% if __sap_ha_pacemaker_cluster_resource_groups | length > 0 -%}
         {% for group in __sap_ha_pacemaker_cluster_resource_groups -%}
           {% if group.id == (sap_ha_pacemaker_cluster_vip_group_prefix
-            + sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
+            + __sap_ha_pacemaker_cluster_vip_hana_primary_resource_name) -%}
             {{ (group.resource_ids | length * 1000) + sap_ha_pacemaker_cluster_constraint_colo_base_score }}
           {%- endif %}
         {%- endfor %}
@@ -146,11 +147,12 @@
     __sap_ha_pacemaker_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation + [__constraint_colo_vip] }}"
   vars:
     __constraint_colo_vip:
-      id: "{{ sap_ha_pacemaker_cluster_hana_colocation_hana_vip_secondary_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_hana_colocation_hana_vip_secondary_name }}"
       resource_leader:
         # SAPHana is replaced by SAP HANA Controller for SAPHanaSR-angi
-        id: "{{ sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name if __sap_ha_pacemaker_cluster_saphanasr_angi_available
-          else sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name
+          if __sap_ha_pacemaker_cluster_saphanasr_angi_available
+          else __sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
         # SUSE SAPHanaSR is using Master Slave clone using Master/Slave roles
         role: "{{ 'slave' if ansible_os_family == 'Suse' and not __sap_ha_pacemaker_cluster_saphanasr_angi_available
          else 'unpromoted' }}"
@@ -169,14 +171,14 @@
     __res_or_grp: |-
       {% if sap_ha_pacemaker_cluster_vip_group_prefix | length > 0 and
         __sap_ha_pacemaker_cluster_resource_groups | map(attribute='id')
-        | select('match', sap_ha_pacemaker_cluster_vip_group_prefix + sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name) -%}
-        {{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}
+        | select('match', sap_ha_pacemaker_cluster_vip_group_prefix + __sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name) -%}
+        {{ sap_ha_pacemaker_cluster_vip_group_prefix }}{{ __sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}
       {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
-        | select('match', sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name) -%}
-        {{ sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}
+        | select('match', __sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name) -%}
+        {{ __sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}
       {%- elif __sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')
-        | select('match', sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name) -%}
-        {{ sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name }}
+        | select('match', __sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name) -%}
+        {{ __sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name }}
       {%- else -%}
         none_found
       {%- endif -%}
@@ -186,7 +188,7 @@
       {% if __sap_ha_pacemaker_cluster_resource_groups | length > 0 -%}
         {% for group in __sap_ha_pacemaker_cluster_resource_groups -%}
           {% if group.id == (sap_ha_pacemaker_cluster_vip_group_prefix
-            + sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name) -%}
+            + __sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name) -%}
             {{ (group.resource_ids | length * 1000) + sap_ha_pacemaker_cluster_constraint_colo_base_score }}
           {%- endif %}
         {%- endfor %}
@@ -196,6 +198,6 @@
 
   when:
     - __constraint_colo_vip.resource_follower not in (__sap_ha_pacemaker_cluster_constraints_colocation | map(attribute='resource_follower'))
-    - sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address is defined
-    - sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address != ''
+    - __sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address is defined
+    - __sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address != ''
     - __res_or_grp != 'none_found'  # fallback skip if there was neither a group nor any VIP/HC resources found

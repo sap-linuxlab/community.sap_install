@@ -16,9 +16,6 @@
 # TODO: Build all resource/constraint configuration variables based on
 # simpler user input (think: drop-down options in a UI)
 
-- name: "SAP HA Prepare Pacemaker - Include parameter validation tasks"
-  ansible.builtin.import_tasks: validate_input_parameters.yml
-
 # Make sure that all parameters already set for 'ha_cluster' are also inherited.
 # Add to this file a task for EACH parameter which this SAP cluster role
 # supports.
@@ -31,6 +28,10 @@
 # Determine which SAP landscape we are going to configure in the cluster.
 - name: "SAP HA Prepare Pacemaker - Include tasks for SAP landscape calculation"
   ansible.builtin.import_tasks: ascertain_sap_landscape.yml
+
+# Validate input variables after processing in include_vars_ tasks.
+- name: "SAP HA Prepare Pacemaker - Include parameter validation tasks"
+  ansible.builtin.import_tasks: validate_input_parameters.yml
 
 # Determine if we are on a cloud platform.
 - name: "SAP HA Prepare Pacemaker - Include tasks for platform detection"
@@ -74,10 +75,7 @@
 # Common variables for Netweaver scenarios
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver common"
   ansible.builtin.include_tasks:
-    file: "{{ item }}"
-  loop:
-    - construct_vars_nwas_common.yml
-    - gather_vars_nwas.yml
+    file: construct_vars_nwas_common.yml
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap') | length > 0
       or sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java') | length > 0
@@ -92,7 +90,7 @@
     loop_var: nwas_build_item
   when:
     - "'nwas_abap_ascs_ers' in nwas_build_item"
-    - not sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
+    - not (sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount | bool)
 
 - name: SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver ASCS/ERS Simple Mount
     Simple Mount # noqa name[template]
@@ -103,7 +101,7 @@
     loop_var: nwas_build_item
   when:
     - "'nwas_abap_ascs_ers' in nwas_build_item"
-    - sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
+    - sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount | bool
 
 
 # SAP SCS/ERS Scenarios
@@ -115,7 +113,7 @@
     loop_var: nwas_build_item
   when:
     - "'nwas_java_scs_ers' in nwas_build_item"
-    - not sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
+    - not (sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount | bool)
 
 - name: SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver SCS/ERS Simple Mount
     Simple Mount # noqa name[template]
@@ -126,7 +124,7 @@
     loop_var: nwas_build_item
   when:
     - "'nwas_java_scs_ers' in nwas_build_item"
-    - sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
+    - sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount | bool
 
 
 # SAP PAS/AAS Scenarios
@@ -144,6 +142,8 @@
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP Hana VIP constraints"
   ansible.builtin.include_tasks:
     file: construct_vars_vip_constraints_hana.yml
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
 
 # All of the SAP HA role constructed parameters must be translated to
 # 'ha_cluster' Linux System Role parameters.
@@ -207,15 +207,6 @@
         mode: "0600"
 
 
-    # TODO REMOVE
-    - name: Debug __sap_ha_pacemaker_cluster_resource_primitives
-      ansible.builtin.debug:
-        var: __sap_ha_pacemaker_cluster_resource_primitives
-    - name: Pause
-      ansible.builtin.pause:
-        minutes: 1200
-
-
     # Cluster installation and configuration through the dedicated
     # linux system role 'ha_cluster'
     - name: "SAP HA Install Pacemaker - Include System Role 'ha_cluster'"
@@ -223,32 +214,6 @@
         name: "{{ sap_ha_pacemaker_cluster_system_roles_collection }}.ha_cluster"
       no_log: "{{ __sap_ha_pacemaker_cluster_no_log }}"  # some parameters contain secrets
 
-    # # Resource defaults settings were added to "ha_cluster" in Apr 2023 (GH version 1.9.0)
-    # # https://github.com/linux-system-roles/ha_cluster#ha_cluster_resource_defaults
-    # # Keeping separate for compatibility with older versions of the ha_cluster role.
-    # # TODO: Change resource defaults update to "ha_cluster" native syntax.
-    # - name: "SAP HA Install Pacemaker - Check resource defaults"
-    #   ansible.builtin.command:
-    #     cmd: |
-    #       {{ __sap_ha_pacemaker_cluster_command.resource_defaults_show }}
-    #   register: __sap_ha_pacemaker_cluster_check_resource_defaults
-    #   run_once: true
-    #   changed_when: false
-    #   check_mode: false
-
-    # - name: "SAP HA Install Pacemaker - Update resource default attributes"
-    #   when:
-    #     - item.key ~ '=' ~ item.value not in __sap_ha_pacemaker_cluster_check_resource_defaults.stdout
-    #     - __sap_ha_pacemaker_cluster_resource_defaults is defined
-    #     - __sap_ha_pacemaker_cluster_resource_defaults | length > 0
-    #   ansible.builtin.command:
-    #     cmd: |
-    #       {{ __sap_ha_pacemaker_cluster_command.resource_defaults_update }} {{ item.key }}={{ item.value }}
-    #   loop: "{{ __sap_ha_pacemaker_cluster_resource_defaults | dict2items }}"
-    #   loop_control:
-    #     label: "{{ item.key }}={{ item.value }}"
-    #   run_once: true
-    #   changed_when: true
 
     # Corosync post-inst
     - name: "SAP HA Install Pacemaker - Make sure corosync systemd directory exists"
@@ -291,23 +256,43 @@
         - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
       run_once: true
 
-    # Post steps for ACS ERS crmsh cluster to remove unsupported operations
+
+    # Post steps for ASCS/ERS crmsh cluster to remove unsupported operations
     - name: "SAP HA Install Pacemaker - Include NetWeaver ASCS/ERS post steps OS specific"
       ansible.builtin.include_tasks:
         file: "{{ ansible_facts['os_family'] }}/post_steps_nwas_abap_ascs_ers.yml"
       when:
-        - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap') | length > 0
+        - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
         - ansible_os_family == 'Suse'
       run_once: true
 
+    # Post steps for SCS/ERS crmsh cluster to remove unsupported operations
+    - name: "SAP HA Install Pacemaker - Include NetWeaver SCS/ERS post steps OS specific"
+      ansible.builtin.include_tasks:
+        file: "{{ ansible_facts['os_family'] }}/post_steps_nwas_java_scs_ers.yml"
+      when:
+        - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java_scs_ers') | length > 0
+        - ansible_os_family == 'Suse'
+      run_once: true
+
+
     - name: "SAP HA Install Pacemaker - Include NetWeaver ASCS/ERS post steps"
       ansible.builtin.include_tasks:
-        file: configure_nwas_ascs_ers_postinstallation.yml
+        file: configure_nwas_abap_ascs_ers_post_install.yml
         apply:
           tags: nwas_postinst
       tags: nwas_postinst
       when:
-        - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap') | length > 0
+        - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
+
+    - name: "SAP HA Install Pacemaker - Include NetWeaver SCS/ERS post steps"
+      ansible.builtin.include_tasks:
+        file: configure_nwas_java_scs_ers_post_install.yml
+        apply:
+          tags: nwas_postinst
+      tags: nwas_postinst
+      when:
+        - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java_scs_ers') | length > 0
 
 
 ### END OF BLOCK: prerequisite changes and cluster setup

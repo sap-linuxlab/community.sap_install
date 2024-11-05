@@ -9,7 +9,7 @@
   vars:
     __constraint_order_haproxy:
       resource_first:
-        id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
         action: promote
       resource_then:
         id: "{{ vip_list_item.key }}"
@@ -24,10 +24,10 @@
   vars:
     __constraint_colo_haproxy:
       resource_leader:
-        id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
         role: promoted
       resource_follower:
-        id: "{{ sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}"
       options:
         - name: score
           value: "{{ sap_ha_pacemaker_cluster_constraint_colo_base_score }}"
@@ -41,14 +41,14 @@
   vars:
     __constraint_colo_haproxy:
       resource_leader:
-        id: "{{ sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
         role: unpromoted
       resource_follower:
-        id: "{{ sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}"
       options:
         - name: score
           value: "{{ sap_ha_pacemaker_cluster_constraint_colo_base_score }}"
   when:
     - __constraint_colo_haproxy.resource_follower not in (__sap_ha_pacemaker_cluster_constraints_colocation | map(attribute='resource_follower'))
-    - sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address is defined
-    - sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address != ''
+    - __sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address is defined
+    - __sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address != ''

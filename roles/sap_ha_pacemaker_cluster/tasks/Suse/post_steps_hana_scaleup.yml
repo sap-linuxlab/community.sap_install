@@ -8,16 +8,16 @@
 
 - name: "SAP HA Install Pacemaker - SAPHana crm resource cleanup"
   ansible.builtin.command:
-    cmd: crm resource cleanup {{ sap_ha_pacemaker_cluster_hana_resource_name
+    cmd: crm resource cleanup {{ __sap_ha_pacemaker_cluster_hana_resource_name
      if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
-     else sap_ha_pacemaker_cluster_hanacontroller_resource_name }}
+     else __sap_ha_pacemaker_cluster_hanacontroller_resource_name }}
   changed_when: true
 
 - name: "SAP HA Install Pacemaker - SAPHana clone crm resource refresh"
   ansible.builtin.command:
-    cmd: crm resource refresh {{ sap_ha_pacemaker_cluster_hana_resource_clone_name
+    cmd: crm resource refresh {{ __sap_ha_pacemaker_cluster_hana_resource_clone_name
      if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
-     else sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }}
+     else __sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }}
   changed_when: true
 
 - name: "SAP HA Install Pacemaker - Wait for SAP HANA to become idle"
@@ -27,7 +27,7 @@
 
 - name: "SAP HA Install Pacemaker - SAPHana crm resource maintenance off"
   ansible.builtin.command:
-    cmd: crm resource maintenance {{ sap_ha_pacemaker_cluster_hana_resource_clone_name
+    cmd: crm resource maintenance {{ __sap_ha_pacemaker_cluster_hana_resource_clone_name
      if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
-     else sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }} off
+     else __sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }} off
   changed_when: true

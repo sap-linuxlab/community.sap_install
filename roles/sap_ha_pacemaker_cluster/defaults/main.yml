@@ -111,7 +111,7 @@ sap_ha_pacemaker_cluster_hana_prefer_site_takeover: true
 # SAP HANA - Resource IDs (names) as convenience parameters.
 sap_ha_pacemaker_cluster_hana_resource_name: ''             # Default: rsc_SAPHana_<SID>_HDB<Instance Number>
 sap_ha_pacemaker_cluster_hana_resource_clone_name: ''       # Default: cln_SAPHana_<SID>_HDB<Instance Number>
-sap_ha_pacemaker_cluster_hana_resource_clone_msl_name: ''   # (SUSE Specific) Default: msl_SAPHana_<SID>_HDB<Instance Number>
+sap_ha_pacemaker_cluster_hana_resource_clone_msl_name: ''   # Default: msl_SAPHana_<SID>_HDB<Instance Number>
 sap_ha_pacemaker_cluster_hanacontroller_resource_name: ''   # Default: rsc_SAPHanaCon_<SID>_HDB<Instance Number>
 sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name: ''  # Default: cln_SAPHanaCon_<SID>_HDB<Instance Number>
 sap_ha_pacemaker_cluster_hana_topology_resource_name: ''  # Default: rsc_SAPHanaTop_<SID>_HDB<Instance Number>
@@ -160,8 +160,7 @@ sap_ha_pacemaker_cluster_saphanasr_angi_detection: true
 
 # Default will be ENSA2. To configure HA resources for ENSA1,
 # set this parameter to 'true'.
-# TODO: Remove backwards compatibility to nwas_abap_ascs
-sap_ha_pacemaker_cluster_nwas_cs_ensa1: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1 | d(false) }}"
+sap_ha_pacemaker_cluster_nwas_cs_ensa1: false
 
 # Enable ENSA2 simple mount configuration
 sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount: true
@@ -214,11 +213,11 @@ sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address: ''
 sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name: '' # Default: rsc_vip_<SID>_AAS<AAS-instance-number>
 sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_resource_name: ''  # Default: rsc_vip_health_check_<SID>_AAS<AAS-instance-number>
 
-# sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_id: ''
-# sap_ha_pacemaker_cluster_healthcheck_nwas_scs_id: ''
-# sap_ha_pacemaker_cluster_healthcheck_nwas_ers_id: ''
-# sap_ha_pacemaker_cluster_healthcheck_nwas_pas_id: ''
-# sap_ha_pacemaker_cluster_healthcheck_nwas_aas_id: ''
+sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_id: ''
+sap_ha_pacemaker_cluster_healthcheck_nwas_scs_id: ''
+sap_ha_pacemaker_cluster_healthcheck_nwas_ers_id: ''
+sap_ha_pacemaker_cluster_healthcheck_nwas_pas_id: ''
+sap_ha_pacemaker_cluster_healthcheck_nwas_aas_id: ''
 
 # SAP NetWeaver common - Resource IDs (names) as convenience parameters
 # for the following filesystems:
@@ -245,8 +244,10 @@ sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed: false
 ################################################################################
 
 # TODO: Remove backwards compatibility to nwas_abap_ascs
-sap_ha_pacemaker_cluster_nwas_cs_sapinstance_automatic_recover_bool: false
-sap_ha_pacemaker_cluster_nwas_cs_sapinstance_resource_stickiness: 5000
+sap_ha_pacemaker_cluster_nwas_cs_sapinstance_automatic_recover_bool:
+  "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_automatic_recover_bool | d(false) }}"
+sap_ha_pacemaker_cluster_nwas_cs_sapinstance_resource_stickiness:
+  "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_stickiness | d(5000) }}"
 sap_ha_pacemaker_cluster_nwas_cs_sapinstance_ensa1_migration_threshold:
   "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_ensa1_migration_threshold | d(1) }}"
 sap_ha_pacemaker_cluster_nwas_cs_sapinstance_ensa1_failure_timeout:
