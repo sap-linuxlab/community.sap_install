@@ -23,9 +23,10 @@
   when: __sap_swpm_register_virtual_ip_dns.stdout_lines | length == 0
   block:
 
+# We assign the IP address only if there is exactly one line containing ipv4 and hostname:
     - name: SAP SWPM Pre Install - HA settings - Try to resolve sap_swpm_virtual_hostname from /etc/hosts
       ansible.builtin.shell: |
-        awk '/^[^#]/&&(/\s{{ sap_swpm_virtual_hostname }}\./||/\s{{ sap_swpm_virtual_hostname }}/){print $1}' /etc/hosts
+        awk 'BEGIN{a=0}/^[^#]/&&(/\s{{ sap_swpm_virtual_hostname }}\./||/\s{{ sap_swpm_virtual_hostname }}/){a++; ipaddr=$1}END{if(a==1){print ipaddr}}' /etc/hosts
       register: __sap_swpm_register_virtual_ip_etc_hosts
       changed_when: false
       failed_when: false
@@ -38,7 +39,7 @@
 - name: SAP SWPM Pre Install - HA settings - Assert that sap_swpm_virtual_hostname can be resolved
   ansible.builtin.assert:
     that: __sap_swpm_fact_virtual_ip is defined and __sap_swpm_fact_virtual_ip | length > 0
-    fail_msg: "FAIL: {{ sap_swpm_virtual_hostname }} cannot be resolved!"
+    fail_msg: "FAIL: 'sap_swpm_virtual_hostname' is not defined or cannot be resolved correctly!"
     success_msg: "PASS: {{ sap_swpm_virtual_hostname }} can be resolved."
 
 - name: SAP SWPM Pre Install - HA settings - Assert that sap_swpm_fact_virtual_ip is part of ansible_all_ipv4_addresses
