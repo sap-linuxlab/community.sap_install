@@ -70,6 +70,10 @@ Managed nodes:
 | SAP HANA scale-up (performance-optimized) 2 nodes | SAPHanaSR-angi | :heavy_check_mark: |
 | SAP NetWeaver (ABAP) ASCS and ERS 2 nodes | Classic | :heavy_check_mark: |
 | SAP NetWeaver (ABAP) ASCS and ERS 2 nodes | Simple Mount | :heavy_check_mark: |
+| SAP NetWeaver (JAVA) SCS and ERS 2 nodes | Classic | :heavy_check_mark: |
+| SAP NetWeaver (JAVA) SCS and ERS 2 nodes | Simple Mount | :heavy_check_mark: |
+
+**NOTE: SAP Netweaver ASCS/ERS and SCS/ERS are ENSA2 by default, but ENSA1 is also supported.**
 <!-- END Execution -->
 
 <!-- BEGIN Execution Recommended -->
