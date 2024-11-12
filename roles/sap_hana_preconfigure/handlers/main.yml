@@ -75,16 +75,10 @@
   listen: __sap_hana_preconfigure_grubby_update_handler
   notify: __sap_hana_preconfigure_reboot_handler
 
-- name: "Run grubby for disabling THP"
-  ansible.builtin.command: grubby --args="transparent_hugepage=never" --update-kernel=ALL
+- name: "Run grubby for setting THP to '{{ __sap_hana_preconfigure_fact_thp }}'"
+  ansible.builtin.command: grubby --args="transparent_hugepage={{ __sap_hana_preconfigure_fact_thp }}" --update-kernel=ALL
   changed_when: true
-  listen: __sap_hana_preconfigure_grubby_thp_never_handler
-  notify: __sap_hana_preconfigure_reboot_handler
-
-- name: "Run grubby for setting THP to madvise"
-  ansible.builtin.command: grubby --args="transparent_hugepage=madvise" --update-kernel=ALL
-  changed_when: true
-  listen: __sap_hana_preconfigure_grubby_thp_madvise_handler
+  listen: __sap_hana_preconfigure_grubby_thp_handler
   notify: __sap_hana_preconfigure_reboot_handler
 
 - name: Reboot the managed node

@@ -6,27 +6,37 @@
     src: /proc/cmdline
   register: __sap_hana_preconfigure_register_proc_cmdline_thp
 
-- name: Set THP to 'never' at boot time
-  ansible.builtin.command: /bin/true
-  notify: __sap_hana_preconfigure_grubby_thp_never_handler
-  changed_when: true
+- name: Set fact for THP, RHEL up to RHEL 9.1
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_fact_thp: 'never'
   when:
+    - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
     - ansible_distribution == 'RedHat'
-    - ansible_distribution_major_version == '8' or
+    - ansible_distribution_major_version == '7' or
+      ansible_distribution_major_version == '8' or
       ansible_distribution_version == '9.0' or
       ansible_distribution_version == '9.1'
-    - not ( __sap_hana_preconfigure_register_proc_cmdline_thp['content'] | b64decode | regex_findall('transparent_hugepage=never') )
-  tags: grubconfig
 
-- name: Set THP to 'madvise' at boot time
-  ansible.builtin.command: /bin/true
-  notify: __sap_hana_preconfigure_grubby_thp_madvise_handler
-  changed_when: true
+- name: Set fact for THP, RHEL 9.2 and later
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_fact_thp: 'madvise'
   when:
+    - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
     - ansible_distribution == 'RedHat'
     - ansible_distribution_major_version == '9' and
         __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int >= 2
-    - not ( __sap_hana_preconfigure_register_proc_cmdline_thp['content'] | b64decode | regex_findall('transparent_hugepage=madvise') )
+
+- name: Set fact for THP if 'sap_hana_preconfigure_thp' is defined
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_fact_thp: "{{ sap_hana_preconfigure_thp }}"
+  when:
+    - sap_hana_preconfigure_thp is defined and sap_hana_preconfigure_thp
+
+- name: Set THP to '{{ __sap_hana_preconfigure_fact_thp }}' at boot time
+  ansible.builtin.command: /bin/true
+  notify: __sap_hana_preconfigure_grubby_thp_handler
+  changed_when: true
+  when: not ( __sap_hana_preconfigure_register_proc_cmdline_thp['content'] | b64decode | regex_findall('transparent_hugepage=' + __sap_hana_preconfigure_fact_thp) )
   tags: grubconfig
 
 - name: Configure - Get initial status of THP
@@ -34,24 +44,10 @@
   register: __sap_hana_preconfigure_register_thp_status_before
   changed_when: false
 
-- name: Set THP to 'never' on the running system
-  ansible.builtin.shell: echo 'never' > /sys/kernel/mm/transparent_hugepage/enabled
+- name: Set THP to '{{ __sap_hana_preconfigure_fact_thp }}' on the running system
+  ansible.builtin.shell: echo '{{ __sap_hana_preconfigure_fact_thp }}' > /sys/kernel/mm/transparent_hugepage/enabled
   changed_when: true
-  when:
-    - ansible_distribution == 'RedHat'
-    - ansible_distribution_major_version == '8' or
-      ansible_distribution_version == '9.0' or
-      ansible_distribution_version == '9.1'
-    - __sap_hana_preconfigure_register_thp_status_before.stdout.split('[')[1].split(']')[0] != 'never'
-
-- name: Set THP to 'madvise' on the running system
-  ansible.builtin.shell: echo 'madvise' > /sys/kernel/mm/transparent_hugepage/enabled
-  changed_when: true
-  when:
-    - ansible_distribution == 'RedHat'
-    - ansible_distribution_major_version == '9' and
-        __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int >= 2
-    - __sap_hana_preconfigure_register_thp_status_before.stdout.split('[')[1].split(']')[0] != 'madvise'
+  when: __sap_hana_preconfigure_register_thp_status_before.stdout.split('[')[1].split(']')[0] != __sap_hana_preconfigure_fact_thp
 
 - name: Configure - Get the status of THP
   ansible.builtin.command: cat /sys/kernel/mm/transparent_hugepage/enabled

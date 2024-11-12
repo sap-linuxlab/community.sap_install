@@ -416,6 +416,12 @@ Set this parameter to `true` to modify the Grub boot command line.<br>
 By default, the role will run `grub2-mkconfig` to update the Grub configuration if necessary.<br>
 Set this parameter to `false` if this is not desired.<br>
 
+### sap_hana_preconfigure_thp
+- _Type:_ `str`
+- _Default:_ ``
+
+Override the default setting for THP, which is determined automatically by the role, depending on the RHEL version.
+
 ### sap_hana_preconfigure_db_group_name
 - _Type:_ `str`
 
