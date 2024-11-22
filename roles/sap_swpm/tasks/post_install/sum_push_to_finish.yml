@@ -3,6 +3,15 @@
 # This allows to fully automate the SWPM+SUM installation process
 # Based on research by @sean-freeman
 
+# Check if the SUMup process is running, give it 5 minutes to start
+- name: Check if SAPup_real process is running (wait for 5 minutes until it starts)
+  ansible.builtin.shell: pgrep -c -u "{{ sap_swpm_sid | lower }}adm" -f SAPup_real
+  register: _sapup_process
+  retries: 5
+  delay: 60
+  until: _sapup_process.rc == 0 and _sapup_process.stdout|int > 0
+  failed_when: _sapup_process.rc != 0
+
 # Check the SUM status via SUMOBSEVER.XML, wait for 60 minutes until we are in BIND_PATCH phase
 - name: Checking the status of SUM
   ansible.builtin.uri:
