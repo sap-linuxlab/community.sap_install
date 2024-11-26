@@ -43,13 +43,13 @@
 
 - name: "SAP HA Pacemaker - (systemd) Check for SCS/ERS services"
   ansible.builtin.stat:
-    path: "/etc/systemd/system/SAP{{ __sap_ha_pacemaker_cluster_nwas_sid | upper }}_{{ systemd_item }}.service"
+    path: "/etc/systemd/system/SAP{{ __sap_ha_pacemaker_cluster_nwas_sid }}_{{ systemd_item }}.service"
   loop:
     - "{{ __sap_ha_pacemaker_cluster_nwas_scs_instance_nr }}"
     - "{{ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr }}"
   loop_control:
     loop_var: systemd_item
-    label: "SAP{{ __sap_ha_pacemaker_cluster_nwas_sid | upper }}_{{ systemd_item }}.service"
+    label: "SAP{{ __sap_ha_pacemaker_cluster_nwas_sid }}_{{ systemd_item }}.service"
   register: __sap_ha_pacemaker_cluster_register_instance_service
 
 - name: "SAP HA Pacemaker - (systemd) Save found SCS/ERS services"
@@ -246,10 +246,10 @@
            and 'ERROR' in __sap_ha_pacemaker_cluster_register_scs_ha_check_config.stdout)"
       vars:
         __rsc_scs: "{{ __sap_ha_pacemaker_cluster_nwas_scs_sapstartsrv_resource_name
-          if sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
+          if __sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
           else __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_resource_name }}"
         __rsc_ers: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapstartsrv_resource_name
-          if sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
+          if __sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
           else __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_resource_name }}"
       block:
         - name: "SAP HA Pacemaker - (SAP HA Interface) Restart SCS ERS resources"

@@ -8,7 +8,7 @@
       - __sap_ha_pacemaker_cluster_hana_sid not in __sap_ha_pacemaker_cluster_sid_prohibited
     fail_msg: |
       Host type = {{ sap_ha_pacemaker_cluster_host_type }}
-      Requires:'sap_ha_pacemaker_cluster_hana_sid' to be defined as 3 capital letters!
+      Requires: 'sap_ha_pacemaker_cluster_hana_sid' to be defined as 3 capital letters!
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
 
@@ -18,9 +18,8 @@
       - (__sap_ha_pacemaker_cluster_hana_instance_nr | string) | length == 2
       - (__sap_ha_pacemaker_cluster_hana_instance_nr | string) is match('^[0-9]{2}$')
     fail_msg: |
-
       Host type = {{ sap_ha_pacemaker_cluster_host_type }}
-      Requires 'sap_ha_pacemaker_cluster_hana_instance_nr' to be defined.
+      Requires: 'sap_ha_pacemaker_cluster_hana_instance_nr' to be defined.
 
       The instance number must be exactly 2 digits.
       Add quotes if the number starts with a 0!
@@ -36,7 +35,7 @@
     fail_msg: |
       Host type = {{ sap_ha_pacemaker_cluster_host_type }}
       Current value: {{ __sap_ha_pacemaker_cluster_nwas_sid }}
-      Requires 'sap_ha_pacemaker_cluster_nwas_sid' to be defined as 3 capital letters!
+      Requires: 'sap_ha_pacemaker_cluster_nwas_sid' to be defined as 3 capital letters!
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas') | length > 0
 
@@ -88,7 +87,7 @@
 - name: "SAP HA Prepare Pacemaker - (SAP NetWeaver) Validate storage definition"
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas') | length > 0
-    - not sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
+    - not __sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
   ansible.builtin.assert:
     that:
       - sap_ha_pacemaker_cluster_storage_definition is defined
