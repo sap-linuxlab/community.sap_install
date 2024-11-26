@@ -12,3 +12,382 @@
       - "{{ sap_ha_pacemaker_cluster_host_type }}"
   when:
     - "(role_path + '/vars/' + include_item + '.yml') is file"
+
+
+# Private variables are assigned following logic:
+# 1. Use backwards compatible var if new var is empty
+# 2. Use user input if new var is not empty
+# 3. Use default (results in failed assert in validation tasks if default is empty string)
+
+
+# Calculate private variables
+- name: "SAP HA Prepare Pacemaker - Set primary variables (Netweaver)"
+  ansible.builtin.set_fact:
+    # TODO: Remove backwards compatibility to nwas_abap_ascs
+    __sap_ha_pacemaker_cluster_nwas_sid:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_sid | d(sap_swpm_sid) | d('') | upper
+        if sap_ha_pacemaker_cluster_nwas_sid | string | length == 0
+        else sap_ha_pacemaker_cluster_nwas_sid | upper }}"
+
+    __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr | d(sap_swpm_ascs_instance_nr) | d('')
+        if sap_ha_pacemaker_cluster_nwas_ascs_instance_nr | string | length == 0
+        else sap_ha_pacemaker_cluster_nwas_ascs_instance_nr }}"
+
+    __sap_ha_pacemaker_cluster_nwas_scs_instance_nr:
+      "{{ sap_swpm_ascs_instance_nr | d('')
+        if sap_ha_pacemaker_cluster_nwas_scs_instance_nr | string | length == 0
+        else sap_ha_pacemaker_cluster_nwas_scs_instance_nr }}"
+
+    # Assign from sap_swpm variables based on host type
+    __sap_ha_pacemaker_cluster_nwas_ers_instance_nr:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr | d(sap_swpm_ers_instance_nr) | d('')
+        if sap_ha_pacemaker_cluster_nwas_ers_instance_nr | string | length == 0
+        and sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
+        else (sap_swpm_ers_instance_nr | d('')
+          if sap_ha_pacemaker_cluster_nwas_ers_instance_nr | string | length == 0
+          and sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java_scs_ers') | length > 0
+          else sap_ha_pacemaker_cluster_nwas_ers_instance_nr) }}"
+
+    __sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr:
+      "{{ sap_swpm_pas_instance_nr | d('')
+        if sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr | string | length == 0
+        else sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
+
+    __sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr:
+      "{{ sap_swpm_aas_instance_nr | d('')
+        if sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr | string | length == 0
+        else sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set cluster resource variable: VIP (Netweaver)"
+  ansible.builtin.set_fact:
+    # TODO: Remove backwards compatibility to nwas_abap_ascs
+    # ASCS
+    __sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address:
+      "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address | d('')
+      if sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address | string | length == 0
+      else sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address }}"
+
+    __sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_name:
+      "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name
+      | d('rsc_vip_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_ASCS' ~ __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr)
+      if sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_resource_name:
+      "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_resource_name
+      | d('rsc_vip_health_check_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_ASCS' ~ __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr)
+      if sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_resource_name }}"
+
+    # SCS
+    __sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address:
+      "{{ sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address | d('') }}"
+
+    __sap_ha_pacemaker_cluster_vip_nwas_scs_resource_name:
+      "{{ 'rsc_vip_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_SCS' ~ __sap_ha_pacemaker_cluster_nwas_scs_instance_nr
+      if sap_ha_pacemaker_cluster_vip_nwas_scs_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_vip_nwas_scs_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_nwas_scs_resource_name:
+      "{{ 'rsc_vip_health_check_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_SCS' ~ __sap_ha_pacemaker_cluster_nwas_scs_instance_nr
+      if sap_ha_pacemaker_cluster_healthcheck_nwas_scs_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_healthcheck_nwas_scs_resource_name }}"
+
+    # ERS
+    __sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address:
+      "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address | d('')
+      if sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address | string | length == 0
+      else sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address }}"
+
+    __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_name:
+      "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name
+      | d('rsc_vip_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_ERS' ~ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr)
+      if sap_ha_pacemaker_cluster_vip_nwas_ers_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_vip_nwas_ers_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_nwas_ers_resource_name:
+      "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_resource_name
+      | d('rsc_vip_health_check_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_ERS' ~ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr)
+      if sap_ha_pacemaker_cluster_healthcheck_nwas_ers_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_healthcheck_nwas_ers_resource_name }}"
+
+    # PAS
+    __sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address:
+      "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address | d('') }}"
+
+    __sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name:
+      "{{ 'rsc_vip_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_PAS' ~ __sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr
+      if sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_resource_name:
+      "{{ 'rsc_vip_health_check_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_PAS' ~ __sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr
+      if sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_resource_name }}"
+
+    # AAS
+    __sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address:
+      "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address | d('') }}"
+
+    __sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name:
+      "{{ 'rsc_vip_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_AAS' ~ __sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr
+      if sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_resource_name:
+      "{{ 'rsc_vip_health_check_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_AAS' ~ __sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr
+      if sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_resource_name }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set cluster resource variable: VIP Health Checks (Netweaver)"
+  ansible.builtin.set_fact:
+    # TODO: Remove backwards compatibility to nwas_abap_ascs
+    __sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_id:
+      "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_id | d(__sap_ha_pacemaker_cluster_nwas_sid ~ 'ascs')
+      if sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_id | string | length == 0
+      else sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_id }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_nwas_scs_id:
+      "{{ __sap_ha_pacemaker_cluster_nwas_sid ~ 'scs'
+      if sap_ha_pacemaker_cluster_healthcheck_nwas_scs_id | string | length == 0
+      else sap_ha_pacemaker_cluster_healthcheck_nwas_scs_id }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_nwas_ers_id:
+      "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_id | d(__sap_ha_pacemaker_cluster_nwas_sid ~ 'ers')
+        if sap_ha_pacemaker_cluster_healthcheck_nwas_ers_id | string | length == 0
+        and sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
+        else (__sap_ha_pacemaker_cluster_nwas_sid ~ 'ers'
+          if sap_ha_pacemaker_cluster_healthcheck_nwas_ers_id | string | length == 0
+          and sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java_scs_ers') | length > 0
+          else sap_ha_pacemaker_cluster_healthcheck_nwas_ers_id) }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_nwas_pas_id:
+      "{{ __sap_ha_pacemaker_cluster_nwas_sid ~ 'pas'
+      if sap_ha_pacemaker_cluster_healthcheck_nwas_pas_id | string | length == 0
+      else sap_ha_pacemaker_cluster_healthcheck_nwas_pas_id }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_nwas_aas_id:
+      "{{ __sap_ha_pacemaker_cluster_nwas_sid ~ 'aas'
+      if sap_ha_pacemaker_cluster_healthcheck_nwas_aas_id | string | length == 0
+      else sap_ha_pacemaker_cluster_healthcheck_nwas_aas_id }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set cluster resource variable: Filesystem (Netweaver)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name:
+      "{{ 'rsc_fs_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_sapmnt'
+      if sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_clone_name:
+      "{{ 'cln_fs_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_sapmnt'
+      if sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_clone_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_clone_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name:
+      "{{ 'rsc_fs_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_trans'
+      if sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_clone_name:
+      "{{ 'cln_fs_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_trans'
+      if sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_clone_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_clone_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name:
+      "{{ 'rsc_fs_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_sys'
+      if sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_clone_name:
+      "{{ 'cln_fs_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_sys'
+      if sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_clone_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_clone_name }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set variable: Instance names (Netweaver)"
+  ansible.builtin.set_fact:
+    # TODO: Remove backwards compatibility to nwas_abap_ascs
+    __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name | d('')
+      if sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name | d('') }}"
+
+    __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name:
+      "{{ sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name | d('') }}"
+
+    __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name | d('')
+      if sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name | d('') }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set variable: Instance profile paths (Netweaver)"
+  ansible.builtin.set_fact:
+    # TODO: Remove backwards compatibility to nwas_abap_ascs
+    __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_start_profile_string:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_start_profile_string
+      | d('/sapmnt/' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '/profile/' ~ __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name)
+      if sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_start_profile_string | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_start_profile_string }}"
+
+    __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_start_profile_string:
+      "{{ '/sapmnt/' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '/profile/' ~ __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name
+      if sap_ha_pacemaker_cluster_nwas_scs_sapinstance_start_profile_string | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_scs_sapinstance_start_profile_string }}"
+
+    __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string
+      | d('/sapmnt/' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '/profile/' ~ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name)
+      if sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set variables for ASCS resources (Netweaver)"
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap') | length > 0
+  ansible.builtin.set_fact:
+    # TODO: Remove backwards compatibility to nwas_abap_ascs
+    __sap_ha_pacemaker_cluster_nwas_ascs_filesystem_resource_name:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_filesystem_resource_name
+      | d('rsc_fs_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_ASCS' ~ __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr)
+      if sap_ha_pacemaker_cluster_nwas_ascs_filesystem_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_ascs_filesystem_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_resource_name:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name
+      | d('rsc_SAPInstance_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_ASCS' ~ __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr)
+      if sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_ascs_sapstartsrv_resource_name:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapstartsrv_resource_name
+      | d('rsc_SAPStartSrv_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_ASCS' ~ __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr)
+      if sap_ha_pacemaker_cluster_nwas_ascs_sapstartsrv_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_ascs_sapstartsrv_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_group_name:
+      "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name
+      | d('grp_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_ASCS' ~ __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr)
+      if sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_group_name | string | length == 0
+      else sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_group_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_colocation_ascs_no_ers_name:
+      "{{ 'col_ascs_separate_' ~ __sap_ha_pacemaker_cluster_nwas_sid
+      if sap_ha_pacemaker_cluster_nwas_colocation_ascs_no_ers_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_colocation_ascs_no_ers_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_order_ascs_first_name:
+      "{{ 'ord_ascs_first_' ~ __sap_ha_pacemaker_cluster_nwas_sid
+      if sap_ha_pacemaker_cluster_nwas_order_ascs_first_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_order_ascs_first_name }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set variables for SCS resources (Netweaver)"
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java') | length > 0
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_nwas_scs_filesystem_resource_name:
+      "{{ 'rsc_fs_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_SCS' ~ __sap_ha_pacemaker_cluster_nwas_scs_instance_nr
+      if sap_ha_pacemaker_cluster_nwas_scs_filesystem_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_scs_filesystem_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_resource_name:
+      "{{ 'rsc_SAPInstance_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_SCS' ~ __sap_ha_pacemaker_cluster_nwas_scs_instance_nr
+      if sap_ha_pacemaker_cluster_nwas_scs_sapinstance_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_scs_sapinstance_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_scs_sapstartsrv_resource_name:
+      "{{ 'rsc_SAPStartSrv_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_SCS' ~ __sap_ha_pacemaker_cluster_nwas_scs_instance_nr
+      if sap_ha_pacemaker_cluster_nwas_scs_sapstartsrv_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_scs_sapstartsrv_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_vip_nwas_scs_resource_group_name:
+      "{{ 'grp_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_SCS' ~ __sap_ha_pacemaker_cluster_nwas_scs_instance_nr
+      if sap_ha_pacemaker_cluster_vip_nwas_scs_resource_group_name | string | length == 0
+      else sap_ha_pacemaker_cluster_vip_nwas_scs_resource_group_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_colocation_scs_no_ers_name:
+      "{{ 'col_scs_separate_' ~ __sap_ha_pacemaker_cluster_nwas_sid
+      if sap_ha_pacemaker_cluster_nwas_colocation_scs_no_ers_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_colocation_scs_no_ers_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_order_scs_first_name:
+      "{{ 'ord_scs_first_' ~ __sap_ha_pacemaker_cluster_nwas_sid
+      if sap_ha_pacemaker_cluster_nwas_order_scs_first_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_order_scs_first_name }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set variables for ERS resources (Netweaver)"
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap') | length > 0
+      or sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java') | length > 0
+  ansible.builtin.set_fact:
+    # TODO: Remove backwards compatibility to nwas_abap_ascs
+    __sap_ha_pacemaker_cluster_nwas_ers_filesystem_resource_name:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_filesystem_resource_name
+      | d('rsc_fs_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_ERS' ~ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr)
+      if sap_ha_pacemaker_cluster_nwas_ers_filesystem_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_ers_filesystem_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_resource_name:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name
+      | d('rsc_SAPInstance_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_ERS' ~ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr)
+      if sap_ha_pacemaker_cluster_nwas_ers_sapinstance_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_ers_sapinstance_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_ers_sapstartsrv_resource_name:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapstartsrv_resource_name
+      | d('rsc_SAPStartSrv_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_ERS' ~ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr)
+      if sap_ha_pacemaker_cluster_nwas_ers_sapstartsrv_resource_name | string | length == 0
+      else sap_ha_pacemaker_cluster_nwas_ers_sapstartsrv_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name:
+      "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name
+      | d('grp_' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_ERS' ~ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr)
+      if sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name | string | length == 0
+      else sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name }}"
+
+    __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_automatic_recover_bool:
+      "{{ sap_ha_pacemaker_cluster_nwas_ers_sapinstance_automatic_recover_bool | d(false) }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set variables for Central Services parameters (Netweaver)"
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
+      or sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java_scs_ers') | length > 0
+  ansible.builtin.set_fact:
+    # TODO: Remove backwards compatibility to nwas_abap_ascs
+    __sap_ha_pacemaker_cluster_nwas_cs_sapinstance_automatic_recover_bool:
+      "{{ sap_ha_pacemaker_cluster_nwas_cs_sapinstance_automatic_recover_bool | d(false) }}"
+
+    __sap_ha_pacemaker_cluster_nwas_cs_sapinstance_resource_stickiness:
+      "{{ sap_ha_pacemaker_cluster_nwas_cs_sapinstance_resource_stickiness | d(5000) }}"
+
+    __sap_ha_pacemaker_cluster_nwas_cs_ensa1:
+      "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1
+      if sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1 is defined and sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1
+      else sap_ha_pacemaker_cluster_nwas_cs_ensa1 | d(false) }}"
+
+    __sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount:
+      "{{ sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount | bool | d(true) }}"
+
+# TODO: Add PAS and AAS variables
+# sap_ha_pacemaker_cluster_nwas_abap_pas_filesystem_resource_name: >
+#   "Filesystem_NWAS_ABAP_PAS_{{ __sap_ha_pacemaker_cluster_nwas_sid }}_{{ __sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
+# sap_ha_pacemaker_cluster_nwas_abap_pas_sapinstance_resource_name: >
+#   "SAPInstance_NWAS_ABAP_PAS_{{ __sap_ha_pacemaker_cluster_nwas_sid }}_{{ __sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
+# sap_ha_pacemaker_cluster_nwas_abap_aas_filesystem_resource_name: >
+#   "Filesystem_NWAS_ABAP_AAS_{{ __sap_ha_pacemaker_cluster_nwas_sid }}_{{ __sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
+# sap_ha_pacemaker_cluster_nwas_abap_aas_sapinstance_resource_name: >
+#   "SAPInstance_NWAS_ABAP_AAS_{{ __sap_ha_pacemaker_cluster_nwas_sid }}_{{ __sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set variables for NFS Filesystems (Netweaver)"
+  ansible.builtin.set_fact:
+    # TODO: Remove backwards compatibility to typo
+    __sap_ha_pacemaker_cluster_storage_nfs_filesystem_type:
+      "{{ sap_ha_pacemaker_cluster_storage_nfs_filesytem_type | d(sap_ha_pacemaker_cluster_storage_nfs_filesystem_type) }}"

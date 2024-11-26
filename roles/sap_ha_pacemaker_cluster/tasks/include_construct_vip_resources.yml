@@ -6,37 +6,51 @@
     __sap_ha_pacemaker_cluster_all_vip_fact: # noqa jinja[spacing]
       hana_scaleup_perf: "{{
         {
-          sap_ha_pacemaker_cluster_vip_hana_primary_resource_name:
-            sap_ha_pacemaker_cluster_vip_hana_primary_ip_address | regex_replace('/.*', ''),
-          sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name:
-            sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | regex_replace('/.*', ''),
-          sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name:
+          __sap_ha_pacemaker_cluster_vip_hana_primary_resource_name:
+            __sap_ha_pacemaker_cluster_vip_hana_primary_ip_address | regex_replace('/.*', ''),
+          __sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name:
+            __sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | regex_replace('/.*', ''),
+          __sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name:
             sap_ha_pacemaker_cluster_healthcheck_hana_primary_port,
-          sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name:
+          __sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name:
             sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port
-        } }}"
+        } if sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup_perf') | length > 0 else omit }}"
+
       nwas_abap_ascs_ers: "{{
         {
-          sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name:
-            sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address | regex_replace('/.*', ''),
-          sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name:
-            sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address | regex_replace('/.*', ''),
-          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_resource_name:
-            sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_port,
-          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_resource_name:
-            sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port
-        } }}"
+          __sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_name:
+            __sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address | regex_replace('/.*', ''),
+          __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_name:
+            __sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address | regex_replace('/.*', ''),
+          __sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_port,
+          __sap_ha_pacemaker_cluster_healthcheck_nwas_ers_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_nwas_ers_port
+        } if sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0 else omit }}"
+
+      nwas_java_scs_ers: "{{
+        {
+          __sap_ha_pacemaker_cluster_vip_nwas_scs_resource_name:
+            __sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address | regex_replace('/.*', ''),
+          __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_name:
+            __sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address | regex_replace('/.*', ''),
+          __sap_ha_pacemaker_cluster_healthcheck_nwas_scs_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_nwas_scs_port,
+          __sap_ha_pacemaker_cluster_healthcheck_nwas_ers_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_nwas_ers_port
+        } if sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java_scs_ers') | length > 0 else omit }}"
+
       nwas_abap_pas_aas: "{{
         {
-          sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name:
-            sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address | regex_replace('/.*', ''),
-          sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name:
-            sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address | regex_replace('/.*', ''),
-          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_resource_name:
+          __sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name:
+            __sap_ha_pacemaker_cluster_vip_nwas_abap_pas_ip_address | regex_replace('/.*', ''),
+          __sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name:
+            __sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address | regex_replace('/.*', ''),
+          __sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_resource_name:
             sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_port,
-          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_resource_name:
+          __sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_resource_name:
             sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port
-        } }}"
+        } if sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_pas_aas') | length > 0 else omit }}"
 
 ### Maintenance note
 #
@@ -63,7 +77,7 @@
 - name: "SAP HA Prepare Pacemaker - Combine VIP parameters"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_vip_resource_definition:
-      "{{ __sap_ha_pacemaker_cluster_vip_resource_definition | default({})
+      "{{ __sap_ha_pacemaker_cluster_vip_resource_definition | d({})
         | combine(__sap_ha_pacemaker_cluster_all_vip_fact[vip_item])
         | dict2items | rejectattr('value', 'equalto', '') | list | items2dict }}"
   loop: "{{ sap_ha_pacemaker_cluster_host_type }}"
@@ -86,6 +100,27 @@
 
 # The VIP resource construction files are included in a loop to allow
 # for multiple IPs to be configured in cluster resources
+
+# Create list of VIP resource names to distinguish between VIP and HC resources
+- name: "SAP HA Prepare Pacemaker - Prepare list of VIP resource names"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_vip_resource_list:
+      - "{{ __sap_ha_pacemaker_cluster_vip_hana_primary_resource_name | d('') }}"
+      - "{{ __sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name | d('') }}"
+      - "{{ __sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_name | d('') }}"
+      - "{{ __sap_ha_pacemaker_cluster_vip_nwas_scs_resource_name | d('') }}"
+      - "{{ __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_name | d('') }}"
+      - "{{ __sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name | d('') }}"
+      - "{{ __sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name | d('') }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_resource_list:
+      - "{{ __sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name | d('') }}"
+      - "{{ __sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name | d('') }}"
+      - "{{ __sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_resource_name | d('') }}"
+      - "{{ __sap_ha_pacemaker_cluster_healthcheck_nwas_scs_resource_name | d('') }}"
+      - "{{ __sap_ha_pacemaker_cluster_healthcheck_nwas_ers_resource_name | d('') }}"
+      - "{{ __sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_resource_name | d('') }}"
+      - "{{ __sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_resource_name | d('') }}"
 
 # Repeat the VIP resource definition in a loop over the above combined possible parameters.
 # Applies to systems with no particular platform detected.

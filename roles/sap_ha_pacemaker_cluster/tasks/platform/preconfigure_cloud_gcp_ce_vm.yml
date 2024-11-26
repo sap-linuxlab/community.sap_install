@@ -46,13 +46,13 @@
     - name: "SAP HA Install Pacemaker - GCP CE VM - Define healthcheck details for HANA"
       ansible.builtin.set_fact:
         __sap_ha_pacemaker_cluster_healthcheck_list_hana:
-          - name: "{{ sap_ha_pacemaker_cluster_healthcheck_hana_primary_id }}"
+          - name: "{{ __sap_ha_pacemaker_cluster_healthcheck_hana_primary_id }}"
             port: "{{ sap_ha_pacemaker_cluster_healthcheck_hana_primary_port }}"
         # If no custom port is defined, calculate the port for the secondary
         # by adding 10, to avoid a conflict with the port for the primary hc port.
-          - name: "{{ sap_ha_pacemaker_cluster_healthcheck_hana_secondary_id }}"
+          - name: "{{ __sap_ha_pacemaker_cluster_healthcheck_hana_secondary_id }}"
             port: >-
-              {% if sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | length > 0 -%}
+              {% if __sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | length > 0 -%}
                 {{ sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port }}
               {%- else %}0{%- endif %}
       when:
@@ -61,12 +61,12 @@
     - name: "SAP HA Install Pacemaker - GCP CE VM - Define healthcheck details for NW ASCS/ERS"
       ansible.builtin.set_fact:
         __sap_ha_pacemaker_cluster_healthcheck_list_ascs:
-          - name: "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_id }}"
-            port: "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_port }}"
-          - name: "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_id }}"
-            port: "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port }}"
+          - name: "{{ __sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_id }}"
+            port: "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_port }}"
+          - name: "{{ __sap_ha_pacemaker_cluster_healthcheck_nwas_ers_id }}"
+            port: "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_ers_port }}"
       when:
-        - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs') | length > 0
+        - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
 
 
     - name: "SAP HA Install Pacemaker - GCP CE VM - Create haproxy config for HANA instances"
@@ -148,7 +148,7 @@
         loop_var: haproxy_item
         label: "{{ haproxy_item.name }}: {{ haproxy_item.port }}"
       when:
-        - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs') | length > 0
+        - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
 
 
     - name: "SAP HA Install Pacemaker - GCP CE VM - Ensure that haproxy service is running"

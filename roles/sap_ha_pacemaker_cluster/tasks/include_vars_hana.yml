@@ -33,3 +33,151 @@
       else sap_ha_pacemaker_cluster_cluster_properties }}"
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
+
+
+# Private variables are assigned following logic:
+# 1. Use backwards compatible var if new var is empty
+# 2. Use user input if new var is not empty
+# 3. Use default (results in failed assert in validation tasks if default is empty string)
+
+
+# Calculate private variables
+- name: "SAP HA Prepare Pacemaker - Set primary variables (HANA)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_hana_sid:
+      "{{ sap_hana_sid | d('') | upper
+        if sap_ha_pacemaker_cluster_hana_sid | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_sid | upper }}"
+
+    # TODO: Remove backwards compatibility sap_ha_pacemaker_cluster_hana_instance_number
+    __sap_ha_pacemaker_cluster_hana_instance_nr:
+      "{{ sap_ha_pacemaker_cluster_hana_instance_number | d(sap_hana_instance_number) | d('')
+        if sap_ha_pacemaker_cluster_hana_instance_nr | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_instance_nr }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set cluster resource variables: Primitives (HANA)"
+  ansible.builtin.set_fact:
+    # SAP Hana
+    __sap_ha_pacemaker_cluster_hana_resource_name:
+      "{{ 'rsc_SAPHana_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr
+        if sap_ha_pacemaker_cluster_hana_resource_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_hana_resource_clone_name:
+      "{{ 'cln_SAPHana_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr
+        if sap_ha_pacemaker_cluster_hana_resource_clone_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_resource_clone_name }}"
+
+    __sap_ha_pacemaker_cluster_hana_resource_clone_msl_name:
+      "{{ 'msl_SAPHana_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr
+        if sap_ha_pacemaker_cluster_hana_resource_clone_msl_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_resource_clone_msl_name }}"
+
+    # SAP Hana Controller
+    __sap_ha_pacemaker_cluster_hanacontroller_resource_name:
+      "{{ 'rsc_SAPHanaCon_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr
+        if sap_ha_pacemaker_cluster_hanacontroller_resource_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hanacontroller_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name:
+      "{{ 'mst_SAPHanaCon_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr
+        if sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }}"
+
+    # SAP Hana Topology
+    __sap_ha_pacemaker_cluster_hana_topology_resource_name:
+      "{{ 'rsc_SAPHanaTop_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr
+        if sap_ha_pacemaker_cluster_hana_topology_resource_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_topology_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_hana_topology_resource_clone_name:
+      "{{ 'cln_SAPHanaTop_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr
+        if sap_ha_pacemaker_cluster_hana_topology_resource_clone_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_topology_resource_clone_name }}"
+
+    # SAP Hana Filesystem
+    __sap_ha_pacemaker_cluster_hana_filesystem_resource_name:
+      "{{ 'rsc_SAPHanaFil_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr
+        if sap_ha_pacemaker_cluster_hana_filesystem_resource_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_filesystem_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_hana_filesystem_resource_clone_name:
+      "{{ 'cln_SAPHanaFil_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr
+        if sap_ha_pacemaker_cluster_hana_filesystem_resource_clone_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_filesystem_resource_clone_name }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set cluster resource variables: Constraints (HANA)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_hana_order_topology_hana_name:
+      "{{ 'ord_saphana_saphanatop_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr
+        if sap_ha_pacemaker_cluster_hana_order_topology_hana_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_order_topology_hana_name }}"
+
+    __sap_ha_pacemaker_cluster_hana_colocation_hana_vip_primary_name:
+      "{{ 'col_saphana_vip_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr ~ '_primary'
+        if sap_ha_pacemaker_cluster_hana_colocation_hana_vip_primary_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_colocation_hana_vip_primary_name }}"
+
+    __sap_ha_pacemaker_cluster_hana_colocation_hana_vip_secondary_name:
+      "{{ 'col_saphana_vip_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr ~ '_readonly'
+        if sap_ha_pacemaker_cluster_hana_colocation_hana_vip_secondary_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_colocation_hana_vip_secondary_name }}"
+
+    __sap_ha_pacemaker_cluster_hana_order_hana_vip_primary_name:
+      "{{ 'ord_saphana_vip_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr ~ '_primary'
+        if sap_ha_pacemaker_cluster_hana_order_hana_vip_primary_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_order_hana_vip_primary_name }}"
+
+    __sap_ha_pacemaker_cluster_hana_order_hana_vip_secondary_name:
+      "{{ 'ord_saphana_vip_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr ~ '_readonly'
+        if sap_ha_pacemaker_cluster_hana_order_hana_vip_secondary_name | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_order_hana_vip_secondary_name }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set cluster resource variables: VIP (HANA)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_vip_hana_primary_ip_address:
+      "{{ sap_ha_pacemaker_cluster_vip_hana_primary_ip_address | d('') }}"
+
+    __sap_ha_pacemaker_cluster_vip_hana_primary_resource_name:
+      "{{ 'rsc_vip_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr ~ '_primary'
+        if sap_ha_pacemaker_cluster_vip_hana_primary_resource_name | string | length == 0
+        else sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name:
+      "{{ 'rsc_vip_health_check_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr ~ '_primary'
+        if sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name | string | length == 0
+        else sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address:
+      "{{ sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | d('') }}"
+
+    __sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name:
+      "{{ 'rsc_vip_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr ~ '_readonly'
+        if sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name | string | length == 0
+        else sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name:
+      "{{ 'rsc_vip_health_check_' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '_HDB' ~ __sap_ha_pacemaker_cluster_hana_instance_nr ~ '_readonly'
+        if sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name | string | length == 0
+        else sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_hana_primary_id:
+      "{{ __sap_ha_pacemaker_cluster_hana_sid ~ 'prim'
+        if sap_ha_pacemaker_cluster_healthcheck_hana_primary_id | string | length == 0
+        else sap_ha_pacemaker_cluster_healthcheck_hana_primary_id }}"
+
+    __sap_ha_pacemaker_cluster_healthcheck_hana_secondary_id:
+      "{{ __sap_ha_pacemaker_cluster_hana_sid ~ 'ro'
+        if sap_ha_pacemaker_cluster_healthcheck_hana_secondary_id | string | length == 0
+        else sap_ha_pacemaker_cluster_healthcheck_hana_secondary_id }}"
+
+
+- name: "SAP HA Prepare Pacemaker - Set variables: Other (HANA)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_hana_global_ini_path:
+      "{{ '/usr/sap/' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '/SYS/global/hdb/custom/config/global.ini'
+        if sap_ha_pacemaker_cluster_hana_global_ini_path | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_global_ini_path }}"

@@ -41,31 +41,19 @@ __sap_ha_pacemaker_cluster_available_vip_agents:
   ipaddr:
     agent: "ocf:heartbeat:IPaddr2"
 
-# For convenience to distinguish between VIP and HC resources:
-__sap_ha_pacemaker_cluster_vip_resource_list:
-  - "{{ sap_ha_pacemaker_cluster_vip_hana_primary_resource_name }}"
-  - "{{ sap_ha_pacemaker_cluster_vip_hana_secondary_resource_name }}"
-  - "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name }}"
-  - "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name }}"
-  - "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name }}"
-  - "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name }}"
-
-__sap_ha_pacemaker_cluster_healthcheck_resource_list:
-  - "{{ sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name }}"
-  - "{{ sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name }}"
-  - "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_resource_name }}"
-  - "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_resource_name }}"
-  - "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_resource_name }}"
-  - "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_resource_name }}"
-
 # Health check default port as string
 # Note: difference between HANA primary and read-only required
 # Ports must be pre-defined empty to skip entering construct_vars_vip_resources_*
 # includes when not overridden.
 sap_ha_pacemaker_cluster_healthcheck_hana_primary_port: ''
 sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port: ''
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_port: ''
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port: ''
+# TODO: Remove backwards compatibility to nwas_abap_ascs
+sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_port:
+  "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_port | d('') }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_scs_port: ''
+# TODO: Remove backwards compatibility to nwas_abap_ascs
+sap_ha_pacemaker_cluster_healthcheck_nwas_ers_port:
+  "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port | d('') }}"
 sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_port: ''
 sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port: ''
 

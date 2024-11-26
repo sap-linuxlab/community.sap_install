@@ -8,7 +8,7 @@
 #  minimal base packages required for all scenarios
 #  scenario specific packages
 __sap_ha_pacemaker_cluster_sap_extra_packages: "{{
-  __sap_ha_pacemaker_cluster_sap_extra_packages_dict.minimal | default([])
+  __sap_ha_pacemaker_cluster_sap_extra_packages_dict.minimal | d([])
   + (__sap_ha_pacemaker_cluster_sap_extra_packages_dict.hana_angi
     if __sap_ha_pacemaker_cluster_saphanasr_angi_available
     else __sap_ha_pacemaker_cluster_sap_extra_packages_dict.hana_scaleup) }}"
@@ -30,9 +30,9 @@ __sap_ha_pacemaker_cluster_hana_hook_chksrv:
 __sap_ha_pacemaker_cluster_hana_hooks: "{{
   lookup('ansible.builtin.vars', __sap_ha_pacemaker_cluster_hana_hook_dictionary).saphanasr
   + (lookup('ansible.builtin.vars', __sap_ha_pacemaker_cluster_hana_hook_dictionary).tkover
-   | default([]) if __sap_ha_pacemaker_cluster_hana_hook_tkover else [])
+   | d([]) if __sap_ha_pacemaker_cluster_hana_hook_tkover else [])
   + (lookup('ansible.builtin.vars', __sap_ha_pacemaker_cluster_hana_hook_dictionary).chksrv
-   | default([]) if __sap_ha_pacemaker_cluster_hana_hook_chksrv else [])
+   | d([]) if __sap_ha_pacemaker_cluster_hana_hook_chksrv else [])
   }}"
 
 # Define sap_ha_pacemaker_cluster_hadr_provider_name for jinja2 template

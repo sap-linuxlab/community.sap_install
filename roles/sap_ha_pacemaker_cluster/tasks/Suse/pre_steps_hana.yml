@@ -7,7 +7,7 @@
 # without proper migration from SAPHanaSR to SAPHanaSR-angi!
 
 - name: "SAP HA Prepare Pacemaker - Block for detection of SAPHanaSR-angi"
-  when: sap_ha_pacemaker_cluster_saphanasr_angi_detection
+  when: (sap_ha_pacemaker_cluster_saphanasr_angi_detection | bool)
   block:
     # Requirement for package_facts Ansible Module
     # SLES: Ensure OS Package for Python Lib of rpm bindings is enabled for System Python
@@ -15,7 +15,6 @@
       ansible.builtin.package:
         name: python3-rpm
         state: present
-      when: ansible_os_family == "Suse"
 
     - name: "SAP HA Prepare Pacemaker - Gather installed packages facts"
       ansible.builtin.package_facts:

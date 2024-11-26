@@ -9,16 +9,16 @@
 
 - name: "SAP HA Install Pacemaker - SAPHana pcs resource cleanup"
   ansible.builtin.command:
-    cmd: pcs resource cleanup {{ sap_ha_pacemaker_cluster_hana_resource_name
+    cmd: pcs resource cleanup {{ __sap_ha_pacemaker_cluster_hana_resource_name
      if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
-     else sap_ha_pacemaker_cluster_hanacontroller_resource_name }}
+     else __sap_ha_pacemaker_cluster_hanacontroller_resource_name }}
   changed_when: true
 
 - name: "SAP HA Install Pacemaker - SAPHana clone pcs resource refresh"
   ansible.builtin.command:
-    cmd: pcs resource refresh {{ sap_ha_pacemaker_cluster_hana_resource_clone_name
+    cmd: pcs resource refresh {{ __sap_ha_pacemaker_cluster_hana_resource_clone_name
      if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
-     else sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }}
+     else __sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }}
   changed_when: true
 
 # Sleep 30 is added to leave enough time for agents to load data from HANA.
@@ -30,7 +30,7 @@
 
 - name: "SAP HA Install Pacemaker - SAPHana clone pcs resource meta maintenance=false"
   ansible.builtin.command:
-    cmd: pcs resource meta {{ sap_ha_pacemaker_cluster_hana_resource_clone_name
+    cmd: pcs resource meta {{ __sap_ha_pacemaker_cluster_hana_resource_clone_name
      if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
-     else sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }} maintenance=false
+     else __sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }} maintenance=false
   changed_when: true

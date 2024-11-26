@@ -1,79 +1,57 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-# Variables containing variables must be constructed with values
-# to be fed into the included ha_cluster role
-
-# TODO: add conditionals to verify that the same resource agent is not already
-#       defined in user input variables. Conflicting user input should take precedence.
-
-# Several parameters are pre-defined from potentially inherited ha_cluster LSR definitions.
-# They are necessary to be used for combining all cluster setup definitions.
-#
-# See tasks/ascertain_ha_cluster_in_inventory.yml:
-#
-# __sap_ha_pacemaker_cluster_cluster_properties: "{{ ha_cluster_cluster_properties }}"
-# __sap_ha_pacemaker_cluster_constraints_colocation: "{{ ha_cluster_constraints_colocation }}"
-# __sap_ha_pacemaker_cluster_constraints_location: "{{ ha_cluster_constraints_location }}"
-# __sap_ha_pacemaker_cluster_constraints_order: "{{ ha_cluster_constraints_order }}"
-# __sap_ha_pacemaker_cluster_fence_agent_packages: "{{ ha_cluster_fence_agent_packages }}"
-# __sap_ha_pacemaker_cluster_repos: "{{ ha_cluster_repos }}"
-# __sap_ha_pacemaker_cluster_resource_clones: "{{ ha_cluster_resource_clones }}"
-# __sap_ha_pacemaker_cluster_resource_groups: "{{ ha_cluster_resource_groups }}"
-# __sap_ha_pacemaker_cluster_resource_primitives: "{{ ha_cluster_resource_primitives }}"
-
-
 ### Different SAPInstance resource attributes for ENSA1 and ENSA2
 - name: "SAP HA Prepare Pacemaker - Define default ASCS/ERS instance attributes (ENSA2)"
-  when: not sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1
+  when: not __sap_ha_pacemaker_cluster_nwas_cs_ensa1
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_meta_attrs:
       - name: resource-stickiness
-        value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_stickiness }}"
+        value: "{{ __sap_ha_pacemaker_cluster_nwas_cs_sapinstance_resource_stickiness }}"
 
     __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_attrs:
       - name: InstanceName
-        value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name }}"
+        value: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name }}"
       - name: START_PROFILE
-        value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string }}"
+        value: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string }}"
       - name: AUTOMATIC_RECOVER
-        value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_automatic_recover_bool | string }}"
+        value: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_automatic_recover_bool | string }}"
       - name: IS_ERS
         value: true
 
 - name: "SAP HA Prepare Pacemaker - Define ASCS/ERS instance attributes (ENSA1)"
-  when: sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1
+  when: __sap_ha_pacemaker_cluster_nwas_cs_ensa1
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_meta_attrs:
       - name: resource-stickiness
-        value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_stickiness }}"
+        value: "{{ __sap_ha_pacemaker_cluster_nwas_cs_sapinstance_resource_stickiness }}"
       - name: migration-threshold
-        value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_ensa1_migration_threshold }}"
+        value: "{{ sap_ha_pacemaker_cluster_nwas_cs_sapinstance_ensa1_migration_threshold }}"
       - name: failure-timeout
-        value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_ensa1_failure_timeout }}"
+        value: "{{ sap_ha_pacemaker_cluster_nwas_cs_sapinstance_ensa1_failure_timeout }}"
 
     __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_attrs:
       - name: InstanceName
-        value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name }}"
+        value: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name }}"
       - name: START_PROFILE
-        value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string }}"
+        value: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string }}"
       - name: AUTOMATIC_RECOVER
-        value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_automatic_recover_bool | string }}"
+        value: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_automatic_recover_bool | string }}"
       - name: IS_ERS
         value: true
 
 
 ### Resources
-# ASCS/ERS instance filesystems
-- name: "SAP HA Prepare Pacemaker - Add filesystem resources for ASCS/ERS to resource definition"
+# ASCS/ERS Filesystems
+- name: "SAP HA Prepare Pacemaker - Add filesystem resources to resource definition (ASCS/ERS)"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_filesystem] }}"
   vars:
     __resource_filesystem:
       id: |-
         {%- if '/ASCS' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_nwas_abap_ascs_filesystem_resource_name %}
+          {% set idname = __sap_ha_pacemaker_cluster_nwas_ascs_filesystem_resource_name %}
         {%- elif '/ERS' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_nwas_abap_ers_filesystem_resource_name %}
+          {% set idname = __sap_ha_pacemaker_cluster_nwas_ers_filesystem_resource_name %}
         {%- endif -%}
         {{ idname }}
       agent: "ocf:heartbeat:Filesystem"
@@ -122,7 +100,7 @@
         {% if def.nfs_filesystem_type is defined -%}
           {{ def.nfs_filesystem_type }}
         {%- else -%}
-          {{ sap_ha_pacemaker_cluster_storage_nfs_filesytem_type }}
+          {{ __sap_ha_pacemaker_cluster_storage_nfs_filesystem_type }}
         {%- endif %}
       {%- endif %}
       {%- endfor %}
@@ -154,32 +132,30 @@
       {%- endfor %}
     __mountpoint: "{{ fsres_item }}"
 
-  loop: "{{ __sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_filesystems }}"
+  loop: "{{ __sap_ha_pacemaker_cluster_nwas_ascs_ers_filesystems }}"
   loop_control:
     loop_var: fsres_item
     label: "{{ fsres_item }}"
   when:
     - __resource_filesystem.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
 
-# End of filesystem resource task
-
 
 # ASCS instance resource definition
-- name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for Central Service (ABAP ASCS)"
+- name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for ABAP SAP Central Service (ASCS)"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapinstance] }}"
   vars:
     __resource_sapinstance:
-      id: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_resource_name }}"
       agent: "ocf:heartbeat:SAPInstance"
       instance_attrs:
         - attrs:
             - name: InstanceName
-              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name }}"
+              value: "{{ __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name }}"
             - name: START_PROFILE
-              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_start_profile_string }}"
+              value: "{{ __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_start_profile_string }}"
             - name: AUTOMATIC_RECOVER
-              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_automatic_recover_bool | string }}"
+              value: "{{ __sap_ha_pacemaker_cluster_nwas_cs_sapinstance_automatic_recover_bool | string }}"
       meta_attrs:
         - attrs: "{{ __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_meta_attrs }}"
       operations:
@@ -208,12 +184,12 @@
 
 
 # ERS instance resource definition
-- name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for Enqueue Replication Service (ABAP ERS)"
+- name: "SAP HA Prepare Pacemaker - Add resource: SAPInstance for Enqueue Replication Service (ERS)"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_sapinstance_ers] }}"
   vars:
     __resource_sapinstance_ers:
-      id: "{{ sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_resource_name }}"
       agent: "ocf:heartbeat:SAPInstance"
       instance_attrs:
         - attrs: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_attrs }}"
@@ -252,14 +228,14 @@
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__ascs_group] }}"
   vars:
     __ascs_group:
-      id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_group_name }}"
       resource_ids: |
         {% set resource_ids_list = [] %}
         {%- for resource in
-          sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_name,
-          sap_ha_pacemaker_cluster_nwas_abap_ascs_filesystem_resource_name,
-          sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name,
-          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_resource_name %}
+          __sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_name,
+          __sap_ha_pacemaker_cluster_nwas_ascs_filesystem_resource_name,
+          __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_resource_name,
+          __sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_resource_name %}
           {%- if resource | length > 0
             and resource in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')) %}
             {%- set ids = resource_ids_list.append(resource) %}
@@ -269,7 +245,7 @@
       meta_attrs:
         - attrs:
             - name: resource-stickiness
-              value: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_group_stickiness }}"
+              value: "{{ sap_ha_pacemaker_cluster_nwas_cs_group_stickiness }}"
   when:
     - __ascs_group.id is not in (__sap_ha_pacemaker_cluster_resource_groups | map(attribute='id'))
 
@@ -284,14 +260,14 @@
     __sap_ha_pacemaker_cluster_resource_groups: "{{ __sap_ha_pacemaker_cluster_resource_groups + [__ers_group] }}"
   vars:
     __ers_group:
-      id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name }}"
       resource_ids: |
         {% set resource_ids_list = [] %}
         {%- for resource in
-          sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_name,
-          sap_ha_pacemaker_cluster_nwas_abap_ers_filesystem_resource_name,
-          sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_resource_name,
-          sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_resource_name %}
+          __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_name,
+          __sap_ha_pacemaker_cluster_nwas_ers_filesystem_resource_name,
+          __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_resource_name,
+          __sap_ha_pacemaker_cluster_healthcheck_nwas_ers_resource_name %}
           {%- if resource | length > 0
             and resource in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id')) %}
             {%- set ids = resource_ids_list.append(resource) %}
@@ -316,12 +292,12 @@
     __sap_ha_pacemaker_cluster_constraints_colocation: "{{ __sap_ha_pacemaker_cluster_constraints_colocation + [__constraint_colo_ers] }}"
   vars:
     __constraint_colo_ers:
-      id: "{{ sap_ha_pacemaker_cluster_nwas_colocation_ascs_no_ers_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_nwas_colocation_ascs_no_ers_name }}"
       resource_leader:
-        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_group_name }}"
         role: started
       resource_follower:
-        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name }}"
       options:
         - name: score
           value: -5000
@@ -334,12 +310,12 @@
     __sap_ha_pacemaker_cluster_constraints_order: "{{ __sap_ha_pacemaker_cluster_constraints_order + [__constraint_order_ascs_ers] }}"
   vars:
     __constraint_order_ascs_ers:
-      id: "{{ sap_ha_pacemaker_cluster_nwas_order_ascs_first_name }}"
+      id: "{{ __sap_ha_pacemaker_cluster_nwas_order_ascs_first_name }}"
       resource_first:
-        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_group_name }}"
         role: started
       resource_then:
-        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name }}"
       options:
         - name: symmetrical
           value: "false"
@@ -355,13 +331,13 @@
   vars:
     __constraint_location_ascs_ers:
       resource:
-        id: "{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_resource_name }}"
-      rule: "runs_ers_{{ sap_ha_pacemaker_cluster_nwas_abap_sid }} eq 1"
+        id: "{{ __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_resource_name }}"
+      rule: "runs_ers_{{ __sap_ha_pacemaker_cluster_nwas_sid }} eq 1"
       options:
         - name: score
           value: 2000
   when:
-    - sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_ensa1
+    - __sap_ha_pacemaker_cluster_nwas_cs_ensa1
 
 
 # When /sapmnt is managed by the cluster,
@@ -372,10 +348,10 @@
   vars:
     __constraint_order_sapmnt:
       resource_first:
-        id: "{{ sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_clone_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_clone_name }}"
         role: started
       resource_then:
-        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_resource_group_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_group_name }}"
   when:
     - sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed
 
@@ -385,9 +361,9 @@
   vars:
     __constraint_order_sapmnt:
       resource_first:
-        id: "{{ sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_clone_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_clone_name }}"
         role: started
       resource_then:
-        id: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_resource_group_name }}"
+        id: "{{ __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name }}"
   when:
     - sap_ha_pacemaker_cluster_nwas_shared_filesystems_cluster_managed
