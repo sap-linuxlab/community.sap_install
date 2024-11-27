@@ -374,7 +374,11 @@ With the following tags, the role can be called to perform certain activities on
 
 <!-- BEGIN Further Information -->
 ## Further Information
-For more examples on how to use this role in different installation scenarios, refer to the [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
+- Starting with SAP HANA 2.0 SPS08, the component LSS (Local Secure Store) will be installed by default
+when installing SAP HANA. This requires the installation execution mode to be set to 'optimized', which is
+now set in the file `defaults/main.yml`.
+
+- For more examples on how to use this role in different installation scenarios, refer to the [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
 <!-- END Further Information -->
 
 ## License
