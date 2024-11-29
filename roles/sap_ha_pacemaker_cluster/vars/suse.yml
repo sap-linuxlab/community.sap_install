@@ -1,8 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
+# Default repositories are tied to subscription for SLES4SAP, no need to specify them.
+# __sap_ha_pacemaker_cluster_repos:
+# __sap_ha_pacemaker_cluster_repos_dict:
+
 __sap_ha_pacemaker_cluster_halib_package: sap-suse-cluster-connector
 
-# List of configuration lines that must be added to the instance profiles.
-# Used in tasks/configure_nwas_ascs_ers_postinstallation.yml for SAP HA Interface setup.
+# List of configuration lines that must be added to the instance profiles for SAP HA Interface setup.
 __sap_ha_pacemaker_cluster_connector_config_lines:
   - "service/halib = $(DIR_EXECUTABLE)/saphascriptco.so"
   - "service/halib_cluster_connector = /usr/bin/sap_suse_cluster_connector"
@@ -11,23 +15,37 @@ __sap_ha_pacemaker_cluster_connector_config_lines:
 __sap_ha_pacemaker_cluster_command:
   resource_stop: "crm resource stop"
   resource_start: "crm resource start"
-  resource_defaults_show: "crm configure show type:rsc_defaults"
-  resource_defaults_update: "crm configure rsc_defaults"
   resource_restart: "crm resource restart"
+  resource_cleanup: "crm resource cleanup"
+
+# Default corosync options - OS specific
+__sap_ha_pacemaker_cluster_corosync_totem_default:
+  options:
+    token: 5000
+    token_retransmits_before_loss_const: 10
+    join: 60
+    consensus: 6000
+    max_messages: 20
 
 # Make sure that there is always the minimal default fed into the included role.
 # This is combined with the custom list 'sap_ha_pacemaker_cluster_fence_agent_packages'.
-sap_ha_pacemaker_cluster_fence_agent_minimal_packages:
+__sap_ha_pacemaker_cluster_fence_agent_packages_minimal:
   - fence-agents
 
 # Dictionary with fence packages for each platform
-# fence-agents are defined in sap_ha_pacemaker_cluster_fence_agent_minimal_packages already.
-# sap_ha_pacemaker_cluster_fence_agent_packages_dict:
+# fence-agents are defined in __sap_ha_pacemaker_cluster_fence_agent_packages_minimal already.
+__sap_ha_pacemaker_cluster_fence_agent_packages_dict:
+  # Separate agent because of https://www.suse.com/support/kb/doc/?id=000021504
+  # This package is present in SLES4SAP 15 SP4 and higher
+  cloud_msazure_vm:
+    - fence-agents-azure-arm
 
 # Dictionary with extra platform specific packages
 __sap_ha_pacemaker_cluster_platform_extra_packages_dict:
-  cloud_aws:
+  cloud_aws_ec2_vs:
     - awscli
+  cloud_gcp_ce_vm:
+    - socat
   cloud_msazure_vm:
     - socat
 
@@ -45,6 +63,10 @@ __sap_ha_pacemaker_cluster_sap_extra_packages_dict:
   nwas:
     - sap-suse-cluster-connector
     - sapstartsrv-resource-agents
+
+# Dictionary with preferred platform specific VIP method that differs from default
+__sap_ha_pacemaker_cluster_vip_method_dict:
+  cloud_gcp_ce_vm: gcp_anything_socat
 
 # Resource agents - fully qualified names
 __sap_ha_pacemaker_cluster_resource_agents:
@@ -110,9 +132,5 @@ __sap_ha_pacemaker_cluster_hook_hana_scaleup_perf_angi:
 __sap_ha_pacemaker_cluster_hook_hana_scaleout: []
 __sap_ha_pacemaker_cluster_hook_hana_scaleout_angi: []
 
-# Overwrite resource clone name for SAP HANA
-sap_ha_pacemaker_cluster_hana_resource_clone_name:
-  "{{ sap_ha_pacemaker_cluster_hana_resource_clone_msl_name }}"
-
-# Enable ASCS/ERS Simple Mount as default
-sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount: true
+# Central Services Cluster Simple Mount: Enabled as default
+sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount: true

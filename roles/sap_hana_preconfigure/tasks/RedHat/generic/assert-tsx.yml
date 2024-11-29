@@ -1,18 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
 - name: Assert - Perform steps for checking TSX
   when:
     - ansible_architecture == 'x86_64'
     - ansible_distribution == 'RedHat'
-    - ansible_distribution_major_version == '8'
-    - __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int >= 3
+    - (ansible_distribution_major_version >= '9') or
+      (ansible_distribution_major_version == '8' and
+       __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int >= 3)
   block:
 
 # There are CPUs which are not capable of enabling the rtm flag, so we just report the status:
     - name: Get all CPU flags
       ansible.builtin.shell: set -o pipefail && lscpu | grep "^Flags:"
       register: __sap_hana_preconfigure_register_lscpu_flags
-      changed_when: no
+      changed_when: false
 
     - name: Report that the rtm CPU flag exists
       ansible.builtin.debug:
@@ -29,7 +31,7 @@
     - name: TSX - Get contents of GRUB_CMDLINE_LINUX in /etc/default/grub
       ansible.builtin.command: grep GRUB_CMDLINE_LINUX /etc/default/grub
       register: __sap_hana_preconfigure_register_default_grub_cmdline_tsx_assert
-      changed_when: no
+      changed_when: false
 
     - name: Assert that tsx=on is in GRUB_CMDLINE_LINUX in /etc/default/grub
       ansible.builtin.assert:
@@ -56,7 +58,7 @@
     - name: TSX - Get contents of /proc/cmdline
       ansible.builtin.command: cat /proc/cmdline
       register: __sap_hana_preconfigure_register_proc_cmdline_tsx_assert
-      changed_when: no
+      changed_when: false
 
     - name: Assert that tsx=on is in /proc/cmdline
       ansible.builtin.assert:

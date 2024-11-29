@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
 - name: Set kernel parameters
@@ -12,11 +13,25 @@
   loop_control:
     loop_var: line_item
 
+# Note: The sole purpose of the following two tasks is to collect the current value(s) of the kernel parameters
+# in sap_general_preconfigure_etc_sysctl_sap_conf so that the "Reload kernel parameters from file ..." task
+# can correctly report its 'changed' state. See also https://github.com/sap-linuxlab/community.sap_install/issues/752 .
+- name: Construct the command for getting all current parameters of file '{{ sap_general_preconfigure_etc_sysctl_sap_conf }}'
+  ansible.builtin.command: awk 'BEGIN{FS="="; printf ("sysctl ")}{printf ("%s ", $1)}' "{{ sap_general_preconfigure_etc_sysctl_sap_conf }}"
+  register: __sap_general_preconfigure_register_sap_conf_sysctl_command
+  changed_when: false
+
+# Reason for noqa: The command module tries to run the complete string as a single command
+- name: Get all currently active values of the parameters of file '{{ sap_general_preconfigure_etc_sysctl_sap_conf }}' # noqa command-instead-of-shell
+  ansible.builtin.shell: "{{ __sap_general_preconfigure_register_sap_conf_sysctl_command.stdout }}"
+  register: __sap_general_preconfigure_register_sap_conf_sysctl_p_output_old
+  changed_when: false
+
 - name: Reload kernel parameters from file '{{ sap_general_preconfigure_etc_sysctl_sap_conf }}'
   ansible.builtin.command: sysctl -p "{{ sap_general_preconfigure_etc_sysctl_sap_conf }}"
-  register: __sap_general_preconfigure_register_sap_conf_sysctl_p_output
-  changed_when: true
+  register: __sap_general_preconfigure_register_sap_conf_sysctl_p_output_new
+  changed_when: __sap_general_preconfigure_register_sap_conf_sysctl_p_output_old.stdout != __sap_general_preconfigure_register_sap_conf_sysctl_p_output_new.stdout
 
 - name: Display kernel parameters after setting kernel.pid_max
   ansible.builtin.debug:
-    var: __sap_general_preconfigure_register_sap_conf_sysctl_p_output.stdout_lines
+    var: __sap_general_preconfigure_register_sap_conf_sysctl_p_output_new.stdout_lines

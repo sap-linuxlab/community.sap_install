@@ -1,74 +1,61 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
-# Update etc hosts for NW
+# Update /etc/hosts for NW
 
-- name: SAP SWPM Pre Install - Display warning message if '/etc/hosts' is not configured for NW due to missing 'sap_swpm_fqdn'
+- name: SAP SWPM Pre Install - Display warning message if '/etc/hosts' will not be configured for NW due to missing 'sap_swpm_fqdn'
   ansible.builtin.debug:
     msg: "WARN: Not configuring NW entries in '/etc/hosts' because 'sap_swpm_fqdn' is not defined!"
   when:
     (sap_swpm_fqdn | type_debug == 'NoneType') or
     (sap_swpm_fqdn | length == 0)
 
-# Update etc hosts for HANA
-
 - name: SAP SWPM Pre Install - Update '/etc/hosts' for NW
+  ansible.builtin.import_role:
+    name: 'community.sap_install.sap_maintain_etc_hosts'
+  vars:
+    sap_maintain_etc_hosts_list:
+      - node_ip: "{{ ansible_default_ipv4.address | d(ansible_all_ipv4_addresses[0]) }}"
+        node_name: "{{ ansible_hostname }}"
+        node_domain: "{{ sap_swpm_fqdn }}"
+        state: present
   when:
     - "sap_swpm_fqdn | type_debug != 'NoneType'"
     - "sap_swpm_fqdn | length > 0"
-  block:
 
-    - name: SAP SWPM Pre Install - Deduplicate values from '/etc/hosts'
-      ansible.builtin.lineinfile:
-        path: /etc/hosts
-        create: false
-        regexp: (?i)^\s*{{ ansible_default_ipv4.address | d(ansible_all_ipv4_addresses[0]) }}\s+
-        state: absent
+# Update /etc/hosts for HANA
 
-# Reason for noqa: 1. Tabs can increase readability;
-#                  2. Tabs are allowed for /etc/hosts
-    - name: SAP SWPM Pre Install - Update '/etc/hosts' with NW entry # noqa no-tabs
-      ansible.builtin.lineinfile:
-        path: /etc/hosts
-        line: "{{ ansible_default_ipv4.address | d(ansible_all_ipv4_addresses[0]) }}\t{{ ansible_hostname }}.{{ sap_swpm_fqdn }}\t{{ ansible_hostname }}"
-
-- name: SAP SWPM Pre Install - Display warning message if '/etc/hosts' is not configured for HANA due to missing 'sap_swpm_db_ip'
+- name: SAP SWPM Pre Install - Display warning message if '/etc/hosts' will not be configured for HANA due to missing 'sap_swpm_db_ip'
   ansible.builtin.debug:
     msg: "WARN: Not configuring HANA entries in '/etc/hosts' because 'sap_swpm_db_ip' is not defined!"
   when:
     (sap_swpm_db_ip | type_debug == 'NoneType') or
     (sap_swpm_db_ip | length == 0)
 
-- name: SAP SWPM Pre Install - Display warning message if '/etc/hosts' is not configured for HANA due to missing 'sap_swpm_db_host'
+- name: SAP SWPM Pre Install - Display warning message if '/etc/hosts' will not be configured for HANA due to missing 'sap_swpm_db_host'
   ansible.builtin.debug:
     msg: "WARN: Not configuring HANA entries in '/etc/hosts' because 'sap_swpm_db_host' is not defined!"
   when:
     (sap_swpm_db_host | type_debug == 'NoneType') or
     (sap_swpm_db_host | length == 0)
 
-- name: SAP SWPM Pre Install - Display warning message if '/etc/hosts' is not configured for HANA because 'sap_swpm_db_host' is the current host
+- name: SAP SWPM Pre Install - Display warning message if '/etc/hosts' will not be configured for HANA because 'sap_swpm_db_host' is the current host
   ansible.builtin.debug:
     msg: "WARN: Not configuring HANA entries in '/etc/hosts' because 'sap_swpm_db_host' is the current host!"
   when: sap_swpm_db_host == ansible_hostname
 
 - name: SAP SWPM Pre Install - Update '/etc/hosts' for HANA
+  ansible.builtin.import_role:
+    name: 'community.sap_install.sap_maintain_etc_hosts'
+  vars:
+    sap_maintain_etc_hosts_list:
+      - node_ip: "{{ sap_swpm_db_ip }}"
+        node_name: "{{ sap_swpm_db_host }}"
+        node_domain: "{{ sap_swpm_fqdn }}"
+        state: present
   when:
     - "sap_swpm_db_ip | type_debug != 'NoneType'"
     - "sap_swpm_db_ip | length > 0"
     - "sap_swpm_db_host | type_debug != 'NoneType'"
     - "sap_swpm_db_host | length > 0"
     - "sap_swpm_db_host != ansible_hostname"
-  block:
-
-    - name: SAP SWPM Pre Install - Deduplicate values from '/etc/hosts'
-      ansible.builtin.lineinfile:
-        path: /etc/hosts
-        create: false
-        regexp: (?i)^\s*{{ sap_swpm_db_ip }}\s+
-        state: absent
-
-# Reason for noqa: 1. Tabs can increase readability;
-#                  2. Tabs are allowed for /etc/hosts
-    - name: SAP SWPM Pre Install - Update '/etc/hosts' with HANA entry # noqa no-tabs
-      ansible.builtin.lineinfile:
-        path: /etc/hosts
-        line: "{{ sap_swpm_db_ip }}\t{{ sap_swpm_db_host }}.{{ sap_swpm_fqdn }}\t{{ sap_swpm_db_host }}"

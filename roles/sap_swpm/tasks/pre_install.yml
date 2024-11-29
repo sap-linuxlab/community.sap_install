@@ -1,28 +1,150 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
+
+- name: SAP SWPM Pre Install - Define 'sap_swpm_inifile_sections_list' from 'sap_swpm_inifile_list' if necessary
+  ansible.builtin.set_fact:
+    sap_swpm_inifile_sections_list: "{{ sap_swpm_inifile_list }}"
+  when:
+    - sap_swpm_inifile_sections_list is undefined
+    - sap_swpm_inifile_list is defined
+  tags: always
+
+- name: SAP SWPM Pre Install - Define 'sap_swpm_inifile_parameters_dict' from 'sap_swpm_inifile_custom_values_dictionary' if necessary
+  ansible.builtin.set_fact:
+    sap_swpm_inifile_parameters_dict: "{{ sap_swpm_inifile_custom_values_dictionary }}"
+  when:
+    - sap_swpm_inifile_parameters_dict is undefined
+    - sap_swpm_inifile_custom_values_dictionary is defined
+  tags: always
+
+# Note: Variable definitions in sap_swpm_templates_install_dictionary will overwrite existing top level definitions.
+- name: SAP SWPM Pre Install - Define variables from 'sap_swpm_templates_install_dictionary' if present
+  when: sap_swpm_templates_install_dictionary is defined
+  tags: always
+  block:
+
+    - name: SAP SWPM Pre Install - Display 'sap_swpm_templates_product_input'
+      ansible.builtin.debug:
+        msg:
+          - "sap_swpm_templates_product_input: >{{ sap_swpm_templates_product_input }}<"
+      ignore_errors: true
+
+    - name: SAP SWPM Pre Install - Fail if 'sap_swpm_inifile_sections_list' and 'sap_swpm_inifile_list' are both defined in the dict
+      ansible.builtin.fail:
+        msg:
+          - "FAIL: In 'sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]', both"
+          - "'sap_swpm_inifile_sections_list' and 'sap_swpm_inifile_list' are defined!"
+          - "Only one of these variables may be defined in 'sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]'."
+      when:
+        - sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_sections_list'] is defined
+        - sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_list'] is defined
+
+    - name: SAP SWPM Pre Install - Fail if 'sap_swpm_inifile_parameters_dict' and 'sap_swpm_inifile_custom_values_dictionary' are both defined in the dict
+      ansible.builtin.fail:
+        msg:
+          - "FAIL: In 'sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]', both"
+          - "'sap_swpm_inifile_parameters_dict', and 'sap_swpm_inifile_custom_values_dictionary', are defined!"
+          - "Only one of these variables may be defined in 'sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]'."
+      when:
+        - sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_parameters_dict'] is defined
+        - sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_custom_values_dictionary'] is defined
+
+# Unconditionally define sap_swpm_product_catalog_id from low level member.
+    - name: SAP SWPM Pre Install - Define 'sap_swpm_product_catalog_id' from low level member with the same name
+      ansible.builtin.set_fact:
+#        sap_swpm_product_catalog_id: "{{ sap_swpm_product_catalog_id |
+#          d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_product_catalog_id']) }}"
+        sap_swpm_product_catalog_id: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_product_catalog_id'] }}"
+      when: sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_product_catalog_id'] is defined
+
+    - name: SAP SWPM Pre Install - Display 'sap_swpm_product_catalog_id'
+      ansible.builtin.debug:
+        msg: "sap_swpm_product_catalog_id: >{{ sap_swpm_product_catalog_id }}<"
+
+# Unconditionally define sap_swpm_inifile_sections_list from low level member.
+    - name: SAP SWPM Pre Install - Define 'sap_swpm_inifile_sections_list' from low level member
+      ansible.builtin.set_fact:
+        sap_swpm_inifile_sections_list: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_list'] |
+          d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_sections_list']) }}"
+      when: sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_list'] is defined or
+            sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_sections_list'] is defined
+
+# Define sap_swpm_role_parameters_dict from low level member.
+    - name: SAP SWPM Pre Install - Define 'sap_swpm_role_parameters_dict' from low level member
+      ansible.builtin.set_fact:
+        sap_swpm_role_parameters_dict: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_dictionary'] |
+          d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_role_parameters_dict']) }}"
+      when: sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_dictionary'] is defined or
+            sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_role_parameters_dict'] is defined
+
+    - name: SAP SWPM Pre Install - Display 'sap_swpm_role_parameters_dict'
+      ansible.builtin.debug:
+        msg: "sap_swpm_role_parameters_dict: >{{ sap_swpm_role_parameters_dict }}<"
+      when: sap_swpm_role_parameters_dict is defined and sap_swpm_role_parameters_dict
+      ignore_errors: true
+
+# Define role variables from low level member, looping over 'sap_swpm_role_parameters_dict'.
+# Reason for noqa: We are setting variables from the content of a dict, and the variable names are in the dict keys.
+    - name: SAP SWPM Pre Install - Define role variables from low level member, looping over 'sap_swpm_role_parameters_dict' # noqa var-naming[no-jinja]
+      ansible.builtin.set_fact:
+        "{{ line_item.key }}": "{{ line_item.value }}"
+      loop: "{{ sap_swpm_role_parameters_dict | dict2items if sap_swpm_role_parameters_dict is mapping else [] }}"
+      loop_control:
+        loop_var: line_item
+      when:
+        - sap_swpm_role_parameters_dict is defined and sap_swpm_role_parameters_dict
+
+    - name: SAP SWPM Pre Install - Display all vars and values of 'sap_swpm_role_parameters_dict'
+      ansible.builtin.debug:
+        msg: "{{ line_item.key }}: >{{ lookup('vars', line_item.key) }}<"
+      loop: "{{ sap_swpm_role_parameters_dict | dict2items if sap_swpm_role_parameters_dict is mapping else [] }}"
+      loop_control:
+        loop_var: line_item
+      when: sap_swpm_role_parameters_dict is defined and sap_swpm_role_parameters_dict
+      ignore_errors: true
+
+# Define sap_swpm_inifile_parameters_dict from low level member, or use top level variable if defined. Low level definition has precedence.
+    - name: SAP SWPM Pre Install - Define 'sap_swpm_inifile_parameters_dict' from low level member
+      ansible.builtin.set_fact:
+        sap_swpm_inifile_parameters_dict: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_custom_values_dictionary'] |
+          d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_parameters_dict']) }}"
+      when: sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_custom_values_dictionary'] is defined or
+            sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_parameters_dict'] is defined
+
+# The following task ensures that the two main inifile creation parameters are defined.
+# This is necessary when creating the file 'inifile.params'.
+- name: SAP SWPM Pre Install - Define the main inifile creation parameters as empty if necessary
+  ansible.builtin.set_fact:
+    sap_swpm_inifile_sections_list: "{{ sap_swpm_inifile_sections_list | d([]) }}"
+    sap_swpm_inifile_parameters_dict: "{{ sap_swpm_inifile_parameters_dict | d({}) }}"
+  tags: always
+
+# Assert correct hostname and IP resolution of virtual hostname and IP if:
+# - sapinst is requested to be run, and
+# - /etc/hosts file is requested to be updated, and
+# - sap_swpm_virtual_hostname has been defined
+
+- name: SAP SWPM Pre Install - Assert hostname resolution for HA
+  ansible.builtin.include_tasks:
+    file: pre_install/assert_hostname_resolution_for_ha.yml
+    apply:
+      tags: sap_swpm_update_etchosts
+  when:
+    - sap_swpm_run_sapinst
+    - sap_swpm_update_etchosts
+    - sap_swpm_virtual_hostname | type_debug != 'NoneType'
+    - sap_swpm_virtual_hostname | length > 0
+  tags: sap_swpm_update_etchosts
 
 ################
 # Run Preinstallation Steps Based on Run Mode
 ################
 
 - name: SAP SWPM Pre Install - Run Preinstallation Steps
-  ansible.builtin.include_tasks: swpm/swpm_pre_install.yml
+  ansible.builtin.include_tasks: pre_install/swpm_prepare.yml
   tags:
     - sap_swpm_generate_inifile
     - sap_swpm_sapinst_commandline
-
-################
-# Set sapinst command
-################
-
-- name: SAP SWPM Pre Install - Set sapinst command
-  ansible.builtin.set_fact:
-    sap_swpm_swpm_command_inifile: "SAPINST_INPUT_PARAMETERS_URL={{ sap_swpm_tmpdir.path }}/inifile.params"
-    sap_swpm_swpm_command_product_id: "SAPINST_EXECUTE_PRODUCT_ID={{ sap_swpm_product_catalog_id }}"
-    # If SWPM is running a normal install Ansible Variable sap_swpm_swpm_command_virtual_hostname is blank
-    # IF SWPM is running a HA installation, Ansible Variable sap_swpm_swpm_command_virtual_hostname is set and contains "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }} IS_HOST_LOCAL_USING_STRING_COMPARE=true"
-    # If SWPM is running a MP Stack XML installation, Ansible Variable sap_swpm_swpm_command_mp_stack is set and contains "SAPINST_STACK_XML={{ sap_swpm_mp_stack_path }} + '/' (if needed) + {{ sap_swpm_mp_stack_file_name }}"
-    sap_swpm_swpm_command_extra_args: "SAPINST_SKIP_DIALOGS=true SAPINST_START_GUISERVER=false {{ sap_swpm_swpm_command_virtual_hostname }} {{ sap_swpm_swpm_command_mp_stack }}"
-  tags: sap_swpm_sapinst_commandline
 
 ################
 # Pre Install Optional Tasks
@@ -30,12 +152,14 @@
 
 # Firewall
 
-- name: SAP SWPM Pre Install - Firewall Setup
+- name: SAP SWPM Pre Install - Setup Firewall
   ansible.builtin.include_tasks:
     file: pre_install/firewall.yml
     apply:
       tags: sap_swpm_setup_firewall
-  when: "sap_swpm_setup_firewall | bool"
+  when:
+    - sap_swpm_run_sapinst
+    - sap_swpm_setup_firewall
   tags: sap_swpm_setup_firewall
 
 # /etc/hosts
@@ -45,7 +169,9 @@
     file: pre_install/update_etchosts.yml
     apply:
       tags: sap_swpm_update_etchosts
-  when: "sap_swpm_update_etchosts | bool"
+  when:
+    - sap_swpm_run_sapinst
+    - sap_swpm_update_etchosts
   tags: sap_swpm_update_etchosts
 
 ################
@@ -77,3 +203,32 @@
       - '   The installation can take up to 3 hours. Run the following command as root'
       - '   on {{ ansible_hostname }} to display the installation logs:'
       - '   # tail -f $(cat /tmp/sapinst_instdir/.lastInstallationLocation)/sapinst.log'
+
+################
+# Set sapinst command
+################
+
+- name: SAP SWPM Pre Install - Set the sapinst command parameters
+  vars:
+    sap_swpm_swpm_command_guiserver: "{{ 'SAPINST_START_GUISERVER=false' if not sap_swpm_swpm_observer_mode else '' }}"
+    sap_swpm_swpm_command_observer: "{{ 'SAPINST_REMOTE_ACCESS_USER=' + sap_swpm_swpm_remote_access_user + ' SAPINST_REMOTE_ACCESS_USER_IS_TRUSTED=true' if sap_swpm_swpm_observer_mode and sap_swpm_swpm_remote_access_user | d('', true) | length > 0 else '' }}"
+  ansible.builtin.set_fact:
+    sap_swpm_swpm_command_inifile: "SAPINST_INPUT_PARAMETERS_URL={{ sap_swpm_tmpdir.path }}/inifile.params"
+    sap_swpm_swpm_command_product_id: "SAPINST_EXECUTE_PRODUCT_ID={{ sap_swpm_product_catalog_id }}"
+    # If SWPM is running a normal install Ansible Variable sap_swpm_swpm_command_virtual_hostname is blank
+    # IF SWPM is running a HA installation, Ansible Variable sap_swpm_swpm_command_virtual_hostname is set and contains "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }} IS_HOST_LOCAL_USING_STRING_COMPARE=true"
+    # If SWPM is running a MP Stack XML installation, Ansible Variable sap_swpm_swpm_command_mp_stack is set and contains "SAPINST_STACK_XML={{ sap_swpm_mp_stack_path }} + '/' (if needed) + {{ sap_swpm_mp_stack_file_name }}"
+    sap_swpm_swpm_command_extra_args: "SAPINST_SKIP_DIALOGS=true {{ sap_swpm_swpm_command_guiserver }} {{ sap_swpm_swpm_command_observer }} {{ sap_swpm_swpm_command_virtual_hostname }} {{ sap_swpm_swpm_command_mp_stack }}"
+  tags: sap_swpm_sapinst_commandline
+
+- name: Set fact for the sapinst command line
+  ansible.builtin.set_fact:
+    __sap_swpm_sapinst_command: "umask {{ sap_swpm_umask | d('022') }} ; ./sapinst {{ sap_swpm_swpm_command_inifile }}
+    {{ sap_swpm_swpm_command_product_id }}
+    {{ sap_swpm_swpm_command_extra_args }}"
+  tags: sap_swpm_sapinst_commandline
+
+- name: Display the sapinst command line
+  ansible.builtin.debug:
+    msg: "SAP SWPM install command: '{{ __sap_swpm_sapinst_command }}'"
+  tags: sap_swpm_sapinst_commandline

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
 - name: Get boot command line
@@ -12,7 +13,8 @@
   when:
     - ansible_architecture == 'x86_64'
     - ansible_distribution == 'RedHat'
-    - ansible_distribution_major_version == '8'
-    - __sap_hana_preconfigure_fact_ansible_distribution_minor_version|int >= 3
+    - (ansible_distribution_major_version >= '9') or
+      (ansible_distribution_major_version == '8' and
+       __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int >= 3)
     - not ( __sap_hana_preconfigure_register_proc_cmdline['content'] | b64decode | regex_findall('tsx=on') )
   tags: grubconfig

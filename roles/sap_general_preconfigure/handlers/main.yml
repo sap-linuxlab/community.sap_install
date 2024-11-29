@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # handlers file for sap_general_preconfigure
 
@@ -7,6 +8,18 @@
   listen: __sap_general_preconfigure_reboot_handler
   when:
     - sap_general_preconfigure_reboot_ok|d(false)
+
+# Kernel update triggers zypper purge-kernels and lock after reboot.
+- name: Wait for Zypper lock to be released
+  ansible.builtin.command:
+    cmd: zypper info zypper
+  retries: 60
+  timeout: 5
+  listen: __sap_general_preconfigure_reboot_handler
+  when:
+    - ansible_os_family == 'Suse'
+    - sap_general_preconfigure_reboot_ok | d(false)
+  changed_when: false
 
 - name: Let the role fail if a reboot is required
   ansible.builtin.fail:
@@ -30,6 +43,7 @@
 - name: Remount /dev/shm # noqa command-instead-of-module no-changed-when
   ansible.builtin.command: mount -o remount /dev/shm
   listen: __sap_general_preconfigure_mount_tmpfs_handler
+  tags: molecule-idempotence-notest
 
 - name: Check if /dev/shm is available
   ansible.builtin.command: df -h /dev/shm

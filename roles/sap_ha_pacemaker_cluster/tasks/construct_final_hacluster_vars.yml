@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # After all of the previous construction flows, the final parameters must
 # be translated to 'ha_cluster' Linux System Role syntax.
@@ -27,6 +28,18 @@
 # __sap_ha_pacemaker_cluster_resource_groups        ha_cluster_resource_groups
 # __sap_ha_pacemaker_cluster_resource_primitives    ha_cluster_resource_primitives
 # __sap_ha_pacemaker_cluster_corosync_totem                  ha_cluster_totem
+
+# Combines SBD stonith options with ha_cluster if it was not imported as extra var.
+- name: "SAP HA Prepare Pacemaker - (ha_cluster) Include SBD config into 'ha_cluster'"  # noqa jinja[spacing]
+  when:
+    - __sap_ha_pacemaker_cluster_ha_cluster_stonith is defined and __sap_ha_pacemaker_cluster_ha_cluster_stonith | length > 0
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_ha_cluster: >-
+      {%- if __sap_ha_pacemaker_cluster_ha_cluster is defined and __sap_ha_pacemaker_cluster_ha_cluster | length > 0 -%}
+      {{ __sap_ha_pacemaker_cluster_ha_cluster | combine(__sap_ha_pacemaker_cluster_ha_cluster_stonith) }}
+      {%- else -%}
+      {{ __sap_ha_pacemaker_cluster_ha_cluster_stonith }}
+      {%- endif -%}
 
 - name: "SAP HA Prepare Pacemaker - (ha_cluster) Define parameter 'ha_cluster'"
   when: __sap_ha_pacemaker_cluster_ha_cluster is defined
@@ -109,3 +122,13 @@
   when: __sap_ha_pacemaker_cluster_corosync_totem is defined
   ansible.builtin.set_fact:
     ha_cluster_totem: "{{ __sap_ha_pacemaker_cluster_corosync_totem }}"
+
+- name: "SAP HA Prepare Pacemaker - (ha_cluster) Define parameter 'ha_cluster_sbd_options'"
+  when: __sap_ha_pacemaker_cluster_sbd_options is defined
+  ansible.builtin.set_fact:
+    ha_cluster_sbd_options: "{{ __sap_ha_pacemaker_cluster_sbd_options }}"
+
+- name: "SAP HA Prepare Pacemaker - (ha_cluster) Define parameter 'ha_cluster_sbd_enabled'"
+  when: __sap_ha_pacemaker_cluster_sbd_enabled is defined
+  ansible.builtin.set_fact:
+    ha_cluster_sbd_enabled: "{{ __sap_ha_pacemaker_cluster_sbd_enabled }}"

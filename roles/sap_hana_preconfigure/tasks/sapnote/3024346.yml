@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # SAP Note: 3024346 - Linux Kernel Settings for NetApp NFS
 #
@@ -12,11 +13,11 @@
     - sap_hana_preconfigure_config_all|d(true) or sap_hana_preconfigure_3024346|d(false)
   block:
 
-    - name: Modify entries in file '{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}'
+    - name: Ensure correct entries in file '{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}'
       ansible.builtin.lineinfile:
         path: "{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}"
         create: yes
-        mode: 0644
+        mode: "0644"
         regexp: ^{{ line_item.name }}.*
         line: "{{ line_item.name }}={{ line_item.value }}"
         state: present
@@ -24,20 +25,51 @@
       loop_control:
         loop_var: line_item
 
-# Reason for noqa: We unconditionally reload the kernel parameters without first checking the current values
-    - name: Reload kernel parameters from file '{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}' # noqa no-changed-when
+# Due to sysctl config file precedence rules, it can happen that previous entries in
+# __sap_hana_preconfigure_etc_sysctl_saphana_conf remain in effect even after setting
+# different parameter values in __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf.
+# So we have to ensure that those duplicate entries are not present.
+# See also https://github.com/sap-linuxlab/community.sap_install/issues/196.
+    - name: Ensure kernel tunables for NetApp NFS are not in file '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}'
+      ansible.builtin.lineinfile:
+        path: "{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}"
+        regexp: ^{{ line_item }}
+        state: absent
+      with_items:
+        - 'net.core.wmem_max'
+        - 'net.core.rmem_max'
+      loop_control:
+        loop_var: line_item
+
+# Note: The sole purpose of the following two tasks is to collect the current value(s) of the kernel parameters
+# in __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf so that the "Reload kernel parameters from file ..." task
+# can correctly report its 'changed' state. See also https://github.com/sap-linuxlab/community.sap_install/issues/752 .
+    - name: Construct the command for getting all current parameters of file '{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}'
+      ansible.builtin.command: awk 'BEGIN{FS="="; printf ("sysctl ")}{printf ("%s ", $1)}' "{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}"
+      register: __sap_hana_preconfigure_register_netapp_sysctl_command
+      changed_when: false
+
+# Reason for noqa - risky-shell-pipe: when adding 'set -o pipefail', the complete string is attempted to be executed as a single command.
+#   Also the command after the pipe is not expected to fail.
+# Reason for noqa - no-tabs: This is a false positive in ansible-lint 6.22.2, removed in 24.5.0. See https://github.com/ansible/ansible-lint/issues/4020
+    - name: Get all currently active values of the parameters of file '{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}' # noqa risky-shell-pipe no-tabs
+      ansible.builtin.shell: "{{ __sap_hana_preconfigure_register_netapp_sysctl_command.stdout }} | sed 's,\t, ,g'"
+      register: __sap_hana_preconfigure_register_netapp_sysctl_p_output_old
+      changed_when: false
+
+    - name: Reload kernel parameters from file '{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}'
       ansible.builtin.command: sysctl -p "{{ __sap_hana_preconfigure_etc_sysctl_netapp_hana_conf }}"
-      register: __sap_hana_preconfigure_register_netapp_sysctl_p_output
+      register: __sap_hana_preconfigure_register_netapp_sysctl_p_output_new
+      changed_when: __sap_hana_preconfigure_register_netapp_sysctl_p_output_old.stdout != __sap_hana_preconfigure_register_netapp_sysctl_p_output_new.stdout
 
     - name: Display kernel parameters for NetApp NFS
       ansible.builtin.debug:
-        var: __sap_hana_preconfigure_register_netapp_sysctl_p_output.stdout_lines
+        var: __sap_hana_preconfigure_register_netapp_sysctl_p_output_new.stdout_lines
 
-    - name: Set kernel tunable for NFSv3 as per SAP note 3024346
+    - name: Set kernel tunable 'tcp_max_slot_table_entries' to '128' in file '/etc/modprobe.d/sunrpc.conf'
       ansible.builtin.lineinfile:
         path: /etc/modprobe.d/sunrpc.conf
-        create: yes
-        mode: 0644
+        create: true
+        mode: "0644"
         regexp: '^options sunrpc tcp_max_slot_table_entries'
         line: options sunrpc tcp_max_slot_table_entries=128
-      when: sap_hana_preconfigure_use_netapp_settings_nfsv3

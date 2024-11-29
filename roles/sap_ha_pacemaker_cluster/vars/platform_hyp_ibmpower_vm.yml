@@ -1,50 +1,76 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # Variables specific on IBM PowerVM hypervisor, Virtual Machines (LPAR)
 # TODO: rename this file to match the actual "chassis_asset_tag" output
 # TODO: make sure to first respect 'ha_cluster' native variables
 
-sap_ha_pacemaker_cluster_fence_agent_packages:
-  "{{ sap_ha_pacemaker_cluster_fence_agent_packages_dict.hyp_ibmpower_vm | default([]) }}"
+__sap_ha_pacemaker_cluster_fence_agent_packages_platform:
+  "{{ __sap_ha_pacemaker_cluster_fence_agent_packages_dict.hyp_ibmpower_vm | d([]) }}"
 
 __sap_ha_pacemaker_cluster_platform_extra_packages:
-  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.hyp_ibmpower_vm | default([]) }}"
+  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.hyp_ibmpower_vm | d([]) }}"
 
 __sap_ha_pacemaker_cluster_repos:
-  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
-    name: High Availability E4S (4-Year) for Power, little endian
-#  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-eus-rpms"
-#    name: High Availability EUS (2-Year) for Power, little endian
-#  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-rpms"
-#    name: High Availability for Power, little endian
-
-# Predefine
-__sap_ha_pacemaker_cluster_ibmpower_vm_hosts: []
+  "{{ __sap_ha_pacemaker_cluster_repos_dict.hyp_ibmpower_vm | d([]) }}"
 
 
-sap_ha_pacemaker_cluster_stonith_default:
-  id: "res_fence_lpar"
-  agent: "stonith:fence_lpar"
-  options:
-    ip: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host }}"
-    ipport: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_port }}"
-    username: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_login }}"
-    password: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_login_password }}"
-    hmc_version: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_version | default('4') }}"
-    managed: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_system_host_mtms }}"
-    # Identified during execution initial tasks, populated when variables are imported
+# Stonith dictionary for default stonith agents.
+# Custom stonith resource can be defined using sap_ha_pacemaker_cluster_stonith_custom
+__sap_ha_pacemaker_cluster_stonith_default_dict:
+  generic:
+    id: "rsc_fence_lpar"
+    agent: "stonith:fence_lpar"
+    instance_attrs:
+      - attrs:
+          - name: ip
+            value: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host }}"
+          - name: ipport
+            value: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_port }}"
+          - name: username
+            value: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_login }}"
+          - name: password
+            value: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_login_password }}"
+          - name: hmc_version
+            value: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_host_version | d('4') }}"
+          - name: managed
+            value: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_system_host_mtms }}"
 
-    # plug: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_system_partition_name }}"
-    # Unnecessary when using pcmk_host_map. Identified during execution initial tasks, populated when variables are imported
+          # Identified during execution initial tasks, populated when variables are imported
 
-    pcmk_reboot_retries: 4
-    pcmk_reboot_timeout: 600
-    pcmk_monitor_timeout: 600
-    pcmk_status_timeout: 60
-    power_timeout: 240
+          # plug: "{{ sap_ha_pacemaker_cluster_ibmpower_vm_hmc_system_partition_name }}"
+          # Unnecessary when using pcmk_host_map. Identified during execution initial tasks, populated when variables are imported
+          # String of cluster hosts defined in include_vars_platform
+          - name: pcmk_host_map
+            value: "{{ __sap_ha_pacemaker_cluster_pcmk_host_map }}"
+          - name: pcmk_reboot_retries
+            value: 4
+          - name: pcmk_reboot_timeout
+            value: 600
+          - name: pcmk_monitor_timeout
+            value: 600
+          - name: pcmk_status_timeout
+            value: 60
+          - name: power_timeout
+            value: 240
+
+# Select __sap_ha_pacemaker_cluster_stonith_default
+__sap_ha_pacemaker_cluster_stonith_default:
+  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict.generic }}"
+
+
+# Default corosync options - Platform specific
+# These options combined with __sap_ha_pacemaker_cluster_corosync_totem_default (Same options are overwritten).
+__sap_ha_pacemaker_cluster_corosync_totem_platform_dict:
+  generic:
+    options:
+      token: 30000
+
+__sap_ha_pacemaker_cluster_corosync_totem_platform:
+  "{{ __sap_ha_pacemaker_cluster_corosync_totem_platform_dict.generic }}"
 
 
 # Platform specific VIP handling
-sap_ha_pacemaker_cluster_vip_method: ipaddr
+sap_ha_pacemaker_cluster_vip_method: "{{ __sap_ha_pacemaker_cluster_vip_method_dict.hyp_ibmpower_vm | d('ipaddr') }}"
 
 __sap_ha_pacemaker_cluster_available_vip_agents:
 

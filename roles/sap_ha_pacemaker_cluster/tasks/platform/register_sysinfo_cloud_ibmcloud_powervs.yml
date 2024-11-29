@@ -1,14 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # Ansible facts rely on SMBIOS/DMI, which does not exist on ppc64le CPU Architecture.
 
 # Discovered input used for plug (via pcmk_host_map)
-# The Instance ID in the IBM Power Virtual Server Workspace, is identical string to the UUID reported in the host
-# alt command using IBM Power RSCT binary: /opt/rsct/bin/ctgethscid | grep PartitionUUID | cut -d \" -f2
-# alt command using cloud-init data: cat /run/cloud-init/instance-data.json | grep uuid | cut -d \" -f4
-# alt command using cloud-init data: cat /run/cloud-init/instance-data.json | grep instance_id | cut -d \" -f4
+# Reference - https://ibm.com/support/pages/node/7075598
+# The Instance ID in the IBM Power Virtual Server Workspace, must be identical string to the UUID reported in the host
+# Use cloud-init data as definitive lookup on IBM Power VS, as IBM Power RSCT Binary /opt/rsct/bin/ctgethscid or Kernel data structure such as /proc/device-tree/ibm,partition-uuid
 - name: "SAP HA Prepare Pacemaker -  IBM Cloud Power VS - IBM Power Virtual Server UUID"
   ansible.builtin.shell: |
-    set -o pipefail && echo $(tr -d '\0' < /proc/device-tree/ibm,partition-uuid)
+    set -o pipefail && echo $(cat /run/cloud-init/instance-data.json | grep instance_id | cut -d \" -f4)
   register: __sap_ha_pacemaker_cluster_register_ibmcloud_powervs_host
   changed_when: false
   check_mode: false

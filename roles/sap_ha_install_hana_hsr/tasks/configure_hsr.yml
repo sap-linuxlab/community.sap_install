@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 - name: "SAP HSR - Check System Replication Status"
   ansible.builtin.shell: |
@@ -31,6 +32,7 @@
 
 # looping through cluster definition to run on secondary node
 # and apply the respective 'site' value
+# - 'throttle' to avoid simultaneous run for multiple secondaries as this confuses the primary
 - name: "SAP HSR - Register secondary node to HANA System Replication"
   ansible.builtin.shell: |
     source /usr/sap/{{ sap_ha_install_hana_hsr_sid }}/home/.sapenv.sh && \
@@ -50,6 +52,7 @@
   loop_control:
     label: "{{ item.node_name }}"
   changed_when: true
+  throttle: 1
 
 - name: "SAP HSR - Start HANA instance on secondary"
   ansible.builtin.shell: |

@@ -1,9 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
 # supported RHEL 9 minor releases for SAP HANA:
 __sap_hana_preconfigure_supported_rhel_minor_releases:
   - "9.0"
   - "9.2"
+  - "9.4"
 
 # required repos for RHEL 9:
 __sap_hana_preconfigure_req_repos_redhat_9_0_x86_64:
@@ -118,15 +120,15 @@ __sap_hana_preconfigure_req_repos_redhat_9_10_ppc64le:
 
 # required SAP notes for RHEL 9:
 __sap_hana_preconfigure_sapnotes_versions_x86_64:
-  - { number: '3108302', version: '8' }
-  - { number: '2382421', version: '45' }
-  - { number: '3024346', version: '3' }
+  - { number: '3108302', version: '11' }
+  - { number: '2382421', version: '47' }
+  - { number: '3024346', version: '11' }
 
 __sap_hana_preconfigure_sapnotes_versions_ppc64le:
   - { number: '2055470', version: '90' }
-  - { number: '3108302', version: '8' }
-  - { number: '2382421', version: '45' }
-  - { number: '3024346', version: '3' }
+  - { number: '3108302', version: '11' }
+  - { number: '2382421', version: '47' }
+  - { number: '3024346', version: '11' }
 
 __sap_hana_preconfigure_sapnotes_versions: "{{ lookup('vars', '__sap_hana_preconfigure_sapnotes_versions_' + ansible_architecture) }}"
 
@@ -158,8 +160,10 @@ __sap_hana_preconfigure_min_packages_9_3_x86_64:
 __sap_hana_preconfigure_min_packages_9_3_ppc64le:
 
 __sap_hana_preconfigure_min_packages_9_4_x86_64:
+  - [ 'kernel', '5.14.0-427.16.1.el9_4' ]
 
 __sap_hana_preconfigure_min_packages_9_4_ppc64le:
+  - [ 'kernel', '5.14.0-427.16.1.el9_4' ]
 
 __sap_hana_preconfigure_min_packages_9_5_x86_64:
 
@@ -208,6 +212,8 @@ __sap_hana_preconfigure_packages:
   - nfs-utils
 # SAP NOTE 3108302:
   - tuned-profiles-sap-hana
+# SAP NOTE 3449186 - Required for HANA 2.0 SPS08:
+  - compat-sap-c++-13
 
 __sap_hana_preconfigure_packages_min_install:
 # SAP NOTE 3108316:
@@ -236,6 +242,8 @@ __sap_hana_preconfigure_packages_min_install:
 #  - nfs-utils
 # SAP NOTE 3108302:
   - tuned-profiles-sap-hana
+# SAP NOTE 3449186 - Required for HANA 2.0 SPS08:
+  - compat-sap-c++-13
 
 # URL for the IBM Power Systems service and productivity tools, see https://www.ibm.com/support/pages/service-and-productivity-tools
 __sap_hana_preconfigure_ibm_power_repo_url: 'https://public.dhe.ibm.com/software/server/POWER/Linux/yum/download/ibm-power-repo-latest.noarch.rpm'
@@ -245,8 +253,7 @@ __sap_hana_preconfigure_required_ppc64le:
 
 # Network related kernel parameters as set in SAP Note 2382421:
 __sap_hana_preconfigure_kernel_parameters_default:
-# The following two parameter should always be set:
-  - { name: net.core.somaxconn, value: 4096 }
+# The following parameter should always be set:
   - { name: net.ipv4.tcp_max_syn_backlog, value: 8192 }
 # The following two parameters are automatically set by SAP Host Agent
 #  - { name: net.ipv4.ip_local_port_range, value: "40000 61000" }

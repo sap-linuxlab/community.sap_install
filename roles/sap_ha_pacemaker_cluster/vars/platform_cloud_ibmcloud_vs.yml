@@ -1,48 +1,69 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # Variables specific on IBM Cloud platform, Virtual Servers (x86_64)
 #
 # TODO: make sure to first respect 'ha_cluster' native variables
 
-sap_ha_pacemaker_cluster_fence_agent_packages:
-  "{{ sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_ibmcloud_vs | default([]) }}"
+__sap_ha_pacemaker_cluster_fence_agent_packages_platform:
+  "{{ __sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_ibmcloud_vs | d([]) }}"
 
 __sap_ha_pacemaker_cluster_platform_extra_packages:
-  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_ibmcloud_vs | default([]) }}"
+  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_ibmcloud_vs | d([]) }}"
 
 __sap_ha_pacemaker_cluster_repos:
-  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
-    name: High Availability E4S (4-Year)
-#  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-eus-rpms"
-#    name: High Availability EUS (2-Year)
-#  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-rpms"
-#    name: High Availability
+  "{{ __sap_ha_pacemaker_cluster_repos_dict.cloud_ibmcloud_vs | d([]) }}"
 
-# Predefine
-__sap_ha_pacemaker_cluster_ibmcloud_hosts: []
 
-sap_ha_pacemaker_cluster_stonith_default:
-  id: "res_fence_ibm_vpc"
-  agent: "stonith:fence_ibm_vpc"
-  options:
-    apikey: "{{ sap_ha_pacemaker_cluster_ibmcloud_api_key }}"
-    region: "{{ sap_ha_pacemaker_cluster_ibmcloud_region }}"
-    pcmk_monitor_timeout: 600
+# Stonith dictionary for default stonith agents.
+# Custom stonith resource can be defined using sap_ha_pacemaker_cluster_stonith_custom
+__sap_ha_pacemaker_cluster_stonith_default_dict:
+  generic:
+    id: "rsc_fence_ibm_vpc"
+    agent: "stonith:fence_ibm_vpc"
+    instance_attrs:
+      - attrs:
+          - name: apikey
+            value: "{{ sap_ha_pacemaker_cluster_ibmcloud_api_key }}"
+          - name: region
+            value: "{{ sap_ha_pacemaker_cluster_ibmcloud_region }}"
+
+          # String of cluster hosts defined in include_vars_platform
+          - name: pcmk_host_map
+            value: "{{ __sap_ha_pacemaker_cluster_pcmk_host_map }}"
+          - name: pcmk_monitor_timeout
+            value: 600
+
+# Select __sap_ha_pacemaker_cluster_stonith_default
+__sap_ha_pacemaker_cluster_stonith_default:
+  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict.generic }}"
+
+
+# Default corosync options - Platform specific
+# These options combined with __sap_ha_pacemaker_cluster_corosync_totem_default (Same options are overwritten).
+__sap_ha_pacemaker_cluster_corosync_totem_platform_dict:
+  generic:
+    options:
+      token: 30000
+
+__sap_ha_pacemaker_cluster_corosync_totem_platform:
+  "{{ __sap_ha_pacemaker_cluster_corosync_totem_platform_dict.generic }}"
+
 
 # Platform specific VIP handling
-sap_ha_pacemaker_cluster_vip_method: ibmcloud_alb_haproxy
+sap_ha_pacemaker_cluster_vip_method: "{{ __sap_ha_pacemaker_cluster_vip_method_dict.cloud_ibmcloud_vs | d('ibmcloud_alb_haproxy') }}"
 
 # For HAPROXY an non-empty port default is required to enter the resource creation flow.
 # TODO: task logic that configures actual haproxy listening ports,
 # otherwise pairs like ASCS/ERS will conflict
-sap_ha_pacemaker_cluster_healthcheck_hana_primary_port: "620{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_hana_primary_port: "620{{ __sap_ha_pacemaker_cluster_hana_instance_nr }}"
 sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port: >-
-  {% if sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | length > 0 -%}
-    620{{ sap_ha_pacemaker_cluster_hana_instance_nr | int + 1 }}
+  {% if __sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | length > 0 -%}
+    620{{ __sap_ha_pacemaker_cluster_hana_instance_nr | int + 1 }}
   {%- else %}{% endif %}
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}"
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}"
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_port: "620{{ __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_ers_port: "620{{ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_port: "620{{ __sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port: "620{{ __sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
 
 
 __sap_ha_pacemaker_cluster_available_vip_agents:

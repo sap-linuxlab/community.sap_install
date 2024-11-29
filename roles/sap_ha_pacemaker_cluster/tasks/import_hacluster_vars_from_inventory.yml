@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # If there are "ha_cluster" Linux System Role parameters already defined in the
 # inventory, we will include these custom specifications and they take precedence.
@@ -100,3 +101,18 @@
   when: ha_cluster_totem is defined
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_corosync_totem: "{{ ha_cluster_totem }}"
+
+# ha_cluster_sbd_options
+- name: "SAP HA Prepare Pacemaker - (ha_cluster) Register parameter 'ha_cluster_sbd_options'"
+  when:
+    - ha_cluster_sbd_options is defined
+     and ha_cluster_sbd_options | length > 0
+     and ha_cluster_sbd_options is iterable
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_sbd_options: "{{ ha_cluster_sbd_options }}"
+
+# ha_cluster_sbd_enabled
+- name: "SAP HA Prepare Pacemaker - (ha_cluster) Register parameter 'ha_cluster_sbd_enabled'"
+  when: ha_cluster_sbd_enabled is defined and ha_cluster_sbd_enabled | bool
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_sbd_enabled: "{{ ha_cluster_sbd_enabled }}"

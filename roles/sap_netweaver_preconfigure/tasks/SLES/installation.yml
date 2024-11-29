@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
 - name: Ensure required packages for SAP NetWeaver are installed
@@ -19,15 +20,30 @@
     - '"SLES" in sles_baseproduct.stat.lnk_target'
     - ansible_os_family == 'Suse'
 
-# The use of zypper here allows exact saptune version to be declared and used.
-- name: Ensure saptune is installed
-  community.general.zypper:
-    type: package
-    name: "saptune={{ sap_netweaver_preconfigure_saptune_version }}"
-    state: present
-    force: true
+
+- name: Prepare saptune
   when:
     - __sap_netweaver_preconfigure_run_saptune
+  block:
+    - name: Ensure latest saptune is installed
+      community.general.zypper:
+        type: package
+        name: saptune
+        state: present
+      when:
+        - sap_netweaver_preconfigure_saptune_version is undefined
+         or sap_netweaver_preconfigure_saptune_version | length == 0
+
+    - name: Ensure specific saptune version is installed
+      community.general.zypper:
+        type: package
+        name: "saptune={{ sap_netweaver_preconfigure_saptune_version }}"
+        state: present
+        force: true
+      when:
+        - sap_netweaver_preconfigure_saptune_version is defined
+        - sap_netweaver_preconfigure_saptune_version | length > 0
+
 
 - name: Ensure sapconf is installed
   community.general.zypper:

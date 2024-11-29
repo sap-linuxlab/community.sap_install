@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
 # CHECK: we need to define variables, when the Hana Replication interface != ansible_hostname
@@ -19,12 +20,19 @@
       node_ip: "{{ item.node_ip }}"
       node_role: "{{ item.node_role | default('secondary') }}"
       hana_site: "{{ item.hana_site }}"
-  loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
+  loop: "{{ sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_name', 'contains', ansible_hostname) }}"
   loop_control:
     label: "{{ item.node_name }}"
   when:
     - item.node_ip in ansible_all_ipv4_addresses
   tags: always
+
+- name: SAP HSR - Verify provided node roles
+  ansible.builtin.assert:
+    that:
+      - sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary') | length == 1
+      - sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'secondary') | length >= 1
+    fail_msg: "Node roles not valid. There must be 1 primary and at least 1 node defined with the secondary role."
 
 - name: SAP HSR - Check that hsr interface is configured on host
   ansible.builtin.assert:
@@ -37,16 +45,10 @@
 
 - name: "SAP HSR - Pick up primary node name from definition"
   ansible.builtin.set_fact:
-    __sap_ha_install_hana_hsr_primary_node: "{{ item.node_name }}"
-    __sap_ha_install_hana_hsr_primary_node_name: "{{ item.node_name.split('.')[0] }}"
-    __sap_ha_install_hana_hsr_primary_node_domain: "{{ item.node_name.split('.')[1:] | join('.') }}"
-    __sap_ha_install_hana_hsr_primary_node_ip: "{{ item.node_ip }}"
-  when:
-    - item.node_role is defined
-    - item.node_role == 'primary'
-  loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
-  loop_control:
-    label: "{{ item.node_name }}"
+    __sap_ha_install_hana_hsr_primary_node: "{{ (sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary'))[0].node_name }}"
+    __sap_ha_install_hana_hsr_primary_node_name: "{{ (sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary'))[0].node_name.split('.')[0] }}"
+    __sap_ha_install_hana_hsr_primary_node_domain: "{{ (sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary'))[0].node_name.split('.')[1:] | join('.') }}"
+    __sap_ha_install_hana_hsr_primary_node_ip: "{{ (sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary'))[0].node_ip }}"
   tags: always
 
 - name: "SAP HSR - Verify that Ansible can connect to the defined primary node by name"
