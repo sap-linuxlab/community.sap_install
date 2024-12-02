@@ -1,0 +1,122 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# See IBM Db2 documentation 'HADR and network address translation (NAT) support' - https://www.ibm.com/docs/en/db2/11.5?topic=support-hadr-nat
+# These are the HADR Ports used for internode communication, and are unrelated to Health Check probe port from a Load Balancer
+- name: SAP HA AnyDB - IBM Db2 HADR - Append IBM Db2 HA Ports to /etc/services
+  ansible.builtin.lineinfile: # noqa no-tabs
+    path: /etc/services
+    line: "{{ item }}"
+    state: present
+  loop:
+    - "{{ sap_ha_install_anydb_ibmdb2_sid }}_HADR_1\t55001/tcp\t# DB2 HA Port 1" # DB2 HADR local service (env var db2hadrlocalsvc / HADR_LOCAL_SVC)
+    - "{{ sap_ha_install_anydb_ibmdb2_sid }}_HADR_2\t55002/tcp\t# DB2 HA Port 2" # DB2 HADR remote service (env var db2hadrremotesvc / HADR_REMOTE_SVC)
+  when: (sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short) or (sap_ha_install_anydb_ibmdb2_hostname_secondary == inventory_hostname_short)
+
+
+# Use the IBM Db2 Command Line Processor
+# See IBM Db2 for SAP HADR reference document referred from sap.com - https://ibm.github.io/db2-hadr-wiki/
+# Reasons for noqa:
+# - no-changed-when: Db2 CLP will not error if config exists but when will attempt to skip anyway
+- name: SAP HA AnyDB - IBM Db2 HADR - Configure Primary Node Replication # noqa no-changed-when
+  ansible.builtin.shell: |
+    set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    set anydb_primary="{{ sap_ha_install_anydb_ibmdb2_hostname_primary }}"
+    set anydb_secondary="{{ sap_ha_install_anydb_ibmdb2_hostname_secondary }}"
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_LOCAL_HOST $anydb_primary
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_LOCAL_SVC "$ibmdb2_sid"_HADR_1
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_REMOTE_HOST $anydb_secondary
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_REMOTE_SVC "$ibmdb2_sid"_HADR_2
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_REMOTE_INST db2$ibmdb2_sid
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING INDEXREC RESTART LOGINDEXBUILD ON
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_TIMEOUT 120
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_SYNCMODE NEARSYNC
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_SPOOL_LIMIT AUTOMATIC
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_PEER_WINDOW 240
+  register: __sap_ha_install_anydb_ibmdb2_enable_primary
+  become: true
+  become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
+  args:
+    executable: /bin/csh
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_hadr_initial_status.stdout != "HADR_CONNECT_STATUS=CONNECTED"
+  failed_when: not __sap_ha_install_anydb_ibmdb2_enable_primary.rc == 0 and (not 'command completed successfully' in __sap_ha_install_anydb_ibmdb2_enable_primary.stdout and not __sap_ha_install_anydb_ibmdb2_enable_primary.stderr == "")
+
+
+# Use the IBM Db2 Command Line Processor
+# See IBM Db2 for SAP HADR reference document referred from sap.com - https://ibm.github.io/db2-hadr-wiki/
+# Reasons for noqa:
+# - no-changed-when: Db2 CLP will not error if config exists but when will attempt to skip anyway
+- name: SAP HA AnyDB - IBM Db2 HADR - Configure Secondary Node # noqa no-changed-when
+  ansible.builtin.shell: |
+    set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    set anydb_primary="{{ sap_ha_install_anydb_ibmdb2_hostname_primary }}"
+    set anydb_secondary="{{ sap_ha_install_anydb_ibmdb2_hostname_secondary }}"
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_LOCAL_HOST $anydb_secondary
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_LOCAL_SVC "$ibmdb2_sid"_HADR_2
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_REMOTE_HOST $anydb_primary
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_REMOTE_SVC "$ibmdb2_sid"_HADR_1
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_REMOTE_INST db2$ibmdb2_sid
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_TIMEOUT 120
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_SYNCMODE NEARSYNC
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_SPOOL_LIMIT AUTOMATIC
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING HADR_PEER_WINDOW 240
+    db2 UPDATE DB CFG FOR $ibmdb2_sid USING INDEXREC RESTART LOGINDEXBUILD ON
+  register: __sap_ha_install_anydb_ibmdb2_enable_secondary
+  become: true
+  become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
+  args:
+    executable: /bin/csh
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_secondary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_hadr_initial_status.stdout != "HADR_CONNECT_STATUS=CONNECTED"
+  failed_when: not __sap_ha_install_anydb_ibmdb2_enable_secondary.rc == 0 and (not 'command completed successfully' in __sap_ha_install_anydb_ibmdb2_enable_secondary.stdout and not __sap_ha_install_anydb_ibmdb2_enable_secondary.stderr == "")
+
+# Use the IBM Db2 Command Line Processor
+# Reasons for noqa:
+# - no-changed-when: Db2 CLP error if config exists so prevent with attempt to skip
+- name: SAP HA AnyDB - IBM Db2 HADR - Rollforward Secondary Node # noqa no-changed-when
+  ansible.builtin.shell: |
+    set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    db2 rollforward database $ibmdb2_sid to end of logs
+  become: true
+  become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
+  args:
+    executable: /bin/csh
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_secondary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_hadr_initial_status.stdout != "HADR_CONNECT_STATUS=CONNECTED"
+
+# Use the IBM Db2 Command Line Processor
+# Reasons for noqa:
+# - no-changed-when: Db2 CLP error if config exists so prevent with attempt to skip
+- name: SAP HA AnyDB - IBM Db2 HADR - Start Secondary Standby Node # noqa no-changed-when
+  ansible.builtin.shell: |
+    set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    db2 deactivate db $ibmdb2_sid
+    db2 start hadr on db $ibmdb2_sid as standby
+  become: true
+  become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
+  args:
+    executable: /bin/csh
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_secondary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_hadr_initial_status.stdout != "HADR_CONNECT_STATUS=CONNECTED"
+
+
+# Use the IBM Db2 Command Line Processor
+# Reasons for noqa:
+# - no-changed-when: Db2 CLP error if config exists so prevent with attempt to skip
+- name: SAP HA AnyDB - IBM Db2 HADR - Start Primary Node # noqa no-changed-when
+  ansible.builtin.shell: |
+    set ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    db2 deactivate db $ibmdb2_sid
+    db2 start hadr on db $ibmdb2_sid as primary
+  become: true
+  become_user: db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}
+  args:
+    executable: /bin/csh
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_hadr_initial_status.stdout != "HADR_CONNECT_STATUS=CONNECTED"

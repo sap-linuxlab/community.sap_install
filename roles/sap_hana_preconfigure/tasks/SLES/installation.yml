@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # Reason for noqa: Both yum and dnf support "state: latest"
 - name: Ensure that the system is updated to the latest patchlevel # noqa package-latest
@@ -5,6 +6,12 @@
     state: latest
     name: "*"
   when: sap_hana_preconfigure_update | bool
+
+# SAP Note 2892338
+- name: Ensure package insserv-compat exists
+  ansible.builtin.package:
+    state: present
+    name: insserv-compat
 
 # -----------
 - name: Get contents of /etc/products.d/baseproduct

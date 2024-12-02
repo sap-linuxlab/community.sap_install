@@ -1,42 +1,225 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # Variables specific on AWS platform, EC2 Virtual Servers
 #
 # TODO: make sure to first respect 'ha_cluster' native variables
 
-sap_ha_pacemaker_cluster_fence_agent_packages:
-  "{{ sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_aws | default([]) }}"
+# Package definition
+__sap_ha_pacemaker_cluster_fence_agent_packages_platform:
+  "{{ __sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_aws_ec2_vs | d([]) }}"
 
 __sap_ha_pacemaker_cluster_platform_extra_packages:
-  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_aws | default([]) }}"
+  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_aws_ec2_vs | d([]) }}"
 
 __sap_ha_pacemaker_cluster_repos:
-  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
-    name: High Availability
+  "{{ __sap_ha_pacemaker_cluster_repos_dict.cloud_aws_ec2_vs | d([]) }}"
 
-# Predefine
-__sap_ha_pacemaker_cluster_aws_instances: []
 
-# When aws credentials and region are not defined it will
-# default to using the aws cli configuration.
-# The aws cli is currently configured anyway for the standard AWS VIP resource.
-sap_ha_pacemaker_cluster_stonith_default:
-  id: "rsc_fence_aws"
-  # SUSE officially supports only stonith:external/ec2 for AWS.
-  agent: "{{ 'stonith:fence_aws' if ansible_os_family != 'Suse' else 'stonith:external/ec2' }}"
-  options:
-    # Fencing action delay is recommended. Default: 0
-    pcmk_delay_max: "{{ 0 if ansible_os_family != 'Suse' else 15 }}"
-#    access_key: "{{ sap_ha_pacemaker_cluster_aws_access_key_id }}"
-#    secret_key: "{{ sap_ha_pacemaker_cluster_aws_secret_access_key }}"
-#    region: "{{ sap_ha_pacemaker_cluster_aws_region }}"
+# Stonith dictionary for default stonith agents.
+# Custom stonith resource can be defined using sap_ha_pacemaker_cluster_stonith_custom
+# Documentation sources:
+# HANA:
+#   SLES: https://docs.aws.amazon.com/sap/latest/sap-hana/sap-hana-on-aws-stonith-device.html
+#   RHEL: https://docs.aws.amazon.com/sap/latest/sap-hana/sap-hana-on-aws-cluster-resources-1.html
+# NWAS:
+#   SLES: https://docs.aws.amazon.com/sap/latest/sap-netweaver/sles-netweaver-ha-cluster-resources.html#create-stonith
+#   RHEL: https://docs.aws.amazon.com/sap/latest/sap-netweaver/rhel-netweaver-ha-cluster-resources.html#create-stonith
 
-# Platform corosync totem configuration
-sap_ha_pacemaker_cluster_corosync_totem:
-  options:
-    token: 29000
+__sap_ha_pacemaker_cluster_stonith_default_dict:
+  redhat_hana:
+    id: "rsc_fence_aws"
+    agent: "stonith:fence_aws"
+    instance_attrs:
+      - attrs:
+          # String of cluster hosts defined in include_vars_platform
+          - name: pcmk_host_map
+            value: "{{ __sap_ha_pacemaker_cluster_pcmk_host_map }}"
+          - name: pcmk_delay_max
+            value: 45
+          - name: power_timeout
+            value: 600
+          # It is recommended to disable default reboot action for Production environment or when manual investigation is required.
+          - name: pcmk_reboot_action
+            value: 'off'
+          - name: pcmk_reboot_timeout
+            value: 600
+          - name: pcmk_reboot_retries
+            value: 4
+          # AWS Credentials are not defined here, because they override attached
+          # IAM Role or IAM Instance Profile
+          # - name: access_key
+          #   value: "{{ sap_ha_pacemaker_cluster_aws_access_key_id }}"
+          # - name: secret_key
+          #   value: "{{ sap_ha_pacemaker_cluster_aws_secret_access_key }}"
+          # - name: region
+          #   value: "{{ sap_ha_pacemaker_cluster_aws_region }}"
+    operations:
+      - action: start
+        attrs:
+          - name: timeout
+            value: 600
+      - action: monitor
+        attrs:
+          - name: interval
+            value: 300
+          - name: timeout
+            value: 60
+
+  redhat_nwas:
+    id: "rsc_fence_aws"
+    agent: "stonith:fence_aws"
+    instance_attrs:
+      - attrs:
+          # String of cluster hosts defined in include_vars_platform
+          - name: pcmk_host_map
+            value: "{{ __sap_ha_pacemaker_cluster_pcmk_host_map }}"
+          - name: pcmk_delay_max
+            value: 30
+          - name: power_timeout
+            value: 240
+          # It is recommended to disable default reboot action for Production environment or when manual investigation is required.
+          - name: pcmk_reboot_action
+            value: 'off'
+          - name: pcmk_reboot_timeout
+            value: 300
+          - name: pcmk_reboot_retries
+            value: 2
+    operations:
+      - action: start
+        attrs:
+          - name: timeout
+            value: 180
+      - action: stop
+        attrs:
+          - name: timeout
+            value: 180
+      - action: monitor
+        attrs:
+          - name: interval
+            value: 180
+          - name: timeout
+            value: 60
+
+  # SUSE Recommends stonith:external/ec2 instead of fence_aws
+  suse_hana:
+    id: "rsc_fence_aws"
+    agent: "stonith:external/ec2"
+    instance_attrs:
+      - attrs:
+          - name: pcmk_delay_max
+            value: 45
+          - name: tag
+            value: "pacemaker"  # tag instance with pacemaker: {{ ansible_hostname }}
+          # Use AWS config profile if AWS credentials are used.
+          # - name: profile
+          #   value: cluster
+    meta_attrs:
+      - attrs:
+          - name: target-role
+            value: Started
+    operations:
+      - action: start
+        attrs:
+          - name: interval
+            value: 0
+          - name: timeout
+            value: 180
+      - action: stop
+        attrs:
+          - name: interval
+            value: 0
+          - name: timeout
+            value: 180
+      - action: monitor
+        attrs:
+          - name: interval
+            value: 120
+          - name: timeout
+            value: 60
+
+  suse_nwas:
+    id: "rsc_fence_aws"
+    agent: "stonith:external/ec2"
+    instance_attrs:
+      - attrs:
+          - name: pcmk_delay_max
+            value: 30
+          - name: tag
+            value: "pacemaker"  # tag instance with pacemaker: {{ ansible_hostname }}
+          # Use AWS config profile if AWS credentials are used.
+          # - name: profile
+          #   value: cluster
+    meta_attrs:
+      - attrs:
+          - name: target-role
+            value: Started
+    operations:
+      - action: start
+        attrs:
+          - name: interval
+            value: 0
+          - name: timeout
+            value: 180
+      - action: stop
+        attrs:
+          - name: interval
+            value: 0
+          - name: timeout
+            value: 180
+      - action: monitor
+        attrs:
+          - name: interval
+            value: 120
+          - name: timeout
+            value: 60
+
+# Select __sap_ha_pacemaker_cluster_stonith_default
+__sap_ha_pacemaker_cluster_stonith_default:
+  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict[ansible_os_family | lower ~ '_hana']
+    if sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+   else __sap_ha_pacemaker_cluster_stonith_default_dict[ansible_os_family | lower ~ '_nwas'] }}"
+
+
+# Default corosync options - Platform specific
+# These options combined with __sap_ha_pacemaker_cluster_corosync_totem_default (Same options are overwritten).
+# Documentation sources:
+# HANA:
+#   SLES: https://docs.aws.amazon.com/sap/latest/sap-hana/sap-hana-on-aws-cluster-configuration.html#sap-hana-on-aws-create-the-corosync-configuration-file
+#         https://documentation.suse.com/sbp/sap-15/html/SLES4SAP-hana-sr-guide-perfopt-15-aws/index.html#id-example-for-etccorosynccorosync-conf
+#   RHEL: https://docs.aws.amazon.com/sap/latest/sap-hana/sap-hana-on-aws-cluster-configuration-1.html#sap-hana-on-aws-corosync-increase
+# NWAS:
+#   SLES: https://docs.aws.amazon.com/sap/latest/sap-netweaver/sap-netweaver-ha-setup.html#associations
+#   RHEL: https://docs.aws.amazon.com/sap/latest/sap-netweaver/rhel-sap-netweaver-ha-setup.html#associations
+__sap_ha_pacemaker_cluster_corosync_totem_platform_dict:
+  redhat_hana:
+    options:
+      token: 30000
+
+  redhat_nwas:
+    options:
+      token: 30000
+
+  suse_hana:
+    options:
+      token: 30000
+      consensus: 36000
+      token_retransmits_before_loss_const: 6
+      clear_node_high_bit: 'yes'
+
+  suse_nwas:
+    options:
+      token: 30000
+      consensus: 36000
+      clear_node_high_bit: 'yes'
+
+__sap_ha_pacemaker_cluster_corosync_totem_platform:
+  "{{ __sap_ha_pacemaker_cluster_corosync_totem_platform_dict[ansible_os_family | lower ~ '_hana']
+    if sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+   else __sap_ha_pacemaker_cluster_corosync_totem_platform_dict[ansible_os_family | lower ~ '_nwas'] }}"
+
 
 # Platform specific VIP handling
-sap_ha_pacemaker_cluster_vip_method: aws_vpc_move_ip
+sap_ha_pacemaker_cluster_vip_method: "{{ __sap_ha_pacemaker_cluster_vip_method_dict.cloud_aws_ec2_vs | d('aws_vpc_move_ip') }}"
 sap_ha_pacemaker_cluster_vip_group_prefix: ''  # the default supported VIP agent is a single resource only
 
 __sap_ha_pacemaker_cluster_available_vip_agents:

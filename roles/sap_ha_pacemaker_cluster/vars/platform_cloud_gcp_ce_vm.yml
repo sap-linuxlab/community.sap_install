@@ -1,53 +1,118 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # Variables specific on Google Cloud platform, Compute Engine Virtual Machines
 #
 # TODO: make sure to first respect 'ha_cluster' native variables
 
-sap_ha_pacemaker_cluster_fence_agent_packages:
-  "{{ sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_gcp | default([]) }}"
+__sap_ha_pacemaker_cluster_fence_agent_packages_platform:
+  "{{ __sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_gcp_ce_vm | d([]) }}"
 
 __sap_ha_pacemaker_cluster_platform_extra_packages:
-  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_gcp | default([]) }}"
+  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_gcp_ce_vm | d([]) }}"
 
 __sap_ha_pacemaker_cluster_repos:
-  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
-    name: High Availability
+  "{{ __sap_ha_pacemaker_cluster_repos_dict.cloud_gcp_ce_vm | d([]) }}"
 
-# Predefine
-__sap_ha_pacemaker_cluster_gcp_hosts: []
 
-sap_ha_pacemaker_cluster_stonith_default:
-  id: "res_fence_gce"
-  agent: "stonith:fence_gce"
-  options:
-    project: "{{ sap_ha_pacemaker_cluster_gcp_project }}"
-    zone: "{{ sap_ha_pacemaker_cluster_gcp_region_zone }}"
-    pcmk_reboot_timeout: 300
-    pcmk_monitor_retries: 4
-    pcmk_delay_max: 30
+# Stonith dictionary for default stonith agents.
+# Custom stonith resource can be defined using sap_ha_pacemaker_cluster_stonith_custom
+# Documentation sources:
+# HANA:
+#   SLES: https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-sles#set_up_fencing
+#   RHEL: https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel#set_up_fencing
+# NWAS:
+#   SLES: https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-sles#set_up_fencing
+#   RHEL: https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-rhel#set_up_fencing
+# NOTE: fence_gce parameters are identical across all listed documents.
 
-# Platform specific VIP handling
-sap_ha_pacemaker_cluster_vip_method: gcp_nlb_reserved_ip_haproxy # gcp_vpc_move_route
-sap_ha_pacemaker_cluster_vip_group_prefix: group_
+__sap_ha_pacemaker_cluster_stonith_default_dict:
+  generic:
+    # fence_gce agent is created for every host in cluster
+    id: "rsc_fence_gce_{{ ansible_hostname }}"
+    agent: "stonith:fence_gce"
+    instance_attrs:
+      - attrs:
+          # GCP does not use pcmk_host_map, instead it specifies port
+          # fence_gce supports plug parameter, but all documentations mention only port.
+          - name: port
+            value: "{{ ansible_hostname }}"
+
+          - name: project
+            value: "{{ sap_ha_pacemaker_cluster_gcp_project }}"
+          - name: zone
+            value: "{{ sap_ha_pacemaker_cluster_gcp_region_zone }}"
+          - name: pcmk_delay_max
+            value: 30
+          - name: pcmk_monitor_retries
+            value: 4
+          - name: pcmk_reboot_timeout
+            value: 300
+    operations:
+      - action: start
+        attrs:
+          - name: interval
+            value: 0
+          - name: timeout
+            value: 60
+      - action: monitor
+        attrs:
+          - name: interval
+            value: 300
+          - name: timeout
+            value: 120
+
+# Select __sap_ha_pacemaker_cluster_stonith_default
+__sap_ha_pacemaker_cluster_stonith_default:
+  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict.generic }}"
+
+
+# Default corosync options - Platform specific
+# These options combined with __sap_ha_pacemaker_cluster_corosync_totem_default (Same options are overwritten).
+# Documentation sources:
+# HANA:
+#   SLES: https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-sles#create_the_corosync_configuration_files
+#   RHEL: https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel#edit_the_corosyncconf_default_settings
+# NWAS:
+#   SLES: https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-sles#create_the_corosync_configuration_files
+#   RHEL: https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-rhel#update_the_corosync_configuration_files
+__sap_ha_pacemaker_cluster_corosync_totem_platform_dict:
+  redhat:
+    options:
+      token: 20000
+      token_retransmits_before_loss_const: 10
+      join: 60
+      max_messages: 20
+  suse:
+    options:
+      token: 20000
+
+__sap_ha_pacemaker_cluster_corosync_totem_platform:
+  "{{ __sap_ha_pacemaker_cluster_corosync_totem_platform_dict[ansible_os_family | lower] }}"
+
 
 # GCP needs haproxy and ports defined
-sap_ha_pacemaker_cluster_healthcheck_hana_primary_port: "620{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_hana_primary_port: "620{{ __sap_ha_pacemaker_cluster_hana_instance_nr }}"
 sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port: >-
-  {% if sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | length > 0 -%}
-    620{{ sap_ha_pacemaker_cluster_hana_instance_nr | int + 1 }}
+  {% if __sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | length > 0 -%}
+    620{{ __sap_ha_pacemaker_cluster_hana_instance_nr | int + 1 }}
   {%- else %}{% endif %}
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}"
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}"
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_port: "620{{ __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_ers_port: "620{{ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_port: "620{{ __sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port: "620{{ __sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
 
-# Platform corosync totem configuration
-sap_ha_pacemaker_cluster_corosync_totem:
-  options:
-    token: 20000
-    token_retransmits_before_loss_const: 10
-    join: 60
-    max_messages: 20
+
+# Platform specific VIP handling
+# Google documentation differs for each OS:
+# SUSE - VIP: IPaddr2, Healthcheck: anything using socat
+#   HANA: https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-sles#create_a_local_cluster_ip_resource_for_the_vip_address
+#   NWAS: https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-sles#create_the_vip_resources
+# RHEL - VIP: IPaddr2, Healthcheck: haproxy
+#   HANA: https://cloud.google.com/solutions/sap/docs/sap-hana-ha-config-rhel#create_a_virtual_ip_address_resource
+#   NWAS: https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-rhel#create_a_virtual_ip_address_resource
+sap_ha_pacemaker_cluster_vip_method: "{{ __sap_ha_pacemaker_cluster_vip_method_dict.cloud_gcp_ce_vm | d('gcp_nlb_reserved_ip_haproxy') }}"
+
+sap_ha_pacemaker_cluster_vip_group_prefix: group_
 
 __sap_ha_pacemaker_cluster_available_vip_agents:
 
@@ -93,4 +158,10 @@ __sap_ha_pacemaker_cluster_available_vip_agents:
   # (which uses execution via GCloud CLI, and is itself a fork of external/gcp:route)
   gcp_vpc_move_route:
     agent: "ocf:heartbeat:gcp-vpc-move-route"
+    with: ipaddr
+
+  # This is dummy resource to run socat process for Health checks on SUSE
+  # https://cloud.google.com/solutions/sap/docs/netweaver-ha-config-sles#create_the_health_check_resources
+  gcp_anything_socat:
+    agent: "anything"
     with: ipaddr

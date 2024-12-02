@@ -1,9 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
 - name: SAP SWPM Pre Install - Determine Installation Type
   ansible.builtin.set_fact:
     sap_swpm_swpm_installation_type: ""
-    sap_swpm_swpm_installation_header: ""
+    sap_swpm_swpm_installation_header: "Standard installation of SAP Software"
     sap_swpm_swpm_command_virtual_hostname: ""
     sap_swpm_swpm_command_mp_stack: ""
 
@@ -57,9 +58,45 @@
 # Run Installation Type Steps
 ################
 
-- name: SAP SWPM Pre Install - Display the Installation Type
-  ansible.builtin.debug:
-    var: sap_swpm_swpm_installation_type
+- name: SAP SWPM Pre Install - Assert installation type is defined (including empty)
+  ansible.builtin.assert:
+    that:
+      - sap_swpm_swpm_installation_type is defined
+    fail_msg:
+      - "The installation type (variable 'sap_swpm_swpm_installation_type') is not defined!"
+    success_msg:
+      - "The installation type (variable 'sap_swpm_swpm_installation_type') is defined (including an empty string)."
+
+- name: SAP SWPM Pre Install - Assert supported installation types
+  ansible.builtin.assert:
+    that:
+      - sap_swpm_swpm_installation_type == '' or
+        sap_swpm_swpm_installation_type == 'restore' or
+        sap_swpm_swpm_installation_type == 'ha' or
+        sap_swpm_swpm_installation_type == 'maint_plan_stack' or
+        sap_swpm_swpm_installation_type == 'ha_maint_plan_stack'
+    fail_msg:
+      - "The specified installation type, '{{ sap_swpm_swpm_installation_type }}', is not supported!"
+      - "The following installation types are supported:"
+      - "- '' (empty string, the default)"
+      - "- 'restore'"
+      - "- 'ha'"
+      - "- 'maint_plan_stack'"
+      - "- 'ha_maint_plan_stack'"
+    success_msg:
+      - "The specified installation type, '{{ sap_swpm_swpm_installation_type }}', is supported."
+
+- name: SAP SWPM Pre Install - Assert that necessary variable for HA is defined
+  ansible.builtin.assert:
+    that: sap_swpm_virtual_hostname is defined and sap_swpm_virtual_hostname
+    fail_msg: "FAIL: {{ sap_swpm_virtual_hostname }} is not defined!"
+    success_msg: "PASS: The variable 'sap_swpm_virtual_hostname' is defined, as '{{ sap_swpm_virtual_hostname }}'."
+  when:
+    - sap_swpm_swpm_installation_type | regex_search('ha')
+
+################
+# Installation Type file will not be included if install type is empty (= the default):
+################
 
 - name: SAP SWPM Pre Install - Run Installation Type Steps
   ansible.builtin.include_tasks: "install_type/{{ sap_swpm_swpm_installation_type }}_install.yml"

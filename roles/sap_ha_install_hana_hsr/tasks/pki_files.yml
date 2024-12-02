@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # Secondary nodes fetch PKI files from the primary node.
 # Setting up temporary direct connection if not yet present
@@ -22,10 +23,8 @@
           cat ~/.ssh/hsr_temp.pub || \
           (ssh-keygen -t rsa -f ~/.ssh/hsr_temp -N "" -q && \
           cat ~/.ssh/hsr_temp.pub)
-      args:
-        creates: ~/.ssh/hsr_temp.pub
       register: __sap_ha_install_hana_hsr_pubkey
-      failed_when: false
+      changed_when: true
 
     - name: "SAP HSR - Create .ssh on primary node if missing"
       ansible.builtin.file:
@@ -34,6 +33,7 @@
         mode: "0700"
       register: __sap_ha_install_hana_hsr_create_ssh_prim
       delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node }}"
+      run_once: true
 
     - name: "SAP HSR - Authorize pub key on primary node"
       ansible.builtin.lineinfile:
@@ -44,6 +44,7 @@
         path: ~/.ssh/authorized_keys
       register: __sap_ha_install_hana_hsr_addauth
       delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node }}"
+      throttle: 1
 
     # ansible-lint:
     # The synchronize module is not part of ansible-core collections.
@@ -105,6 +106,7 @@
       when:
         - __sap_ha_install_hana_hsr_addauth.backup is defined
         - __sap_ha_install_hana_hsr_addauth.backup|length == 0
+      throttle: 1
 
     - name: "SAP HSR - Primary: Restore authorized_keys from backup"
       ansible.builtin.copy:
@@ -116,6 +118,7 @@
       when:
         - __sap_ha_install_hana_hsr_addauth.backup is defined
         - __sap_ha_install_hana_hsr_addauth.backup|length > 0
+      run_once: true
 
     - name: "SAP HSR - Primary: Remove .ssh if it was created"
       ansible.builtin.file:
@@ -125,3 +128,4 @@
         - __sap_ha_install_hana_hsr_create_ssh_prim.changed is defined
         - __sap_ha_install_hana_hsr_create_ssh_prim.changed
       delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node }}"
+      run_once: true

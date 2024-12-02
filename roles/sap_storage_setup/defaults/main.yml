@@ -1,8 +1,58 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
-# Inherit from global parameters, if they exist
-sap_storage_setup_host_type: "{{ sap_host_type }}"
+# Mandatory
+# Inherit from global parameter, if exist
 sap_storage_setup_sid: "{{ sap_system_sid }}"
+
+# Mandatory
+# Inherit from global parameter, if exist
+# Use list with values: hana_primary, hana_secondary, nwas_abap_ascs, nwas_abap_ers, nwas_abap_pas, nwas_abap_aas, nwas_java_scs, nwas_java_ers
+# Sandbox example
+## sap_storage_setup_host_type:
+##   - hana_primary
+##   - nwas_abap_ascs
+##   - nwas_abap_pas
+sap_storage_setup_host_type: "{{ sap_host_type }}"
+
+
+#### Mandatory variable reference example for SAP System storage definition
+
+# # Mandatory
+# sap_storage_setup_definition:
+
+#   # Block Storage volume
+#   - name: name                     # required: string, filesystem name used to generate lvm_lv_name and lvm_vg_name
+#     mountpoint: /directory         # required: string, directory path where the filesystem is mounted
+#     disk_size: 384                 # required: integer, size in GB
+#     filesystem_type: xfs           # optional: string, value 'xfs'. Use 'swap' to create swap filesystem
+#     #lvm_lv_name:                  # optional: string, value 'lv_<element_name>'
+#     #lvm_lv_stripes:               # optional: integer, value '1', stripe over LVM Physical Volumes within the LVM Volume Group
+#     #lvm_lv_stripe_size:           # optional: string, value '128K', override definition by the OS. Akin to Virtualized Block Size
+#     #lvm_vg_name:                  # optional: string, value 'vg_<element name>''
+#     #lvm_vg_options:               # optional: string, value '', additional LVM VG options (e.g. "--dataalignment XX ..." to override MiB offset from disk start before first LVM VG Physical Extent)
+#     #lvm_vg_physical_extent_size:  # optional: integer, value '4', size in MiB. Akin to Physical Block Size, difficult to change once set
+#     #lvm_pv_options:               # optional: string, value '', additional LVM PV options (e.g. "--dataalignment XX ..." to override MiB offset from disk start before first LVM PV Physical Extent)
+
+#   # File Storage volume
+#   - name: name                     # required: string, reference name
+#     mountpoint: /directory         # required: string, directory path where the filesystem is mounted
+#     nfs_server: nfs.corp:/         # required: string, server and parent directory of the NFS Server; value default from var sap_storage_setup_nfs_server
+#     #nfs_path:                     # optional: string, value '', subdirectory path on the NFS Server
+#     #nfs_filesystem_type:          # optional: string, value default 'nfs4' from var sap_storage_setup_nfs_filesystem_type, NFS Server protocol
+#     #nfs_mount_options:            # optional: string, value default 'defaults' from var sap_storage_setup_nfs_mount_options, NFS Server specific options e.g. 'relatime'
+
+#   # Swap as file instead of Block Storage volume
+#   - name: swap                     # required: string, reference name
+#     swap_path: /swapfile           # required: string, directory path where swap file is created
+#     disk_size: 4                   # required: integer, size in GB of swap file
+#     filesystem_type: swap          # required: string, must be value 'swap'
+
+# # If applicable, create default for all nfs_server keys within sap_storage_setup_definition
+# sap_storage_setup_nfs_server: 'nfs.corp:/'
+
+
+#### Default variable values for SAP System storage
 
 # By default do not look for multipath devices.
 # When enabled, this includes
@@ -32,7 +82,8 @@ sap_storage_setup_nwas_java_ci_instance_nr: '21'
 # - NWAS JAVA AS uses J<Instance_Number>
 # - NWAS WebDispatcher uses W<Instance_Number>
 
-#----------------------------------------------------------#
+
+#### NFS default values
 
 sap_storage_setup_nfs_filesystem_type: nfs4
 sap_storage_setup_nfs_mount_options: defaults
@@ -57,6 +108,7 @@ sap_storage_setup_nfs_dirs_usr_sap:
     - "{{ sap_storage_setup_sid }}/ERS{{ sap_storage_setup_nwas_java_ers_instance_nr }}"
   nwas_java_scs:
     - "{{ sap_storage_setup_sid }}/SCS{{ sap_storage_setup_nwas_java_scs_instance_nr }}"
+
 
 #####
 #### Legacy code - retain vars for commented out code, until decision on specific activities for each Cloud
@@ -84,6 +136,3 @@ sap_storage_setup_aws_imds_url:
 sap_storage_setup_aws_vmsize_url:
 
 sap_storage_setup_aws_vmsize:
-
-# IBM Cloud variables
-#

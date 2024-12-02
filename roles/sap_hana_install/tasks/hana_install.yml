@@ -1,8 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
 # Ansible does not support streaming of stdout, so we offer a workaround.
 # For more information, see https://github.com/ansible/proposals/issues/92
-- name: Copy file tail-f-hdblcm-install-trc.sh to '{{ __sap_hana_install_register_tmpdir.path }}'
+- name: Install SAP HANA - Copy file tail-f-hdblcm-install-trc.sh to '{{ __sap_hana_install_register_tmpdir.path }}'
   ansible.builtin.copy:
     src: tmp/tail-f-hdblcm-install-trc.sh
     dest: "{{ __sap_hana_install_register_tmpdir.path }}/tail-f-hdblcm-install-trc.sh"
@@ -11,7 +12,7 @@
     mode: '0755'
 
 # Show how to use the workaround:
-- name: Show how to watch the install process in real time
+- name: Install SAP HANA - Show how to watch the install process in real time
   ansible.builtin.debug:
     msg:
       - 'Once the task "Install SAP HANA" has started, you can use the following command'
@@ -20,12 +21,12 @@
       - 'Alternatively, you can run the following command on the control node:'
       - "ssh {{ inventory_hostname }} {{ __sap_hana_install_register_tmpdir.path }}/tail-f-hdblcm-install-trc.sh"
 
-- name: Set fact for the hdblcm verify_signature argument
+- name: Install SAP HANA - Set fact for the hdblcm verify_signature argument
   ansible.builtin.set_fact:
     __sap_hana_install_fact_verify_signature: '--verify_signature'
   when: sap_hana_install_verify_signature
 
-- name: Set fact for the hdblcm command line
+- name: Install SAP HANA - Set fact for the hdblcm command line
   ansible.builtin.set_fact:
     __sap_hana_install_hdblcm_command: "./hdblcm {{ sap_hana_install_hdblcm_extraargs | d('') }}
       {{ __sap_hana_install_fact_verify_signature | d('') }}
@@ -33,15 +34,43 @@
       -b"
   tags: sap_hana_install_hdblcm_commandline
 
-- name: Display the hdblcm command line
+- name: Install SAP HANA - Display the hdblcm command line
   ansible.builtin.debug:
     msg: "SAP HANA install command: '{{ __sap_hana_install_hdblcm_command }}'"
   tags: sap_hana_install_hdblcm_commandline
 
 - name: Install SAP HANA - {{ sap_hana_install_sid }} {{ sap_hana_install_number }}
   ansible.builtin.command: "{{ __sap_hana_install_hdblcm_command }}"
-  register: __sap_hana_install_register_hdblcm_install
+  register: __sap_hana_install_register_hdblcm_install_async_job
   args:
     chdir: "{{ __sap_hana_install_fact_hdblcm_path }}"
-  changed_when: "'SAP HANA Lifecycle Management' in __sap_hana_install_register_hdblcm_install.stdout"
+  async: 86400 # Seconds for maximum runtime, set to 24 hours
+  poll: 0 # Seconds between polls, use 0 to run Ansible Tasks concurrently
+  changed_when: true
   when: not ansible_check_mode
+
+- name: Install SAP HANA - Wait for hdblcm process to exit, poll every 60 seconds
+  ansible.builtin.shell:
+    cmd: set -o pipefail && ps -ef | awk '/ hdblcm /&&/ {{ __sap_hana_install_configfile_arg }} /&&!/ awk /{print}'
+  register: __sap_hana_install_register_pids_sapinst
+  until: "__sap_hana_install_register_pids_sapinst.stdout | length == 0"
+  retries: 1440
+  delay: 60
+  vars:
+    __sap_hana_install_configfile_arg: "{{ '--configfile=' + (__sap_hana_install_register_tmpdir.path + '/configfile.cfg') | regex_replace('/', '\\/') }}"
+  changed_when: false
+
+- name: Install SAP HANA - Verify if hdblcm process finished successfully
+  ansible.builtin.async_status:
+    jid: "{{ __sap_hana_install_register_hdblcm_install_async_job.ansible_job_id }}"
+  register: __sap_hana_install_register_sapinst
+  failed_when: __sap_hana_install_register_sapinst.finished != 1 or __sap_hana_install_register_sapinst.rc != 0
+
+- name: Install SAP HANA - Display the hdblcm return code
+  ansible.builtin.debug:
+    msg: "{{ __sap_hana_install_register_sapinst.rc }}"
+
+- name: Install SAP HANA - Display the hdblcm output
+  ansible.builtin.debug:
+    msg: "{{ __sap_hana_install_register_sapinst.stdout_lines }}"
+  when: sap_hana_install_display_unattended_output

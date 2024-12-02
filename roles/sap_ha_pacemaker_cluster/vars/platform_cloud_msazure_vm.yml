@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # Variables specific on MS Azure platform, Virtual Machines
 #
@@ -6,45 +7,131 @@
 # The packages of the following lists will be installed by the 'ha_cluster' Linux System Role.
 # Any packages that are pre-requisites for variable construction must be installed before, e.g.
 # in the preconfigure-* tasks.
-sap_ha_pacemaker_cluster_fence_agent_packages:
-  "{{ sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_msazure_vm | default([]) }}"
+__sap_ha_pacemaker_cluster_fence_agent_packages_platform:
+  "{{ __sap_ha_pacemaker_cluster_fence_agent_packages_dict.cloud_msazure_vm | d([]) }}"
 
 __sap_ha_pacemaker_cluster_platform_extra_packages:
-  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_msazure_vm | default([]) }}"
+  "{{ __sap_ha_pacemaker_cluster_platform_extra_packages_dict.cloud_msazure_vm | d([]) }}"
 
 __sap_ha_pacemaker_cluster_repos:
-  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
-    name: High Availability
-  - id: "rhui-microsoft-azure-rhel8-sap-ha"
-    name: Microsoft Azure RPMs for Red Hat Enterprise Linux 8 (rhel8-sap-ha)
+  "{{ __sap_ha_pacemaker_cluster_repos_dict.cloud_msazure_vm | d([]) }}"
 
-# Predefine
-__sap_ha_pacemaker_cluster_msazure_hosts: []
 
-# Fencing via MS Azure Managed Service Identity (MSI) per cluster node
-sap_ha_pacemaker_cluster_stonith_default:
-  id: "res_fence_azure_arm"
-  agent: "stonith:fence_azure_arm"
-  options:
-    msi: true
-    subscriptionId: "{{ sap_ha_pacemaker_cluster_msazure_subscription_id }}"
-    resourceGroup: "{{ sap_ha_pacemaker_cluster_msazure_resource_group }}"
+# Stonith dictionary for default stonith agents.
+# Custom stonith resource can be defined using sap_ha_pacemaker_cluster_stonith_custom
+# Documentation sources:
+# HANA:
+#   SLES: https://learn.microsoft.com/en-us/azure/sap/workloads/high-availability-guide-suse-pacemaker?tabs=msi#create-a-fencing-device-on-the-pacemaker-cluster
+#   RHEL: https://learn.microsoft.com/en-us/azure/sap/workloads/high-availability-guide-rhel-pacemaker?tabs=msi#azure-fence-agent-as-fencing-device
+# NWAS:
+#   NOTE: There is no separate documentation for NWAS stonith setup.
+
+__sap_ha_pacemaker_cluster_stonith_default_dict:
+  redhat:
+    id: "rsc_fence_azure_arm"
+    agent: "stonith:fence_azure_arm"
+    instance_attrs:
+      - attrs:
+          - name: msi
+            value: true
+          - name: subscriptionId
+            value: "{{ sap_ha_pacemaker_cluster_msazure_subscription_id }}"
+          - name: resourceGroup
+            value: "{{ sap_ha_pacemaker_cluster_msazure_resource_group }}"
+
+          # String of cluster hosts defined in include_vars_platform
+          - name: pcmk_host_map
+            value: "{{ __sap_ha_pacemaker_cluster_pcmk_host_map }}"
+          - name: pcmk_action_limit
+            value: 3
+          - name: pcmk_delay_max
+            value: 15
+          - name: pcmk_monitor_retries
+            value: 4
+          - name: pcmk_monitor_timeout
+            value: 120
+          - name: pcmk_reboot_timeout
+            value: 900
+          - name: power_timeout
+            value: 240
+    operations:
+      - action: monitor
+        attrs:
+          - name: interval
+            value: 3600
+
+  suse:
+    id: "rsc_fence_azure_arm"
+    agent: "stonith:fence_azure_arm"
+    instance_attrs:
+      - attrs:
+          - name: msi
+            value: true
+          - name: subscriptionId
+            value: "{{ sap_ha_pacemaker_cluster_msazure_subscription_id }}"
+          - name: resourceGroup
+            value: "{{ sap_ha_pacemaker_cluster_msazure_resource_group }}"
+
+          # String of cluster hosts defined in include_vars_platform
+          - name: pcmk_host_map
+            value: "{{ __sap_ha_pacemaker_cluster_pcmk_host_map }}"
+          - name: pcmk_action_limit
+            value: 3
+          - name: pcmk_delay_max
+            value: 15
+          - name: pcmk_monitor_retries
+            value: 4
+          - name: pcmk_reboot_timeout
+            value: 900
+          - name: power_timeout
+            value: 240
+    operations:
+      - action: monitor
+        attrs:
+          - name: interval
+            value: 3600
+          - name: timeout
+            value: 120
+
+# Select __sap_ha_pacemaker_cluster_stonith_default
+__sap_ha_pacemaker_cluster_stonith_default:
+  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict[ansible_os_family | lower] }}"
+
+
+# Default corosync options - Platform specific
+# These options combined with __sap_ha_pacemaker_cluster_corosync_totem_default (Same options are overwritten).
+# Documentation sources:
+#   SLES: https://learn.microsoft.com/en-us/azure/sap/workloads/high-availability-guide-suse-pacemaker?tabs=msi#install-the-cluster 15.A
+#   RHEL: https://learn.microsoft.com/en-us/azure/sap/workloads/high-availability-guide-suse-pacemaker?tabs=msi#install-the-cluster
+# NOTE: Azure does not differentiate between HANA and ASCS pacemaker setup.
+__sap_ha_pacemaker_cluster_corosync_totem_platform_dict:
+  redhat:
+    options:
+      token: 30000
+  suse:
+    options:
+      token: 30000
+      consensus: 36000
+
+__sap_ha_pacemaker_cluster_corosync_totem_platform:
+  "{{ __sap_ha_pacemaker_cluster_corosync_totem_platform_dict[ansible_os_family | lower] }}"
+
 
 # Platform specific VIP handling
-sap_ha_pacemaker_cluster_vip_method: azure_lb
+sap_ha_pacemaker_cluster_vip_method: "{{ __sap_ha_pacemaker_cluster_vip_method_dict.cloud_msazure_vm | d('azure_lb') }}"
 
 # The VIP layer consists of 2 components - the VIP and the health check resource
 sap_ha_pacemaker_cluster_vip_group_prefix: group_
 
-sap_ha_pacemaker_cluster_healthcheck_hana_primary_port: "620{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_hana_primary_port: "620{{ __sap_ha_pacemaker_cluster_hana_instance_nr }}"
 sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port: >-
-  {% if sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | length > 0 -%}
-    620{{ sap_ha_pacemaker_cluster_hana_instance_nr | int + 1 }}
+  {% if __sap_ha_pacemaker_cluster_vip_hana_secondary_ip_address | length > 0 -%}
+    620{{ __sap_ha_pacemaker_cluster_hana_instance_nr | int + 1 }}
   {%- else %}{% endif %}
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr }}"
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr }}"
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
-sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port: "620{{ sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_port: "620{{ __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_ers_port: "620{{ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_port: "620{{ __sap_ha_pacemaker_cluster_nwas_abap_pas_instance_nr }}"
+sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port: "620{{ __sap_ha_pacemaker_cluster_nwas_abap_aas_instance_nr }}"
 
 __sap_ha_pacemaker_cluster_available_vip_agents:
 

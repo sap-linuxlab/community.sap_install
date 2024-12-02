@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Assert HA settings
+
+- name: SAP SWPM Pre Install - HA settings - Ensure the dig command is present
+  ansible.builtin.package:
+    name: bind-utils
+    state: present
+
+- name: SAP SWPM Pre Install - HA settings - Try to resolve sap_swpm_virtual_hostname from DNS
+  ansible.builtin.command: dig +short +tries=1 +time=1 "{{ sap_swpm_virtual_hostname }}"
+  register: __sap_swpm_register_virtual_ip_dns
+  changed_when: false
+  failed_when: false
+
+- name: SAP SWPM Pre Install - HA settings - Assign sap_swpm_virtual_ip from DNS
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_virtual_ip: "{{ __sap_swpm_register_virtual_ip_dns.stdout_lines[-1] }}"
+  when: __sap_swpm_register_virtual_ip_dns.stdout_lines | length > 0
+
+- name: SAP SWPM Pre Install - HA settings - Try using /etc/hosts for name resolution
+  when: __sap_swpm_register_virtual_ip_dns.stdout_lines | length == 0
+  block:
+
+# We assign the IP address only if there is exactly one line containing ipv4 and hostname:
+    - name: SAP SWPM Pre Install - HA settings - Try to resolve sap_swpm_virtual_hostname from /etc/hosts
+      ansible.builtin.shell: |
+        awk 'BEGIN{a=0}/^[^#]/&&(/\s{{ sap_swpm_virtual_hostname }}\./||/\s{{ sap_swpm_virtual_hostname }}/){a++; ipaddr=$1}END{if(a==1){print ipaddr}}' /etc/hosts
+      register: __sap_swpm_register_virtual_ip_etc_hosts
+      changed_when: false
+      failed_when: false
+
+    - name: SAP SWPM Pre Install - HA settings - Assign sap_swpm_virtual_ip from /etc/hosts
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_virtual_ip: "{{ __sap_swpm_register_virtual_ip_etc_hosts.stdout_lines[-1] }}"
+      when: __sap_swpm_register_virtual_ip_etc_hosts.stdout_lines | length > 0
+
+- name: SAP SWPM Pre Install - HA settings - Assert that sap_swpm_virtual_hostname can be resolved
+  ansible.builtin.assert:
+    that: __sap_swpm_fact_virtual_ip is defined and __sap_swpm_fact_virtual_ip | length > 0
+    fail_msg: "FAIL: 'sap_swpm_virtual_hostname' is not defined, cannot be resolved, or has multiple entries in /etc/hosts!"
+    success_msg: "PASS: {{ sap_swpm_virtual_hostname }} can be resolved."
+
+- name: SAP SWPM Pre Install - HA settings - Assert that sap_swpm_fact_virtual_ip is part of ansible_all_ipv4_addresses
+  ansible.builtin.assert:
+    that: __sap_swpm_fact_virtual_ip in ansible_all_ipv4_addresses
+    fail_msg: "FAIL: {{ __sap_swpm_fact_virtual_ip }} is not part of ansible_all_ipv4_addresses!"
+    success_msg: "PASS: {{ __sap_swpm_fact_virtual_ip }} is part of ansible_all_ipv4_addresses."

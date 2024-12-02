@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 - name: Takover saptune and enable
   when: __sap_hana_preconfigure_run_saptune
@@ -7,6 +8,7 @@
         name: sapconf
         state: stopped
         enabled: false
+      when: "'sapconf' in ansible_facts.packages"
 
     - name: Make sure that sapconf and tuned are stopped and disabled
       ansible.builtin.command: "saptune service takeover"
@@ -90,6 +92,7 @@
 # If this is a cluster node on Azure, we need to override to disable tcp timestamps, reuse and recycle.
 # This can be done by copying the sapnote file 2382421 from /usr/share/saptune/notes to /etc/saptune/override
 # The value can then override in the in the new file
+# net.ipv4.tcp_tw_recycle = 0 was removed as it is not relevant for SLES 15+
 
 - name: Disable TCP timestamps, recycle & reuse
   ansible.builtin.blockinfile:
@@ -104,7 +107,6 @@
       [sysctl]
       net.ipv4.tcp_timestamps = 0
       net.ipv4.tcp_tw_reuse = 0
-      net.ipv4.tcp_tw_recycle = 0
   when:
     - sap_hana_preconfigure_saptune_azure
 

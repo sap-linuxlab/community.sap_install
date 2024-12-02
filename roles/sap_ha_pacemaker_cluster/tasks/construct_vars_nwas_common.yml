@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # Variables containing variables must be constructed with values
 # to be fed into the included ha_cluster role
@@ -77,11 +78,11 @@
     __resource_filesystem:
       id: |-
         {%- if '/sapmnt' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name %}
+          {% set idname = __sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name %}
         {% elif '/usr/sap/trans' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name %}
-        {% elif '/usr/sap/' + sap_ha_pacemaker_cluster_nwas_abap_sid + '/SYS' in __mountpoint -%}
-          {% set idname = sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name %}
+          {% set idname = __sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name %}
+        {% elif '/usr/sap/' + __sap_ha_pacemaker_cluster_nwas_sid + '/SYS' in __mountpoint -%}
+          {% set idname = __sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name %}
         {% endif %}
         {{ idname }}
 
@@ -119,18 +120,18 @@
               value: 40
 
     # Format input variables to make above construction code more readable.
-    __fstype: "{{ commonfs_item.nfs_filesystem_type | default(sap_ha_pacemaker_cluster_storage_nfs_filesytem_type) }}"
-    __mount_opts: "{{ commonfs_item.nfs_mount_options | default(sap_ha_pacemaker_cluster_storage_nfs_mount_options) }}"
-    __nfs_server: "{{ commonfs_item.nfs_server | default(sap_ha_pacemaker_cluster_storage_nfs_server) | regex_replace('/$', '') }}"
+    __fstype: "{{ commonfs_item.nfs_filesystem_type | d(__sap_ha_pacemaker_cluster_storage_nfs_filesystem_type) }}"
+    __mount_opts: "{{ commonfs_item.nfs_mount_options | d(sap_ha_pacemaker_cluster_storage_nfs_mount_options) }}"
+    __nfs_server: "{{ commonfs_item.nfs_server | d(sap_ha_pacemaker_cluster_storage_nfs_server) | regex_replace('/$', '') }}"
     __nfs_path: |-
       {%- if '/usr/sap' in commonfs_item.nfs_path and '/usr/sap/trans' not in commonfs_item.nfs_path -%}
-        {{ commonfs_item.nfs_path | regex_replace('^/', '') | regex_replace('/$', '') }}/{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}/SYS
+        {{ commonfs_item.nfs_path | regex_replace('^/', '') | regex_replace('/$', '') }}/{{ __sap_ha_pacemaker_cluster_nwas_sid }}/SYS
       {%- else -%}
         {{ commonfs_item.nfs_path | regex_replace('^/', '') | regex_replace('/$', '') }}
       {%- endif %}
     __mountpoint: |-
       {%- if commonfs_item.mountpoint | regex_replace('/$', '') == '/usr/sap' -%}
-        {{ commonfs_item.mountpoint | regex_replace('/$', '') }}/{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}/SYS
+        {{ commonfs_item.mountpoint | regex_replace('/$', '') }}/{{ __sap_ha_pacemaker_cluster_nwas_sid }}/SYS
       {%- else -%}
         {{ commonfs_item.mountpoint | regex_replace('/$', '') }}
       {%- endif %}
@@ -158,19 +159,19 @@
     __clone_common_filesystem:
       id: |-
         {%- if '/sapmnt' in __mountpoint -%}
-          {{ sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_clone_name }}
+          {{ __sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_clone_name }}
         {%- elif '/usr/sap/trans' in __mountpoint -%}
-          {{ sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_clone_name }}
-        {%- elif '/usr/sap/' + sap_ha_pacemaker_cluster_nwas_abap_sid + '/SYS' in __mountpoint -%}
-          {{ sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_clone_name }}
+          {{ __sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_clone_name }}
+        {%- elif '/usr/sap/' + __sap_ha_pacemaker_cluster_nwas_sid + '/SYS' in __mountpoint -%}
+          {{ __sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_clone_name }}
         {%- endif %}
       resource_id: |-
         {%- if '/sapmnt' in __mountpoint -%}
-          {{ sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name }}
+          {{ __sap_ha_pacemaker_cluster_nwas_sapmnt_filesystem_resource_name }}
         {%- elif '/usr/sap/trans' in __mountpoint -%}
-          {{ sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name }}
-        {%- elif '/usr/sap/' + sap_ha_pacemaker_cluster_nwas_abap_sid + '/SYS' in __mountpoint -%}
-          {{ sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name }}
+          {{ __sap_ha_pacemaker_cluster_nwas_transports_filesystem_resource_name }}
+        {%- elif '/usr/sap/' + __sap_ha_pacemaker_cluster_nwas_sid + '/SYS' in __mountpoint -%}
+          {{ __sap_ha_pacemaker_cluster_nwas_sys_filesystem_resource_name }}
         {%- endif %}
       meta_attrs:
         - attrs:
@@ -179,7 +180,7 @@
 
     __mountpoint: |-
       {%- if commonfsclone_item.mountpoint | regex_replace('/$', '') == '/usr/sap' -%}
-        {{ commonfsclone_item.mountpoint | regex_replace('/$', '') }}/{{ sap_ha_pacemaker_cluster_nwas_abap_sid }}/SYS
+        {{ commonfsclone_item.mountpoint | regex_replace('/$', '') }}/{{ __sap_ha_pacemaker_cluster_nwas_sid }}/SYS
       {%- else -%}
         {{ commonfsclone_item.mountpoint | regex_replace('/$', '') }}
       {%- endif %}

@@ -1,51 +1,55 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP SWPM Pre Install - Remove existing {{ sap_swpm_sid | lower + 'adm' }}
-  block:
+# Legacy code, appears to serve no function but does cause ASCS HA <sid>adm to not default to C Shell
+# As test without this code installed ASCS HA successfully, the call to this file has been commented out for removal at later date
 
-# Reason for noqa: We currently do not determine if there are processes to be killed
-    - name: SAP SWPM Pre Install - Kill all processes under {{ sap_swpm_sid | lower + 'adm' }}
-      ansible.builtin.shell: |
-        killall -u {{ sap_swpm_sid | lower }}adm
-      ignore_errors: yes
-      changed_when: true
+# - name: SAP SWPM Pre Install - Remove existing {{ sap_swpm_sid | lower + 'adm' }}
+#   block:
 
-    - name: SAP SWPM Pre Install - Remove user {{ sap_swpm_sid | lower + 'adm' }}
-      ansible.builtin.user:
-        name: '{{ sap_swpm_sid | lower }}adm'
-        state: absent
-        remove: yes
-        force: yes
+# # Reason for noqa: We currently do not determine if there are processes to be killed
+#     - name: SAP SWPM Pre Install - Kill all processes under {{ sap_swpm_sid | lower + 'adm' }}
+#       ansible.builtin.shell: |
+#         killall -u {{ sap_swpm_sid | lower }}adm
+#       ignore_errors: yes
+#       changed_when: true
 
-    - name: SAP SWPM Pre Install - Remove group {{ sap_swpm_sid | lower + 'adm' }}
-      ansible.builtin.group:
-        name: '{{ sap_swpm_sid | lower }}adm'
-        state: absent
+#     - name: SAP SWPM Pre Install - Remove user {{ sap_swpm_sid | lower + 'adm' }}
+#       ansible.builtin.user:
+#         name: '{{ sap_swpm_sid | lower }}adm'
+#         state: absent
+#         remove: yes
+#         force: yes
 
-- name: SAP SWPM Pre Install - Create sapsys group
-  ansible.builtin.group:
-    name: 'sapsys'
-    gid: '{{ sap_swpm_sapsys_gid }}'
-    state: present
+#     - name: SAP SWPM Pre Install - Remove group {{ sap_swpm_sid | lower + 'adm' }}
+#       ansible.builtin.group:
+#         name: '{{ sap_swpm_sid | lower }}adm'
+#         state: absent
 
-- name: SAP SWPM Pre Install - Create {{ sap_swpm_sid | lower + 'adm' }}
-  ansible.builtin.user:
-    name: '{{ sap_swpm_sid | lower }}adm'
-    comment: "SAP User - {{ sap_swpm_sid }}"
-    uid: '{{ sap_swpm_sidadm_uid }}'
-    group: '{{ sap_swpm_sapsys_gid }}'
+# - name: SAP SWPM Pre Install - Create sapsys group
+#   ansible.builtin.group:
+#     name: 'sapsys'
+#     gid: '{{ sap_swpm_sapsys_gid }}'
+#     state: present
 
-- name: SAP SWPM Pre Install - Create a /usr/sap/{{ sap_swpm_sid }}
-  ansible.builtin.file:
-    path: /usr/sap/{{ sap_swpm_sid }}
-    state: directory
-    owner: '{{ sap_swpm_sid | lower }}adm'
-    group: sapsys
-    recurse: yes
-    mode: '0755'
+# - name: SAP SWPM Pre Install - Create {{ sap_swpm_sid | lower + 'adm' }}
+#   ansible.builtin.user:
+#     name: '{{ sap_swpm_sid | lower }}adm'
+#     comment: "SAP User - {{ sap_swpm_sid }}"
+#     uid: '{{ sap_swpm_sidadm_uid }}'
+#     group: '{{ sap_swpm_sapsys_gid }}'
 
-# - name: SAP SWPM Pre Install - Purge parameters so it will not populate inifile.params to prevent SWPM from crashing
-#   ansible.builtin.set_facts:
-#     sap_swpm_sapadm_uid: ""
-#     sap_swpm_sapsys_gid: ""
-#     sap_swpm_sidadm_uid: ""
+# - name: SAP SWPM Pre Install - Create a /usr/sap/{{ sap_swpm_sid }}
+#   ansible.builtin.file:
+#     path: /usr/sap/{{ sap_swpm_sid }}
+#     state: directory
+#     owner: '{{ sap_swpm_sid | lower }}adm'
+#     group: sapsys
+#     recurse: yes
+#     mode: '0755'
+
+# # - name: SAP SWPM Pre Install - Purge parameters so it will not populate inifile.params to prevent SWPM from crashing
+# #   ansible.builtin.set_facts:
+# #     sap_swpm_sapadm_uid: ""
+# #     sap_swpm_sapsys_gid: ""
+# #     sap_swpm_sidadm_uid: ""

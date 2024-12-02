@@ -1,15 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
 - name: Display the role path
   ansible.builtin.debug:
     var: role_path
 
+# Load variable file starting with actual version up to OS family.
+# Example for SUSE Linux Enterprise Server for SAP Applications 15 SP6:
+# 1. SLES_SAP_15.6.yml - Specific to distribution with major and minor release.
+# 2. SLES_SAP_15.yml - Specific to distribution and major release regardless of minor release.
+# 3. SLES_15.6.yml - Specific to distribution family (SLES and SLES4SAP) and minor release.
+# 4. SLES_15.yml - Specific to distribution.
+# 5. Suse.yml - Specific to OS family.
 - name: Include OS specific vars
   ansible.builtin.include_vars: '{{ item }}'
   with_first_found:
-    - '{{ ansible_distribution.split("_")[0] }}_{{ ansible_distribution_major_version }}.yml'
     - '{{ ansible_distribution }}_{{ ansible_distribution_version }}.yml'
     - '{{ ansible_distribution }}_{{ ansible_distribution_major_version }}.yml'
+    - '{{ ansible_distribution.split("_")[0] }}_{{ ansible_distribution_version }}.yml'
+    - '{{ ansible_distribution.split("_")[0] }}_{{ ansible_distribution_major_version }}.yml'
     - '{{ ansible_os_family }}.yml'
 
 - name: Set filename prefix to empty string if role is run in normal mode

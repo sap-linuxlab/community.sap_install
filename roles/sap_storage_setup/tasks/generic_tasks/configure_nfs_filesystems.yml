@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # These tasks are executed in a loop over all NFS filesystems
 # defined in sap_storage_setup_definition.
@@ -44,18 +45,16 @@
             'dir_only': '/' + sap_storage_setup_sid,
           }
         ]) %}
-      {%- endif %}
 
-      {%- if nfs_item.mountpoint | regex_replace('/$', '') == '/usr/sap/trans' %}
+      {%- elif nfs_item.mountpoint | regex_replace('/$', '') == '/usr/sap/trans' %}
         {%- set add_trans = mount_list.extend([
           {
             'mount_src': nfs_item.nfs_path | regex_replace('/$', ''),
             'mountpoint': nfs_item.mountpoint | regex_replace('/$', ''),
           }
         ]) %}
-      {%- endif %}
 
-      {%- if nfs_item.mountpoint | regex_replace('/$', '') == '/usr/sap' -%}
+      {%- elif nfs_item.mountpoint | regex_replace('/$', '') == '/usr/sap' -%}
         {%- for common in sap_storage_setup_nfs_dirs_usr_sap.all %}
           {%- set add_all_usrsap = mount_list.extend([
             {
@@ -75,6 +74,14 @@
             ]) %}
           {%- endfor %}
         {%- endfor %}
+
+      {%- elif nfs_item.mountpoint.startswith('/hana/') %}
+        {%- set add_hana = mount_list.extend([
+          {
+            'mount_src': nfs_item.nfs_path | regex_replace('/$', ''),
+            'mountpoint': nfs_item.mountpoint | regex_replace('/$', ''),
+          }
+        ]) %}
 
       {%- endif %}
       {{ mount_list }}

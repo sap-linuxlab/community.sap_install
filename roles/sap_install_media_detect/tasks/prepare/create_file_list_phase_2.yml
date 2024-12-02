@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
 # The fact variables are appended in tasks of this file, so they need to be initialized explicitly.
@@ -21,19 +22,39 @@
   ansible.builtin.set_fact:
     __sap_install_media_detect_fact_find_result_phase_2: "{{ __sap_install_media_detect_fact_find_result_phase_2 + [item.path] }}"
   loop: "{{ __sap_install_media_detect_register_find_result_phase_2.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
-- name: SAP Install Media Detect - Prepare - Iterate over files and determine file type
+- name: SAP Install Media Detect - Prepare - Iterate over files and determine file type, including command for handling RAR files
   ansible.builtin.command: "{{ __sap_install_media_detect_sapfile_path }} -e --lsar_file={{ __sap_install_media_detect_rar_list.split(' ')[0] }} --sapcar_file={{ __sap_install_media_detect_fact_sapcar_path }} {{ line_item }}"
-  register: __sap_install_media_detect_register_files_phase_2
+  register: __sap_install_media_detect_register_files_phase_2_rar
   loop: "{{ __sap_install_media_detect_fact_find_result_phase_2 }}"
   loop_control:
     loop_var: line_item
   changed_when: false
+  when: sap_install_media_detect_rar_handling
+
+- name: SAP Install Media Detect - Prepare - Iterate over files and determine file type, without command for handling RAR files
+  ansible.builtin.command: "{{ __sap_install_media_detect_sapfile_path }} -e --sapcar_file={{ __sap_install_media_detect_fact_sapcar_path }} {{ line_item }}"
+  register: __sap_install_media_detect_register_files_phase_2_norar
+  loop: "{{ __sap_install_media_detect_fact_find_result_phase_2 }}"
+  loop_control:
+    loop_var: line_item
+  changed_when: false
+  when: not sap_install_media_detect_rar_handling
+
+- name: SAP Install Media Detect - Prepare - Set fact from determining the file type
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_register_files_phase_2: "{{ __sap_install_media_detect_register_files_phase_2_rar
+      if sap_install_media_detect_rar_handling
+      else __sap_install_media_detect_register_files_phase_2_norar }}"
 
 - name: SAP Install Media Detect - Prepare - Set fact with the results of the sapfile command
   ansible.builtin.set_fact:
     __sap_install_media_detect_fact_files_sapfile_results: "{{ __sap_install_media_detect_fact_files_sapfile_results + [__new_dict] }}"
   loop: "{{ __sap_install_media_detect_register_files_phase_2.results }}"
+  loop_control:
+    label: "{{ item.stdout.split(';')[0] }}"
   vars:
     __new_dict:
       dir: "{{ item.stdout.split(';')[0] | dirname }}"

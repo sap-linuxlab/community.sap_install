@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 ##########
 # Creating a list of unused devices that match the requested filesystem sizes, using
@@ -49,6 +50,8 @@
 # defined already that is to be enhanced with single disk definitions, if
 # applicable.
 
+# First pass assigns disks based on exact size.
+# Second pass assigns disks based on approximate size -8GB and +8GB
 - name: SAP Storage Setup - Set fact for target filesystem device mapping
   ansible.builtin.set_fact:
     filesystem_device_map: "{{ filesystem_device_map | default([]) + __single_disk_to_fs_device_map }}"
@@ -67,7 +70,21 @@
           -%}
 
           {%- for dev in av_dev -%}
+            {%- if dev.value.size | regex_search('.*TB$') -%}
+              {% set disk_size_gb = (((( dev.value.size | replace(' TB','') | float * 1024) /8) | round(0,'ceil') * 8) | int) -%}
+            {%- else -%}
+              {% set disk_size_gb = (dev.value.size | regex_replace('(\.\d+\s*)', '') | replace('GB','') | int) -%}
+            {%- endif -%}
+            {%- if disk_size_gb == fs.disk_size
+                and dev.key not in assigned_dev
+                and dev.value.holders | length == 0
+                and matching_dev | length < (fs.lvm_lv_stripes | d('1') | int) -%}
+                {%- set assigned = assigned_dev.append(dev.key) -%}
+                {%- set add = matching_dev.append('/dev/' + dev.key) -%}
+            {%- endif -%}
+          {%- endfor -%}
 
+          {%- for dev in av_dev -%}
             {%- if dev.value.size | regex_search('.*TB$') -%}
               {% set disk_size_gb = (((( dev.value.size | replace(' TB','') | float * 1024) /8) | round(0,'ceil') * 8) | int) -%}
             {%- else -%}
@@ -81,7 +98,6 @@
                 {%- set assigned = assigned_dev.append(dev.key) -%}
                 {%- set add = matching_dev.append('/dev/' + dev.key) -%}
             {%- endif -%}
-
           {%- endfor -%}
 
           {%- if matching_dev | length > 0 -%}

@@ -1,0 +1,116 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+# Platform detection for cloud and other infrastructure platforms.
+
+### Facts already available to Ansible
+#
+### Amazon Web Services EC2 Virtual Server. Not applicable for AWS Classic.
+# ansible_chassis_asset_tag: "Amazon EC2" # SMBIOS Chassis Asset Tag
+# ansible_board_asset_tag: "i-043d3c1a889ed9016" # SMBIOS Baseboard Asset Tag, ID of virtual machine on platform
+# ansible_chassis_vendor: "Amazon EC2"
+# ansible_product_name: "r5.8xlarge" # IaaS profile name
+# ansible_system_vendor: "Amazon EC2"
+#
+### Google Cloud Compute Engine Virtual Machine.
+# ansible_chassis_asset_tag: "NA" # SMBIOS Chassis Asset Tag
+# ansible_board_asset_tag: "9EAF3038-7EF5-3F1E-6620-FB3BDA7A3709" # SMBIOS Baseboard Asset Tag, ID of virtual machine on platform
+# ansible_chassis_vendor: "Google"
+# ansible_product_name: "Google Compute Engine"
+# ansible_system_vendor: "Google"
+#
+### IBM Cloud Virtual Server. Not applicable for IBM Cloud Classic Infrastructure.
+# ansible_chassis_asset_tag: "ibmcloud" # SMBIOS Chassis Asset Tag
+# ansible_board_asset_tag: "0c7d4459-xxxx-yyyy-zzzz-abcdefghijkl" # SMBIOS Baseboard Asset Tag, ID of virtual machine on platform
+# ansible_chassis_vendor: "IBM:Cloud Compute Server 1.0:mx2-16x128" # IaaS profile name as suffix (after colon)
+# ansible_product_name: "Standard PC (i440FX + PIIX, 1996)"
+# ansible_system_vendor: "QEMU"
+#
+### Microsoft Azure Virtual Machine. Not applicable for MS Azure Classic/ASM.
+# ansible_chassis_asset_tag: "7783-xxxx-yyyy-zzzz-aaaa-bbbb-cc" # SMBIOS Chassis Asset Tag
+# ansible_board_asset_tag: "None" # SMBIOS Baseboard Asset Tag
+# ansible_chassis_vendor: "Microsoft Corporation"
+# ansible_product_name: "Virtual Machine"
+# ansible_system_vendor: "70f4a858-1eea-4c35-b9e1-e179c32fc6b5" # ID of virtual machine on platform
+#
+### VMware vSphere
+# ansible_product_name: "VMware7,1",
+# ansible_system_vendor: "VMware, Inc.",
+# ansible_virtualization_type: "VMware"
+#
+### End of comment
+
+
+# TODO: detection based on multiple facts and providing one standard
+# name for use as platform type in related include files
+# cloud_aliyun_ecs_vm, cloud_aws_ec2_vs, cloud_gcp_ce_vm, cloud_ibmcloud_powervs, cloud_ibmcloud_vs,
+# cloud_msazure_vm, hyp_ibmpower_vm, hyp_redhat_ocp_virt_vm, hyp_redhat_rhel_kvm_vm, hyp_vmware_vsphere_vm
+
+
+- name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is Amazon Web Services EC2 Virtual Server
+  ansible.builtin.set_fact:
+    __sap_ha_install_anydb_ibmdb2_platform: cloud_aws_ec2_vs
+  when:
+    - '"amazon" in ansible_system_vendor | lower
+      or "amazon" in ansible_product_name | lower'
+
+- name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is Google Cloud Compute Engine Virtual Machine
+  ansible.builtin.set_fact:
+    __sap_ha_install_anydb_ibmdb2_platform: cloud_gcp_ce_vm
+  when:
+    - ansible_product_name == 'Google Compute Engine'
+
+- name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Cloud Virtual Server
+  ansible.builtin.set_fact:
+    __sap_ha_install_anydb_ibmdb2_platform: cloud_ibmcloud_vs
+  when:
+    - ansible_chassis_asset_tag == 'ibmcloud'
+
+- name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is Microsoft Azure Virtual Machine
+  ansible.builtin.set_fact:
+    __sap_ha_install_anydb_ibmdb2_platform: cloud_msazure_vm
+  when:
+    - ansible_product_name == 'Virtual Machine'
+    - ansible_chassis_vendor == 'Microsoft Corporation'
+
+# - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Power - RSCT binary check
+#   ansible.builtin.shell: |
+#     set -o pipefail && rpm -qa | grep -E -e "rsct.basic"
+#   register: __sap_ha_install_anydb_ibmdb2_power_rsct_check
+#   changed_when: false
+#   when: ansible_architecture == "ppc64le"
+
+# - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Power - RSCT binary check
+#   ansible.builtin.fail:
+#     msg: Please install RSCT from IBM Power Systems service and productivity tools repository
+#   when:
+#     - ansible_architecture == "ppc64le"
+#     - __sap_ha_install_anydb_ibmdb2_power_rsct_check.stdout == ""
+
+# - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Power - RSCT binary check
+#   ansible.builtin.shell: |
+#     /opt/rsct/bin/ctgethscid
+#   register: __sap_ha_install_anydb_ibmdb2_power_rsct_hscid
+#   changed_when: false
+#   when:
+#     - ansible_architecture == "ppc64le"
+#     - __sap_ha_install_anydb_ibmdb2_power_rsct_check.stdout != ""
+
+# - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM Power Virtual Server from IBM Cloud
+#   ansible.builtin.set_fact:
+#     __sap_ha_install_anydb_ibmdb2_platform: cloud_ibmcloud_powervs
+#   when:
+#     - ansible_architecture == "ppc64le"
+#     - '"ibmcloud" in __sap_ha_install_anydb_ibmdb2_power_rsct_hscid.stdout'
+
+# - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is IBM PowerVM
+#   ansible.builtin.set_fact:
+#     __sap_ha_install_anydb_ibmdb2_platform: hyp_ibmpower_vm
+#   when:
+#     - ansible_architecture == "ppc64le"
+#     - '"ibmcloud" not in __sap_ha_install_anydb_ibmdb2_power_rsct_hscid.stdout'
+
+# - name: SAP HA AnyDB - IBM Db2 HADR - Check if platform is VMware vSphere"
+#   ansible.builtin.set_fact:
+#     __sap_ha_install_anydb_ibmdb2_platform: hyp_vmware_vsphere_vm
+#   when:
+#     - ansible_virtualization_type == 'VMware'

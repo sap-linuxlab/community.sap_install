@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
 ### Deprecated standard method, can fail to detect process exit (e.g. hang errors with SAP SWPM 2.0 SP11)
@@ -22,33 +23,19 @@
 
 ### Async method
 
-# Required for Ansible Module pids
-- name: Install Python devel, Python pip and gcc to system Python
-  ansible.builtin.package:
-    name:
-      - python3-devel
-      - python3-pip
-      - gcc
-    state: present
+# now in file pre_install.yml:
+#- name: Set fact for the sapinst command line
+#  ansible.builtin.set_fact:
+#    __sap_swpm_sapinst_command: "umask {{ sap_swpm_umask | d('022') }} ; ./sapinst {{ sap_swpm_swpm_command_inifile }}
+#    {{ sap_swpm_swpm_command_product_id }}
+#    {{ sap_swpm_swpm_command_extra_args }}"
+#  tags: sap_swpm_sapinst_commandline
 
-# Required for Ansible Module pids
-- name: Install Python dependency psutil to system Python
-  ansible.builtin.pip:
-    name:
-      - psutil
-#    executable: pip3.6
-
-- name: Set fact for the sapinst command line
-  ansible.builtin.set_fact:
-    __sap_swpm_sapinst_command: "umask {{ sap_swpm_umask | default('022') }} ; ./sapinst {{ sap_swpm_swpm_command_inifile }}
-    {{ sap_swpm_swpm_command_product_id }}
-    {{ sap_swpm_swpm_command_extra_args }}"
-  tags: sap_swpm_sapinst_commandline
-
-- name: Display the sapinst command line
-  ansible.builtin.debug:
-    msg: "SAP SWPM install command: '{{ __sap_swpm_sapinst_command }}'"
-  tags: sap_swpm_sapinst_commandline
+# now in file pre_install.yml:
+#- name: Display the sapinst command line
+#  ansible.builtin.debug:
+#    msg: "SAP SWPM install command: '{{ __sap_swpm_sapinst_command }}'"
+#  tags: sap_swpm_sapinst_commandline
 
 # Call sapinst synchronously
 # Reason for noqa: This command installs software, so it will change things
@@ -70,16 +57,14 @@
   async: 86400 # Seconds for maximum runtime, set to 24 hours
   poll: 0 # Seconds between polls, use 0 to run Ansible Tasks concurrently
 
-# Monitor sapinst process (i.e. ps aux | grep sapinst) and wait for exit
+# Monitor sapinst process and wait for exit
 - name: SAP SWPM - Wait for sapinst process to exit, poll every 60 seconds
-  community.general.pids:
-    name: sapinst
-#  shell: ps -ef | awk '/sapinst/&&!/awk/&&!/ansible/{print}'
-  register: pids_sapinst
-  until: "pids_sapinst.pids | length == 0"
-#  until: "pids_sapinst.stdout | length == 0"
+  ansible.builtin.shell: set -o pipefail && ps -ef | awk '/\.\/sapinst /&&!/umask/&&!/ awk /{print}'
+  register: __sap_swpm_register_pids_sapinst
+  until: "__sap_swpm_register_pids_sapinst.stdout | length == 0"
   retries: 1440
   delay: 60
+  changed_when: false
 
 - name: SAP SWPM - Verify if sapinst process finished successfully
   ansible.builtin.async_status:

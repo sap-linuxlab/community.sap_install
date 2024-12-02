@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # Reminder: This file is included in a loop over a dictionary.
 # Included in: tasks/include_construct_vip_resources.yml
@@ -14,7 +15,7 @@
   vars:
     __resource_vip:
       id: "{{ vip_list_item.key }}"
-      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents['ipaddr'].agent | d('ocf:heartbeat:IPaddr2') }}"
       instance_attrs:
         - attrs:
             - name: ip
@@ -52,19 +53,19 @@
               value: 20
 
     __haproxy_id: >-
-      {% if vip_list_item.key == sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name -%}
-        {{ sap_ha_pacemaker_cluster_healthcheck_hana_primary_id }}
-      {%- elif vip_list_item.key == sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name
+      {% if vip_list_item.key == __sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name -%}
+        {{ __sap_ha_pacemaker_cluster_healthcheck_hana_primary_id }}
+      {%- elif vip_list_item.key == __sap_ha_pacemaker_cluster_healthcheck_hana_secondary_resource_name
         and sap_ha_pacemaker_cluster_healthcheck_hana_secondary_port | length > 4 -%}
-        {{ sap_ha_pacemaker_cluster_healthcheck_hana_secondary_id }}
-      {%- elif vip_list_item.key == sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_resource_name -%}
-        {{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_id }}
-      {%- elif vip_list_item.key == sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_resource_name -%}
-        {{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_id }}
-      {%- elif vip_list_item.key == sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_resource_name -%}
-        {{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_id }}
-      {%- elif vip_list_item.key == sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_resource_name -%}
-        {{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_id }}
+        {{ __sap_ha_pacemaker_cluster_healthcheck_hana_secondary_id }}
+      {%- elif vip_list_item.key == __sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_resource_name -%}
+        {{ __sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_id }}
+      {%- elif vip_list_item.key == __sap_ha_pacemaker_cluster_healthcheck_nwas_ers_resource_name -%}
+        {{ __sap_ha_pacemaker_cluster_healthcheck_nwas_ers_id }}
+      {%- elif vip_list_item.key == __sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_resource_name -%}
+        {{ __sap_ha_pacemaker_cluster_healthcheck_nwas_pas_id }}
+      {%- elif vip_list_item.key == __sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_resource_name -%}
+        {{ __sap_ha_pacemaker_cluster_healthcheck_nwas_aas_id }}
       {%- else -%}
       {%- endif %}
 
@@ -73,3 +74,30 @@
     - sap_ha_pacemaker_cluster_vip_method == 'gcp_nlb_reserved_ip_haproxy'
     - vip_list_item.key in __sap_ha_pacemaker_cluster_healthcheck_resource_list
     - __haproxy_id | length > 0
+
+
+- name: "SAP HA Prepare Pacemaker - GCP CE - Add resource: Socat resource for Health Checks (socat)"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__health_check] }}"
+  vars:
+    __health_check:
+      id: "{{ vip_list_item.key }}"
+      agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
+      instance_attrs:
+        - attrs:
+            - name: binfile
+              value: "/usr/bin/socat"
+            - name: cmdline_options
+              value: "-U TCP-LISTEN:{{ vip_list_item.value }},backlog=10,fork,reuseaddr /dev/null"
+      operations:
+        - action: monitor
+          attrs:
+            - name: interval
+              value: 10
+            - name: timeout
+              value: 20
+
+  when:
+    - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
+    - sap_ha_pacemaker_cluster_vip_method == 'gcp_anything_socat'
+    - vip_list_item.key in __sap_ha_pacemaker_cluster_healthcheck_resource_list

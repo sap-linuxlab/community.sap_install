@@ -1,0 +1,162 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# - name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - Fence Agent Packages for RHEL
+#   ansible.builtin.package:
+#     name:
+#       - fence-agents-gce
+#       - resource-agents-gcp
+#     state: present
+#   when: ansible_os_family == 'RedHat'
+
+# - name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - Fence Agent Packages for SLES
+#   ansible.builtin.package:
+#     name:
+#       - fence-agents
+#       - resource-agents-gcp
+#     state: present
+#   when: ansible_os_family == 'Suse'
+
+- name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - GCloud Repo Key
+  ansible.builtin.rpm_key:
+    state: present
+    key: https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+- name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - GCloud Repo Add for RHEL
+  ansible.builtin.yum_repository:
+    name: Google Cloud CLI
+    baseurl: https://packages.cloud.google.com/yum/repos/cloud-sdk-el9-x86_64
+    enabled: true
+    gpgcheck: true
+    repo_gpgcheck: false
+    gpgkey:
+      - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+  when:
+    - ansible_os_family == "RedHat"
+
+# Reasons for noqa:
+# - no-changed-when: SUSEConnect command will not perform changes if already exists
+- name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - GCloud Repo Add for SLES # noqa no-changed-when
+  ansible.builtin.shell: |
+    SUSEConnect --product sle-module-public-cloud/{{ ansible_distribution_version }}/x86_64
+  when: ansible_os_family == 'Suse'
+
+- name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - GCloud CLI Package for RHEL
+  ansible.builtin.package:
+    name: google-cloud-cli
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+- name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - GCloud CLI Package for SLES
+  ansible.builtin.package:
+    name:
+      - google-guest-agent
+      - google-guest-configs
+      - google-guest-oslogin
+    state: present
+  when: ansible_os_family == 'Suse'
+
+
+# IBM Db2 HADR on GCP CE VMs
+# https://www.ibm.com/support/pages/node/7071284
+
+# db2cm script must run as root
+# When Virtual IP is already attached to OS Network Interface as Secondary IP
+# (in advance by sap_vm_temp_vip or previous db2cm run), will cause
+# "Error: ip address is pingable, use another ip address in the subnet that is not pingable."
+# Reasons for noqa:
+# - no-changed-when: Db2 command will error if already exists and not perform changes
+- name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - Primary Node - Create Virtual IP address for Primary Node using db2cm # noqa no-changed-when
+  ansible.builtin.shell: |
+    export ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
+    /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -primaryVIP "{{ sap_ha_install_anydb_ibmdb2_vip_primary_ip_address }}" -db $ibmdb2_sid -instance $ibmdb2_instance
+  register: __sap_ha_install_anydb_ibmdb2_config_gcp_1
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_platform == "cloud_gcp_ce_vm"
+  failed_when: not __sap_ha_install_anydb_ibmdb2_config_gcp_1.rc == 0 and not 'ip address is pingable' in __sap_ha_install_anydb_ibmdb2_config_gcp_1.stdout
+
+# Setting to be performed on both Primary and Secondary node
+# Reasons for noqa:
+# - no-changed-when: Db2 mandates use of Google Cloud CLI for credentials instead of credential configuration directly via IBM Db2 selected Pacemaker Shell (crmsh)
+- name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - Primary and Secondary Node - Provide GCloud CLI credentials # noqa no-changed-when
+  ansible.builtin.shell: |
+    gcloud auth activate-service-account --key-file="{{ sap_ha_install_anydb_ibmdb2_gcp_credentials_json_file }}" --project="{{ sap_ha_install_anydb_ibmdb2_gcp_project }}"
+    gcloud debug targets list --quiet
+  register: __sap_ha_install_anydb_ibmdb2_config_gcp_credentials
+  when:
+    - __sap_ha_install_anydb_ibmdb2_platform == "cloud_gcp_ce_vm"
+
+# # VERIFY - Missing fence_gce ?
+# # db2cm script must run as root
+# - name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - Primary Node - Create Linux Pacemaker Fence Agent instantiation using db2cm
+#   ansible.builtin.shell: |
+#     export ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+#     export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
+#     /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -gcp -fence
+#   register: __sap_ha_install_anydb_ibmdb2_config_gcp_2
+#   when:
+#     - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+#     - __sap_ha_install_anydb_ibmdb2_platform == "cloud_gcp_ce_vm"
+#   failed_when: not __sap_ha_install_anydb_ibmdb2_config_gcp_2.rc == 0 and not 'already configured' in __sap_ha_install_anydb_ibmdb2_config_gcp_2.stdout
+
+# db2cm script must run as root
+# Reasons for noqa:
+# - no-changed-when: Db2 command will error if already exists and not perform changes
+- name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - Primary Node - Create Linux Pacemaker Resource Agent instantiation for gcp-ilb using db2cm # noqa no-changed-when
+  ansible.builtin.shell: |
+    export ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
+    /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -gcp -primarylbl "{{ sap_ha_install_anydb_ibmdb2_gcp_lb_health_check_port }}" -db $ibmdb2_sid -instance $ibmdb2_instance
+  register: __sap_ha_install_anydb_ibmdb2_config_gcp_3
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_platform == "cloud_gcp_ce_vm"
+  failed_when: not __sap_ha_install_anydb_ibmdb2_config_gcp_3.rc == 0 and not 'already exists' in __sap_ha_install_anydb_ibmdb2_config_gcp_3.stdout
+
+# db2cm script must run as root
+# Reasons for noqa:
+# - no-changed-when: Db2 command will error if already exists and not perform changes
+- name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - Primary Node - Create Linux Pacemaker Resource Agent instantiation for Virtual IP via IPAddr2 using db2cm # noqa no-changed-when
+  ansible.builtin.shell: |
+    export ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
+    /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -gcp -primaryVIP "{{ sap_ha_install_anydb_ibmdb2_vip_primary_ip_address }}" -db $ibmdb2_sid -instance $ibmdb2_instance
+  register: __sap_ha_install_anydb_ibmdb2_config_gcp_4
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_platform == "cloud_gcp_ce_vm"
+  failed_when: not __sap_ha_install_anydb_ibmdb2_config_gcp_4.rc == 0 and not 'already exists' in __sap_ha_install_anydb_ibmdb2_config_gcp_4.stdout
+
+# db2cm script must run as root
+# Reasons for noqa:
+# - no-changed-when: Db2 command will error if already exists and not perform changes
+- name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - Primary Node - Start Linux Pacemaker cluster and IBM Db2 HADR functionality # noqa no-changed-when
+  ansible.builtin.shell: |
+    export ibmdb2_sid="{{ sap_ha_install_anydb_ibmdb2_sid }}"
+    export ibmdb2_instance="db2{{ sap_ha_install_anydb_ibmdb2_sid | lower }}"
+    export anydb_primary="{{ sap_ha_install_anydb_ibmdb2_hostname_primary }}"
+    export anydb_secondary="{{ sap_ha_install_anydb_ibmdb2_hostname_secondary }}"
+
+    # Assume 1 OS Network Interface until improvements can be made
+    export anydb_primary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_primary].ansible_default_ipv4.interface }}"
+    export anydb_secondary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_secondary].ansible_default_ipv4.interface }}"
+
+    /db2/$ibmdb2_instance/sqllib/bin/db2cm -enable -all
+    /db2/$ibmdb2_instance/sqllib/bin/db2cm -enable -instance $ibmdb2_instance -host $anydb_primary -publicEthernet $anydb_primary_nic -host $anydb_secondary -publicEthernet $anydb_secondary_nic -remote_cmd "ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+  register: __sap_ha_install_anydb_ibmdb2_config_gcp_5
+  when:
+    - sap_ha_install_anydb_ibmdb2_hostname_primary == inventory_hostname_short
+    - __sap_ha_install_anydb_ibmdb2_platform == "cloud_gcp_ce_vm"
+
+# Deletion commands:
+# export ibmdb2_sid=""
+# export ibmdb2_instance=""
+# export anydb_primary=""
+# /db2/$ibmdb2_instance/sqllib/bin/db2cm -delete -primaryVIP -db $ibmdb2_sid -instance $ibmdb2_instance
+# /db2/$ibmdb2_instance/sqllib/bin/db2cm -delete -gcp -primaryVIP -db $ibmdb2_sid -instance $ibmdb2_instance
+# /db2/$ibmdb2_instance/sqllib/bin/db2cm -delete -gcp -primarylbl -db $ibmdb2_sid -instance $ibmdb2_instance
+# /db2/$ibmdb2_instance/sqllib/bin/db2cm -delete -instance $ibmdb2_instance -host $anydb_primary
+# /db2/$ibmdb2_instance/sqllib/bin/db2cm -delete -db $ibmdb2_sid -instance $ibmdb2_instance
+# /db2/$ibmdb2_instance/sqllib/bin/db2cm -delete -cluster -db $ibmdb2_sid -instance $ibmdb2_instance

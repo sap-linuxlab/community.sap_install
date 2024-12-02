@@ -1,15 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP Install Media Detect - Prepare - Initialize fact variables, phase 1b
+- name: SAP Install Media Detect - Prepare - Move files to parent for known subdirs - Initialize fact variables, phase 1b
   ansible.builtin.set_fact:
     __sap_install_media_detect_fact_find_result_phase_1b: []
 
 # If any files have been moved to non-extract subdirectories already, move them back to the top level, making the role idempotent
 # Reason for noqa: When using pipefail and there is no result from the grep -v, this tail will fail but it should never fail
-- name: SAP Install Media Detect - Prepare - Find the relevant non-extract subdirectories # noqa risky-shell-pipe
+- name: SAP Install Media Detect - Prepare - Move files to parent for known subdirs - Find the relevant non-extract subdirectories # noqa risky-shell-pipe
   ansible.builtin.shell:
     cmd: >
-      ls -d sap_hana sap_swpm sap_swpm_download_basket $({{ __sap_install_media_detect_sapfile_path }} -s) 2>/dev/null |
+      ls -d
+      sap_hana sap_swpm sap_swpm_download_basket
+      sapase sapmaxdb oracledb ibmdb2 sap_export_nwas_java sap_export_ecc sap_export_nwas_abap sap_export_solman_java sap_export_ecc_ides
+      $({{ __sap_install_media_detect_sapfile_path }} -s) 2>/dev/null |
       awk '{print ("'{{ __sap_install_media_detect_software_main_directory }}'/"$0"/")}'
     chdir: "{{ __sap_install_media_detect_software_main_directory }}"
   register: __sap_install_media_detect_register_subdirectories_phase_1b
@@ -17,21 +21,21 @@
   failed_when: false
 
 # Reason for noqa: When using pipefail and there is no result from the grep -v, this tail will fail but it should never fail
-- name: SAP Install Media Detect - Prepare - Find existing extract subdirectories # noqa risky-shell-pipe
+- name: SAP Install Media Detect - Prepare - Move files to parent for known subdirs - Find existing extract subdirectories # noqa risky-shell-pipe
   ansible.builtin.shell: ls -d {{ __sap_install_media_detect_software_main_directory }}/*/ | grep '_extracted/$'
   register: __sap_install_media_detect_register_subdirectories_phase_1b_extracted
   changed_when: false
   failed_when: false
 
-- name: SAP Install Media Detect - Prepare - Display the relevant non-extract subdirectories
+- name: SAP Install Media Detect - Prepare - Move files to parent for known subdirs - Display the relevant non-extract subdirectories
   ansible.builtin.debug:
     var: __sap_install_media_detect_register_subdirectories_phase_1b.stdout_lines
 
-- name: SAP Install Media Detect - Prepare - Display existing extract subdirectories
+- name: SAP Install Media Detect - Prepare - Move files to parent for known subdirs - Display existing extract subdirectories
   ansible.builtin.debug:
     var: __sap_install_media_detect_register_subdirectories_phase_1b_extracted.stdout_lines
 
-- name: SAP Install Media Detect - Prepare - Create list of all files one level below '{{ __sap_install_media_detect_software_main_directory }}'
+- name: SAP Install Media Detect - Prepare - Move files to parent for known subdirs - Create list of all files one level below '{{ __sap_install_media_detect_software_main_directory }}'
   ansible.builtin.find:
     paths: "{{ line_item }}"
     patterns: '*'
@@ -43,21 +47,21 @@
     loop_var: line_item
   register: __sap_install_media_detect_register_find_result_phase_1b
 
-- name: SAP Install Media Detect - Prepare - Set fact from find result, phase 1b
+- name: SAP Install Media Detect - Prepare - Move files to parent for known subdirs - Set fact from find result, phase 1b
   ansible.builtin.set_fact:
     __sap_install_media_detect_fact_find_result_phase_1b: "{{ __sap_install_media_detect_fact_find_result_phase_1b + [item.1.path] }}"
-  with_subelements:
-    - "{{ __sap_install_media_detect_register_find_result_phase_1b.results }}"
-    - files
+  loop: "{{ __sap_install_media_detect_register_find_result_phase_1b.results | subelements('files') }}"
+  loop_control:
+    label: "{{ item.1.path }}"
 
 # Reason for noqa: Too much additional code required for determining if anything has changed or not
-- name: SAP Install Media Detect - Prepare - Move files back to '{{ __sap_install_media_detect_software_main_directory }}' # noqa no-changed-when
+- name: SAP Install Media Detect - Prepare - Move files to parent for known subdirs - Move files back to '{{ __sap_install_media_detect_software_main_directory }}' # noqa no-changed-when
   ansible.builtin.command: "mv {{ line_item }} {{ __sap_install_media_detect_software_main_directory }}/"
   loop: "{{ __sap_install_media_detect_fact_find_result_phase_1b }}"
   loop_control:
     loop_var: line_item
 
-- name: SAP Install Media Detect - Prepare - Remove the relevant non-extract subdirectories
+- name: SAP Install Media Detect - Prepare - Move files to parent for known subdirs - Remove the relevant non-extract subdirectories
   ansible.builtin.file:
     path: "{{ line_item }}"
     state: absent
@@ -65,7 +69,7 @@
   loop_control:
     loop_var: line_item
 
-- name: SAP Install Media Detect - Prepare - Remove the extract subdirectories
+- name: SAP Install Media Detect - Prepare - Move files to parent for known subdirs - Remove the extract subdirectories
   ansible.builtin.file:
     path: "{{ line_item }}"
     state: absent

@@ -1,80 +1,79 @@
+<!-- BEGIN Title -->
 # sap_hana_install Ansible Role
+<!-- END Title -->
+![Ansible Lint for sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint-sap_hana_install.yml/badge.svg)
 
-Ansible role for SAP HANA Installation
+## Description
+<!-- BEGIN Description -->
+The Ansible role `sap_hana_install` installs SAP HANA using the SAP HANA database lifecycle manager (HDBLCM).
+<!-- END Description -->
 
-## Requirements
+<!-- BEGIN Dependencies -->
+## Dependencies
+- `fedora.linux_system_roles`
+    - Roles:
+        - `selinux`
 
-The role requires additional collections which are specified in `meta/collection-requirements.yml`. Before using this role,
-make sure that the required collections are installed, for example by using the following command:
+Install required collections by `ansible-galaxy install -vv -r meta/collection-requirements.yml`.
+<!-- END Dependencies -->
 
-`ansible-galaxy install -vv -r meta/collection-requirements.yml`
+## Prerequisites
+<!-- BEGIN Prerequisites -->
+Managed nodes:
+- Directory with SAP Installation media is present and `sap_install_media_detect_source_directory` updated. Download can be completed using [community.sap_launchpad](https://github.com/sap-linuxlab/community).
+- Ensure that servers are configured for SAP HANA. See [Recommended](#recommended) section.
+- Ensure that volumes and filesystems are configured correctly. See [Recommended](#recommended) section.
 
-### Configure your system for the installation of SAP HANA
 
-- Make sure required volumes and filesystems are configured in the host.
-You can use the role `sap_storage_setup` to configure this. More info [here](/roles/sap_storage_setup)
-
-- Run the roles `sap_general_preconfigure` and `sap_hana_preconfigure` for installing required packages and
-for configuring system settings.
-
-### SAP HANA Software Installation .SAR Files
-
+### Prepare SAP HANA installation media
 Place the following files in directory /software/hana or in any other directory specified by variable
 `sap_hana_install_software_directory`:
-
 1. The SAPCAR executable for the correct hardware architecture
-
 2. The SAP HANA Installation .SAR file
     - SAP HANA 2.0 Server - `IMDB_SERVER*.SAR` file
-
 3. Optional - SAP HANA Components .SAR files
     - Include other optional components such as `IMDB_AFL*.SAR` or `IMDB_LCAPPS*.SAR`
-
 4. Optional - SAP Host Agent .SAR file
     - Include other optional components such as `SAPHOSTAGENT*SAR`
 
-#### Sample Directory Contents - with .SAR files
-
-- Sample directory `sap_hana_install_software_directory` containing SAP HANA software installation files
-    ```console
-    [root@hanahost SAP_HANA_INSTALLATION]# ls -l *.EXE *.SAR
-    -rwxr-xr-x. 1 nobody nobody  149561376 Mar  4  2021 IMDB_AFL20_054_1-80001894.SAR
-    -rwxr-xr-x. 1 nobody nobody  211762405 Mar  4  2021 IMDB_CLIENT20_007_23-80002082.SAR
-    -rwxr-xr-x. 1 nobody nobody    4483040 Mar  4  2021 SAPCAR_1010-70006178.EXE
-    -rwxr-xr-x. 1 nobody nobody  109492976 Mar  4  2021 IMDB_LCAPPS_2054_0-20010426.SAR
-    -rwxr-xr-x. 1 nobody nobody  109752805 Mar  4  2021 VCH202000_2054_0-80005463.SAR
-    -rwxr-xr-x. 1 nobody nobody 3694683699 Mar  4  2021 IMDB_SERVER20_054_0-80002031.SAR
-    -rwxr-xr-x. 1 nobody nobody   89285401 Sep 30 04:24 SAPHOSTAGENT51_51-20009394.SAR
-    ```
-
-If more than one SAPCAR EXE file is present in the software directory, the role will select the latest version
-for the current hardware architecture. Alternatively, the file name of the SAPCAR EXE file can also be set with
-variable `sap_hana_install_sapcar_filename`. Example:
-```
-sap_hana_install_sapcar_filename: SAPCAR_1115-70006178.EXE
+Example of `sap_hana_install_software_directory` content for SAP HANA installation:
+```console
+[root@hanahost SAP_HANA_INSTALLATION]# ls -l *.EXE *.SAR
+-rwxr-xr-x. 1 nobody nobody  149561376 Mar  4  2021 IMDB_AFL20_054_1-80001894.SAR
+-rwxr-xr-x. 1 nobody nobody  211762405 Mar  4  2021 IMDB_CLIENT20_007_23-80002082.SAR
+-rwxr-xr-x. 1 nobody nobody    4483040 Mar  4  2021 SAPCAR_1010-70006178.EXE
+-rwxr-xr-x. 1 nobody nobody  109492976 Mar  4  2021 IMDB_LCAPPS_2054_0-20010426.SAR
+-rwxr-xr-x. 1 nobody nobody  109752805 Mar  4  2021 VCH202000_2054_0-80005463.SAR
+-rwxr-xr-x. 1 nobody nobody 3694683699 Mar  4  2021 IMDB_SERVER20_054_0-80002031.SAR
+-rwxr-xr-x. 1 nobody nobody   89285401 Sep 30 04:24 SAPHOSTAGENT51_51-20009394.SAR
 ```
 
-If more than one SAR file for a certain software product is present in the software directory, the automatic
-handling of such SAR files will fail after extraction, when moving the newly created product directories
-(like `SAP_HOST_AGENT`) to already existing destinations.
-For avoiding such situations, use following variable to provide a list of SAR files to extract:
+**Considerations:**
+- If more than one SAPCAR EXE file is present in the software directory, the role will select the latest version
+  for the current hardware architecture. Alternatively, the file name of the SAPCAR EXE file can also be set with
+  variable `sap_hana_install_sapcar_filename`. Example:
+  ```
+  sap_hana_install_sapcar_filename: SAPCAR_1115-70006178.EXE
+  ```
+- If more than one SAR file for a certain software product is present in the software directory, the automatic
+  handling of such SAR files will fail after extraction, when moving the newly created product directories
+  (like `SAP_HOST_AGENT`) to already existing destinations.
+  For avoiding such situations, use following variable to provide a list of SAR files to extract: `sap_hana_install_sarfiles`.
 
-`sap_hana_install_sarfiles`.
+  Example:
+  ```
+  sap_hana_install_sarfiles:
+    - SAPHOSTAGENT54_54-80004822.SAR
+    - IMDB_SERVER20_060_0-80002031.SAR
+  ```
 
-Example:
-```
-sap_hana_install_sarfiles:
-  - SAPHOSTAGENT54_54-80004822.SAR
-  - IMDB_SERVER20_060_0-80002031.SAR
-```
+- If there is a file named `<filename>.sha256` in the software download directory
+  `sap_hana_install_software_directory` which contains the checksum and the file name similar to the output
+  of the sha256sum command, the role will examine the sha256sum for the corresponding SAPCAR or SAR file and the
+  processing will continue only if the checksum matches.
 
-If there is a file named `<filename>.sha256` in the software download directory
-`sap_hana_install_software_directory` which contains the checksum and the file name similar to the output
-of the sha256sum command, the role will examine the sha256sum for the corresponding SAPCAR or SAR file and the
-processing will continue only if the checksum matches.
 
-#### Extracted SAP HANA Software Installation Files
-
+### Extracted SAP HANA Software Installation Files
 This role will detect if there is a file `hdblcm` already present in the directory specified by variable
 `sap_hana_install_software_extract_directory` or in any directory below. If If found, it will skip
 the .SAR extraction phase and proceed with the installation.
@@ -94,16 +93,16 @@ software extract directory is required then set `sap_hana_install_cleanup_extrac
 these cleanup actions are false.
 
 
-- Sample directory `sap_hana_install_software_extract_directory` containing extracted SAP HANA software installation files
-    ```console
-    [root@hanahost extracted]# ll -lrt
-    drwxr-xr-x 4 root root 4096 Sep 30 04:55 SAP_HANA_AFL
-    drwxr-xr-x 5 root root 4096 Sep 30 04:55 SAP_HANA_CLIENT
-    drwxr-xr-x 4 root root 4096 Sep 30 04:55 SAP_HANA_LCAPPS
-    drwxr-xr-x 8 root root 4096 Sep 30 04:57 SAP_HANA_DATABASE
-    drwxr-xr-x 2 root root 4096 Sep 30 04:58 SAP_HOST_AGENT
-    drwxr-xr-x 4 root root 4096 Sep 30 04:58 VCH_AFL_2020
-    ```
+- Example of directory `sap_hana_install_software_extract_directory` containing extracted SAP HANA software installation files
+```console
+[root@hanahost extracted]# ll -lrt
+drwxr-xr-x 4 root root 4096 Sep 30 04:55 SAP_HANA_AFL
+drwxr-xr-x 5 root root 4096 Sep 30 04:55 SAP_HANA_CLIENT
+drwxr-xr-x 4 root root 4096 Sep 30 04:55 SAP_HANA_LCAPPS
+drwxr-xr-x 8 root root 4096 Sep 30 04:57 SAP_HANA_DATABASE
+drwxr-xr-x 2 root root 4096 Sep 30 04:58 SAP_HOST_AGENT
+drwxr-xr-x 4 root root 4096 Sep 30 04:58 VCH_AFL_2020
+```
 
 #### SAP HANA hdblcm Configfile Processing
 
@@ -140,111 +139,23 @@ Note: If there is a file named `configfile.cfg` in the directory specified by ro
 will be performed. Be aware that when using this file, any modifications to role variables after creation
 of this file will not be reflected.
 
-## Further Variables and Parameters
-
-### Input Parameters
-
-If the variable `sap_hana_install_check_sidadm_user` is set to `no`, the role will install SAP HANA even
-if the sidadm user exists. Default is `yes`, in which case the installation will not be performed if the
-sidadm user exists.
-
-The variable `sap_hana_install_new_system` determines if the role will perform a fresh SAP HANA installation
-or if it will add further hosts to an existing SAP HANA system as specified by variable
-`sap_hana_install_addhosts`. Default is `yes` for a fresh SAP HANA installation.
-
-The role can be configured to also set the required firewall ports for SAP HANA. If this is desired, set
-the variable `sap_hana_install_update_firewall` to `yes` (default is `no`). The firewall ports are defined
-in a variable which is compatible with the variable structure used by Linux System Role `firewall`.
-The firewall ports for SAP HANA are defined in member `port` of the first field of variable
-`sap_hana_install_firewall` (`sap_hana_install_firewall[0].port`), see file `defaults/main.yml`. If the
-member `state` is set to `enabled`, the ports will be enabled. If the member `state` is set to `disabled`,
-the ports will be disabled, which might be useful for testing.
-
-Certain parameters have identical meanings, for supporting different naming schemes in playbooks and inventories.
-You can find those in the task `Rename some variables used by hdblcm configfile` of the file `tasks/main.yml`.
-Example: The parameter `sap_hana_install_number`, which is used by the role to define the hdblm parameter `number`
-(= SAP HANA instance number) can be defined by setting `sap_hana_instance_number`, `sap_hana_install_instance_nr`,
-`sap_hana_install_instance_number`, or `sap_hana_install_number`. The order of precedence is from left to right.
-
-### Default Parameters
-
-Please check the default parameters file for more information on other parameters that can be used as an input
-- [**sap_hana_install** default parameters](defaults/main.yml)
+<!-- END Prerequisites -->
 
 ## Execution
+<!-- BEGIN Execution -->
+<!-- END Execution -->
 
-Sample Ansible Playbook Execution
+<!-- BEGIN Execution Recommended -->
+### Recommended
+It is recommended to execute this role together with other roles in this collection, in the following order:</br>
+1. [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure)
+2. [sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_preconfigure)
+3. [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect)
+4. *`sap_hana_install`*
+<!-- END Execution Recommended -->
 
-- Local Host Installation
-    - `ansible-playbook --connection=local --limit localhost -i "localhost," sap-hana-install.yml -e "@inputs/HDB.install"`
-
-- Target Host Installation
-    - `ansible-playbook -i "<target-host>" sap-hana-install.yml -e "@inputs/HDB.install"`
-
-## Sample playbooks
-
-### Sample playbook for installing a new scale-up (=single node) SAP HANA system
-
-```yaml
----
-- hosts: all
-  collections:
-    - community.sap_install
-  become: true
-  vars:
-    sap_hana_install_software_directory: /software/hana
-    sap_hana_install_common_master_password: 'NewPass$321'
-    sap_hana_install_sid: 'H01'
-    sap_hana_install_instance_nr: '00'
-  roles:
-    - sap_hana_install
-```
-
-### Sample playbook for installing a new scale-out SAP HANA system
-
-```yaml
----
-- hosts: all
-  collections:
-    - community.sap_install
-  become: true
-  vars:
-    sap_hana_install_software_directory: /software/hana
-    sap_hana_install_common_master_password: 'NewPass$321'
-    sap_hana_install_root_password: 'NewPass$321'
-    sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02'
-    sap_hana_install_sid: 'H01'
-    sap_hana_install_instance_nr: '00'
-  roles:
-    - sap_hana_install
-```
-
-### Sample playbook for adding additional nodes to an existing SAP HANA installation
-
-```yaml
----
-- hosts: all
-  collections:
-    - community.sap_install
-  become: true
-  vars:
-    sap_hana_install_software_directory: /software/hana
-    sap_hana_install_new_system: no
-    sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02'
-    sap_hana_install_common_master_password: 'NewPass$321'
-    sap_hana_install_root_password: 'NewPass$321'
-    sap_hana_install_sid: 'H01'
-    sap_hana_install_instance_nr: '00'
-  roles:
-    - sap_hana_install
-```
-
-You can find more complex playbooks in directory `playbooks` of the collection `community.sap_install`.
-
-## Flow
-
-### New SAP HANA Installation
-
+### Execution Flow
+<!-- BEGIN Execution Flow -->
 #### Perform Initial Checks
 
 These checks will be performed by default but can be skipped by setting `sap_hana_install_force` to `true`.
@@ -338,9 +249,70 @@ in a temporary directory for use by the hdblcm command in the next step.
 #### Post-Install
 
 - Print a short summary of the result of the installation.
+<!-- END Execution Flow -->
 
-## Tags
+### Example
+<!-- BEGIN Execution Example -->
+#### Example playbook for installing a new scale-up (=single node) SAP HANA system
+```yaml
+---
+- name: Ansible Play for SAP HANA installation - One host
+  hosts: all
+  become: true
+  tasks:
+    - name: Execute Ansible Role sap_hana_install
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_hana_install
+      vars:  
+        sap_hana_install_software_directory: /software/hana
+        sap_hana_install_common_master_password: 'NewPass$321'
+        sap_hana_install_sid: 'H01'
+        sap_hana_install_instance_nr: '00'
+```
 
+#### Example playbook for installing a new scale-out SAP HANA system
+```yaml
+---
+- name: Ansible Play for SAP HANA installation - Scale-out
+  hosts: all
+  become: true
+  tasks:
+    - name: Execute Ansible Role sap_hana_install
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_hana_install
+      vars:  
+        sap_hana_install_software_directory: /software/hana
+        sap_hana_install_common_master_password: 'NewPass$321'
+        sap_hana_install_root_password: 'NewPass$321'
+        sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02'
+        sap_hana_install_sid: 'H01'
+        sap_hana_install_instance_nr: '00'
+```
+
+#### Example playbook for adding additional nodes to an existing SAP HANA installation
+```yaml
+---
+- name: Ansible Play for SAP HANA installation - Add host
+  hosts: all
+  become: true
+  tasks:
+    - name: Execute Ansible Role sap_hana_install
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_hana_install
+      vars:  
+        sap_hana_install_software_directory: /software/hana
+        sap_hana_install_new_system: no
+        sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02'
+        sap_hana_install_common_master_password: 'NewPass$321'
+        sap_hana_install_root_password: 'NewPass$321'
+        sap_hana_install_sid: 'H01'
+        sap_hana_install_instance_nr: '00'
+```
+<!-- END Execution Example -->
+
+
+<!-- BEGIN Role Tags -->
+### Role Tags
 With the following tags, the role can be called to perform certain activities only:
 - tag `sap_hana_install_check_installation`: Perform an installation check, using `hdbcheck` or
   `hdblcm --action=check_installation`.
@@ -373,30 +345,103 @@ With the following tags, the role can be called to perform certain activities on
   `overwrite`.
 - tag `sap_hana_install_store_connection_information`: Only run the `hdbuserstore` command
 
-Sample call for only processing the SAPCAR and SAR files and creating the hdblcm configfile:
-```
-# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_preinstall --skip-tags=sap_hana_install_chown_hana_directories
-```
+<details>
+  <summary><b>How to run sap_hana_install with tags</b></summary>
 
-Sample call for only processing the SAPCAR files:
-```
-# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_prepare_sapcar
-```
+  #### Process SAPCAR and SAR files and create the hdblcm configfile:
+  ```console
+  ansible-playbook sap-hana-install.yml --tags=sap_hana_install_preinstall --skip-tags=sap_hana_install_chown_hana_directories
+  ```
 
-Sample call for only processing the SAPCAR and SAR files, without extracting the SAR files:
-```
-# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_prepare_sarfiles --skip-tags=sap_hana_install_extract_sarfiles
-```
+  #### Process only SAPCAR files:
+  ```console
+  ansible-playbook sap-hana-install.yml --tags=sap_hana_install_prepare_sapcar
+  ```
 
-Sample call for only displaying the SAP HANA hdblcm command line:
-```
-# ansible-playbook sap-hana-install.yml --tags=sap_hana_install_hdblcm_commandline
-```
+  #### Process SAPCAR and SAR files without extracting SAR files:
+  ```console
+  ansible-playbook sap-hana-install.yml --tags=sap_hana_install_prepare_sarfiles --skip-tags=sap_hana_install_extract_sarfiles
+  ```
+
+  #### Display SAP HANA hdblcm command without using it 
+  ```
+  ansible-playbook sap-hana-install.yml --tags=sap_hana_install_hdblcm_commandline
+  ```
+</details>
+
+
+<!-- END Role Tags -->
+
+<!-- BEGIN Further Information -->
+## Further Information
+- Starting with SAP HANA 2.0 SPS08, the component LSS (Local Secure Store) will be installed by default
+when installing SAP HANA. This requires the installation execution mode to be set to 'optimized', which is
+now set in the file `defaults/main.yml`.
+
+- For more examples on how to use this role in different installation scenarios, refer to the [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
+<!-- END Further Information -->
 
 ## License
+<!-- BEGIN License -->
+Apache 2.0
+<!-- END License -->
 
-Apache license 2.0
+## Maintainers
+<!-- BEGIN Maintainers -->
+- [Bernd Finger](https://github.com/berndfinger)
+<!-- END Maintainers -->
 
-## Author Information
+## Role Variables
+<!-- BEGIN Role Variables -->
+### sap_hana_install_sid
 
-Red Hat for SAP Community of Practice, IBM Lab for SAP Solutions, Markus Koch, Thomas Bludau, Bernd Finger, Than Ngo, Rainer Leber
+- _Type:_ `string`
+
+Enter SAP HANA System ID (SID).
+
+### sap_hana_install_number
+
+- _Type:_ `string`
+
+Enter SAP HANA Instance number.
+
+### sap_hana_install_fapolicyd_integrity
+
+- _Type:_ `string`
+- _Default:_ `sha256`
+
+Select `fapolicyd` integrity check option.</br>
+Available values: `none`, `size`, `sha256`, `ima`.
+
+### sap_hana_install_check_sidadm_user
+
+- _Type:_ `bool`
+- _Default:_ `True`
+
+Set to `False` to install SAP HANA even if the `sidadm` user exists.</br>
+Default is `True`, in which case the installation will not be performed if the `sidadm` user exists.
+
+### sap_hana_install_new_system
+
+- _Type:_ `bool`
+- _Default:_ `True`
+
+Set to `False` to use existing SAP HANA database and add more hosts using variable `sap_hana_install_addhosts`.</br>
+Default is `True`, in which case fresh SAP HANA installation will be performed.
+
+### sap_hana_install_update_firewall
+
+- _Type:_ `bool`
+- _Default:_ `False`
+
+The role can be configured to also set the required firewall ports for SAP HANA. If this is desired, set the variable `sap_hana_install_update_firewall` to `yes` (default is `no`).</br>
+The firewall ports are defined in a variable which is compatible with the variable structure used by Linux System Role `firewall`.</br>
+The firewall ports for SAP HANA are defined in member `port` of the first field of variable `sap_hana_install_firewall` (`sap_hana_install_firewall[0].port`), see file `defaults/main.yml`.</br>
+If the member `state` is set to `enabled`, the ports will be enabled. If the member `state` is set to `disabled`, the ports will be disabled, which might be useful for testing.</br>
+
+Certain parameters have identical meanings, for supporting different naming schemes in playbooks and inventories.</br>
+You can find those in the task `Rename some variables used by hdblcm configfile` of the file `tasks/main.yml`.</br>
+Example: The parameter `sap_hana_install_number`, which is used by the role to define the hdblm parameter `number` (= SAP HANA instance number)</br>
+ can be defined by setting `sap_hana_instance_number`, `sap_hana_install_instance_nr`, `sap_hana_install_instance_number`, or `sap_hana_install_number`.</br>
+ The order of precedence is from left to right.
+<!-- END Role Variables -->

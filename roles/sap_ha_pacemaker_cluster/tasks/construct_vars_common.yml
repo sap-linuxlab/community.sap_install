@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # Combine input parameters with inherited vars from the 'ha_cluster' role.
 # The inherited values take precedence. Some parameters are not required to be set.
@@ -21,7 +22,25 @@
     __sap_ha_pacemaker_cluster_hacluster_user_password: "{{ sap_ha_pacemaker_cluster_hacluster_user_password }}"
   no_log: true  # secure the credential
 
+# sap_ha_pacemaker_cluster_ha_cluster   -> user-defined or default inherited from {{ ha_cluster }}
+- name: "SAP HA Prepare Pacemaker - Register sap_ha_pacemaker_cluster_ha_cluster"
+  when:
+    - __sap_ha_pacemaker_cluster_ha_cluster is not defined
+    - sap_ha_pacemaker_cluster_ha_cluster is defined
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_ha_cluster: "{{ sap_ha_pacemaker_cluster_ha_cluster }}"
 
+- name: "SAP HA Prepare Pacemaker - Generate default sap_ha_pacemaker_cluster_ha_cluster"
+  when:
+    - not __sap_ha_pacemaker_cluster_ha_cluster is defined
+    - not sap_ha_pacemaker_cluster_ha_cluster is defined
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_ha_cluster:
+      node_name: "{{ ansible_hostname }}"
+      pcs_address: "{{ ansible_default_ipv4.address }}"
+
+
+# Combine following extra packages together:
 # sap_ha_pacemaker_cluster_extra_packages             -> user-defined, empty by global default
 # __sap_ha_pacemaker_cluster_sap_extra_packages       -> included from vars/*
 # __sap_ha_pacemaker_cluster_platform_extra_packages  -> included from vars/platform*
@@ -35,30 +54,65 @@
       | unique | select() }}"
   # remove duplicates and empty elements
 
-# sap_ha_pacemaker_cluster_fence_agent_minimal_packages -> global default
-# sap_ha_pacemaker_cluster_fence_agent_packages         -> global default
-# __sap_ha_pacemaker_cluster_fence_agent_packages       -> internal default (vars/main.yml)
 
+# Combine following fence packages together:
+# __sap_ha_pacemaker_cluster_fence_agent_packages_minimal -> os default
+# __sap_ha_pacemaker_cluster_fence_agent_packages_platform -> platform defaults from dict
+# sap_ha_pacemaker_cluster_fence_agent_packages         -> user input or default []
+
+# __sap_ha_pacemaker_cluster_fence_agent_packages loaded from ha_cluster is not included,
+# because it would still not be used due to precedence.
+# TODO: Remove Tech debt conditionals in future for deprecated var 'sap_ha_pacemaker_cluster_fence_agent_minimal_packages'
 - name: "SAP HA Prepare Pacemaker - Combine fence agent packages lists"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_fence_agent_packages: "{{
-      (sap_ha_pacemaker_cluster_fence_agent_minimal_packages
-      + sap_ha_pacemaker_cluster_fence_agent_packages
-      + __sap_ha_pacemaker_cluster_fence_agent_packages)
+      (__sap_ha_pacemaker_cluster_fence_agent_packages_minimal_combined
+      + __sap_ha_pacemaker_cluster_fence_agent_packages_platform
+      + sap_ha_pacemaker_cluster_fence_agent_packages)
       | unique }}"
+  vars:
+    # Tech debt for sap_ha_pacemaker_cluster_fence_agent_minimal_packages
+    __sap_ha_pacemaker_cluster_fence_agent_packages_minimal_combined:
+      "{{ __sap_ha_pacemaker_cluster_fence_agent_packages_minimal
+       + sap_ha_pacemaker_cluster_fence_agent_minimal_packages
+        if (sap_ha_pacemaker_cluster_fence_agent_minimal_packages is defined
+          and sap_ha_pacemaker_cluster_fence_agent_minimal_packages | length > 0
+          and sap_ha_pacemaker_cluster_fence_agent_minimal_packages is iterable)
+        else __sap_ha_pacemaker_cluster_fence_agent_packages_minimal }}"
 
-- name: "SAP HA Prepare Pacemaker - Add default corosync totem settings"
-  when:
-    - sap_ha_pacemaker_cluster_corosync_totem is defined
-    - sap_ha_pacemaker_cluster_corosync_totem.options is defined
-    - sap_ha_pacemaker_cluster_corosync_totem.options | length > 0
+
+# Prepare corosync totem variable with either:
+# - User provided sap_ha_pacemaker_cluster_corosync_totem if present
+# - Combine corosync totem from OS variables and Platform variables if present
+# - Use default corosync totem from OS variables if Platform variable is not present
+- name: "SAP HA Prepare Pacemaker - Prepare corosync totem settings"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_corosync_totem:
-      options: "{{ __sap_ha_pacemaker_cluster_corosync_totem.options | default([]) + __totem_settings }}"
+      options: "{{ __sap_ha_pacemaker_cluster_corosync_totem.options | d([]) + __totem_settings }}"
   vars:
+    # Identify if provided sap_ha_pacemaker_cluster_corosync_totem is defined
+    __user_totem_is_present:
+      "{{ true if (sap_ha_pacemaker_cluster_corosync_totem is defined
+        and sap_ha_pacemaker_cluster_corosync_totem.options is defined
+        and sap_ha_pacemaker_cluster_corosync_totem | length > 0) else false }}"
+
+    # Identify if __sap_ha_pacemaker_cluster_corosync_totem_platform is defined
+    __platform_totem_is_present:
+      "{{ true if (__sap_ha_pacemaker_cluster_corosync_totem_platform is defined
+        and __sap_ha_pacemaker_cluster_corosync_totem_platform.options is defined
+        and __sap_ha_pacemaker_cluster_corosync_totem_platform | length > 0) else false }}"
+
     __totem_settings: |-
+      {% if __user_totem_is_present %}
+      {% set corosync_totem = sap_ha_pacemaker_cluster_corosync_totem %}
+      {% elif __platform_totem_is_present %}
+      {% set corosync_totem = __sap_ha_pacemaker_cluster_corosync_totem_default
+       | combine(__sap_ha_pacemaker_cluster_corosync_totem_platform, recursive=True) %}
+      {% else %}
+      {% set corosync_totem = __sap_ha_pacemaker_cluster_corosync_totem_default %}
+      {% endif %}
       {% set new_opts = [] %}
-      {% for option in sap_ha_pacemaker_cluster_corosync_totem.options | dict2items -%}
+      {% for option in corosync_totem.options | dict2items -%}
         {%- set add_opts = new_opts.extend([
           {
             'name': option.key,
@@ -66,3 +120,5 @@
           }]) -%}
       {%- endfor %}
       {{ new_opts }}
+
+# TODO: Add support for ha_cluster_quorum

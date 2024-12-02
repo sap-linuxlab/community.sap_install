@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 # Requirement to enable the fencing resource to function.
 
@@ -19,7 +20,16 @@
     owner: root
     path: /root/.aws/config
 
+# New variable to disable default saving of AWS credentials file.
+# Reason: It overrides attached IAM Role or IAM Instance Profile.
 - name: "SAP HA Prepare Pacemaker - AWS EC2 VS - Store awscli credentials"
+  when:
+    - sap_ha_pacemaker_cluster_aws_credentials_setup is defined
+      and sap_ha_pacemaker_cluster_aws_credentials_setup
+    - sap_ha_pacemaker_cluster_aws_access_key_id is defined
+      and sap_ha_pacemaker_cluster_aws_access_key_id | length > 0
+    - sap_ha_pacemaker_cluster_aws_secret_access_key is defined
+      and sap_ha_pacemaker_cluster_aws_secret_access_key | length > 0
   ansible.builtin.blockinfile:
     backup: true
     block: |
@@ -31,3 +41,20 @@
     owner: root
     path: /root/.aws/credentials
   no_log: true
+
+# Notification about dependency on IAM Attachment if
+# sap_ha_pacemaker_cluster_aws_credentials_setup is not set to true
+- name: "SAP HA Prepare Pacemaker - AWS EC2 VS - awscli credentials warning"
+  when:
+    - sap_ha_pacemaker_cluster_aws_credentials_setup is not defined
+     or (sap_ha_pacemaker_cluster_aws_credentials_setup is defined
+      and not sap_ha_pacemaker_cluster_aws_credentials_setup)
+  ansible.builtin.debug:
+    msg: "{{ __awscli_message.splitlines() }}"
+  vars:
+    __awscli_message: |
+      Notification: AWS CLI credentials were not stored because the variable
+      sap_ha_pacemaker_cluster_aws_credentials_setup is not defined or it is not true.
+
+      Please ensure that your instances have IAM Role or Instance Profile attached, per AWS documentation
+      You can ignore this message if provisioning was completed using community.sap_infrastructure.

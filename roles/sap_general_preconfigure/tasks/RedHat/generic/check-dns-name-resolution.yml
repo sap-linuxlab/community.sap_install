@@ -1,17 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: Check dns forwarding settings
+- name: "Verify the correct DNS hostname to IP address resolution (A record)"
   ansible.builtin.shell: test "$(dig {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} +short)" = "{{ sap_general_preconfigure_ip }}"
   changed_when: false
-  ignore_errors: true
+  register: __sap_general_preconfigure_register_dns_test_a
+  failed_when: __sap_general_preconfigure_register_dns_test_a.rc != 0
+  ignore_errors: "{{ sap_general_preconfigure_ignore_dns_failures | d(true) }}"
 
-### BUG: dig does not use search path in resolv.con on PPCle
-- name: Check resolv.conf settings
+### BUG: dig does not use search path in resolv.conf on PPCle
+- name: "Verify the correct DNS hostname to IP address resolution (A record) using hostname and search list"
   ansible.builtin.shell: test "$(dig {{ sap_general_preconfigure_hostname }} +search +short)" = "{{ sap_general_preconfigure_ip }}"
   changed_when: false
-  ignore_errors: true
+  register: __sap_general_preconfigure_register_dns_test_searchlist
+  failed_when: __sap_general_preconfigure_register_dns_test_searchlist.rc != 0
+  ignore_errors: "{{ sap_general_preconfigure_ignore_dns_failures | d(true) }}"
 
-- name: Check dns reverse settings
+- name: "Verify the correct DNS IP address to FQDN resolution (PTR record)"
   ansible.builtin.shell: test "$(dig -x {{ sap_general_preconfigure_ip }} +short)" = "{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}."
   changed_when: false
-  ignore_errors: true
+  register: __sap_general_preconfigure_register_dns_test_ptr
+  failed_when: __sap_general_preconfigure_register_dns_test_ptr.rc != 0
+  ignore_errors: "{{ sap_general_preconfigure_ignore_dns_failures | d(true) }}"
