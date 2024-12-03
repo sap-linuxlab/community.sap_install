@@ -3,7 +3,7 @@
 - name: Assert - Display SAP note number 2369910 and its version
   ansible.builtin.debug:
     msg: "SAP note {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2369910$') | first).number }}
-          (version {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2369910$') | first).version }}): Configure RHEL 7"
+          (version {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2369910$') | first).version }}): SAP Software on Linux: General Information"
   tags:
     - always
 
@@ -18,31 +18,19 @@
       changed_when: false
       register: __sap_general_preconfigure_locales_installed
 
-    - name: Ensure English langpacks are available on RHEL
-      when: locale_list.stdout_lines | select('match', '^en_') | list | length == 0
-    
-    - name: Check if English locale is installed
+    - name: Assert that an English locale is installed
       ansible.builtin.assert:
-        that:
-          # "'en_US.UTF-8' in __sap_general_preconfigure_locales_installed.stdout"
-          - locale_list.stdout_lines | select('match', '^en_') | list | length > 0
-        fail_msg: "FAIL: No English locale installed. please install English locale"
-        success_msg: "PASS: English locale is installed"
+        that: __sap_general_preconfigure_locales_installed.stdout_lines | select('match', '^en_') | list | length > 0
+        fail_msg: "FAIL: No English locale is installed. Please install an English locale!"
+        success_msg: "PASS: An English locale is installed."
 
-- name: Step 3.1 - Check if English Languge is Default locale
-  tags:
-    - sap_general_preconfigure_2369910
-    - sap_general_preconfigure_2369910_03
-  block:
-    - name: Check if current default locale is English
-      ansible.builtin.command: grep "^LANG=en_" /etc/locale.conf
+    - name: Get the current default locale
+      ansible.builtin.command: awk '/^LANG=/&&/en_/{print}' /etc/locale.conf
       changed_when: false
       register: __sap_general_preconfigure_current_default_locale
 
-    - name: Assert that __sap_general_preconfigure_current_default_locale output is not empty
+    - name: Assert that an English locale is the default
       ansible.builtin.assert:
-        that:
-          - __sap_general_preconfigure_current_default_locale.stdout_lines | length > 0
-        fail_msg: "FAIL: English is not set as default locale"
-        success_msg: "PASS: English default locale is set"
-
+        that: __sap_general_preconfigure_current_default_locale.stdout_lines | length > 0
+        fail_msg: "FAIL: English is not set as the default locale. Please define an English default locale with the 'sap_general_preconfigure_default_locale' variable!"
+        success_msg: "PASS: An English default locale is set."
