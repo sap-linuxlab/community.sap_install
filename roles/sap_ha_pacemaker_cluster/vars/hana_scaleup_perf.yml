@@ -20,11 +20,15 @@ __sap_ha_pacemaker_cluster_hana_hook_dictionary:
 
 # Recommended srhooks are set to true only if default dictionary is populated
 __sap_ha_pacemaker_cluster_hana_hook_tkover:
-  "{{ true if lookup('ansible.builtin.vars', __sap_ha_pacemaker_cluster_hana_hook_dictionary).tkover
-   is defined else false }}"
+  "{{ true if 
+    (lookup('ansible.builtin.vars', __sap_ha_pacemaker_cluster_hana_hook_dictionary).tkover
+    is defined and (sap_ha_pacemaker_cluster_hana_hook_tkover | bool))
+    else false }}"
 __sap_ha_pacemaker_cluster_hana_hook_chksrv:
-  "{{ true if lookup('ansible.builtin.vars', __sap_ha_pacemaker_cluster_hana_hook_dictionary).chksrv
-   is defined else false }}"
+  "{{ true if
+    (lookup('ansible.builtin.vars', __sap_ha_pacemaker_cluster_hana_hook_dictionary).chksrv
+    is defined and (sap_ha_pacemaker_cluster_hana_hook_chksrv | bool))
+    else false }}"
 
 # Combine final list of srhooks based on user input and angi availability
 __sap_ha_pacemaker_cluster_hana_hooks: "{{
