@@ -91,6 +91,8 @@ __sap_ha_pacemaker_cluster_platform_extra_packages_dict:
 
 # Dictionary with additional cluster packages for specific scenarios
 __sap_ha_pacemaker_cluster_sap_extra_packages_dict:
+  hana_angi:
+    - sap-hana-ha
   hana_scaleout:
     - resource-agents-sap-hana-scaleout
   hana_scaleup:
@@ -105,13 +107,10 @@ __sap_ha_pacemaker_cluster_sap_extra_packages_dict:
 __sap_ha_pacemaker_cluster_resource_agents:
   saphanatopology: "ocf:heartbeat:SAPHanaTopology"
   saphana: "ocf:heartbeat:SAPHana"
-# TODO: Uncomment when SAPHanaSR-angi is available on Red Hat
-#  saphanacontroller: "ocf:heartbeat:SAPHanaController"
-#  saphanafilesystem: "ocf:heartbeat:SAPHanaFilesystem"
-# TODO: Uncomment when SAPStartSrv is available on Red Hat
-#  sapstartsrv: "ocf:heartbeat:SAPStartSrv"
+  saphanacontroller: "ocf:heartbeat:SAPHanaController"
+  saphanafilesystem: "ocf:heartbeat:SAPHanaFilesystem"
+  sapstartsrv: "ocf:heartbeat:SAPStartSrv"
 
-# TODO: Uncomment when SAPHanaSR-angi is available on Red Hat
 __sap_ha_pacemaker_cluster_saphanasr_angi_available: false
 
 # Default SAP HANA hook parameters combined based on user decision
@@ -122,18 +121,39 @@ __sap_ha_pacemaker_cluster_hook_hana_scaleup_perf:
       options:
         - name: execution_order
           value: 1
-# TODO: Add additional hooks
+  chksrv:
+    - provider: ChkSrv
+      path: /usr/share/SAPHanaSR/srHook/
+      options:
+        - name: execution_order
+          value: 2
+        - name: action_on_lost
+          value: stop
 
-# Placeholder dictionaries
-# TODO: Define hooks when SAPHanaSR-angi is available on Red Hat
-__sap_ha_pacemaker_cluster_hook_hana_scaleup_perf_angi: []
+__sap_ha_pacemaker_cluster_hook_hana_scaleup_perf_angi:
+  saphanasr:
+    - provider: HanaSR
+      path: /usr/share/sap-hana-ha/
+      options:
+        - name: execution_order
+          value: 1
+  chksrv:
+    - provider: ChkSrv
+      path: /usr/share/sap-hana-ha/
+      options:
+        - name: execution_order
+          value: 2
+        - name: action_on_lost
+          value: stop
+        - name: stop_timeout
+          value: 25
+
 __sap_ha_pacemaker_cluster_hook_hana_scaleout: []
 __sap_ha_pacemaker_cluster_hook_hana_scaleout_angi: []
 
-# Disabled additional hooks until they are present in dictionary above
-# TODO: Remove when additional hooks are specified above.
-__sap_ha_pacemaker_cluster_hana_hook_tkover: false
-__sap_ha_pacemaker_cluster_hana_hook_chksrv: false
+# Enable default OS recommended hooks
+sap_ha_pacemaker_cluster_hana_hook_tkover: false
+sap_ha_pacemaker_cluster_hana_hook_chksrv: true
 
 # Central Services Cluster Simple Mount: Enabled as default
 # TODO: Enable when SAPStartSrv resource agents are available on Red Hat
