@@ -16,24 +16,21 @@
   ansible.builtin.include_vars: "{{ __vars_file }}"
   loop:
     - "{{ ansible_os_family }}.yml"
-    - "{{ ansible_distribution }}.yml"
-    # Enables loading of shared vars between SLES and SLES_SAP
-    - >-
-      {{ ansible_distribution.split("_")[0] ~ '_' ~
-      ansible_distribution_major_version }}.yml
-    - >-
-      {{ ansible_distribution.split("_")[0] ~ '_' ~
-      ansible_distribution_version }}.yml
-
-    - >-
-      {{ ansible_distribution ~ '_' ~
-      ansible_distribution_major_version }}.yml
-    - >-
-      {{ ansible_distribution ~ '_' ~
-      ansible_distribution_version }}.yml
+    - "{{ ansible_distribution ~ '.yml' if ansible_distribution != ansible_os_family else omit }}"
+    - "{{ __distribution_major_split ~ '.yml' if __distribution_major_split != __distribution_major else omit }}"
+    - "{{ __distribution_minor_split ~ '.yml' if __distribution_minor_split != __distribution_minor else omit }}"
+    - "{{ __distribution_major }}.yml"
+    - "{{ __distribution_minor }}.yml"
   vars:
     __vars_file: "{{ role_path }}/vars/{{ item }}"
+    __distribution_major: "{{ ansible_distribution ~ '_' ~ ansible_distribution_major_version }}"
+    __distribution_minor: "{{ ansible_distribution ~ '_' ~ ansible_distribution_version }}"
+    # Enables loading of shared vars between SLES and SLES_SAP
+    __distribution_major_split: "{{ ansible_distribution.split('_')[0] ~ '_' ~ ansible_distribution_major_version }}"
+    __distribution_minor_split: "{{ ansible_distribution.split('_')[0] ~ '_' ~ ansible_distribution_version }}"
   when: __vars_file is file
+  tags:
+    - always
 
 
 - name: Set filename prefix to empty string if role is run in normal mode
