@@ -33,7 +33,7 @@
 # Optional Post Install Tasks
 
 # not needed because already done in sap_general_preconfigure
-#- name: SAP HANA Post Install - Update /etc/hosts
+# - name: SAP HANA Post Install - Update /etc/hosts
 #  ansible.builtin.include_tasks: post_install/update_etchosts.yml
 #  when:
 #    - "sap_hana_install_update_etchosts | bool"
@@ -70,11 +70,13 @@
           !/^ /&&/^<!-- /{printf ("<!-- Ansible managed -->\n")}
           /^ /{split ($0, b, "[\*\*\*]"); gsub (">", ""); split ($0, a, "<"); printf ("%s\{\{ sap_hana_install_%s | d(sap_hana_install_master_password) \}\}%s\n", b[1], a[2], b[4])}' {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg.xml > {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.xml.j2
       register: __sap_hana_install_create_jinja2_template
-      changed_when: no
+      changed_when: false
 
     - name: SAP HANA hdblcm installation check - Display the location of the remote Jinja2 template
       ansible.builtin.debug:
-        msg: "The Jinja2 template for creating the hdblcm configfile xml has been saved to '{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.xml.j2'."
+        msg: |
+          The Jinja2 template for creating the hdblcm configfile xml has been saved to
+          '{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.xml.j2'.
 
     - name: SAP HANA hdblcm installation check - Download the Jinja2 template
       ansible.builtin.fetch:
@@ -155,7 +157,7 @@
   args:
     chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/hdblcm"
   register: __sap_hana_install_register_install_result
-  changed_when: no
+  changed_when: false
   when: not ansible_check_mode
 
 - name: Configure '/usr/sap' SELinux file contexts
@@ -205,7 +207,7 @@
 #      - '  FQDN             -       {{ ansible_fqdn }}'
   when: not ansible_check_mode
 
-- name: SAP HANA Post Install, fapolicyd - Update config for desired integrity level and backout if validation fails
+- name: SAP HANA Post Install, fapolicyd - Update config for desired integrity level and revert if validation fails
   when:
     - sap_hana_install_use_fapolicyd
     - '"fapolicyd" in ansible_facts.packages'

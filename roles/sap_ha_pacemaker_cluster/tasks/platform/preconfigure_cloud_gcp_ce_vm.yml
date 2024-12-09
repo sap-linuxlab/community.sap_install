@@ -33,14 +33,26 @@
         insertafter: '^[Unit]$'
       notify: "systemd daemon-reload"
 
-    - name: "SAP HA Install Pacemaker - GCP CE VM - Update haproxy service template environment"
-      ansible.builtin.lineinfile:
-        backup: true
+    - name: "SAP HA Install Pacemaker - GCP CE VM - Update haproxy service template"
+      ansible.builtin.replace:
+        backup: false
         path: /etc/systemd/system/haproxy@.service
-        regexp: '^Environment='
-        line: 'Environment="CONFIG=/etc/haproxy/haproxy-%i.cfg" "PIDFILE=/run/haproxy-%i.pid"'
-        state: present
-        insertafter: '^[Service]$'
+        regexp: '{{ replace_item.orig }}'
+        replace: '{{ replace_item.new | d() }}'
+      loop:
+        - orig: '^(.+)haproxy.cfg(.*)$'
+          new: '\1haproxy-%i.cfg\2'
+          label: 'Replace haproxy.cfg with haproxy-%i.cfg'
+        - orig: '^(.+)haproxy.pid(.*)$'
+          new: '\1haproxy-%i.pid\2'
+          label: 'Replace haproxy.pid with haproxy-%i.pid'
+        - orig: '\"CFGDIR=(\/\w*)*\.d\"'
+          label: 'Delete definition of CFGDIR'
+        - orig: '\ -f \$CFGDIR'
+          label: 'Remove "-f $CFGDIR"'
+      loop_control:
+        loop_var: replace_item
+        label: "{{ replace_item.label }}"
       notify: "systemd daemon-reload"
 
     - name: "SAP HA Install Pacemaker - GCP CE VM - Define healthcheck details for HANA"

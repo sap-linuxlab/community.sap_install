@@ -55,24 +55,26 @@
     insertafter: '^[Unit]$'
   notify: "systemd daemon-reload"
 
-- name: "SAP HA Install Pacemaker - IBM Cloud VS - Update haproxy service template environment"
-  ansible.builtin.lineinfile:
-    backup: true
+- name: "SAP HA Install Pacemaker - IBM Cloud VS - Update haproxy service template"
+  ansible.builtin.replace:
+    backup: false
     path: /etc/systemd/system/haproxy@.service
-    regexp: '^Environment='
-    line: 'Environment="CONFIG=/etc/haproxy/haproxy-%i.cfg" "PIDFILE=/run/haproxy-%i.pid"'
-    state: present
-    insertafter: '^[Service]$'
-  notify: "systemd daemon-reload"
-
-- name: "SAP HA Install Pacemaker - IBM Cloud VS - Update haproxy service template environment"
-  ansible.builtin.lineinfile:
-    backup: true
-    path: /etc/systemd/system/haproxy@.service
-    regexp: '^Environment='
-    line: 'Environment="CONFIG=/etc/haproxy/haproxy-%i.cfg" "PIDFILE=/run/haproxy-%i.pid"'
-    state: present
-    insertafter: '^[Service]$'
+    regexp: '{{ replace_item.orig }}'
+    replace: '{{ replace_item.new | d() }}'
+  loop:
+    - orig: '^(.+)haproxy.cfg(.*)$'
+      new: '\1haproxy-%i.cfg\2'
+      label: 'Replace haproxy.cfg with haproxy-%i.cfg'
+    - orig: '^(.+)haproxy.pid(.*)$'
+      new: '\1haproxy-%i.pid\2'
+      label: 'Replace haproxy.pid with haproxy-%i.pid'
+    - orig: '\"CFGDIR=(\/\w*)*\.d\"'
+      label: 'Delete definition of CFGDIR'
+    - orig: '\ -f \$CFGDIR'
+      label: 'Remove "-f $CFGDIR"'
+  loop_control:
+    loop_var: replace_item
+    label: "{{ replace_item.label }}"
   notify: "systemd daemon-reload"
 
 - name: "SAP HA Install Pacemaker - IBM Cloud VS - Define healthcheck details for HANA"
@@ -100,7 +102,7 @@
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
 
-- name: "SAP HA Install Pacemaker - GCP CE VM - Create haproxy config for HANA instances"
+- name: "SAP HA Install Pacemaker - IBM Cloud VS - Create haproxy config for HANA instances"
   ansible.builtin.blockinfile:
     backup: false
     create: true
@@ -141,7 +143,7 @@
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
     - haproxy_item.port | length > 4
 
-- name: "SAP HA Install Pacemaker - GCP CE VM - Create haproxy config for NWAS ASCS/ERS instances"
+- name: "SAP HA Install Pacemaker - IBM Cloud VS - Create haproxy config for NWAS ASCS/ERS instances"
   ansible.builtin.blockinfile:
     create: true
     path: "/etc/haproxy/haproxy-{{ haproxy_item.name }}.cfg"

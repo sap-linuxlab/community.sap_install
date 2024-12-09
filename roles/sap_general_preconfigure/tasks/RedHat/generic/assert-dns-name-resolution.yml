@@ -7,7 +7,7 @@
     fail_msg: "FAIL: The DNS domain is not configured! So variable 'sap_general_preconfigure_domain' needs to be configured!"
     success_msg: "PASS: The DNS domain is configured."
 #  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
-  ignore_errors: yes
+  ignore_errors: true
 
 - name: Assert that variable sap_general_preconfigure_domain is set
   ansible.builtin.assert:
@@ -25,8 +25,8 @@
 - name: Check if IP address for sap_general_preconfigure_hostname.sap_general_preconfigure_domain is resolved correctly
   ansible.builtin.command: dig {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} +short
   register: __sap_general_preconfigure_register_dig_short_assert
-  ignore_errors: yes
-  changed_when: no
+  ignore_errors: true
+  changed_when: false
   when: "'bind-utils' in ansible_facts.packages"
 
 - name: Assert that ansible_default_ipv4.address is set

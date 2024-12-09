@@ -31,8 +31,8 @@ __sap_ha_pacemaker_cluster_repos_dict:
   cloud_msazure_vm:
     - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
       name: High Availability
-    - id: "rhui-microsoft-azure-rhel8-sap-ha"
-      name: Microsoft Azure RPMs for Red Hat Enterprise Linux 8 (rhel8-sap-ha)
+    - id: "rhui-microsoft-azure-rhel{{ ansible_distribution_major_version }}-sap-ha"
+      name: Microsoft Azure RPMs for Red Hat Enterprise Linux {{ ansible_distribution_major_version }} (rhel{{ ansible_distribution_major_version }}-sap-ha)
   hyp_ibmpower_vm:
     - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
       name: High Availability E4S (4-Year) for Power, little endian
@@ -87,6 +87,7 @@ __sap_ha_pacemaker_cluster_platform_extra_packages_dict:
   cloud_gcp_ce_vm:
     - resource-agents-gcp
   cloud_msazure_vm:
+    - "{{ 'resource-agents-cloud' if ansible_distribution_major_version is version('9', '>=') else '' }}"
     - socat
 
 # Dictionary with additional cluster packages for specific scenarios

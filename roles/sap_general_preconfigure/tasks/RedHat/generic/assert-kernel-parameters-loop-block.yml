@@ -6,8 +6,8 @@
 - name: Get {{ line_item.name }} from {{ sap_general_preconfigure_etc_sysctl_sap_conf }}
   ansible.builtin.shell: awk 'BEGIN{FS="="}/{{ line_item.name }}/{gsub ("^\\s*", "", $NF); print $NF}' {{ sap_general_preconfigure_etc_sysctl_sap_conf }}
   register: __sap_general_preconfigure_register_sysctl_sap_conf_kernel_parameter_assert
-  changed_when: no
-  ignore_errors: yes
+  changed_when: false
+  ignore_errors: true
   when: __sap_general_preconfigure_register_stat_sysctl_sap_conf_assert.stat.exists
 
 - name: Assert that {{ line_item.name }} is set correctly in {{ sap_general_preconfigure_etc_sysctl_sap_conf }}
@@ -23,8 +23,8 @@
 - name: Get {{ line_item.name }} from sysctl
   ansible.builtin.shell: sysctl -n {{ line_item.name }} | awk '{gsub ("\t", " "); print}'
   register: __sap_general_preconfigure_register_sysctl_kernel_parameter_assert
-  changed_when: no
-  ignore_errors: yes
+  changed_when: false
+  ignore_errors: true
 
 - name: Assert that {{ line_item.name }} is set correctly as per sysctl
   ansible.builtin.assert:
