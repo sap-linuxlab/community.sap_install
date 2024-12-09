@@ -58,9 +58,9 @@
       with_list: "{{ __sap_general_preconfigure_min_pkgs }}"
       loop_control:
         loop_var: pkg
-      check_mode: no
+      check_mode: false
       register: __sap_general_preconfigure_register_minpkglist_assert
-      changed_when: no
+      changed_when: false
 
     - name: Assert that minimum required package versions are installed
 # If the output includes the string "is already installed" (case 2b), we have a PASS. Otherwise, it's a FAIL.
@@ -72,12 +72,12 @@
       loop_control:
         loop_var: line_item
         label: ""
-      ignore_errors: yes
+      ignore_errors: true
 
 - name: Report if no minimum required package version is defined for this RHEL release
   ansible.builtin.debug:
     msg: "INFO: No minimum required package version defined (variable __sap_general_preconfigure_min_pkgs)."
-  ignore_errors: yes
+  ignore_errors: true
   when: not __sap_general_preconfigure_min_pkgs | d([])
 
 # Reason for noqa: The yum module appears to not support the check-update option
@@ -99,7 +99,7 @@
 - name: Report if checking for possible package updates is not requested
   ansible.builtin.debug:
     msg: "INFO: Not checking for possible package updates (variable sap_general_preconfigure_update)."
-  ignore_errors: yes
+  ignore_errors: true
   when: not sap_general_preconfigure_update
 
 - name: "Assert - Set needs-restarting command in case of RHEL 7"
