@@ -4,16 +4,16 @@
 # Password Facts
 ################
 
-#- name: SAP HANA Pre Install - Set password facts when using master password
-#  ansible.builtin.set_fact:
-#    sap_hana_install_sapadm_password: "{{ sap_hana_install_master_password }}"
-#    sap_hana_install_sidadm_password: "{{ sap_hana_install_master_password }}"
-#    sap_hana_install_db_system_password: "{{ sap_hana_install_master_password }}"
-#    sap_hana_install_ase_user_password: "{{ sap_hana_install_master_password }}"
-#    sap_hana_install_xs_org_password: "{{ sap_hana_install_master_password }}"
-#    sap_hana_install_lss_user_password: "{{ sap_hana_install_master_password }}"
-#    sap_hana_install_lss_backup_password: "{{ sap_hana_install_master_password }}"
-#  when: sap_hana_install_use_master_password == 'y'
+# - name: SAP HANA Pre Install - Set password facts when using master password
+#   ansible.builtin.set_fact:
+#     sap_hana_install_sapadm_password: "{{ sap_hana_install_master_password }}"
+#     sap_hana_install_sidadm_password: "{{ sap_hana_install_master_password }}"
+#     sap_hana_install_db_system_password: "{{ sap_hana_install_master_password }}"
+#     sap_hana_install_ase_user_password: "{{ sap_hana_install_master_password }}"
+#     sap_hana_install_xs_org_password: "{{ sap_hana_install_master_password }}"
+#     sap_hana_install_lss_user_password: "{{ sap_hana_install_master_password }}"
+#     sap_hana_install_lss_backup_password: "{{ sap_hana_install_master_password }}"
+#   when: sap_hana_install_use_master_password == 'y'
 
 ################
 # Handle fapolicyd
@@ -23,7 +23,10 @@
   ansible.builtin.package:
     name: fapolicyd
     state: present
-  when: sap_hana_install_use_fapolicyd
+  when:
+    - sap_hana_install_use_fapolicyd
+    # Ensure fapolicyd is installed only on supported systems.
+    - ansible_os_family == 'RedHat'
   tags: sap_hana_install_use_fapolicyd
 
 ################
@@ -59,9 +62,9 @@
     - name: SAP HANA Pre Install - Check availability of software directory '{{ __sap_hana_install_fact_software_directory }}'
       ansible.builtin.stat:
         path: "{{ __sap_hana_install_fact_software_directory }}"
-      check_mode: no
+      check_mode: false
       register: __sap_hana_install_register_stat_software_directory
-      failed_when: no
+      failed_when: false
 
     - name: SAP HANA Pre Install - Assert that the software directory exists
       ansible.builtin.assert:
@@ -69,7 +72,9 @@
         fail_msg: "FAIL: The software directory '{{ __sap_hana_install_fact_software_directory }}' does not exist!"
         success_msg: "PASS: The software directory '{{ __sap_hana_install_fact_software_directory }}' exist."
 
-    - name: SAP HANA Pre Install - Assert directory permissions in case `sap_hana_install_software_extract_directory` is below `sap_hana_install_software_extract_directory`
+    - name: >
+        SAP HANA Pre Install - Assert directory permissions in case `sap_hana_install_software_extract_directory`
+        is below `sap_hana_install_software_extract_directory`
       when: sap_hana_install_software_extract_directory is search(sap_hana_install_software_directory)
       block:
 
@@ -135,15 +140,15 @@
     - name: SAP HANA Pre Install - Get info about software extract directory '{{ sap_hana_install_software_extract_directory }}'
       ansible.builtin.stat:
         path: "{{ sap_hana_install_software_extract_directory }}"
-      check_mode: no
+      check_mode: false
       register: __sap_hana_install_register_stat_software_extract_directory
-      failed_when: no
+      failed_when: false
 
     - name: SAP HANA Pre Install - Change ownership of software extract directory '{{ sap_hana_install_software_extract_directory }}'
       ansible.builtin.file:
         path: "{{ sap_hana_install_software_extract_directory }}"
         state: directory
-        recurse: yes
+        recurse: true
         mode: '0755'
         owner: root
         group: root
@@ -154,12 +159,12 @@
       ansible.builtin.wait_for:
         path: "{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__"
         state: absent
-      failed_when: no
+      failed_when: false
 
     - name: SAP HANA Pre Install - Find directory 'SAP_HANA_DATABASE' if '{{ sap_hana_install_software_extract_directory }}' exists
       ansible.builtin.find:
         paths: "{{ sap_hana_install_software_extract_directory }}"
-        recurse: yes
+        recurse: true
         file_type: directory
         patterns: 'SAP_HANA_DATABASE'
       register: __sap_hana_install_register_find_directory_sap_hana_database_initial
@@ -178,9 +183,9 @@
         - name: SAP HANA Pre Install - Get info about '{{ __sap_hana_install_fact_hdblcm_path }}/hdblcm' if found initially
           ansible.builtin.stat:
             path: "{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}"
-          check_mode: no
+          check_mode: false
           register: __sap_hana_install_register_stat_hdblcm_initial
-          failed_when: no
+          failed_when: false
 
         - name: SAP HANA Pre Install - Assert that file 'hdblcm' is available if found initially
           ansible.builtin.assert:
@@ -207,9 +212,9 @@
         - name: SAP HANA Pre Install - Get info about '{{ __sap_hana_install_fact_hdblcm_path }}/hdblcm'
           ansible.builtin.stat:
             path: "{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}"
-          check_mode: no
+          check_mode: false
           register: __sap_hana_install_register_stat_hdblcm
-          failed_when: no
+          failed_when: false
 
         - name: SAP HANA Pre Install - Assert that file 'hdblcm' is available
           ansible.builtin.assert:
@@ -227,7 +232,7 @@
     - name: SAP HANA Pre Install - Find directory 'SAP_HANA_DATABASE' in '{{ sap_hana_install_software_extract_directory }}'
       ansible.builtin.find:
         paths: "{{ sap_hana_install_software_extract_directory }}"
-        recurse: yes
+        recurse: true
         file_type: directory
         patterns: 'SAP_HANA_DATABASE'
       register: __sap_hana_install_register_find_directory_sap_hana_database_addhosts
