@@ -1,7 +1,51 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-# Identify if SAPHanaSR-angi package is available for installation.
-# SAPHanaSR-angi replaces SAPHanaSR and SAPHanaSR-ScaleOut.
+# Identify if 'sap-hana-ha' package is available for installation.
+# sap-hana-ha replaces resource-agents-sap-hana and resource-agents-sap-hana-scaleout.
 
-# TODO:
-# Add RedHat specific steps to identify SAPHanaSR-angi package.
+- name: "SAP HA Prepare Pacemaker - Block for detection of 'SAPHanaSR-angi'"
+  when: (sap_ha_pacemaker_cluster_saphanasr_angi_detection | bool)
+  block:
+
+    - name: "SAP HA Prepare Pacemaker - Gather installed packages facts"
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: "SAP HA Prepare Pacemaker - Check the availability of 'sap-hana-ha'"
+      ansible.builtin.command:
+        cmd: dnf provides sap-hana-ha
+      changed_when: false
+      register: __sap_ha_pacemaker_cluster_saphanasr_angi_check
+      failed_when: false
+
+      # The provision role should not fix packages if run against systems that
+      # were previously installed with the conflicting packages. System state is
+      # unclear at this moment and the role should rather fail early.
+    - name: "SAP HA Prepare Pacemaker - Fail if there are package conflicts"
+      ansible.builtin.assert:
+        that:
+          - "'resource-agents-sap-hana' not in packages or
+            __sap_ha_pacemaker_cluster_saphanasr_angi_check.rc == 0"
+        fail_msg: |
+
+          ERROR: Conflicting packages.
+
+          Package available and to be installed: sap-hana-ha
+
+          Conflicting packages are installed:
+          {% for finding in (packages | select('match', 'resource-agents-sap.*')) %}
+          - {{ finding }}
+          {% endfor %}
+
+          Remove the conflicting packages to continue the setup with the
+          detected resource agent package.
+          Alternatively: Disable the package detection
+          (sap_ha_pacemaker_cluster_saphanasr_angi_detection = false)
+          to continue the setup using the installed resource agents.
+
+    - name: "SAP HA Prepare Pacemaker - Set fact angi_available"
+      ansible.builtin.set_fact:
+        __sap_ha_pacemaker_cluster_saphanasr_angi_available: true
+      when:
+        - __sap_ha_pacemaker_cluster_saphanasr_angi_check is defined
+        - __sap_ha_pacemaker_cluster_saphanasr_angi_check.rc == 0
