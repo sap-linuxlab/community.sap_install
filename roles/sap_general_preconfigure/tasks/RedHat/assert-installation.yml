@@ -49,7 +49,7 @@
     - name: Assert - Get info about enabled repos
       ansible.builtin.shell: set -o pipefail && subscription-manager repos --list-enabled | awk '/Repo ID:/{print $NF}'
       register: __sap_general_preconfigure_register_enabled_repos_assert
-      changed_when: no
+      changed_when: false
 
     - name: Assert that all required repos are enabled
       ansible.builtin.assert:
@@ -69,8 +69,8 @@
     - name: Detect if and how the minor RHEL release is set
       ansible.builtin.shell: set -o pipefail && subscription-manager release | awk 'NF==2{printf $NF}NF!=2{print}'
       register: __sap_general_preconfigure_register_subscription_manager_release_assert
-      changed_when: no
-      ignore_errors: yes
+      changed_when: false
+      ignore_errors: true
 
     - name: Assert that the RHEL release is locked correctly
       ansible.builtin.assert:
@@ -104,7 +104,7 @@
     - name: Check if required RHEL 7 package groups are installed # noqa command-instead-of-shell
       ansible.builtin.shell: "{{ __sap_general_preconfigure_fact_yum_group_list_installed_command_assert }}"
       register: __sap_general_preconfigure_register_yum_group_assert
-      changed_when: no
+      changed_when: false
 
     - name: Assert that all required RHEL 7 package groups are installed
       ansible.builtin.assert:
@@ -133,7 +133,7 @@
     - name: Check if required RHEL 8 environment groups are installed # noqa command-instead-of-shell
       ansible.builtin.shell: "{{ __sap_general_preconfigure_fact_yum_envgroup_list_installed_command_assert }}"
       register: __sap_general_preconfigure_register_yum_envgroup_assert
-      changed_when: no
+      changed_when: false
 
     - name: Assert that all required RHEL 8 environment groups are installed
       ansible.builtin.assert:
@@ -162,7 +162,7 @@
     set -o pipefail && yum info installed {{ __sap_general_preconfigure_required_ppc64le | map('quote') | join(' ') }} |
     awk '/Name/{n=$NF}/Version/{v=$NF}/Release/{r=$NF}/Description/{printf ("%s\n", n)}'
   register: __sap_general_preconfigure_register_required_ppc64le_packages_assert
-  changed_when: no
+  changed_when: false
   when: ansible_architecture == "ppc64le"
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
@@ -223,9 +223,9 @@
       with_list: "{{ __sap_general_preconfigure_min_pkgs }}"
       loop_control:
         loop_var: pkg
-      check_mode: no
+      check_mode: false
       register: __sap_general_preconfigure_register_minpkglist_assert
-      changed_when: no
+      changed_when: false
 
     - name: Assert that minimum required package versions are installed
 # If the output includes the string "is already installed" (case 2b), we have a PASS. Otherwise, it's a FAIL.
@@ -237,12 +237,12 @@
       loop_control:
         loop_var: line_item
         label: ""
-      ignore_errors: yes
+      ignore_errors: true
 
 - name: Report if no minimum required package version is defined for this RHEL release
   ansible.builtin.debug:
     msg: "INFO: No minimum required package version defined (variable __sap_general_preconfigure_min_pkgs)."
-  ignore_errors: yes
+  ignore_errors: true
   when: not __sap_general_preconfigure_min_pkgs | d([])
 
 # Reason for noqa: The yum module appears to not support the check-update option
@@ -265,7 +265,7 @@
 - name: Report if checking for possible package updates is not requested
   ansible.builtin.debug:
     msg: "INFO: Not checking for possible package updates (variable sap_general_preconfigure_update)."
-  ignore_errors: yes
+  ignore_errors: true
   when: not sap_general_preconfigure_update
 
 - name: "Assert - Set needs-restarting command in case of RHEL 7"
