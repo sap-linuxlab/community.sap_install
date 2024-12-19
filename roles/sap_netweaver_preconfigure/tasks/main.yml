@@ -5,13 +5,37 @@
   ansible.builtin.debug:
     var: role_path
 
-- name: Include OS specific vars
-  ansible.builtin.include_vars: '{{ item }}'
-  with_first_found:
-    - '{{ ansible_distribution.split("_")[0] }}_{{ ansible_distribution_major_version }}.yml'
-    - '{{ ansible_distribution }}_{{ ansible_distribution_version }}.yml'
-    - '{{ ansible_distribution }}_{{ ansible_distribution_major_version }}.yml'
-    - '{{ ansible_os_family }}.yml'
+# Load variable files in order:
+# 1. Suse.yml / RedHat.yml - Specific to OS family.
+# 2. SLES_15.yml / RedHat_9.yml - Specific to distribution (SLES, SLES_SAP or RedHat) and major release.
+# 3. SLES_15.6.yml / RedHat_9.2 - Specific to distribution (SLES, SLES_SAP or RedHat) and minor release.
+# 4. SLES_SAP_15.yml - Specific to distribution SLES_SAP and major release.
+# 5. SLES_SAP_15.6.yml - Specific to distribution SLES_SAP and minor release.
+- name: Include OS specific vars, specific
+  ansible.builtin.include_vars: "{{ __vars_file }}"
+  loop: "{{ __var_files }}"
+  vars:
+    __vars_file: "{{ role_path }}/vars/{{ item }}"
+    __distribution_major: "{{ ansible_distribution ~ '_' ~ ansible_distribution_major_version }}"
+    __distribution_minor: "{{ ansible_distribution ~ '_' ~ ansible_distribution_version }}"
+    # Enables loading of shared vars between SLES and SLES_SAP
+    __distribution_major_split: "{{ ansible_distribution.split('_')[0] ~ '_' ~ ansible_distribution_major_version }}"
+    __distribution_minor_split: "{{ ansible_distribution.split('_')[0] ~ '_' ~ ansible_distribution_version }}"
+    __var_files: >-
+      {{
+        [
+          ansible_os_family ~ '.yml',
+          (ansible_distribution ~ '.yml') if ansible_distribution != ansible_os_family else None,
+          (__distribution_major_split ~ '.yml') if __distribution_major_split != __distribution_major else None,
+          (__distribution_minor_split ~ '.yml') if __distribution_minor_split != __distribution_minor else None,
+          __distribution_major ~ '.yml',
+          __distribution_minor ~ '.yml'
+        ] | select('defined') | select('string') | list
+      }}
+  when: __vars_file is file
+  tags:
+    - always
+
 
 - name: Set filename prefix to empty string if role is run in normal mode
   ansible.builtin.set_fact:

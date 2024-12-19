@@ -6,8 +6,7 @@
 
 __sap_ha_pacemaker_cluster_halib_package: sap-suse-cluster-connector
 
-# List of configuration lines that must be added to the instance profiles.
-# Used in tasks/configure_nwas_ascs_ers_postinstallation.yml for SAP HA Interface setup.
+# List of configuration lines that must be added to the instance profiles for SAP HA Interface setup.
 __sap_ha_pacemaker_cluster_connector_config_lines:
   - "service/halib = $(DIR_EXECUTABLE)/saphascriptco.so"
   - "service/halib_cluster_connector = /usr/bin/sap_suse_cluster_connector"
@@ -16,9 +15,8 @@ __sap_ha_pacemaker_cluster_connector_config_lines:
 __sap_ha_pacemaker_cluster_command:
   resource_stop: "crm resource stop"
   resource_start: "crm resource start"
-  resource_defaults_show: "crm configure show type:rsc_defaults"
-  resource_defaults_update: "crm configure rsc_defaults"
   resource_restart: "crm resource restart"
+  resource_cleanup: "crm resource cleanup"
 
 # Default corosync options - OS specific
 __sap_ha_pacemaker_cluster_corosync_totem_default:
@@ -46,14 +44,17 @@ __sap_ha_pacemaker_cluster_fence_agent_packages_dict:
 __sap_ha_pacemaker_cluster_platform_extra_packages_dict:
   cloud_aws_ec2_vs:
     - awscli
+  cloud_gcp_ce_vm:
+    - socat
   cloud_msazure_vm:
     - socat
 
 # Dictionary with additional cluster packages for specific scenarios
 __sap_ha_pacemaker_cluster_sap_extra_packages_dict:
   minimal:
+    # Pattern contains all required cluster packages
+    - patterns-ha-ha_sles
     - ClusterTools2
-    - resource-agents
   hana_scaleout:
     - SAPHanaSR-ScaleOut
   hana_scaleup:
@@ -63,6 +64,10 @@ __sap_ha_pacemaker_cluster_sap_extra_packages_dict:
   nwas:
     - sap-suse-cluster-connector
     - sapstartsrv-resource-agents
+
+# Dictionary with preferred platform specific VIP method that differs from default
+__sap_ha_pacemaker_cluster_vip_method_dict:
+  cloud_gcp_ce_vm: gcp_anything_socat
 
 # Resource agents - fully qualified names
 __sap_ha_pacemaker_cluster_resource_agents:
@@ -128,10 +133,9 @@ __sap_ha_pacemaker_cluster_hook_hana_scaleup_perf_angi:
 __sap_ha_pacemaker_cluster_hook_hana_scaleout: []
 __sap_ha_pacemaker_cluster_hook_hana_scaleout_angi: []
 
-# Overwrite resource clone name for SAP HANA
-# SAPHanaSR-angi uses different variables, so it applies only to classic HANA.
-sap_ha_pacemaker_cluster_hana_resource_clone_name:
-  "{{ sap_ha_pacemaker_cluster_hana_resource_clone_msl_name }}"
+# Enable default OS recommended hooks
+sap_ha_pacemaker_cluster_hana_hook_tkover: true
+sap_ha_pacemaker_cluster_hana_hook_chksrv: true
 
-# Enable ASCS/ERS Simple Mount as default
-sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount: true
+# Central Services Cluster Simple Mount: Enabled as default
+sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount: true

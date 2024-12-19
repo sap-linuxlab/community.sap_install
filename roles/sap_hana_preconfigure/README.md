@@ -1,114 +1,147 @@
+<!-- BEGIN Title -->
 # sap_hana_preconfigure Ansible Role
+<!-- END Title -->
+![Ansible Lint for sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/actions/workflows/ansible-lint-sap_hana_preconfigure.yml/badge.svg)
 
-This role installs additional required packages and performs additional configuration steps for installing and running SAP HANA.
-If you want to configure a RHEL system for the installation and later usage of SAP HANA, you have to first run role sap_general_preconfigure
-and then role sap_hana_preconfigure.  However, if we wish to run SLES for HANA, you may run only this role.
+## Description
+<!-- BEGIN Description -->
+The Ansible role `sap_hana_preconfigure` installs additional required packages and performs additional OS configuration steps according to applicable SAP notes for installing and running SAP HANA after the role [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure) has been executed.
+<!-- END Description -->
 
-## Requirements
+<!-- BEGIN Dependencies -->
+## Dependencies
+- `fedora.linux_system_roles`
+    - Roles:
+        - `selinux`
 
-The role requires additional collections which are specified in `meta/collection-requirements.yml`. Before using this role,
-make sure that the required collections are installed, for example by using the following command:
+Install required collections by `ansible-galaxy install -vv -r meta/collection-requirements.yml`.
+<!-- END Dependencies -->
 
-`ansible-galaxy install -vv -r meta/collection-requirements.yml`
+<!-- BEGIN Prerequisites -->
+## Prerequisites
+Managed nodes:
+- Ensure that general operating system configuration for SAP is performed by [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure). See [Recommended](#recommended) section.
 
-To use this role, your system needs to be configured with the basic requirements for SAP NetWeaver or SAP HANA. This is typically done by running role sap_general_preconfigure (for RHEL managed nodes before RHEL 7.6, community maintained role sap-base-settings can be used).
+<details>
+  <summary><b>(Red Hat) Ensure required repositories are available</b></summary>
 
-It is also strongly recommended to run role linux-system-roles.timesync for all systems running SAP HANA, to maintain an identical system time, before or after running role sap_hana_preconfigure.
+  Managed nodes need to be properly registered to a repository source and have at least the following Red Hat repositories accessible:
 
-Managed nodes need to be properly registered to a repository source and have at least the following Red Hat repositories accessible (see also example playbook):
+  for RHEL 7.x:
+  - rhel-7-[server|for-power-le]-e4s-rpms
+  - rhel-sap-hana-for-rhel-7-[server|for-power-le]-e4s-rpms
 
-for RHEL 7.x:
-- rhel-7-[server|for-power-le]-e4s-rpms
-- rhel-sap-hana-for-rhel-7-[server|for-power-le]-e4s-rpms
+  for RHEL 8.x:
+  - rhel-8-for-[x86_64|ppc64le]-baseos-e4s-rpms
+  - rhel-8-for-[x86_64|ppc64le]-appstream-e4s-rpms
+  - rhel-8-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
 
-for RHEL 8.x:
-- rhel-8-for-[x86_64|ppc64le]-baseos-e4s-rpms
-- rhel-8-for-[x86_64|ppc64le]-appstream-e4s-rpms
-- rhel-8-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
+  for RHEL 9.x:
+  - rhel-9-for-[x86_64|ppc64le]-baseos-e4s-rpms
+  - rhel-9-for-[x86_64|ppc64le]-appstream-e4s-rpms
+  - rhel-9-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
 
-for RHEL 9.x:
-- rhel-9-for-[x86_64|ppc64le]-baseos-e4s-rpms
-- rhel-9-for-[x86_64|ppc64le]-appstream-e4s-rpms
-- rhel-9-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
+  For details on configuring Red Hat, see the knowledge base article: [How to subscribe SAP HANA systems to the Update Services for SAP Solutions](https://access.redhat.com/solutions/3075991)). If you set role parameter sap_hana_preconfigure_enable_sap_hana_repos to `yes`, the role can enable these repos.
 
-for SLES 15.x:
-- SLE-Module-SAP-Applications15-[SP number]-Pool
-- SLE-Module-SAP-Applications15-[SP number]-Updates
-- SLE-Product-SLES_SAP15-[SP number]-Pool
-- SLE-Product-SLES_SAP15-[SP number]-Updates
+  To install HANA on Red Hat Enterprise Linux 7, 8, or 9, you need some additional packages which are contained in one of following repositories
+  - rhel-sap-hana-for-rhel-7-[server|for-power-le]-e4s-rpms
+  - rhel-8-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
+  - rhel-9-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
 
-For details on configuring Red Hat, see the knowledge base article: [How to subscribe SAP HANA systems to the Update Services for SAP Solutions](https://access.redhat.com/solutions/3075991)). If you set role parameter sap_hana_preconfigure_enable_sap_hana_repos to `yes`, the role can enable these repos.
+  To get this repository you need to have one of the following products:
+  - [RHEL for SAP Solutions](https://access.redhat.com/solutions/3082481) (premium, standard)
+  - RHEL for Business Partner NFRs
+  - [RHEL Developer Subscription](https://developers.redhat.com/products/sap/download/)
 
-To install HANA on Red Hat Enterprise Linux 7, 8, or 9, you need some additional packages which are contained in the
-- rhel-sap-hana-for-rhel-7-[server|for-power-le]-e4s-rpms,
-- rhel-8-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms, or
-- rhel-9-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
+  To get a personal developer edition of RHEL for SAP solutions, please register as a developer and download the developer edition.
 
-repository.
+  - [Registration Link](http://developers.redhat.com/register) :
+    Here you can either register a new personal account or link it to an already existing
+    **personal** Red Hat Network account.
+  - [Download Link](https://access.redhat.com/downloads/content/69/ver=/rhel---7/7.2/x86_64/product-software):
+    Here you can download the Installation DVD for RHEL with your previously registered
+    account
 
-To get this repository you need to have one of the following products:
+  *NOTE:* This is a regular RHEL installation DVD as RHEL for SAP Solutions is no additional
+  product but only a special bundling. The subscription grants you access to the additional
+  packages through our content delivery network (CDN) after installation.
 
-- [RHEL for SAP Solutions](https://access.redhat.com/solutions/3082481) (premium, standard)
-- RHEL for Business Partner NFRs
-- [RHEL Developer Subscription](https://developers.redhat.com/products/sap/download/)
+  For supported RHEL releases [click here](https://access.redhat.com/solutions/2479121).
 
-To get a personal developer edition of RHEL for SAP solutions, please register as a developer and download the developer edition.
+  It is also important that your disks are setup according to the [SAP storage requirements for SAP HANA](https://www.sap.com/documents/2015/03/74cdb554-5a7c-0010-8F2c7-eda71af511fa.html). This [BLOG](https://blogs.sap.com/2017/03/07/the-ultimate-guide-to-effective-sizing-of-sap-hana/) is also quite helpful when sizing HANA systems.
+  You can use the [storage](https://galaxy.ansible.com/linux-system-roles/storage) role to automate this process
 
-- [Registration Link](http://developers.redhat.com/register) :
-  Here you can either register a new personal account or link it to an already existing
-  **personal** Red Hat Network account.
-- [Download Link](https://access.redhat.com/downloads/content/69/ver=/rhel---7/7.2/x86_64/product-software):
-  Here you can download the Installation DVD for RHEL with your previously registered
-  account
+  If you want to use this system in production, make sure that the time service is configured correctly. You can use [rhel-system-roles](https://access.redhat.com/articles/3050101) to automate this.
 
-*NOTE:* This is a regular RHEL installation DVD as RHEL for SAP Solutions is no additional
- product but only a special bundling. The subscription grants you access to the additional
- packages through our content delivery network (CDN) after installation.
+  Note
+  ----
+  For finding out which SAP notes will be used by this role for Red Hat systems, please check the contents of variable `__sap_hana_preconfigure_sapnotes` in files `vars/*.yml` (choose the file which matches your OS distribution and version). 
+</details>
+<!-- END Prerequisites -->
 
-For supported RHEL releases [click here](https://access.redhat.com/solutions/2479121).
+## Execution
+<!-- BEGIN Execution -->
+**:warning: Do not execute this Ansible Role against existing SAP systems unless you know what you are doing and you prepare inputs to avoid unintended changes caused by default inputs.**
 
-Details on configuring SLES repositories can be found on the following articles for [on-premise systems](https://www.suse.com/support/kb/doc/?id=000018564) or [BYOS cloud images](https://www.suse.com/c/byos-instances-and-the-suse-public-cloud-update-infrastructure/)
+**NOTE: It is recommended to execute `timesync` role from Ansible Collection `fedora.linux_system_roles` before or after executing this role.**
+<!-- END Execution -->
 
+<!-- BEGIN Execution Recommended -->
+### Recommended
+It is recommended to execute this role together with other roles in this collection, in the following order:</br>
+1. [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure)
+2. *`sap_hana_preconfigure`*
+<!-- END Execution Recommended -->
 
-It is also important that your disks are setup according to the [SAP storage requirements for SAP HANA](https://www.sap.com/documents/2015/03/74cdb554-5a7c-0010-8F2c7-eda71af511fa.html). This [BLOG](https://blogs.sap.com/2017/03/07/the-ultimate-guide-to-effective-sizing-of-sap-hana/) is also quite helpful when sizing HANA systems.
-You can use the [storage](https://galaxy.ansible.com/linux-system-roles/storage) role to automate this process
+### Execution Flow
+<!-- BEGIN Execution Flow -->
+1. Assert that required inputs were provided.
+2. Install required packages and patch system if `sap_hana_preconfigure_update:true`
+3. Apply configurations
+  - Execute configuration tasks based on SAP Notes
+  - (SUSE) Execute saptune with solution `sap_hana_preconfigure_saptune_solution` (Default: `HANA`)
+4. Reboot Managed nodes if packages were installed or patched and `sap_hana_preconfigure_reboot_ok: true`
+<!-- END Execution Flow -->
 
-If you want to use this system in production, make sure that the time service is configured correctly. You can use [rhel-system-roles](https://access.redhat.com/articles/3050101) to automate this.
+### Example
+<!-- BEGIN Execution Example -->
+Example of execution together with prerequisite role [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure)
+```yaml
+---
+- name: Ansible Play for SAP HANA HA Scale-up preconfigure
+  hosts: hana_primary, hana_secondary
+  become: true
+  tasks:
+    - name: Execute Ansible Role sap_general_preconfigure
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_general_preconfigure
 
-Note
-----
-For finding out which SAP notes will be used by this role for Red Hat systems, please check the contents of variable `__sap_hana_preconfigure_sapnotes` in files `vars/*.yml` (choose the file which matches your OS distribution and version).  
+    - name: Execute Ansible Role sap_hana_preconfigure
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_hana_preconfigure
+```
+<!-- END Execution Example -->
 
-For SLES, notes are applied using the saptune service.  Saptune supports a number of solutions.  A solution implements several SAP notes.  The default solution for this role is 'HANA'.  To see a list of supported solutions and the notes that they implement, you can run `saptune solution list` on the command line.
+<!-- BEGIN Role Tags -->
+<!-- END Role Tags -->
 
-Do not run this role against an SAP HANA or other production system. The role will enforce a certain configuration on the managed node(s), which might not be intended.
+<!-- BEGIN Further Information -->
+## Further Information
+For more examples on how to use this role in different installation scenarios, refer to the [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
+<!-- END Further Information -->
 
-Changes
--------
-1) Previous versions of this role used the variable sap_hana_preconfigure_use_tuned_where_possible to switch between either tuned settings
-or kernel command line settings (where applicable).
-The current version modifies this behavior:
-- The variable sap_hana_preconfigure_use_tuned_where_possible has been renamed to sap_hana_preconfigure_use_tuned
-- The variable sap_hana_preconfigure_switch_to_tuned_profile_sap_hana has been removed.
-- If sap_hana_preconfigure_use_tuned is set to `yes`, which is also the default, the role will configure the system for using tuned and also switch to tuned profile sap-hana.
-  If sap_hana_preconfigure_use_tuned is set to `no`, the role will perform a static configuration, including the modification of the linux command line in grub.
-- The role can use tuned, or configure the kernel command line, or both.
+## License
+<!-- BEGIN License -->
+Apache 2.0
+<!-- END License -->
 
-2) Previous versions of this role used variable sap_hana_preconfigure_selinux_state to set the SELinux state to disabled.
-As the role sap_general_preconfigure already allows to specify the desired SELinux state, and as sap_general_preconfigure
-is always run before sap_hana_preconfigure, there is no need any more to let sap_hana_preconfigure configure the SELinux state.
-The same applies to the assertion of the SELinux state.
+## Maintainers
+<!-- BEGIN Maintainers -->
+- [Bernd Finger](https://github.com/berndfinger)
+<!-- END Maintainers -->
 
-3) SLES systems are now configured using saptune rather than the ansible implementation of the notes.
-
-<!-- BEGIN: Role Input Parameters for sap_hana_preconfigure -->
-## Role Input Parameters
-
-#### Minimum required parameters:
-
-This role does not require any parameter to be set in the playbook or inventory.
-
-
+## Role Variables
+<!-- BEGIN Role Variables -->
 ### sap_hana_preconfigure_config_all
 - _Type:_ `bool`
 
@@ -160,13 +193,11 @@ This is useful if the role is used for reporting a system's SAP notes compliance
 ### sap_hana_preconfigure_system_roles_collection
 - _Type:_ `str`
 - _Default:_ `'fedora.linux_system_roles'`
-- _Possible Values:_<br>
-  - `fedora.linux_system_roles`
-  - `redhat.rhel_system_roles`
 
 Set which Ansible Collection to use for the Linux System Roles.<br>
-For community/upstream, use 'fedora.linux_system_roles'<br>
-For the RHEL System Roles for SAP, or for Red Hat Automation Hub, use 'redhat.rhel_system_roles'<br>
+Available values:
+- `fedora.linux_system_roles` - for community/upstream.<br>
+- `redhat.rhel_system_roles` - for the RHEL System Roles for SAP, or for Red Hat Automation Hub.<br>
 
 ### sap_hana_preconfigure_min_rhel_release_check
 - _Type:_ `bool`
@@ -385,6 +416,12 @@ Set this parameter to `true` to modify the Grub boot command line.<br>
 By default, the role will run `grub2-mkconfig` to update the Grub configuration if necessary.<br>
 Set this parameter to `false` if this is not desired.<br>
 
+### sap_hana_preconfigure_thp
+- _Type:_ `str`
+- _Default:_ ``
+
+Override the default setting for THP, which is determined automatically by the role, depending on the RHEL version.
+
 ### sap_hana_preconfigure_db_group_name
 - _Type:_ `str`
 
@@ -401,104 +438,21 @@ sap_hana_preconfigure_db_group_name: dba
 - _Type:_ `str`
 - _Default:_ `''`
 
-Version of saptune to install (SLES for SAP Applications).<br>
+(SUSE specific) Specifies the saptune version.<br>
 This will replace the current installed version if present, even downgrade if necessary.<br>
 
 ### sap_hana_preconfigure_saptune_solution
 - _Type:_ `str`
 - _Default:_ `'HANA'`
-- _Possible Values:_<br>
-  - `HANA`
-  - `NETWEAVER+HANA`
-  - `S4HANA-APP+DB`
-  - `S4HANA-DBSERVER`
 
-The saptune solution to apply (SLES for SAP Applications).<br>
+(SUSE specific) Specifies the saptune solution to apply.<br>
+Available values: `HANA`, `NETWEAVER+HANA`, `S4HANA-APP+DB`, `S4HANA-DBSERVER`
 
 ### sap_hana_preconfigure_saptune_azure
 - _Type:_ `bool`
 - _Default:_ `false`
 
-On Azure, TCP timestamps, reuse and recycle should be disabled (SLES for SAP Applications).<br>
+(SUSE specific) On Azure, TCP timestamps, reuse and recycle should be disabled.<br>
 If the variable is set, an override file for saptune will be created (/etc/saptune/override/2382421) to set net.ipv4.tcp_timestamps and net.ipv4.tcp_tw_reuse to 0.<br>
 Set this parameter to `true` on Azure.<br>
-
-<!-- END: Role Input Parameters for sap_hana_preconfigure -->
-
-## Example Playbook
-
-Simple playbook, named sap+hana.yml:
-```yaml
----
-- hosts: all
-  roles:
-    - role: sap_general_preconfigure
-    - role: sap_hana_preconfigure
-```
-
-Simple playbook for an extended check (assert) run, named sap+hana-assert.yml:
-```yaml
----
-- hosts: all
-  vars:
-    sap_general_preconfigure_assert: yes
-    sap_general_preconfigure_assert_ignore_errors: yes
-    sap_hana_preconfigure_assert: yes
-    sap_hana_preconfigure_assert_ignore_errors: yes
-  roles:
-    - role: sap_general_preconfigure
-    - role: sap_hana_preconfigure
-```
-
-## Example Usage
-
-Normal run, for configuring server host_1 for SAP HANA:
-```yaml
-ansible-playbook sap+hana.yml -l host_1
-```
-
-Extended Check (assert) run, not aborting if an error has been found:
-```yaml
-ansible-playbook sap+hana-assert.yml -l host_1
-```
-
-Same as above, with a nice compact and colored output, this time for two hosts:
-```yaml
-ansible-playbook sap+hana-assert.yml -l host_1,host_2 |
-awk '{sub ("    \"msg\": ", "")}
-  /TASK/{task_line=$0}
-  /fatal:/{fatal_line=$0; nfatal[host]++}
-  /...ignoring/{nfatal[host]--; if (nfatal[host]<0) nfatal[host]=0}
-  /^[a-z]/&&/: \[/{gsub ("\\[", ""); gsub ("]", ""); gsub (":", ""); host=$2}
-  /SAP note/{print "\033[30m[" host"] "$0}
-  /FAIL:/{nfail[host]++; print "\033[31m[" host"] "$0}
-  /WARN:/{nwarn[host]++; print "\033[33m[" host"] "$0}
-  /PASS:/{npass[host]++; print "\033[32m[" host"] "$0}
-  /INFO:/{print "\033[34m[" host"] "$0}
-  /changed/&&/unreachable/{print "\033[30m[" host"] "$0}
-  END{print ("---"); for (var in npass) {printf ("[%s] ", var); if (nfatal[var]>0) {
-        printf ("\033[31mFATAL ERROR!!! Playbook might have been aborted!!!\033[30m Last TASK and fatal output:\n"); print task_line, fatal_line
-     }
-     else printf ("\033[31mFAIL: %d  \033[33mWARN: %d  \033[32mPASS: %d\033[30m\n", nfail[var], nwarn[var], npass[var])}}'
-```
-Note: For terminals with dark background, replace the color code `30m` by `37m`.
-In case you need to make an invisible font readable on a terminal with dark background, run the following command in the terminal:
-```yaml
-printf "\033[37mreadable font\n"
-```
-In case you need to make an invisible font readable on a terminal with bright background, run the following command in the terminal:
-```yaml
-printf "\033[30mreadable font\n"
-```
-
-## Contribution
-
-Please read the [developer guidelines](./README.DEV.md) if you want to contribute
-
-## License
-
-Apache license 2.0
-
-## Author Information
-
-Red Hat for SAP Community of Practice, Markus Koch, Thomas Bludau, Bernd Finger, Than Ngo, Rainer Leber
+<!-- END Role Variables -->

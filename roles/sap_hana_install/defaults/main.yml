@@ -30,19 +30,23 @@ sap_hana_install_copy_sarfiles: false
 # removed after extraction.
 sap_hana_install_keep_copied_sarfiles: false
 
+# (RedHat specific) fapolicyd package is present on RedHat systems
 # For installing SAP HANA with fapolicyd support, set the following variable to `true`:
 sap_hana_install_use_fapolicyd: false
 
+# (RedHat specific) fapolicyd package is present on RedHat systems
 # When using fapolicyd, you can set the following variable to one of `none`, `size`, `sha256`, or `ima`. Note that before setting
 # to `ima`, it is essential to prepare the system accordingly (e.g. boot with a different kernel parameter). See the
 # RHEL 9 Managing, monitoring, and updating the kernel guide for more information on this topic.
 sap_hana_install_fapolicyd_integrity: 'sha256'
 
+# (RedHat specific) fapolicyd package is present on RedHat systems
 # When using fapolicyd, the following variable is used to define the fapolicyd rule file in which the rules for
 # protecting shell scripts are stored. The rule file will be created in the directory '/etc/fapolicyd/rules.d'.
 # Note: The mandatory file ending '.rules' will be added in the corresponding task of this role.
 sap_hana_install_fapolicyd_rule_file: '71-sap-shellscripts'
 
+# (RedHat specific) fapolicyd package is present on RedHat systems
 # When using fapolicyd, modify the following variable to change or add the directories which contain SAP HANA executables:
 sap_hana_install_fapolicyd_trusted_directories:
   - "{{ sap_hana_install_root_path }}"
@@ -50,11 +54,11 @@ sap_hana_install_fapolicyd_trusted_directories:
 
 # File name of SAPCAR*EXE in the software directory. If the variable is not set and there is more than one SAPCAR executable
 # in the software directory, the latest SAPCAR executable for the CPU architecture will be selected automatically.
-#sap_hana_install_sapcar_filename: SAPCAR_1115-70006178.EXE
+# sap_hana_install_sapcar_filename: SAPCAR_1115-70006178.EXE
 
 # List of file names of SAR files to extract. Can be set in case there are more SAR files in the software directory
 # than needed or desired for the HANA installation.
-#sap_hana_install_sarfiles:
+# sap_hana_install_sarfiles:
 #  - SAPHOSTAGENT54_54-80004822.SAR
 #  - IMDB_SERVER20_060_0-80002031.SAR
 
@@ -67,7 +71,7 @@ sap_hana_install_verify_checksums: false
 sap_hana_install_checksum_algorithm: sha256
 
 # In case a global checksum file is present, use the following variable to specify the full path to this file:
-#sap_hana_install_global_checksum_file: "{{ sap_hana_install_software_directory }}/SHA256"
+# sap_hana_install_global_checksum_file: "{{ sap_hana_install_software_directory }}/SHA256"
 
 # Set the following variable to `true` to let hdbclm verify SAR file signatures. This corresponds to the hdblcm command line
 # argument `--verify_signature`.
@@ -126,8 +130,8 @@ sap_hana_install_modify_selinux_labels: true
 sap_hana_install_components: 'all'
 
 # Pass some extra arguments to hdblcm, see some examples below.
-#sap_hana_install_hdblcm_extraargs: '--verify_signature'
-#sap_hana_install_hdblcm_extraargs: '--ignore=check_diskspace,check_min_mem'
+# sap_hana_install_hdblcm_extraargs: '--verify_signature'
+# sap_hana_install_hdblcm_extraargs: '--ignore=check_diskspace,check_min_mem'
 
 # Instance details
 sap_hana_install_sid:
@@ -140,6 +144,12 @@ sap_hana_install_system_usage: 'custom'
 sap_hana_install_restrict_max_mem: 'n'
 sap_hana_install_max_mem:
 
+# Starting with SAP HANA 2.0 SPS08, the component LSS (Local Secure Store) will be installed by default
+# when installing SAP HANA. This requires the installation execution mode to be set to 'optimized'.
+# You can change the following variable to the default of 'standard' in your playbook or inventory,
+# for example when installing an older version of SAP HANA or when not installing the 'lss' component.
+sap_hana_install_install_execution_mode: 'optimized'
+
 # hdblcm will use default ids if blank
 sap_hana_install_userid:
 sap_hana_install_groupid:
@@ -148,15 +158,15 @@ sap_hana_install_groupid:
 # Setting master password to 'y' will use that master password for all passwords - recommended
 sap_hana_install_use_master_password: 'y'
 # Set one or more of the following password variables in your playbook or inventory.
-#sap_hana_install_master_password:
-#sap_hana_install_sidadm_password:
-#sap_hana_install_db_system_password:
-#sap_hana_install_lss_user_password:
-#sap_hana_install_lss_backup_password:
-#sap_hana_install_ase_user_password:
-#sap_hana_install_root_password:
-#sap_hana_install_sapadm_password:
-#sap_hana_install_xs_org_password:
+# sap_hana_install_master_password:
+# sap_hana_install_sidadm_password:
+# sap_hana_install_db_system_password:
+# sap_hana_install_lss_user_password:
+# sap_hana_install_lss_backup_password:
+# sap_hana_install_ase_user_password:
+# sap_hana_install_root_password:
+# sap_hana_install_sapadm_password:
+# sap_hana_install_xs_org_password:
 
 # Optional steps
 sap_hana_install_update_firewall: false
@@ -185,7 +195,7 @@ sap_hana_install_firewall:
       state: 'enabled' }
 
 # The following variable is no longer used. Setting /etc/hosts entries is done in role sap_general_preconfigure.
-#sap_hana_install_update_etchosts: true
+# sap_hana_install_update_etchosts: true
 
 # Post install parameters
 sap_hana_install_hdbuserstore_key: 'HDB_SYSTEMDB'
@@ -193,8 +203,8 @@ sap_hana_install_nw_input_location: '/tmp'
 
 # License
 sap_hana_install_apply_license: false
-#sap_hana_install_license_path:
-#sap_hana_install_license_file_name:
+# sap_hana_install_license_path:
+# sap_hana_install_license_file_name:
 
 # Misc
 
@@ -214,13 +224,13 @@ sap_hana_install_create_initial_tenant: 'y'
 # If unset or set to 'normal', the role will leave the log_mode to 'normal', which is required for SAP HANA
 # System Replication. The log_mode 'overwrite' is useful for limiting cost or capacity if System Replication
 # is not used.
-#sap_hana_install_log_mode: 'overwrite'
+# sap_hana_install_log_mode: 'overwrite'
 
 # If the following variable is specified, the role will perform a scaleout installation or it will add additional
 # hosts to an existing HANA system.
 # Corresponding hdblcm parameter: addhosts
 # Example:
-#sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02'
+# sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02'
 
 # The hostname is set by 'hdblcm --dump_configfile_template' during the preinstall phase but can also
 # be set to a different value in your playbook or hostvars:

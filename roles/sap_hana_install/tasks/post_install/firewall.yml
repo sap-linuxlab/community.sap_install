@@ -5,7 +5,7 @@
   ansible.builtin.systemd:
     name: firewalld
     state: started
-    enabled: yes
+    enabled: true
   tags: sap_hana_install_configure_firewall
 
 - name: SAP HANA Post Install - Construct the argument list for 'firewall-cmd --add-port'
@@ -38,12 +38,12 @@
 # of the no-changed-when rule, we just set changed_when to true here.
 - name: SAP HANA Post Install - Enable the required ports immediately
   ansible.builtin.command: "{{ __sap_hana_install_fact_firewall_cmd_command }}"
-  changed_when: yes
+  changed_when: true
   tags: sap_hana_install_configure_firewall
 
 - name: SAP HANA Post Install - Get the current firewall configuration of the default zone
   ansible.builtin.command: firewall-cmd --list-all
-  changed_when: no
+  changed_when: false
   register: __sap_hana_install_register_current_firewall_ports
   tags: sap_hana_install_configure_firewall
 
@@ -57,12 +57,12 @@
 # of the no-changed-when rule, we just set changed_when to true here.
 - name: SAP HANA Post Install - Enable the required ports permanently
   ansible.builtin.command: "{{ __sap_hana_install_fact_firewall_cmd_command }} --permanent"
-  changed_when: yes
+  changed_when: true
   tags: sap_hana_install_configure_firewall
 
 - name: SAP HANA Post Install - Get the permanent firewall configuration of the default zone
   ansible.builtin.command: firewall-cmd --list-all
-  changed_when: no
+  changed_when: false
   register: __sap_hana_install_register_permanent_firewall_ports
   tags: sap_hana_install_configure_firewall
 

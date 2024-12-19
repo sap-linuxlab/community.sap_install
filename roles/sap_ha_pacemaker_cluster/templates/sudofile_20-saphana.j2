@@ -6,23 +6,23 @@
 #  to update the SAP HANA cluster resource status.
 
 {% for node in sap_ha_pacemaker_cluster_cluster_nodes %}
-Cmnd_Alias {{ node.hana_site | upper }}_SOK = /usr/sbin/crm_attribute -n hana_{{ sap_ha_pacemaker_cluster_hana_sid | lower }}_site_srHook_{{ node.hana_site }} -v SOK -t crm_config -s {{ sap_ha_pacemaker_cluster_hadr_provider_name }}
-Cmnd_Alias {{ node.hana_site | upper }}_SFAIL = /usr/sbin/crm_attribute -n hana_{{ sap_ha_pacemaker_cluster_hana_sid | lower }}_site_srHook_{{ node.hana_site }} -v SFAIL -t crm_config -s {{ sap_ha_pacemaker_cluster_hadr_provider_name }}
+Cmnd_Alias {{ node.hana_site | upper }}_SOK = /usr/sbin/crm_attribute -n hana_{{ __sap_ha_pacemaker_cluster_hana_sid | lower }}_site_srHook_{{ node.hana_site }} -v SOK -t crm_config -s {{ sap_ha_pacemaker_cluster_hadr_provider_name }}
+Cmnd_Alias {{ node.hana_site | upper }}_SFAIL = /usr/sbin/crm_attribute -n hana_{{ __sap_ha_pacemaker_cluster_hana_sid | lower }}_site_srHook_{{ node.hana_site }} -v SFAIL -t crm_config -s {{ sap_ha_pacemaker_cluster_hadr_provider_name }}
 {% endfor %}
 {% if __sap_ha_pacemaker_cluster_hana_hook_tkover and __sap_ha_pacemaker_cluster_saphanasr_angi_available %}
-Cmnd_Alias HOOK_HELPER  = /usr/bin/SAPHanaSR-hookHelper --sid={{ sap_ha_pacemaker_cluster_hana_sid | upper }} --case=checkTakeover
+Cmnd_Alias HOOK_HELPER  = /usr/bin/SAPHanaSR-hookHelper --sid={{ __sap_ha_pacemaker_cluster_hana_sid | upper }} --case=checkTakeover
 
-{{ sap_ha_pacemaker_cluster_hana_sid | lower }}adm ALL=(ALL) NOPASSWD: {% for node in sap_ha_pacemaker_cluster_cluster_nodes %}{{ node.hana_site | upper }}_SOK, {{ node.hana_site | upper }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %}, HOOK_HELPER
+{{ __sap_ha_pacemaker_cluster_hana_sid | lower }}adm ALL=(ALL) NOPASSWD: {% for node in sap_ha_pacemaker_cluster_cluster_nodes %}{{ node.hana_site | upper }}_SOK, {{ node.hana_site | upper }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %}, HOOK_HELPER
 
 Defaults!{% for node in sap_ha_pacemaker_cluster_cluster_nodes %}{{ node.hana_site | upper }}_SOK, {{ node.hana_site | upper }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %}, HOOK_HELPER !requiretty
 {% elif __sap_ha_pacemaker_cluster_hana_hook_tkover and not __sap_ha_pacemaker_cluster_saphanasr_angi_available %}
-Cmnd_Alias HOOK_HELPER  = /usr/sbin/SAPHanaSR-hookHelper --sid={{ sap_ha_pacemaker_cluster_hana_sid | upper }} --case=checkTakeover
+Cmnd_Alias HOOK_HELPER  = /usr/sbin/SAPHanaSR-hookHelper --sid={{ __sap_ha_pacemaker_cluster_hana_sid | upper }} --case=checkTakeover
 
-{{ sap_ha_pacemaker_cluster_hana_sid | lower }}adm ALL=(ALL) NOPASSWD: {% for node in sap_ha_pacemaker_cluster_cluster_nodes %}{{ node.hana_site | upper }}_SOK, {{ node.hana_site | upper }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %}, HOOK_HELPER
+{{ __sap_ha_pacemaker_cluster_hana_sid | lower }}adm ALL=(ALL) NOPASSWD: {% for node in sap_ha_pacemaker_cluster_cluster_nodes %}{{ node.hana_site | upper }}_SOK, {{ node.hana_site | upper }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %}, HOOK_HELPER
 
 Defaults!{% for node in sap_ha_pacemaker_cluster_cluster_nodes %}{{ node.hana_site | upper }}_SOK, {{ node.hana_site | upper }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %}, HOOK_HELPER !requiretty
 {% else %}
-{{ sap_ha_pacemaker_cluster_hana_sid | lower }}adm ALL=(ALL) NOPASSWD: {% for node in sap_ha_pacemaker_cluster_cluster_nodes %}{{ node.hana_site | upper }}_SOK, {{ node.hana_site | upper }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %}
+{{ __sap_ha_pacemaker_cluster_hana_sid | lower }}adm ALL=(ALL) NOPASSWD: {% for node in sap_ha_pacemaker_cluster_cluster_nodes %}{{ node.hana_site | upper }}_SOK, {{ node.hana_site | upper }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %}
 
 Defaults!{% for node in sap_ha_pacemaker_cluster_cluster_nodes %}{{ node.hana_site | upper }}_SOK, {{ node.hana_site | upper }}_SFAIL{{ ", " if not loop.last else "" }}{% endfor %} !requiretty
 {% endif %}

@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+##
+# Call this playbook only with all variables defined.
+#
+# The minimum viable set of variables which need to be defined are:
+#
+# sap_hana_group: name of group in inventory - defaults to localhost if not set
+# sap_domain: SAP domain - defaults to ansible_domain if not set, but must not be empty
+#
+# For sap_general_preconfigure:
+# sap_general_preconfigure_modify_etc_hosts: defaults to true
+# sap_general_preconfigure_update: defaults to false
+# sap_general_preconfigure_fail_if_reboot_required: defaults to true
+#
+# For sap_hana_preconfigure:
+# sap_hana_preconfigure_update: defaults to false
+# sap_hana_preconfigure_fail_if_reboot_required: defaults to true
+# sap_hana_preconfigure_reboot_ok: defaults to false
+#
+# Note: If the variable sap_playbook_parameter_confirm is set to true, the playbook
+# stops execution and waits for an input. If you want to run the playbook in
+# non-interactive mode, leave the variable unset or set to false.
+
+- name: Prepare system for SAP HANA Installation
+  hosts: "{{ sap_hana_group | d((groups['all'] == []) | ternary ('localhost', 'all')) }}"
+  become: true
+  tasks:
+    - name: Ansible Role Configuration
+      ansible.builtin.debug:
+        msg: |-
+          The SAP HANA preconfiguration runs with the following configuration:
+          - 'Hostname                : {{ sap_hostname | d(ansible_hostname) }}'
+          - 'IP Address              : {{ sap_ip | d(ansible_default_ipv4.address) }}'
+          - 'Domain                  : {{ (sap_domain | d('') | length > 0) | ternary(sap_domain, ansible_domain) }}'
+          - 'Modify hosts            : {{ sap_general_preconfigure_modify_etc_hosts | d('false') }}'
+          - 'Update OS               : {{ sap_hana_preconfigure_update | d('false') }}'
+          - 'Auto Reboot             : {{ sap_hana_preconfigure_reboot_ok | d('false') }}'
+          - 'Fail if reboot is needed: {{ sap_hana_preconfigure_fail_if_reboot_required | d('true') }}'
+
+    - name: Pause Playbook to verify parameters
+      when: sap_playbook_parameter_confirm | d(false)
+      ansible.builtin.pause:
+
+    - name: Perform the general SAP configuration
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_general_preconfigure
+
+    - name: Perform the SAP HANA specific configuration
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_hana_preconfigure

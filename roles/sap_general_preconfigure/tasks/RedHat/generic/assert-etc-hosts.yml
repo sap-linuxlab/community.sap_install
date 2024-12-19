@@ -11,8 +11,8 @@
 - name: Check if ipv4 address, FQDN, and hostname are once in /etc/hosts
   ansible.builtin.command: awk 'BEGIN{a=0}/^{{ sap_general_preconfigure_ip }}\s/&&/\s{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}\s/&&(/\s{{ sap_general_preconfigure_hostname }}\s/||/\s{{ sap_general_preconfigure_hostname }}$/){a++}END{print a}' /etc/hosts
   register: __sap_general_preconfigure_register_ipv4_fqdn_sap_hostname_once_assert
-  ignore_errors: yes
-  changed_when: no
+  ignore_errors: true
+  changed_when: false
 
 - name: Assert that ipv4 address, FQDN, and hostname are once in /etc/hosts
   ansible.builtin.assert:
@@ -25,8 +25,8 @@
 - name: Count the number of sap_general_preconfigure_ip ({{ sap_general_preconfigure_ip }}) entries in /etc/hosts
   ansible.builtin.command: awk 'BEGIN{a=0}/^{{ sap_general_preconfigure_ip }}\s/{a++}END{print a}' /etc/hosts
   register: __sap_general_preconfigure_register_sap_ip_once_assert
-  ignore_errors: yes
-  changed_when: no
+  ignore_errors: true
+  changed_when: false
 
 - name: Assert that there is exactly one line containing {{ sap_general_preconfigure_ip }} in /etc/hosts
   ansible.builtin.assert:
@@ -40,8 +40,8 @@
                 /\s{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}\s/||
                 /\s{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}$/{a++}END{print a}' /etc/hosts
   register: __sap_general_preconfigure_register_fqdn_once_assert
-  ignore_errors: yes
-  changed_when: no
+  ignore_errors: true
+  changed_when: false
 
 - name: Assert that there is just one line containing {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} in /etc/hosts
   ansible.builtin.assert:
@@ -55,8 +55,8 @@
                 /\s{{ sap_general_preconfigure_hostname }}\s/||
                 /\s{{ sap_general_preconfigure_hostname }}$/{a++}END{print a}' /etc/hosts
   register: __sap_general_preconfigure_register_sap_hostname_once_assert
-  ignore_errors: yes
-  changed_when: no
+  ignore_errors: true
+  changed_when: false
 
 - name: Assert that there is just one line containing {{ sap_general_preconfigure_hostname }} in /etc/hosts
   ansible.builtin.assert:
@@ -68,8 +68,8 @@
 - name: Test hostname -s
   ansible.builtin.shell: test "$(hostname -s)" = "$(hostname)"
   register: __sap_general_preconfigure_register_hostname_s_assert
-  ignore_errors: yes
-  changed_when: no
+  ignore_errors: true
+  changed_when: false
 
 - name: Assert that hostname -s matches the output of hostname
   ansible.builtin.assert:
@@ -81,8 +81,8 @@
 - name: Test hostname -f
   ansible.builtin.shell: test "$(hostname -f)" = "$(hostname).$(hostname -d)"
   register: __sap_general_preconfigure_register_hostname_f_assert
-  ignore_errors: yes
-  changed_when: no
+  ignore_errors: true
+  changed_when: false
 
 - name: Assert that hostname -f matches the output of hostname.hostname -d
   ansible.builtin.assert:

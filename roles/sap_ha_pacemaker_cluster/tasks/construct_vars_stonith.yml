@@ -70,7 +70,7 @@
     - sap_ha_pacemaker_cluster_cluster_properties is iterable
     - sap_ha_pacemaker_cluster_cluster_properties | length > 0
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties | default([]) + __stonith_properties }}"
+    __sap_ha_pacemaker_cluster_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties | d([]) + __stonith_properties }}"
   vars:
     __stonith_properties:
       - attrs: |-
@@ -99,10 +99,10 @@
     - sap_ha_pacemaker_cluster_stonith_custom is not defined
       or sap_ha_pacemaker_cluster_stonith_custom | length == 0
     - (hostvars[stonith_host_item].__sap_ha_pacemaker_cluster_stonith_default).id
-     not in (__sap_ha_pacemaker_cluster_stonith_resource | default([])| map(attribute='id'))
+     not in (__sap_ha_pacemaker_cluster_stonith_resource | d([])| map(attribute='id'))
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_stonith_resource:
-      "{{ __sap_ha_pacemaker_cluster_stonith_resource | default([])
+      "{{ __sap_ha_pacemaker_cluster_stonith_resource | d([])
        + [hostvars[stonith_host_item].__sap_ha_pacemaker_cluster_stonith_default] }}"
   loop: "{{ ansible_play_hosts_all }}"
   loop_control:
@@ -218,9 +218,9 @@
     - stonith_item.name is defined and stonith_item.name | length > 0
       and stonith_item.options is defined and stonith_item.options | length > 0
     # Keep following conditional after removing Tech Debt
-    - __stonith_resource_element.id not in (__sap_ha_pacemaker_cluster_stonith_resource | default([]) | map(attribute='id'))
+    - __stonith_resource_element.id not in (__sap_ha_pacemaker_cluster_stonith_resource | d([]) | map(attribute='id'))
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_stonith_resource: "{{ __sap_ha_pacemaker_cluster_stonith_resource | default([]) + [__stonith_resource_element] }}"
+    __sap_ha_pacemaker_cluster_stonith_resource: "{{ __sap_ha_pacemaker_cluster_stonith_resource | d([]) + [__stonith_resource_element] }}"
   vars:
     __stonith_resource_element:
       # Ensure that resource name conforms with naming convention rsc_
@@ -251,10 +251,10 @@
      and sap_ha_pacemaker_cluster_stonith_custom is iterable
      and sap_ha_pacemaker_cluster_stonith_custom is not string
     - stonith_item.id is defined and stonith_item.id | length > 0
-    - stonith_item.id not in (__sap_ha_pacemaker_cluster_stonith_resource | default([]) | map(attribute='id'))
+    - stonith_item.id not in (__sap_ha_pacemaker_cluster_stonith_resource | d([]) | map(attribute='id'))
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_stonith_resource:
-      "{{ __sap_ha_pacemaker_cluster_stonith_resource | default([]) + [stonith_item] }}"
+      "{{ __sap_ha_pacemaker_cluster_stonith_resource | d([]) + [stonith_item] }}"
   loop: "{{ sap_ha_pacemaker_cluster_stonith_custom }}"
   loop_control:
     label: "{{ stonith_item.name if stonith_item.name is defined else stonith_item.id }}"

@@ -1,82 +1,111 @@
 `EXPERIMENTAL`
-
+<!-- BEGIN Title -->
 # sap_ha_install_anydb_ibmdb2 Ansible Role
+<!-- END Title -->
 
-Ansible Role for instantiation of IBM Db2 'Integrated Linux Pacemaker' HADR cluster
+## Description
+<!-- BEGIN Description -->
+The Ansible Role for instantiation of IBM Db2 'Integrated Linux Pacemaker' HADR cluster.
 
-Note: IBM Db2 with 'Integrated Linux Pacemaker' can use two deployment models:
+**NOTE:** IBM Db2 with 'Integrated Linux Pacemaker' can use two deployment models:
 - Mutual Failover option, **not** covered by this Ansible Role
-- High Availability and Disaster Recovery (HADR) option for Idle Standby, initialised by this Ansible Role
+- High Availability and Disaster Recovery (HADR) option for Idle Standby, initialized by this Ansible Role
+<!-- END Description -->
 
+<!-- BEGIN Dependencies -->
+<!-- END Dependencies -->
 
+<!-- BEGIN Prerequisites -->
 ## Prerequisites
+Managed nodes:
+- Directory with installation media is present and `sap_ha_install_anydb_ibmdb2_software_directory` updated. Download can be completed using [community.sap_launchpad](https://github.com/sap-linuxlab/community.sap_launchpad) Ansible Collection.
 
-### Software Installation files
-
-Download IBM Db2 installation media from SAP Download Center on host, and set Ansible Variable `sap_ha_install_anydb_ibmdb2_software_directory` to this path.
-
-### Variables
-
-- `sap_ha_install_anydb_ibmdb2_hostname_primary` with the IBM Db2 Primary node hostname
-- `sap_ha_install_anydb_ibmdb2_hostname_secondary` with the IBM Db2 Secondary node hostname
-- `sap_ha_install_anydb_ibmdb2_sid` with the IBM Db2 System ID
-- `sap_ha_install_anydb_ibmdb2_software_directory` with the IBM Db2 installation media path
-
-These are listed in the default variables file, but commented-out to enforce the required variables:
-- [**sap_ha_install_anydb_ibmdb2** default parameters](defaults/main.yml)
-
-## Requirements and Dependencies
-
-This Ansible Role is applicable to IBM Db2 11.5 certified for SAP.
-
-It is applicable to 11.5.9 and later, which provides `db2cm` binary compatibility for AWS, GCP and MS Azure.
-
-### Target host - Infrastructure Platforms
-
-This Ansible Role contains Infrastructure Platform specific alterations for:
-- AWS EC2 Virtual Servers
-- Microsoft Azure Virtual Machines
-- Google Cloud Compute Engine Virtual Machine
-- IBM Cloud Virtual Server
-
-### Target host - Operating System requirements
-
-Designed for Linux operating systems, e.g. RHEL (7.x and 8.x) and SLES (15.x).
+Software compatibility:
+- This Ansible Role is applicable to IBM Db2 11.5 certified for SAP.
+- It is applicable to 11.5.9 and later, which provides `db2cm` binary compatibility for AWS, GCP and MS Azure.
+<!-- END Prerequisites -->
 
 ## Execution
+<!-- BEGIN Execution -->
+### Supported Platforms
+| Platform | Status | Notes |
+| -------- | --------- | --------- |
+| AWS EC2 Virtual Servers | :heavy_check_mark: | |
+| Google Cloud Compute Engine Virtual Machine | :heavy_check_mark: | |
+| Microsoft Azure Virtual Machines | :heavy_check_mark: | |
+| IBM Cloud Virtual Server | :heavy_check_mark: | |
+<!-- END Execution -->
 
-Sample Ansible Playbook Execution:
+<!-- BEGIN Execution Recommended -->
+<!-- END Execution Recommended -->
 
-- Local Host Installation
-    - `ansible-playbook --connection=local --limit localhost -i "localhost," sap-ha-anydb-ibmdb2-init.yml -e "@inputs/ibmdb2_vars.yml`
+### Execution Flow
+<!-- BEGIN Execution Flow -->
+1. Assert that required inputs were provided.
+2. Detect target infrastructure platform.
+3. Execute platform specific configuration.
+4. Instantiate IBM Db2 'Integrated Linux Pacemaker' HADR cluster.
+<!-- END Execution Flow -->
 
-- Target Host Installation
-    - `ansible-playbook -i "<target-host>" sap-ha-anydb-ibmdb2-init.yml -e "@inputs/ibmdb2_vars.yml"`
-
-## Sample Ansible Playbook
-
+### Example
+<!-- BEGIN Execution Example -->
 ```yaml
 ---
-- hosts: all
-
-  collections:
-    - community.sap_install
-
-  vars:
-    sap_ha_install_anydb_ibmdb2_sid: SD1 # Sandbox Database for D01 SAP System
-    sap_ha_install_anydb_ibmdb2_hostname_primary: db2-p
-    sap_ha_install_anydb_ibmdb2_hostname_secondary: db2-s
-    sap_ha_install_anydb_ibmdb2_software_directory: /software/ibmdb2_extracted
-
+- name: Ansible Play for IBM Db2 Database installation
+  hosts: db2_host
+  become: true
+  tasks:
     - name: Execute Ansible Role sap_ha_install_anydb_ibmdb2
       ansible.builtin.include_role:
         name: community.sap_install.sap_ha_install_anydb_ibmdb2
+      vars:
+        sap_ha_install_anydb_ibmdb2_sid: SD1 # Sandbox Database for D01 SAP System
+        sap_ha_install_anydb_ibmdb2_hostname_primary: db2-p
+        sap_ha_install_anydb_ibmdb2_hostname_secondary: db2-s
+        sap_ha_install_anydb_ibmdb2_software_directory: /software/ibmdb2_extracted
 ```
+<!-- END Execution Example -->
+
+<!-- BEGIN Role Tags -->
+<!-- END Role Tags -->
+
+<!-- BEGIN Further Information -->
+<!-- END Further Information -->
 
 ## License
+<!-- BEGIN License -->
+Apache 2.0
+<!-- END License -->
 
-Apache license 2.0
+## Maintainers
+<!-- BEGIN Maintainers -->
+- [Sean Freeman](https://github.com/sean-freeman)
+<!-- END Maintainers -->
 
-## Author Information
+## Role Variables
+<!-- BEGIN Role Variables -->
+### sap_ha_install_anydb_ibmdb2_hostname_primary
 
-Sean Freeman
+- _Type:_ `string`
+
+Enter IBM Db2 Primary node hostname
+
+
+### sap_ha_install_anydb_ibmdb2_hostname_secondary
+
+- _Type:_ `string`
+
+Enter IBM Db2 Secondary node hostname
+
+### sap_ha_install_anydb_ibmdb2_sid
+
+- _Type:_ `string`
+
+Enter IBM Db2 System ID
+
+### sap_ha_install_anydb_ibmdb2_software_directory
+
+- _Type:_ `string`
+
+Enter IBM Db2 installation media path
+<!-- END Role Variables -->

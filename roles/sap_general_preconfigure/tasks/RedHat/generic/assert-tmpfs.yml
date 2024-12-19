@@ -4,8 +4,8 @@
 - name: Check the size of tmpfs
   ansible.builtin.command: awk '/\/dev\/shm/&&/tmpfs/{gsub ("defaults,size=", "", $4); print $4}' /etc/fstab
   register: __sap_general_preconfigure_register_fstab_tmpfs_size_gb_assert
-  ignore_errors: yes
-  changed_when: no
+  ignore_errors: true
+  changed_when: false
 
 - name: Assert that there is an entry for tmpfs in /etc/fstab
   ansible.builtin.assert:
@@ -26,8 +26,8 @@
 - name: Check if /dev/shm is available and has the expected size
   ansible.builtin.shell: df -kl /dev/shm | awk '/\/dev\/shm/&&/tmpfs/{printf ("%.0fG\n", $2/1024/1024)}'
   register: __sap_general_preconfigure_register_df_shm_assert
-  ignore_errors: yes
-  changed_when: no
+  ignore_errors: true
+  changed_when: false
 
 - name: Assert that the current size of tmpfs is large enough as per df output
   ansible.builtin.assert:
