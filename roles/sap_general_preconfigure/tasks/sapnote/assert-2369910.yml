@@ -25,12 +25,12 @@
         success_msg: "PASS: An English locale is installed."
 
     - name: Get the current default locale
-      ansible.builtin.command: awk '/^LANG=/&&/en_/{print}' /etc/locale.conf
+      ansible.builtin.command: awk '/^LANG=/&&(/C.UTF-8/||/en_/){print}' /etc/locale.conf
       changed_when: false
       register: __sap_general_preconfigure_current_default_locale
 
     - name: Assert that an English locale is the default
       ansible.builtin.assert:
         that: __sap_general_preconfigure_current_default_locale.stdout_lines | length > 0
-        fail_msg: "FAIL: English is not set as the default locale. Please define an English default locale with the 'sap_general_preconfigure_default_locale' variable!"
+        fail_msg: "FAIL: English is not set as the default locale. Please define a valid English default locale with the variable 'sap_general_preconfigure_default_locale' !"
         success_msg: "PASS: An English default locale is set."
