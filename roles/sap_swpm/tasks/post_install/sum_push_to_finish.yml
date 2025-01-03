@@ -107,6 +107,7 @@
 # If SUM is already in MAIN_POSTCLEAN|EXIT phase it has skipped SPAUINFO and has finished
 # No need to do anything else
 - name: Check if SUM has skipped SPAUINFO and has finished
+  when: "'<dialogId>SUM4ABAP|POST-EXECUTE|MAIN_POSTPROC|SPAUINFO|FinishSPAU</dialogId>' not in _sap_swpm_sum_push.content"
   block:
     # Get the config XML from SUM, repeat 3 times in case SUM is still busy and doesn't respond promptly
     # Need to get config XML even through we are not going to use it. This is to get the diagtime cookie.
@@ -178,4 +179,3 @@
       retries: 60
       delay: 60
       failed_when: _sap_swpm_sum_push.status != 200 or '<dialogId>SUM4ABAP|MAIN_POSTCLEAN|EXIT|UnitWizard</dialogId>' not in _sap_swpm_sum_push.content
-  when: "'<dialogId>SUM4ABAP|POST-EXECUTE|MAIN_POSTPROC|SPAUINFO|FinishSPAU</dialogId>' not in _sap_swpm_sum_push.content"
