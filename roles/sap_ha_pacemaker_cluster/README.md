@@ -883,7 +883,8 @@ sap_ha_pacemaker_cluster_resource_defaults:
 - _Type:_ `string`<br>
 - _Default:_ `True`<br>
 
-Disabling this variable enables to use Classic SAPHanaSR agents even on server, with SAPHanaSR-angi is available.<br>
+Disabling this variable enables to use Classic SAPHanaSR agents even on server, where SAPHanaSR-angi is available.<br>
+Value `false` (Classic) is ignored when only SAPHanaSR-angi packages are available.<br>
 
 ### sap_ha_pacemaker_cluster_sbd_devices
 - _Type:_ `list`<br>
