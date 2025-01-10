@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+- name: SAP HA Prepare Pacemaker - Include Web Dispatcher landscape specific variables
+  ansible.builtin.include_vars: "{{ role_path }}/vars/{{ include_item }}.yml"
+  loop: "{{ __host_type_list | flatten }}"
+  loop_control:
+    loop_var: include_item
+    label: "{{ include_item }}.yml"
+  vars:
+    __host_type_list:
+      - nwas_common
+      - "{{ sap_ha_pacemaker_cluster_host_type }}"
+  when:
+    - "(role_path + '/vars/' + include_item + '.yml') is file"
+
+
+# Prep for moving some of the vars from the main vars file here
+# - name: "SAP HA Prepare Pacemaker - Set cluster resource variable: VIP Health Checks (WebDisp)"
+#   ansible.builtin.set_fact:
+#     __sap_ha_pacemaker_cluster_healthcheck_wdp_id:
+#       "{{ sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_id | d(__sap_ha_pacemaker_cluster_nwas_sid ~ 'ascs')
+#       if sap_ha_pacemaker_cluster_healthcheck_wdp_id | string | length == 0
+#       else sap_ha_pacemaker_cluster_healthcheck_wdp_id }}"

@@ -79,7 +79,7 @@ argument_specs:
               - _Optional. Currently not needed/used in cluster configuration._
           node_name:
             description:
-              - Hostname of the cluster node.
+              - Name of the cluster node, should match the remote systems' hostnames.
               - _Optional. Currently not needed/used in cluster configuration._
           node_role:
             choices:
@@ -136,6 +136,7 @@ argument_specs:
           - nwas_abap_ascs_ers
 #          - nwas_abap_pas_aas
           - nwas_java_scs_ers
+          - sap_webdisp
         default: hana_scaleup_perf
         description:
           - The SAP landscape to for which the cluster is to be configured.
@@ -966,6 +967,85 @@ argument_specs:
       ##########################################################################
 
       # TODO: implement AAS cluster setup
+
+      #########################################################################
+      # WebDisp specific parameters
+      ##########################################################################
+
+      sap_ha_pacemaker_cluster_wdp_sid:
+        description:
+          - System ID (SID) of the Web Dispatcher in Capital letters.
+          - Defaults to `sap_swpm_wdp_sid` if defined.
+          - Mandatory for Web Dispatcher cluster scenarios.
+
+      sap_ha_pacemaker_cluster_wdp_instance_nr:
+        description:
+          - Instance number of the Web Dispatcher instance.
+          - Defaults to `sap_swpm_wdp_instance_nr` if defined.
+          - Mandatory for Web Dispatcher cluster configuration.
+
+      sap_ha_pacemaker_cluster_vip_wdp_ip_address:
+        description:
+          - Virtual IP of the Web Dispatcher instance.
+          - Mandatory for the Web Dispatcher cluster setup.
+
+      sap_ha_pacemaker_cluster_vip_wdp_resource_name:
+        default: rsc_vip_<WDSID>_WDP<WebDisp-instance-number>
+        description:
+          - Name of the Virtual IP resource for Web Dispatcher.
+
+      sap_ha_pacemaker_cluster_healthcheck_wdp_resource_name:
+        default: rsc_vip_health_check_<WDSID>_WDP<WebDisp-instance-number>
+        description:
+          - Name of the Virtual IP Health Check resource for Web Dispatcher.
+
+      sap_ha_pacemaker_cluster_wdp_sapinstance_instance_name:
+        description:
+          - The name of the WebDisp instance, typically the profile name.
+          - Mandatory for the Web Dispatcher cluster setup.
+          - Recommended format <WDSID>_W<WebDisp-instance-number>_<WebDisp-hostname>
+
+      sap_ha_pacemaker_cluster_wdp_sapinstance_start_profile_string:
+        description:
+          - The full path and name of the WebDisp instance profile.
+          - Mandatory for the Web Dispatcher cluster setup.
+
+      sap_ha_pacemaker_cluster_wdp_filesystem_resource_name:
+        default: rsc_fs_<WDSID>_WDP<WebDisp-instance-number>
+        description:
+          - Name of the filesystem resource for the WebDisp instance.
+
+      sap_ha_pacemaker_cluster_wdp_sapinstance_resource_name:
+        default: rsc_SAPInstance_<WDSID>_WDP<WebDisp-instance-number>
+        description:
+          - Name of the WebDisp instance resource.
+
+      sap_ha_pacemaker_cluster_wdp_sapstartsrv_resource_name:
+        default: rsc_SAPStartSrv_<WDSID>_WDP<WebDisp-instance-number>
+        description:
+          - Name of the WebDisp SAPStartSrv resource for simple mount.
+
+      sap_ha_pacemaker_cluster_vip_wdp_resource_group_name:
+        default: grp_<WDSID>_WDP<WebDisp-instance-number>
+        description:
+          - Name of the NetWeaver WebDisp resource group.
+
+      sap_ha_pacemaker_cluster_wdp_sapinstance_automatic_recover_bool:
+        type: bool
+        default: false
+        description:
+          - Web Dispatcher instance resource option "AUTOMATIC_RECOVER".
+
+      sap_ha_pacemaker_cluster_wdp_sapinstance_resource_stickiness:
+        default: 5000
+        description:
+          - Web Dispatcher instance resource stickiness attribute.
+
+      sap_ha_pacemaker_cluster_wdp_group_stickiness:
+        default: 3000
+        description:
+          - Web Dispatcher resource group stickiness.
+          - Defines how sticky is Web Dispatcher group to the node it was started on.
 
 
       ##########################################################################
