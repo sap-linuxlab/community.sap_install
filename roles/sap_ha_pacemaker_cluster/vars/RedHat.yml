@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SPDX-License-Identifier: Apache-2.0
 ---
 # Default repositories if platform does not override them.
@@ -160,3 +161,166 @@ sap_ha_pacemaker_cluster_hana_hook_chksrv: true
 # TODO: Enable when SAPStartSrv resource agents are available on Red Hat
 sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount: true
 __sap_ha_pacemaker_cluster_nwas_simple_mount_version: 4.15.1
+=======
+# SPDX-License-Identifier: Apache-2.0
+---
+# Default repositories if platform does not override them.
+# This selection does not affect imported __ha_cluster_repos due to precedence.
+__sap_ha_pacemaker_cluster_repos:
+  - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
+    name: High Availability
+
+# Dictionary with repos for each platform
+__sap_ha_pacemaker_cluster_repos_dict:
+  cloud_aws_ec2_vs:
+    - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
+      name: High Availability
+  cloud_gcp_ce_vm:
+    - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
+      name: High Availability
+  cloud_ibmcloud_powervs:
+    - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
+      name: High Availability E4S (4-Year) for Power, little endian
+    # - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-eus-rpms"
+    #   name: High Availability EUS (2-Year) for Power, little endian
+    # - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-rpms"
+    #   name: High Availability for Power, little endian
+  cloud_ibmcloud_vs:
+    - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
+      name: High Availability E4S (4-Year)
+    # - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-eus-rpms"
+    #   name: High Availability EUS (2-Year)
+    # - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-rpms"
+    #   name: High Availability
+  cloud_msazure_vm:
+    - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rhui-rpms"
+      name: High Availability
+    - id: "rhui-microsoft-azure-rhel{{ ansible_distribution_major_version }}-sap-ha"
+      name: Microsoft Azure RPMs for Red Hat Enterprise Linux {{ ansible_distribution_major_version }} (rhel{{ ansible_distribution_major_version }}-sap-ha)
+  hyp_ibmpower_vm:
+    - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-e4s-rpms"
+      name: High Availability E4S (4-Year) for Power, little endian
+    # - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-eus-rpms"
+    #   name: High Availability EUS (2-Year) for Power, little endian
+    # - id: "rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-rpms"
+    #   name: High Availability for Power, little endian
+
+__sap_ha_pacemaker_cluster_halib_package: sap-cluster-connector
+
+# List of configuration lines that must be added to the instance profiles for SAP HA Interface setup.
+__sap_ha_pacemaker_cluster_connector_config_lines:
+  - "service/halib = $(DIR_EXECUTABLE)/saphascriptco.so"
+  - "service/halib_cluster_connector = /usr/bin/sap_cluster_connector"
+
+# Cluster command to manage resources - pcs commands in Redhat OS family.
+__sap_ha_pacemaker_cluster_command:
+  resource_stop: "pcs resource disable"
+  resource_start: "pcs resource enable"
+  resource_restart: "pcs resource restart"
+  resource_cleanup: "pcs resource cleanup"
+
+# Default corosync options - OS specific
+__sap_ha_pacemaker_cluster_corosync_totem_default:
+  options: {}
+
+# Make sure that there is always the minimal default fed into the included role.
+# This is combined with the custom list 'sap_ha_pacemaker_cluster_fence_agent_packages'.
+__sap_ha_pacemaker_cluster_fence_agent_packages_minimal:
+  - fence-agents-all
+
+# Dictionary with fence packages for each platform
+__sap_ha_pacemaker_cluster_fence_agent_packages_dict:
+  cloud_aws_ec2_vs:
+    - fence-agents-aws
+  cloud_gcp_ce_vm:
+    - fence-agents-gce
+  cloud_ibmcloud_powervs:
+    - fence-agents-ibm-powervs
+  cloud_ibmcloud_vs:
+    - fence-agents-ibm-vpc
+  cloud_msazure_vm:
+    - fence-agents-azure-arm
+  hyp_ibmpower_vm:
+    - fence-agents-lpar
+
+# Dictionary with extra platform specific packages
+__sap_ha_pacemaker_cluster_platform_extra_packages_dict:
+  cloud_aws_ec2_vs:
+    - "{{ 'resource-agents-cloud' if ansible_distribution_major_version is version('9', '>=') else 'awscli' }}"
+    - "{{ 'awscli2' if ansible_distribution_version is version('9.5', '>=') else '' }}"
+  cloud_gcp_ce_vm:
+    - resource-agents-gcp
+  cloud_msazure_vm:
+    - "{{ 'resource-agents-cloud' if ansible_distribution_major_version is version('9', '>=') else '' }}"
+    - socat
+
+# Dictionary with additional cluster packages for specific scenarios
+__sap_ha_pacemaker_cluster_sap_extra_packages_dict:
+  hana_angi:
+    - sap-hana-ha
+  hana_scaleout:
+    - resource-agents-sap-hana-scaleout
+  hana_scaleup:
+    - resource-agents-sap-hana
+  nwas:
+    - resource-agents-sap
+
+# Dictionary with preferred platform specific VIP method that differs from default
+# __sap_ha_pacemaker_cluster_vip_method_dict:
+
+# Resource agents - fully qualified names
+__sap_ha_pacemaker_cluster_resource_agents:
+  saphanatopology: "ocf:heartbeat:SAPHanaTopology"
+  saphana: "ocf:heartbeat:SAPHana"
+  saphanacontroller: "ocf:heartbeat:SAPHanaController"
+  saphanafilesystem: "ocf:heartbeat:SAPHanaFilesystem"
+  sapstartsrv: "ocf:heartbeat:SAPStartSrv"
+
+__sap_ha_pacemaker_cluster_saphanasr_angi_available: false
+
+# Default SAP HANA hook parameters combined based on user decision
+__sap_ha_pacemaker_cluster_hook_hana_scaleup_perf:
+  saphanasr:
+    - provider: SAPHanaSR
+      path: /usr/share/SAPHanaSR/srHook/
+      options:
+        - name: execution_order
+          value: 1
+  chksrv:
+    - provider: ChkSrv
+      path: /usr/share/SAPHanaSR/srHook/
+      options:
+        - name: execution_order
+          value: 2
+        - name: action_on_lost
+          value: stop
+
+__sap_ha_pacemaker_cluster_hook_hana_scaleup_perf_angi:
+  saphanasr:
+    - provider: HanaSR
+      path: /usr/share/sap-hana-ha/
+      options:
+        - name: execution_order
+          value: 1
+  chksrv:
+    - provider: ChkSrv
+      path: /usr/share/sap-hana-ha/
+      options:
+        - name: execution_order
+          value: 2
+        - name: action_on_lost
+          value: stop
+        - name: stop_timeout
+          value: 25
+
+__sap_ha_pacemaker_cluster_hook_hana_scaleout: []
+__sap_ha_pacemaker_cluster_hook_hana_scaleout_angi: []
+
+# Enable default OS recommended hooks
+sap_ha_pacemaker_cluster_hana_hook_tkover: false
+sap_ha_pacemaker_cluster_hana_hook_chksrv: true
+
+# Central Services Cluster Simple Mount: Enabled as default
+# TODO: Enable when SAPStartSrv resource agents are available on Red Hat
+sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount: false
+>>>>>>> ceee5e62 (sap_ha_pacemaker_cluster: Add support for clustered WebDisp systems)
