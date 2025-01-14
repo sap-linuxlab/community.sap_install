@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Ensure that the services are enabled and started
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop: "{{ __sap_general_preconfigure_services_2578899 }}"
+
+
+- name: Execute task to update GRUB entries
+  ansible.builtin.include_tasks:
+    file: ../../SLES/generic/grub_update.yml
+  vars:
+    __sap_general_preconfigure_grub_cmdline: "{{ __sap_general_preconfigure_grub_cmdline_2578899 }}"
+  when: __sap_general_preconfigure_grub_cmdline | length > 0
+
+
+- name: Apply SAP note 2578899 using saptune
+  when: __sap_general_preconfigure_use_saptune | d(true)
+  block:
+
+    - name: Apply SAP note 2578899 using saptune
+      ansible.builtin.command:
+        cmd: saptune note apply 2578899
+      changed_when: true
+
+    - name: Verify SAP note 2578899 using saptune
+      ansible.builtin.command:
+        cmd: saptune note verify 2578899
+      register: __sap_general_preconfigure_saptune_verify_2578899
+      changed_when: false
+      ignore_errors: true
+
+    - name: Display error if saptune verify failed
+      ansible.builtin.debug:
+        msg: |
+          {{ __sap_general_preconfigure_saptune_verify_2578899.stdout_lines }}
+          {{ __sap_general_preconfigure_saptune_verify_2578899.stderr_lines }}
+      when:
+        __sap_general_preconfigure_saptune_verify_2578899.rc != 0
+
+
+- name: Configuration changes without saptune
+  when: not __sap_general_preconfigure_use_saptune | d(true)
+  block:
+
+    - name: Increase kernel.pid_max to 4194304
+      ansible.builtin.command:
+        cmd: sysctl -w kernel.pid_max=4194304
+      changed_when: true

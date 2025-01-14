@@ -1,96 +1,54 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+- name: Get list of what provides packages  # noqa command-instead-of-module
+  ansible.builtin.command:
+    cmd: "rpm -q --whatprovides {{ item }}"
+  register: __sap_general_preconfigure_register_whatprovides
+  changed_when: false
+  loop: "{{ sap_general_preconfigure_packages }}"
+
+
+# Both sap_general_preconfigure_packages and __sap_general_preconfigure_min_pkgs are checked at same time.
 - name: Assert that all required packages are installed
   ansible.builtin.assert:
-    that: line_item in ansible_facts.packages
-    fail_msg: "FAIL: Package '{{ line_item }}' is not installed!"
-    success_msg: "PASS: Package '{{ line_item }}' is installed."
-  with_items:
-    - "{{ sap_general_preconfigure_packages }}"
-  loop_control:
-    loop_var: line_item
+    that: item in ansible_facts.packages
+      or __sap_general_preconfigure_register_whatprovides.results | selectattr('item', 'equalto', item) | map(attribute='rc') | first == 0
+    fail_msg: "FAIL: Package '{{ item }}' is not installed!"
+    success_msg: "PASS: Package '{{ item }}' is installed."
+  loop: "{{ sap_general_preconfigure_packages if not sap_general_preconfigure_min_package_check | bool
+    else ((sap_general_preconfigure_packages | d([])) + (__sap_general_preconfigure_min_pkgs | d([])) | map(attribute='0') | unique) }}"
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
-- name: Minimum required package version check
+
+# Availability of minimum packages is checked above.
+- name: Assert that all minimum required packages are installed with minimum version
+  ansible.builtin.assert:
+    that:
+      - __version is version(item[1], '>=')
+    fail_msg: "FAIL: Minimum package version '{{ item[0] }}-{{ item[1] }}' is not installed! Current version: '{{ __version }}'"
+    success_msg: "PASS: Minimum package version '{{ item[0] }}-{{ item[1] }}' is installed."
+  vars:
+    __version: "{{ ansible_facts.packages[item[0]][0]['version'] ~ '-' ~ ansible_facts.packages[item[0]][0]['release']
+      ~ '.' ~ ansible_facts.packages[item[0]][0]['arch']}}"
+  loop: "{{ __sap_general_preconfigure_min_pkgs }}"
   when:
     - sap_general_preconfigure_min_package_check | bool
     - __sap_general_preconfigure_min_pkgs | d([])
-  block:
-
-# Reason for noqa: We can safely fail at the last command in the pipeline.
-    - name: Assert - Create a list of minimum required package versions to be installed # noqa risky-shell-pipe
-# How does it work?
-# 1 - Print the required package name and version with a prefix "1" followed by a space.
-# 2 - In the same output sequence, list all installed versions of this package with a prefix "2" followed by a space.
-# 3 - Replace all occurrences of ".el" by ".0.0" so that the sort -V correctly sorts packages with ".el" in its name
-# 4 - Sort the list by the name and version.
-# 5 - Replace ".0.0" by ".el" again to get back the original names.
-# 6 - Store the last installed version of the package in variable latestpkg.
-# 7 - Store the last content of column 1 in variable col1, the last content of column 2 in variable col2,
-#     and the last number of fields in variable _nf.
-# 8 - case 1: If the last number of output fields is greater than 2, it indicates that the package is not installed
-#             because the output of "rpm -q" will be similar to "package XXX is not installed".
-# 8 - case 2a: If the first column of the last line of the output is "1", it means that the required package is
-#              the latest of all required and installed versions of the package, so it means that the package needs
-#              to be updated.
-# 8 - case 2b: If the first column of the last line of the output is "2", it means that at least of the installed
-#              versions the package is equal to or greater than the required package version.
-      ansible.builtin.shell: |
-        (echo "1 {{ pkg[0] }}-{{ pkg[1] }}";rpm -q --qf "%{NAME}-%{VERSION}-%{RELEASE}\n" {{ pkg[0] }} |
-         awk '{printf ("2 %s\n", $0)}') |
-         awk '{gsub ("\\.el", ".0.0"); print}' |
-         sort -k 2 -k 1 -V |
-         awk '{gsub ("\\.0\\.0", ".el"); col1=$1; col2=$2; _nf=NF}
-           $1==2{latestpkg=$2}
-           END {
-               if (_nf>2) {
-                  printf ("Package '\''{{ pkg[0] }}'\'' needs to be installed as {{ pkg[0] }}-{{ pkg[1] }}!\n")
-               } else {
-                  if (col1==1) {
-                     printf ("Package '\''{{ pkg[0] }}'\'' needs to be updated to %s! Currently installed latest version: %s.\n", $2, latestpkg)
-                  }
-                  if (col1==2) {
-                     printf ("Package '\''{{ pkg[0] }}'\'' is already installed as {{ pkg[0] }}-{{ pkg[1] }} or later. Currently installed latest version: %s.\n", latestpkg)
-                  }
-               }
-            }'
-      with_list: "{{ __sap_general_preconfigure_min_pkgs }}"
-      loop_control:
-        loop_var: pkg
-      check_mode: false
-      register: __sap_general_preconfigure_register_minpkglist_assert
-      changed_when: false
-
-    - name: Assert that minimum required package versions are installed
-# If the output includes the string "is already installed" (case 2b), we have a PASS. Otherwise, it's a FAIL.
-      ansible.builtin.assert:
-        that: "'is already installed' in line_item.stdout"
-        fail_msg: "FAIL: {{ line_item.stdout }}"
-        success_msg: "PASS: {{ line_item.stdout }}"
-      with_items: "{{ __sap_general_preconfigure_register_minpkglist_assert.results }}"
-      loop_control:
-        loop_var: line_item
-        label: ""
-      ignore_errors: true
-
-- name: Report if no minimum required package version is defined for this RHEL release
-  ansible.builtin.debug:
-    msg: "INFO: No minimum required package version defined (variable __sap_general_preconfigure_min_pkgs)."
-  ignore_errors: true
-  when: not __sap_general_preconfigure_min_pkgs | d([])
-
-# Reason for noqa: The yum module appears to not support the check-update option
-- name: Get info about possible package updates # noqa command-instead-of-module
-  ansible.builtin.command: yum check-update
-  register: __sap_general_preconfigure_register_yum_check_update_assert
-  changed_when: false
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+
+
+- name: Get info about possible package updates # noqa command-instead-of-module
+  ansible.builtin.command:
+    cmd: zypper -q patch-check
+  register: __sap_general_preconfigure_register_zypper_check_update_assert
+  changed_when: false
+  ignore_errors: true  # true, because unpatched system is always error.
   when: sap_general_preconfigure_update
 
 - name: Assert that there are no more possible package updates
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_yum_check_update_assert is success
+    that: __sap_general_preconfigure_register_zypper_check_update_assert.rc == 0
     fail_msg: "FAIL: System needs to be updated!"
     success_msg: "PASS: There are no more outstanding package updates."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
@@ -99,45 +57,18 @@
 - name: Report if checking for possible package updates is not requested
   ansible.builtin.debug:
     msg: "INFO: Not checking for possible package updates (variable sap_general_preconfigure_update)."
-  ignore_errors: true
+  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
   when: not sap_general_preconfigure_update
 
-- name: "Assert - Set needs-restarting command in case of RHEL 7"
-  ansible.builtin.set_fact:
-    __sap_general_preconfigure_fact_needs_restarting_command_assert: "needs-restarting -r"
-  when:
-    - ansible_os_family == 'RedHat'
-    - ansible_distribution_major_version == '7'
-
-- name: "Assert - Set needs-restarting command in case of RHEL 8 or RHEL 9, except RHEL 8.0"
-  ansible.builtin.set_fact:
-    __sap_general_preconfigure_fact_needs_restarting_command_assert: "yum needs-restarting -r"
-  when:
-    - ansible_os_family == 'RedHat'
-    - (ansible_distribution_major_version == '8' or
-         ansible_distribution_major_version == '9'
-      )
-    - ansible_distribution_version != '8.0'
-
-- name: "Assert - Set customized needs-restarting command in case of RHEL 8.0"
-  ansible.builtin.set_fact:
-    __sap_general_preconfigure_fact_needs_restarting_command_assert: "_IKRNL=$(rpm -q --last kernel | awk 'NR==1{sub(/kernel-/,\"\"); print $1}');
-                                                              _CKRNL=$(uname -r); if [ ${_IKRNL} != ${_CKRNL} ]; then exit 1; else exit 0; fi"
-  when:
-    - ansible_os_family == 'RedHat'
-    - ansible_distribution_version == '8.0'
-
-- name: Assert - Display the command for checking a reboot requirement
-  ansible.builtin.debug:
-    var: __sap_general_preconfigure_fact_needs_restarting_command_assert
 
 # Reason for noqa: The command to be executed might contain pipes
-- name: Assert - Determine if the system needs to be restarted # noqa command-instead-of-shell
-  ansible.builtin.shell: "{{ __sap_general_preconfigure_fact_needs_restarting_command_assert }}"
+- name: Determine if the system needs to be restarted # noqa command-instead-of-shell
+  ansible.builtin.shell:
+    cmd: "zypper ps"
   register: __sap_general_preconfigure_register_needs_restarting_assert
   changed_when: false
   check_mode: false
-  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+  ignore_errors: true  # true, because output is too large.
 
 - name: Assert that system needs no restart
   ansible.builtin.assert:
