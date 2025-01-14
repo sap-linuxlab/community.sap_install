@@ -1,13 +1,85 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-# handlers file for sap_general_preconfigure
+
+# BEGIN - GRUB section
+- name: "Check if server is booted in BIOS or UEFI mode"
+  ansible.builtin.stat:
+    path: /sys/firmware/efi
+    get_checksum: false
+  register: __sap_general_preconfigure_register_stat_sys_firmware_efi
+  listen: __sap_general_preconfigure_regenerate_grub2_conf_handler
+  when:
+    - sap_general_preconfigure_run_grub2_mkconfig | d(true)
+
+- name: Debug BIOS or UEFI
+  ansible.builtin.debug:
+    var: __sap_general_preconfigure_register_stat_sys_firmware_efi.stat.exists
+  listen: __sap_general_preconfigure_regenerate_grub2_conf_handler
+  when:
+    - sap_general_preconfigure_run_grub2_mkconfig | d(true)
+
+- name: "Run grub-mkconfig (BIOS mode)"
+  ansible.builtin.command: grub2-mkconfig -o /boot/grub2/grub.cfg
+  register: __sap_general_preconfigure_register_grub2_mkconfig_bios_mode
+  changed_when: true
+  listen: __sap_general_preconfigure_regenerate_grub2_conf_handler
+  notify: __sap_general_preconfigure_reboot_handler
+  when:
+    - not __sap_general_preconfigure_register_stat_sys_firmware_efi.stat.exists
+    - sap_general_preconfigure_run_grub2_mkconfig | d(true)
+
+- name: "Debug grub-mkconfig BIOS mode"
+  ansible.builtin.debug:
+    var: __sap_general_preconfigure_register_grub2_mkconfig_bios_mode.stdout_lines,
+         __sap_general_preconfigure_register_grub2_mkconfig_bios_mode.stderr_lines
+  listen: __sap_general_preconfigure_regenerate_grub2_conf_handler
+  when:
+    - not __sap_general_preconfigure_register_stat_sys_firmware_efi.stat.exists
+    - sap_general_preconfigure_run_grub2_mkconfig | d(true)
+
+- name: "Set the grub.cfg location RHEL"
+  ansible.builtin.set_fact:
+    __sap_general_preconfigure_uefi_boot_dir: /boot/efi/EFI/redhat/grub.cfg
+  listen: __sap_general_preconfigure_regenerate_grub2_conf_handler
+  when:
+    - ansible_distribution == 'RedHat'
+
+- name: "Set the grub.cfg location SLES"
+  ansible.builtin.set_fact:
+    __sap_general_preconfigure_uefi_boot_dir: /boot/efi/EFI/BOOT/grub.cfg
+  listen: __sap_general_preconfigure_regenerate_grub2_conf_handler
+  when:
+    - ansible_distribution == 'SLES' or ansible_distribution == 'SLES_SAP'
+
+- name: "Run grub-mkconfig (UEFI mode)"
+  ansible.builtin.command: "grub2-mkconfig -o {{ __sap_general_preconfigure_uefi_boot_dir }}"
+  register: __sap_general_preconfigure_register_grub2_mkconfig_uefi_mode
+  changed_when: true
+  listen: __sap_general_preconfigure_regenerate_grub2_conf_handler
+  notify: __sap_general_preconfigure_reboot_handler
+  when:
+    - __sap_general_preconfigure_register_stat_sys_firmware_efi.stat.exists
+    - sap_general_preconfigure_run_grub2_mkconfig | d(true)
+
+- name: "Debug grub-mkconfig UEFI"
+  ansible.builtin.debug:
+    var: __sap_general_preconfigure_register_grub2_mkconfig_uefi_mode.stdout_lines,
+         __sap_general_preconfigure_register_grub2_mkconfig_uefi_mode.stderr_lines
+  listen: __sap_general_preconfigure_regenerate_grub2_conf_handler
+  when:
+    - __sap_general_preconfigure_register_stat_sys_firmware_efi.stat.exists
+    - sap_general_preconfigure_run_grub2_mkconfig | d(true)
+
+# END - GRUB section
+
 
 - name: Reboot the managed node
   ansible.builtin.reboot:
     test_command: /bin/true
   listen: __sap_general_preconfigure_reboot_handler
   when:
-    - sap_general_preconfigure_reboot_ok|d(false)
+    - sap_general_preconfigure_reboot_ok | d(false)
+
 
 # Kernel update triggers zypper purge-kernels and lock after reboot.
 - name: Wait for Zypper lock to be released
@@ -21,21 +93,22 @@
     - sap_general_preconfigure_reboot_ok | d(false)
   changed_when: false
 
+
 - name: Let the role fail if a reboot is required
   ansible.builtin.fail:
     msg: Reboot is required!
   listen: __sap_general_preconfigure_reboot_handler
   when:
-    - sap_general_preconfigure_fail_if_reboot_required|d(true)
-    - not sap_general_preconfigure_reboot_ok|d(false)
+    - sap_general_preconfigure_fail_if_reboot_required | d(true)
+    - not sap_general_preconfigure_reboot_ok | d(false)
 
 - name: Show a warning message if a reboot is required
   ansible.builtin.debug:
     msg: "WARN: Reboot is required!"
   listen: __sap_general_preconfigure_reboot_handler
   when:
-    - not sap_general_preconfigure_fail_if_reboot_required|d(true)
-    - not sap_general_preconfigure_reboot_ok|d(false)
+    - not sap_general_preconfigure_fail_if_reboot_required | d(true)
+    - not sap_general_preconfigure_reboot_ok | d(false)
 
 # Reasons for noqa:
 # - command-instead-of-module: We want to avoid non-ansible.builtin modules where possible

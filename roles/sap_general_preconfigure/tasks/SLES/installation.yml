@@ -1,76 +1,45 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+# Both sap_general_preconfigure_packages and __sap_general_preconfigure_min_pkgs are installed at same time.
 - name: Ensure that the required packages are installed
   ansible.builtin.package:
     state: present
-    name: "{{ sap_general_preconfigure_packages }}"
+    name: "{{ sap_general_preconfigure_packages if not sap_general_preconfigure_min_package_check | bool
+      else ((sap_general_preconfigure_packages | d([])) + (__sap_general_preconfigure_min_pkgs | d([])) | map(attribute='0') | unique) }}"
 
-- name: Ensure that the minimum required package versions are installed
+
+- name: Install minimum packages if required
+  community.general.zypper:
+    type: package
+    name: '{{ line_item[0] }}>={{ line_item[1] }}'
+    state: present
+  loop: "{{ __sap_general_preconfigure_min_pkgs }}"
+  loop_control:
+    loop_var: line_item
   when:
     - sap_general_preconfigure_min_package_check|bool
-    - __sap_general_preconfigure_min_pkgs|d([])
-  block:
+    - __sap_general_preconfigure_min_pkgs | d([])
 
-# Reason for noqa: We can safely fail at the last command in the pipeline.
-    - name: Create a list of minimum required package versions to be installed  # noqa risky-shell-pipe
-# How does it work?
-# 1 - Print the required package name and version with a prefix "1" followed by a space.
-# 2 - In the same output sequence, list all installed versions of this package with a prefix "2" followed by a space.
-# 3 - Replace all occurrences of ".el" by ".0.0" so that the sort -V correctly sorts packages with ".el" in its name
-# 4 - Sort the list by the name and version.
-# 5 - Replace ".0.0" by ".el" again to get back the original names.
-# 6 - Store the last installed version of the package in variable latestpkg.
-# 7 - Store the last content of column 1 in variable col1, the last content of column 2 in variable col2,
-#     and the last number of fields in variable _nf.
-# 8 - case 1: If the last number of output fields is greater than 2, it indicates that the package is not installed
-#             because the output of "rpm -q" will be similar to "package XXX is not installed".
-# 8 - case 2a: If the first column of the last line of the output is "1", it means that the required package is
-#              the latest of all required and installed versions of the package, so it means that the package needs
-#              to be updated.
-# 8 - case 2b: If the first column of the last line of the output is "2", it means that at least of the installed
-#              versions the package is equal to or greater than the required package version.
-      ansible.builtin.shell: |
-        (echo "1 {{ pkg[0] }}-{{ pkg[1] }}";rpm -q --qf "%{NAME}-%{VERSION}-%{RELEASE}\n" {{ pkg[0] }} |
-         awk '{printf ("2 %s\n", $0)}') |
-         awk '{gsub ("\\.el", ".0.0"); print}' |
-         sort -k 2 -k 1 -V |
-         awk '{gsub ("\\.0\\.0", ".el"); col1=$1; col2=$2; _nf=NF}
-           $1==2{latestpkg=$2}
-           END {
-               if (_nf>2) {
-                  printf ("{{ pkg[0] }}-{{ pkg[1] }}\n")
-               } else {
-                  if (col1==1) {
-                     printf ("{{ pkg[0] }}-{{ pkg[1] }}\n")
-                  }
-               }
-            }'
-      with_list: "{{ __sap_general_preconfigure_min_pkgs }}"
-      loop_control:
-        loop_var: pkg
-      check_mode: false
-      register: __sap_general_preconfigure_register_minpkglist
-      changed_when: false
-
-    - name: Display the content of the minimum package list variable
-      ansible.builtin.debug:
-        var: __sap_general_preconfigure_register_minpkglist
-
-    - name: Install minimum packages if required
-      ansible.builtin.package:
-        name: "{{ line_item.stdout }}"
-        state: present
-      with_items: "{{ __sap_general_preconfigure_register_minpkglist.results }}"
-      loop_control:
-        loop_var: line_item
 
 # Reason for noqa: Both yum and dnf support "state: latest"
 - name: Ensure that the system is updated to the latest patchlevel # noqa package-latest
   ansible.builtin.package:
     state: latest
     name: "*"
-  when: sap_general_preconfigure_update
+  when: sap_general_preconfigure_update | bool
+
+
+# Sapconf is present on: SLES 15
+# Saptune is present on: SLES_SAP 15, SLES_SAP 16
+- name: Install saptune if available
+  ansible.builtin.include_tasks:
+    file: generic/saptune_install.yml
+
+- name: Takeover and enable saptune if available
+  ansible.builtin.include_tasks:
+    file: generic/saptune_takeover.yml
+
 
 # Reason for noqa: The command to be executed might contain pipes
 - name: Determine if the system needs to be restarted # noqa command-instead-of-shell
@@ -84,6 +53,8 @@
   ansible.builtin.debug:
     var: __sap_general_preconfigure_register_needs_restarting
 
+
+# sap_general_preconfigure_fact_reboot_required is used by follow up role: sap_hana_preconfigure
 - name: Set the reboot requirement flag to false
   ansible.builtin.set_fact:
     sap_general_preconfigure_fact_reboot_required: false
@@ -97,8 +68,11 @@
   ansible.builtin.debug:
     var: sap_general_preconfigure_fact_reboot_required
 
+
 - name: Call Reboot handler if necessary
   ansible.builtin.command: /bin/true
   notify: __sap_general_preconfigure_reboot_handler
   changed_when: true
-  when: __sap_general_preconfigure_register_needs_restarting is failed
+  when:
+    - __sap_general_preconfigure_register_needs_restarting is failed
+      or __sap_general_preconfigure_register_needs_restarting.rc == 102
