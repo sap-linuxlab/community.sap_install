@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+# Identify the version of the resource agents and disable
+# the use of "SimpleMount" if a minimum version is not satisfied.
+
+- name: "SAP HA Prepare Pacemaker - Block for detection of 'SAPStartSrv' availability"
+  block:
+
+    - name: "SAP HA Prepare Pacemaker - Check the resource agents package"
+      ansible.builtin.shell:
+        set -o pipefail && \
+          dnf info resource-agents-sap | awk '/^Version/ {print $3}' | sort | tail -n1
+      register: __sap_ha_pacemaker_cluster_sapstartsrv_check
+      changed_when: false
+      failed_when: false
+
+    - name: "SAP HA Prepare Pacemaker - Disable Simple Mount when min. package version is not available"
+      ansible.builtin.set_fact:
+        sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount: false
+      when:
+        - sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount | bool
+        - __sap_ha_pacemaker_cluster_sapstartsrv_check.stdout is defined
+        - "(__sap_ha_pacemaker_cluster_sapstartsrv_check.stdout) is version(__sap_ha_pacemaker_cluster_nwas_simple_mount_version, '<')"

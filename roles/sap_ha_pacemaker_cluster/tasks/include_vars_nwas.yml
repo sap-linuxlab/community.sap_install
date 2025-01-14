@@ -13,6 +13,12 @@
   when:
     - "(role_path + '/vars/' + include_item + '.yml') is file"
 
+- name: "SAP HA Prepare Pacemaker - Run NETWEAVER pre-steps"
+  ansible.builtin.include_tasks:
+    file: "{{ ansible_facts['os_family'] }}/pre_steps_nwas_ascs_ers.yml"
+  when:
+    - ansible_os_family == 'RedHat'
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas') | length > 0
 
 # Private variables are assigned following logic:
 # 1. Use backwards compatible var if new var is empty
