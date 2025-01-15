@@ -5,6 +5,30 @@ community.sap_install Release Notes
 .. contents:: Topics
 
 
+1.5.1
+Release Summary
+---------------
+- Release Date: 2025-01-15
+
+This is a bugfix release of the `community.sap_install` collection.
+
+Minor Changes
+-------------
+- sap_ha_pacemaker_cluster: enable Simple Mount on RHEL (https://github.com/sap-linuxlab/community.sap_install/pull/931)
+- sap_ha_pacemaker_cluster/SUSE: Rework SAPHanaSR-angi pre-steps and add SLES 16 vars (https://github.com/sap-linuxlab/community.sap_install/pull/928)
+- sap_swpm, sap_general_preconfigure: Add variables for sap_install FQCN collection name for calling roles (https://github.com/sap-linuxlab/community.sap_install/pull/925)
+- sap_general_preconfigure: Implement SAP note 2369910 (https://github.com/sap-linuxlab/community.sap_install/pull/914)
+- sap_ha_pacemaker_cluster: ANGI on RHEL and small improvements (https://github.com/sap-linuxlab/community.sap_install/pull/911)
+- sap_*_preconfigure, sap_ha_pacemaker_cluster: Reworked loading vars (https://github.com/sap-linuxlab/community.sap_install/pull/910)
+
+Bugfixes
+--------
+- sap_swpm: Use master password only when necessary (https://github.com/sap-linuxlab/community.sap_install/pull/920)
+- sap_swpm: Fix error when using tag sap_swpm_generate_inifile (https://github.com/sap-linuxlab/community.sap_install/pull/918)
+- sap_swpm: Fix error when installing SAP NW750 JAVA or SOLMAN72SR2 JAVA instances (https://github.com/sap-linuxlab/community.sap_install/pull/916)
+- sap_install_media_detect: Fix wrong sap_export_solman_java detection (https://github.com/sap-linuxlab/community.sap_install/pull/913)
+
+
 v1.5.0
 ======
 

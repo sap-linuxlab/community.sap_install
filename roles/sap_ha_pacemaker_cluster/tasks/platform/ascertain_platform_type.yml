@@ -81,14 +81,14 @@
   changed_when: false
   when: ansible_architecture == "ppc64le"
 
-- name: "SAP HA Prepare Pacemaker - Check if platform is IBM Power - RSCT binary check"
+- name: "SAP HA Prepare Pacemaker - Check if platform is IBM Power - Fail if RSCT binary is missing"
   ansible.builtin.fail:
     msg: Please install RSCT from IBM Power Systems service and productivity tools repository
   when:
     - ansible_architecture == "ppc64le"
     - __sap_ha_pacemaker_cluster_power_rsct_check.stdout == ""
 
-- name: "SAP HA Prepare Pacemaker - Check if platform is IBM Power - RSCT binary check"
+- name: "SAP HA Prepare Pacemaker - Check if platform is IBM Power - Run 'ctgethscid'"
   ansible.builtin.shell: |
     /opt/rsct/bin/ctgethscid
   register: __sap_ha_pacemaker_cluster_power_rsct_hscid

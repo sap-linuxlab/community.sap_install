@@ -7,19 +7,6 @@
 # Following steps are similar to crmsh code in ha_cluster role, but they are
 # too SAP specific, so they are added here instead of there.
 
-# Python3-pip and pexpect are required for ansible.builtin.expect
-# Python installation was removed from sap_swpm role in PR#720
-- name: "SAP HA Install Pacemaker - Install required python3-pip"
-  ansible.builtin.package:
-    name:
-      - python3-pip
-    state: present
-
-- name: "SAP HA Install Pacemaker - Install required pip pexpect"
-  ansible.builtin.pip:
-    name:
-      - pexpect
-
 - name: Block to ensure that changes are executed only once
   run_once: true  # noqa: run_once[task]
   block:
@@ -31,11 +18,8 @@
       register: __sap_ha_pacemaker_cluster_cib_xml_backup
 
     - name: "SAP HA Install Pacemaker - Put cluster in maintenance mode"
-      ansible.builtin.expect:
-        command: crm configure property maintenance-mode=true
-        responses:
-          ".*is-managed.*": "n"
-          ".*already.*": "n"
+      ansible.builtin.command:
+        cmd: crm --force configure property maintenance-mode=true
       check_mode: false
       changed_when: true
 
@@ -88,10 +72,7 @@
       changed_when: true
 
     - name: "SAP HA Install Pacemaker - Disable maintenance mode"
-      ansible.builtin.expect:
-        command: crm configure property maintenance-mode=false
-        responses:
-          ".*is-managed.*": "n"
-          ".*already.*": "n"
+      ansible.builtin.command:
+        cmd: crm --force configure property maintenance-mode=false
       check_mode: false
       changed_when: true
