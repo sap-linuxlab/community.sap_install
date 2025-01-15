@@ -13,7 +13,6 @@
   when:
     - "(role_path + '/vars/' + include_item + '.yml') is file"
 
-
 # Private variables are assigned following logic:
 # 1. Use backwards compatible var if new var is empty
 # 2. Use user input if new var is not empty
@@ -391,3 +390,13 @@
     # TODO: Remove backwards compatibility to typo
     __sap_ha_pacemaker_cluster_storage_nfs_filesystem_type:
       "{{ sap_ha_pacemaker_cluster_storage_nfs_filesytem_type | d(sap_ha_pacemaker_cluster_storage_nfs_filesystem_type) }}"
+
+# This must be run after the  assignment of
+# __sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
+# TODO: separate pre-steps from variable includes for NW and HANA
+- name: "SAP HA Prepare Pacemaker - Run NETWEAVER pre-steps"
+  ansible.builtin.include_tasks:
+    file: "{{ ansible_facts['os_family'] }}/pre_steps_nwas_ascs_ers.yml"
+  when:
+    - ansible_os_family == 'RedHat'
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas') | length > 0
