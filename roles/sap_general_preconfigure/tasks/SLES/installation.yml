@@ -1,7 +1,34 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# Both sap_general_preconfigure_packages and __sap_general_preconfigure_min_pkgs are installed at same time.
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+# Service packagekit is part of PackageKit-backend-zypp (SLE-Module-Desktop-Applications)
+# This service creates zypper locks and causes package install failures.
+# Service cannot be disabled and we have to mask its execution.
+- name: Mask packagekit.service when present
+  ansible.builtin.systemd_service:
+    name: packagekit.service
+    masked: true
+  when: "'packagekit.service' in ansible_facts.services"
+  notify: __sap_general_preconfigure_packagekit_handler
+
+
+- name: Wait for stop of packagekit.service
+  ansible.builtin.shell: |
+    set -o pipefail && bash -c '
+    while (ps aux | grep "[z]ypper" | grep -v grep) || (ps aux | grep "/usr/lib/packagekitd" | grep -v grep) ||
+     ([ -f /var/run/zypp.pid ] && [ -s /var/run/zypp.pid ]); do
+      sleep 10;
+    done'
+  register: __packagekit_service_check
+  changed_when: false
+  until: __packagekit_service_check.rc == 0
+  retries: 60
+  when: "'packagekit.service' in ansible_facts.services"
+
+
 - name: Ensure that the required packages are installed
   ansible.builtin.package:
     state: present
@@ -10,8 +37,7 @@
 
 
 - name: Install minimum packages if required
-  community.general.zypper:
-    type: package
+  ansible.builtin.package:
     name: '{{ line_item[0] }}>={{ line_item[1] }}'
     state: present
   loop: "{{ __sap_general_preconfigure_min_pkgs }}"
@@ -22,16 +48,16 @@
     - __sap_general_preconfigure_min_pkgs | d([])
 
 
-# Reason for noqa: Both yum and dnf support "state: latest"
+# Reason for noqa: Zypper supports "state: latest"
 - name: Ensure that the system is updated to the latest patchlevel # noqa package-latest
   ansible.builtin.package:
     state: latest
     name: "*"
+  register: __sap_general_preconfigure_register_update_latest
   when: sap_general_preconfigure_update | bool
 
 
-# Sapconf is present on: SLES 15
-# Saptune is present on: SLES_SAP 15, SLES_SAP 16
+# 1275776 - Linux: Preparing SLES for SAP environments
 - name: Install saptune if available
   ansible.builtin.include_tasks:
     file: generic/saptune_install.yml
@@ -43,7 +69,8 @@
 
 # Reason for noqa: The command to be executed might contain pipes
 - name: Determine if the system needs to be restarted # noqa command-instead-of-shell
-  ansible.builtin.shell: "zypper ps"
+  ansible.builtin.shell:
+    cmd: "zypper ps"
   register: __sap_general_preconfigure_register_needs_restarting
   ignore_errors: true
   changed_when: false
@@ -62,7 +89,9 @@
 - name: For needs-restarting - Set the flag that reboot is needed to apply changes
   ansible.builtin.set_fact:
     sap_general_preconfigure_fact_reboot_required: true
-  when: __sap_general_preconfigure_register_needs_restarting is failed
+  when:
+    - __sap_general_preconfigure_register_needs_restarting is failed
+      or __sap_general_preconfigure_register_update_latest.changed
 
 - name: For needs-restarting - Display the content of sap_general_preconfigure_fact_reboot_required
   ansible.builtin.debug:
@@ -70,9 +99,11 @@
 
 
 - name: Call Reboot handler if necessary
-  ansible.builtin.command: /bin/true
+  ansible.builtin.command:
+    cmd: /bin/true
   notify: __sap_general_preconfigure_reboot_handler
   changed_when: true
   when:
     - __sap_general_preconfigure_register_needs_restarting is failed
       or __sap_general_preconfigure_register_needs_restarting.rc == 102
+      or __sap_general_preconfigure_register_update_latest.changed

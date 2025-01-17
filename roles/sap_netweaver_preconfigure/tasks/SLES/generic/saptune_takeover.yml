@@ -5,15 +5,15 @@
 - name: Execute saptune_check - before takeover
   ansible.builtin.command:
     cmd: saptune_check
-  register: __sap_general_preconfigure_register_saptune_check_before
-  when: __sap_general_preconfigure_use_saptune
+  register: __sap_netweaver_preconfigure_register_saptune_check_before
+  when: __sap_netweaver_preconfigure_use_saptune
   changed_when: false
   failed_when: false
 
 - name: Takeover and enable saptune
   when:
-    - __sap_general_preconfigure_use_saptune
-    - __sap_general_preconfigure_register_saptune_check_before.rc != 0
+    - __sap_netweaver_preconfigure_use_saptune
+    - __sap_netweaver_preconfigure_register_saptune_check_before.rc != 0
   block:
     - name: Ensure sapconf is stopped and disabled
       ansible.builtin.systemd:
@@ -25,21 +25,21 @@
     - name: Make sure that sapconf and tuned are stopped and disabled
       ansible.builtin.command:
         cmd: "saptune service takeover"
-      register: __sap_general_preconfigure_register_saptune_takeover
-      changed_when: __sap_general_preconfigure_register_saptune_takeover.rc == 0
+      register: __sap_netweaver_preconfigure_register_saptune_takeover
+      changed_when: __sap_netweaver_preconfigure_register_saptune_takeover.rc == 0
 
     # saptune_check can fail if sapconf is in failed state
     - name: Check if sapconf.service is failed  # noqa command-instead-of-module
       ansible.builtin.command:
         cmd: systemctl is-failed sapconf.service
-      register: __sap_general_preconfigure_register_sapconf_failed
+      register: __sap_netweaver_preconfigure_register_sapconf_failed
       changed_when: false
       ignore_errors: true
 
     - name: Execute systemctl reset-failed sapconf.service  # noqa command-instead-of-module
       ansible.builtin.command:
         cmd: systemctl reset-failed sapconf.service
-      when: __sap_general_preconfigure_register_sapconf_failed.rc == 0
+      when: __sap_netweaver_preconfigure_register_sapconf_failed.rc == 0
       changed_when: true
 
     - name: Ensure saptune is running and enabled
@@ -51,35 +51,35 @@
     - name: Ensure saptune_check executes correctly
       ansible.builtin.command:
         cmd: saptune_check
-      register: __sap_general_preconfigure_register_saptune_check_after
+      register: __sap_netweaver_preconfigure_register_saptune_check_after
       changed_when: false
 
 
 - name: Check active saptune solution
   when:
-    - __sap_general_preconfigure_use_saptune
-    - __sap_general_preconfigure_register_saptune_check_before.rc == 0
-      or (__sap_general_preconfigure_register_saptune_check_after.rc == 0)
+    - __sap_netweaver_preconfigure_use_saptune
+    - __sap_netweaver_preconfigure_register_saptune_check_before.rc == 0
+      or (__sap_netweaver_preconfigure_register_saptune_check_after.rc == 0)
   block:
     - name: Discover active solution
       ansible.builtin.command:
         cmd: saptune solution enabled
-      register: __sap_general_preconfigure_register_saptune_status
+      register: __sap_netweaver_preconfigure_register_saptune_status
       changed_when: false
 
     - name: Set fact for active solution
       ansible.builtin.set_fact:
         # Capture the first block on none whitespace
-        __sap_general_preconfigure_register_solution_configured:
-          "{{ (__sap_general_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}"
+        __sap_netweaver_preconfigure_register_solution_configured:
+          "{{ (__sap_netweaver_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}"
 
     - name: Show configured solution
       ansible.builtin.debug:
-        var: __sap_general_preconfigure_register_solution_configured
+        var: __sap_netweaver_preconfigure_register_solution_configured
 
 
 - name: Enable sapconf
-  when: not __sap_general_preconfigure_use_saptune
+  when: not __sap_netweaver_preconfigure_use_saptune
   block:
     - name: Enable sapconf service
       ansible.builtin.systemd:

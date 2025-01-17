@@ -6,6 +6,7 @@
     cmd: "rpm -q --whatprovides {{ item }}"
   register: __sap_general_preconfigure_register_whatprovides
   changed_when: false
+  ignore_errors: true
   loop: "{{ sap_general_preconfigure_packages }}"
 
 
@@ -41,6 +42,8 @@
 - name: Get info about possible package updates # noqa command-instead-of-module
   ansible.builtin.command:
     cmd: zypper -q patch-check
+  timeout: 120
+  retries: 5
   register: __sap_general_preconfigure_register_zypper_check_update_assert
   changed_when: false
   ignore_errors: true  # true, because unpatched system is always error.
@@ -76,3 +79,15 @@
     fail_msg: "FAIL: System needs to be restarted!"
     success_msg: "PASS: System needs no restart."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+
+
+- name: Assert saptune is at requested version
+  ansible.builtin.assert:
+    that: ansible_facts.packages['saptune'][0]['version'] == sap_general_preconfigure_saptune_version
+    fail_msg: "FAIL: saptune version installed is {{ ansible_facts.packages['saptune'][0]['version']
+      }} but the version {{ sap_general_preconfigure_saptune_version }} was expected"
+    success_msg: "PASS: the installed version of saptune meets the expected version: {{ sap_general_preconfigure_saptune_version }}"
+  when:
+    - __sap_general_preconfigure_use_saptune
+    - sap_general_preconfigure_saptune_version is defined
+    - sap_general_preconfigure_saptune_version | length > 0

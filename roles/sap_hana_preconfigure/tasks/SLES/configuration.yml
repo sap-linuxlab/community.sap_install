@@ -1,94 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-- name: Takeover saptune and enable
-  when: __sap_hana_preconfigure_run_saptune
-  block:
-    - name: Ensure sapconf is stopped and disabled
-      ansible.builtin.systemd:
-        name: sapconf
-        state: stopped
-        enabled: false
-      when: "'sapconf' in ansible_facts.packages"
-
-    - name: Make sure that sapconf and tuned are stopped and disabled
-      ansible.builtin.command: "saptune service takeover"
-      register: __sap_saptune_takeover
-      changed_when: __sap_saptune_takeover.rc == 0
-
-    - name: Ensure saptune is running and enabled
-      ansible.builtin.systemd:
-        name: saptune
-        state: started
-        enabled: true
-
-    - name: Ensure saptune_check executes correctly
-      ansible.builtin.command: saptune_check
-      changed_when: false
-
-    - name: Discover active solution
-      ansible.builtin.command: saptune solution enabled
-      register: __sap_hana_preconfigure_register_saptune_status
-      changed_when: false
-
-    - name: Set fact for active solution
-      ansible.builtin.set_fact:
-        # Capture the first block on none whitespace
-        __sap_hana_preconfigure_fact_solution_configured:
-          "{{ (__sap_hana_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}"
-
-    - name: Show configured solution
-      ansible.builtin.debug:
-        var: __sap_hana_preconfigure_fact_solution_configured
-
-- name: Set GRUB entries
-  when: __sap_hana_preconfigure_run_saptune
-  block:
-    # Reason for noqa:
-    # no-changed-when: the regex do a check on the element before apply the
-    #   changed item, this prevent a replace to an element that is already in
-    #   the configuration
-    - name: Set GRUB entries # noqa no-changed-when
-      ansible.builtin.lineinfile:
-        path: /etc/default/grub
-        regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=(?!.* {{ item }}).*). *$'
-        line: "\\1 {{ item }}\""
-        backrefs: true
-      register: set_grub_entries
-      with_items:
-        - "splash=silent"
-        - "mitigations=auto"
-        - "quiet"
-        - "numa_balancing=disable"
-        - "transparent_hugepage=never"
-        - "intel_idle.max_cstate=1"
-        - "processor.max_cstate=1"
-        - "audit=1"
-
-    # Reason for noqa:
-    # no-changed-when: there is already a check on the `when` argument that
-    # loop over all the results of the previous task and if some of the results
-    # changed the grub configuration file the `GRUB_post-update_configuration`
-    # handler will be notify, in the other hands if none of the item changed
-    # the configuration file no handler will be notify
-    - name: Trigger grub update if necessary # noqa no-changed-when
-      ansible.builtin.command: /bin/true
-      notify: __sap_hana_preconfigure_regenerate_grub2_conf_handler
-      when: set_grub_entries.results | selectattr('changed', 'equalto', true) | list | length > 0
-
-- name: Enable sapconf
-  when: not __sap_hana_preconfigure_run_saptune
-  block:
-    - name: Enable sapconf service
-      ansible.builtin.systemd:
-        name: sapconf
-        state: started
-        enabled: true
-
-    - name: Restart sapconf service
-      ansible.builtin.systemd:
-        name: sapconf
-        state: restarted
-
 # If this is a cluster node on Azure, we need to override to disable tcp timestamps, reuse and recycle.
 # This can be done by copying the sapnote file 2382421 from /usr/share/saptune/notes to /etc/saptune/override
 # The value can then override in the in the new file
@@ -109,29 +20,61 @@
       net.ipv4.tcp_tw_reuse = 0
   when:
     - sap_hana_preconfigure_saptune_azure
+    - __sap_hana_preconfigure_use_saptune
+
 
 - name: Apply saptune solution
-  when: __sap_hana_preconfigure_run_saptune
+  when: __sap_hana_preconfigure_use_saptune
   block:
-    - name: Check if saptune solution needs to be applied
-      ansible.builtin.command: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
-      register: __sap_hana_preconfigure_register_saptune_verify
-      changed_when: false # We're only checking, not changing!
-      failed_when: false # We expect this to fail if it has not previously been applied
+    - name: Discover active solution
+      ansible.builtin.command:
+        cmd: saptune solution enabled
+      register: __sap_hana_preconfigure_register_saptune_status
+      changed_when: false
 
-    - name: Ensure no solution is currently applied
-      ansible.builtin.command: "saptune solution revert {{ __sap_hana_preconfigure_fact_solution_configured }}"
+    - name: Set fact for active solution
+      ansible.builtin.set_fact:
+        # Capture the first block on none whitespace
+        __sap_hana_preconfigure_register_solution_configured:
+          "{{ (__sap_hana_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}"
+
+
+    - name: Revert solution when different to sap_hana_preconfigure_saptune_solution
+      ansible.builtin.command:
+        cmd: "saptune solution revert {{ __sap_hana_preconfigure_register_solution_configured }}"
       changed_when: true
       when:
-        - __sap_hana_preconfigure_fact_solution_configured != 'NONE'
-        - __sap_hana_preconfigure_register_saptune_verify.rc != 0
+        - __sap_hana_preconfigure_register_solution_configured != 'NONE'
+        - __sap_hana_preconfigure_register_solution_configured != sap_hana_preconfigure_saptune_solution
+
+
+    - name: Verify saptune solution
+      ansible.builtin.command:
+        cmd: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
+      register: __sap_hana_preconfigure_register_saptune_verify
+      changed_when: false
+      failed_when: false
+      when:
+        - __sap_hana_preconfigure_register_solution_configured == sap_hana_preconfigure_saptune_solution
+
 
     - name: Ensure saptune solution is applied
-      ansible.builtin.command: "saptune solution apply {{ sap_hana_preconfigure_saptune_solution }}"
+      ansible.builtin.command:
+        cmd: "saptune solution apply {{ sap_hana_preconfigure_saptune_solution }}"
       changed_when: true
       when:
-        - __sap_hana_preconfigure_register_saptune_verify.rc != 0
+        - __sap_hana_preconfigure_register_solution_configured != sap_hana_preconfigure_saptune_solution
+          or __sap_hana_preconfigure_register_saptune_verify.rc != 0
+
 
     - name: Ensure solution was successful
-      ansible.builtin.command: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
-      changed_when: false # We're only checking, not changing!
+      ansible.builtin.command:
+        cmd: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
+      changed_when: false
+
+
+- name: Configure - Include configuration actions for required sapnotes
+  ansible.builtin.include_tasks: "sapnote/{{ sap_note_line_item.number }}.yml"
+  loop: "{{ __sap_hana_preconfigure_sapnotes_versions | difference(['']) }}"
+  loop_control:
+    loop_var: sap_note_line_item
