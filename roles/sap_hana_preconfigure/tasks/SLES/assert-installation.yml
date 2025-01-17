@@ -1,18 +1,68 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-# Capture all patterns along with their install status
-- name: Get zypper pattern information
-  ansible.builtin.command: zypper patterns
-  register: __sap_hana_preconfigure_zypper_patterns
-  changed_when: false
 
-# Count the number of times the sap-hana pattern appears to be installed in the output.
-# It is OK for it to appear more than once
-- name: Assert the sap-hana pattern is installed
+- name: Get list of what provides packages  # noqa command-instead-of-module
+  ansible.builtin.command:
+    cmd: "rpm -q --whatprovides {{ item }}"
+  register: __sap_hana_preconfigure_register_whatprovides
+  changed_when: false
+  ignore_errors: true
+  loop: "{{ sap_hana_preconfigure_packages }}"
+
+
+- name: Assert that all required packages are installed
   ansible.builtin.assert:
-    that: __sap_hana_preconfigure_zypper_patterns.stdout_lines | select('match', 'i.*sap-hana.*') | length != 0
-    fail_msg: "FAIL: the sap-hana pattern is not installed"
-    success_msg: "PASS: the sap-hana pattern is installed"
+    that: item in ansible_facts.packages
+      or __sap_hana_preconfigure_register_whatprovides.results | selectattr('item', 'equalto', item) | map(attribute='rc') | first == 0
+    fail_msg: "FAIL: Package '{{ item }}' is not installed!"
+    success_msg: "PASS: Package '{{ item }}' is installed."
+  loop: "{{ sap_hana_preconfigure_packages }}"
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
+
+
+- name: Get info about possible package updates # noqa command-instead-of-module
+  ansible.builtin.command:
+    cmd: zypper -q patch-check
+  timeout: 120
+  retries: 5
+  register: __sap_hana_preconfigure_register_zypper_check_update_assert
+  changed_when: false
+  ignore_errors: true  # true, because unpatched system is always error.
+  when: sap_hana_preconfigure_update
+
+- name: Assert that there are no more possible package updates
+  ansible.builtin.assert:
+    that: __sap_hana_preconfigure_register_zypper_check_update_assert.rc == 0
+    fail_msg: "FAIL: System needs to be updated!"
+    success_msg: "PASS: There are no more outstanding package updates."
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
+  when: sap_hana_preconfigure_update
+
+- name: Report if checking for possible package updates is not requested
+  ansible.builtin.debug:
+    msg: "INFO: Not checking for possible package updates (variable sap_hana_preconfigure_update)."
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
+  when: not sap_hana_preconfigure_update
+
+
+# Reason for noqa: The command to be executed might contain pipes
+- name: Determine if the system needs to be restarted # noqa command-instead-of-shell
+  ansible.builtin.shell:
+    cmd: "zypper ps"
+  retries: 60
+  timeout: 5
+  register: __sap_hana_preconfigure_register_needs_restarting_assert
+  changed_when: false
+  check_mode: false
+  ignore_errors: true  # true, because output is too large.
+
+- name: Assert that system needs no restart
+  ansible.builtin.assert:
+    that: __sap_hana_preconfigure_register_needs_restarting_assert is success
+    fail_msg: "FAIL: System needs to be restarted!"
+    success_msg: "PASS: System needs no restart."
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
+
 
 - name: Assert saptune is at requested version
   ansible.builtin.assert:
@@ -21,5 +71,6 @@
       }} but the version {{ sap_hana_preconfigure_saptune_version }} was expected"
     success_msg: "PASS: the installed version of saptune meets the expected version: {{ sap_hana_preconfigure_saptune_version }}"
   when:
+    - __sap_hana_preconfigure_use_saptune
     - sap_hana_preconfigure_saptune_version is defined
     - sap_hana_preconfigure_saptune_version | length > 0

@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Verify SAP Note using saptune
+  when: __sap_hana_preconfigure_use_saptune | d(true)
+  block:
+
+    - name: Verify SAP note 2684254 using saptune
+      ansible.builtin.command:
+        cmd: saptune note verify --show-non-compliant 2684254
+      register: __sap_hana_preconfigure_saptune_verify_2684254
+      changed_when: false
+      ignore_errors: true
+
+    - name: Assert that SAP note 2684254 is verified by saptune
+      ansible.builtin.assert:
+        that: "{{ __sap_hana_preconfigure_saptune_verify_2684254.rc == 0 }}"
+        success_msg: "PASS: SAP note 2684254 is verified by saptune."
+        fail_msg: |
+          "FAIL: SAP note 2684254 is not verified by saptune! See details below:"
+          {{ __sap_hana_preconfigure_saptune_verify_2684254.stdout_lines }}
+          {{ __sap_hana_preconfigure_saptune_verify_2684254.stderr_lines }}
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
+
+
+- name: Verify SAP Note without using saptune
+  when: not __sap_hana_preconfigure_use_saptune | d(true)
+  block:
+
+    - name: Get current contents of GRUB
+      ansible.builtin.slurp:
+        path: /etc/default/grub
+      register: __sap_hana_preconfigure_grub_contents
+
+    - name: Assert that GRUB cmdline parameters are set
+      ansible.builtin.assert:
+        that:
+          - "'{{ item }}' in __sap_hana_preconfigure_grub_contents.content | b64decode | string"
+        fail_msg: "FAIL: GRUB cmdline parameter {{ item }} is not set!"
+        success_msg: "PASS: GRUB cmdline parameter {{ item }} is set."
+      loop: "{{ __sap_hana_preconfigure_grub_cmdline_2684254 }}"
+      when: __sap_hana_preconfigure_grub_cmdline_2684254 | length > 0
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
