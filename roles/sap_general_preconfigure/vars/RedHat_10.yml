@@ -1,0 +1,104 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# vars file for sap_general_preconfigure
+
+__sap_general_preconfigure_sapnotes_versions:
+  - { number: '2369910', version: '18' }
+  - { number: '3108316', version: '2' }
+  - { number: '1771258', version: '6' }
+
+__sap_general_preconfigure_max_repo_type_x86_64: 'e4s'
+__sap_general_preconfigure_max_repo_type_ppc64le: 'e4s'
+__sap_general_preconfigure_max_repo_type_s390x: 'eus'
+
+__sap_general_preconfigure_max_repo_type: "{{ lookup('vars', '__sap_general_preconfigure_max_repo_type_' + ansible_architecture) }}"
+
+# RHEL 9 minor releases maximum repo support duration
+__sap_general_preconfigure_max_repo_type_string_10_0: '{{ __sap_general_preconfigure_max_repo_type }}-'
+__sap_general_preconfigure_max_repo_type_string_10_1: ''
+
+__sap_general_preconfigure_max_repo_type_string: "{{ lookup('vars', '__sap_general_preconfigure_max_repo_type_string_' + ansible_distribution_version | replace(\".\", \"_\")) }}"
+
+__sap_general_preconfigure_req_os_repos:
+  - rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-baseos-{{ __sap_general_preconfigure_max_repo_type_string }}rpms
+  - rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-appstream-{{ __sap_general_preconfigure_max_repo_type_string }}rpms
+__sap_general_preconfigure_req_netweaver_repos:
+  - rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-sap-netweaver-{{ __sap_general_preconfigure_max_repo_type_string }}rpms
+__sap_general_preconfigure_req_hana_repos:
+  - rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-sap-solutions-{{ __sap_general_preconfigure_max_repo_type_string }}rpms
+__sap_general_preconfigure_req_ha_repos:
+  - rhel-{{ ansible_distribution_major_version }}-for-{{ ansible_architecture }}-highavailability-{{ __sap_general_preconfigure_max_repo_type_string }}rpms
+
+__sap_general_preconfigure_envgroups:
+  - "server-product-environment"
+
+__sap_general_preconfigure_packagegroups_x86_64:
+  - "@server"
+
+__sap_general_preconfigure_packagegroups_ppc64le:
+  - "@server"
+
+__sap_general_preconfigure_packagegroups_s390x:
+  - "@server"
+
+__sap_general_preconfigure_packagegroups: "{{ lookup('vars', '__sap_general_preconfigure_packagegroups_' + ansible_architecture) }}"
+
+__sap_general_preconfigure_packages_x86_64:
+  - uuidd
+  - libnsl
+  - tcsh
+  - psmisc
+  - nfs-utils
+  - bind-utils
+# package hostname: needed by rhel-system-roles-sap
+  - hostname
+# package tuned: no longer part of package group "Core" in RHEL 10, so we have to install it
+  - tuned
+# package libxcrypt-compat: needed by sapstartsrv and SAP HANA on RHEL 10:
+  - libxcrypt-compat
+# English locale packages are required as per SAP note 2369910:
+  - langpacks-en
+  - glibc-langpack-en
+
+__sap_general_preconfigure_packages_ppc64le:
+  - uuidd
+  - libnsl
+  - tcsh
+  - psmisc
+  - nfs-utils
+  - bind-utils
+# package hostname: needed by rhel-system-roles-sap
+  - hostname
+# package tuned: no longer part of package group "Core" in RHEL 10, so we have to install it
+  - tuned
+# package libxcrypt-compat: needed by sapstartsrv and SAP HANA on RHEL 10:
+  - libxcrypt-compat
+# English locale packages are required as per SAP note 2369910:
+  - langpacks-en
+  - glibc-langpack-en
+
+__sap_general_preconfigure_packages_s390x:
+  - uuidd
+  - libnsl
+  - tcsh
+  - psmisc
+  - nfs-utils
+  - bind-utils
+# package hostname: needed by rhel-system-roles-sap
+  - hostname
+# package tuned: no longer part of package group "Core" in RHEL 10, so we have to install it
+  - tuned
+# package libxcrypt-compat: needed by sapstartsrv on RHEL 10:
+  - libxcrypt-compat
+# English locale packages are required as per SAP note 2369910:
+  - langpacks-en
+  - glibc-langpack-en
+
+__sap_general_preconfigure_packages: "{{ lookup('vars', '__sap_general_preconfigure_packages_' + ansible_architecture) }}"
+
+__sap_general_preconfigure_required_ppc64le:
+  - ibm-power-managed-rhel9
+
+__sap_general_preconfigure_kernel_parameters_default:
+  - { name: vm.max_map_count, value: '2147483647' }
