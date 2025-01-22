@@ -57,13 +57,14 @@
   block:
 
     - name: Gather kernel parameters
-      ansible.builtin.setup:
-        filter: ansible_kernel
+      ansible.builtin.command: sysctl kernel.pid_max
+      register: __sap_general_preconfigure_register_pid_max
+      changed_when: false
 
     - name: Assert that kernel parameter pid_max is set to 4194304
       ansible.builtin.assert:
         that:
-          - "ansible_kernel.sysctl['kernel.pid_max'] == '4194304'"
+          - "__sap_general_preconfigure_register_pid_max.stdout.split('=')[1] | trim == '4194304'"
         fail_msg: "FAIL: Kernel parameter kernel.pid_max is not set to 4194304!"
         success_msg: "PASS: Kernel parameter kernel.pid_max is set to 4194304."
       ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"

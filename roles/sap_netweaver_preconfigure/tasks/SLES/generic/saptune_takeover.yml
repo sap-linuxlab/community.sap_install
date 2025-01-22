@@ -15,12 +15,19 @@
     - __sap_netweaver_preconfigure_use_saptune
     - __sap_netweaver_preconfigure_register_saptune_check_before.rc != 0
   block:
+    - name: Check saptune version  # noqa: command-instead-of-module
+      ansible.builtin.command:
+        cmd: rpm -q sapconf
+      register: __sap_netweaver_preconfigure_register_sapconf
+      changed_when: false
+      ignore_errors: true
+
     - name: Ensure sapconf is stopped and disabled
       ansible.builtin.systemd:
         name: sapconf
         state: stopped
         enabled: false
-      when: "'sapconf' in ansible_facts.packages"
+      when: __sap_netweaver_preconfigure_register_sapconf
 
     - name: Make sure that sapconf and tuned are stopped and disabled
       ansible.builtin.command:

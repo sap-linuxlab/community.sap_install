@@ -1,20 +1,25 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: Get list of what provides packages  # noqa command-instead-of-module
-  ansible.builtin.command:
-    cmd: "rpm -q --whatprovides {{ item }}"
-  register: __sap_general_preconfigure_register_whatprovides
+# Both sap_general_preconfigure_packages and __sap_general_preconfigure_min_pkgs are checked at same time.
+# Check rpm --whatprovides only if package cannot be found directly.
+- name: Query RPM packages
+  ansible.builtin.shell:
+    cmd: |
+      if rpm -q {{ item }} &> /dev/null;
+      then rpm -q {{ item }}
+      else rpm -q --whatprovides {{ item }};
+      fi
+  register: __sap_general_preconfigure_register_packages
   changed_when: false
   ignore_errors: true
-  loop: "{{ sap_general_preconfigure_packages }}"
+  loop: "{{ sap_general_preconfigure_packages if not sap_general_preconfigure_min_package_check | bool
+    else ((sap_general_preconfigure_packages | d([])) + (__sap_general_preconfigure_min_pkgs | d([])) | map(attribute='0') | unique) }}"
 
 
-# Both sap_general_preconfigure_packages and __sap_general_preconfigure_min_pkgs are checked at same time.
 - name: Assert that all required packages are installed
   ansible.builtin.assert:
-    that: item in ansible_facts.packages
-      or __sap_general_preconfigure_register_whatprovides.results | selectattr('item', 'equalto', item) | map(attribute='rc') | first == 0
+    that: __sap_general_preconfigure_register_packages.results | selectattr('item', 'equalto', item) | map(attribute='rc') | first == 0
     fail_msg: "FAIL: Package '{{ item }}' is not installed!"
     success_msg: "PASS: Package '{{ item }}' is installed."
   loop: "{{ sap_general_preconfigure_packages if not sap_general_preconfigure_min_package_check | bool
@@ -22,28 +27,60 @@
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 
-# Availability of minimum packages is checked above.
-- name: Assert that all minimum required packages are installed with minimum version
-  ansible.builtin.assert:
-    that:
-      - __version is version(item[1], '>=')
-    fail_msg: "FAIL: Minimum package version '{{ item[0] }}-{{ item[1] }}' is not installed! Current version: '{{ __version }}'"
-    success_msg: "PASS: Minimum package version '{{ item[0] }}-{{ item[1] }}' is installed."
-  vars:
-    __version: "{{ ansible_facts.packages[item[0]][0]['version'] ~ '-' ~ ansible_facts.packages[item[0]][0]['release']
-      ~ '.' ~ ansible_facts.packages[item[0]][0]['arch']}}"
-  loop: "{{ __sap_general_preconfigure_min_pkgs }}"
+- name: Block for minimum required packages assert
   when:
     - sap_general_preconfigure_min_package_check | bool
     - __sap_general_preconfigure_min_pkgs | d([])
-  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+  block:
+    - name: Query RPM packages for minimum required packages
+      ansible.builtin.shell:
+        cmd: |
+          if rpm -q {{ item[0] }} &> /dev/null;
+          then rpm -q --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}\n' {{ item[0] }}
+          else rpm -q --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}\n' --whatprovides {{ item[0] }};
+          fi
+      register: __sap_general_preconfigure_register_packages_minimum
+      changed_when: false
+      ignore_errors: true
+      loop: "{{ __sap_general_preconfigure_min_pkgs }}"
 
+
+    - name: Assert that all minimum required packages are installed with minimum version
+      ansible.builtin.assert:
+        that:
+          - __version[0] is version(item[1], '>=')
+        fail_msg: "FAIL: Minimum package version '{{ item[0] }}-{{ item[1] }}' is not installed! Current version: '{{ __version[0] }}'"
+        success_msg: "PASS: Minimum package version '{{ item[0] }}-{{ item[1] }}' is installed."
+      vars:
+        __version:
+          "{{ __sap_general_preconfigure_register_packages_minimum.results | selectattr('item', 'equalto', item) | map(attribute='stdout') }}"
+      loop: "{{ __sap_general_preconfigure_min_pkgs }}"
+      ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+      when: __sap_general_preconfigure_register_packages.results | selectattr('item', 'equalto', item[0]) | map(attribute='rc') | first == 0
+
+
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+# Service packagekit is part of PackageKit-backend-zypp (SLE-Module-Desktop-Applications)
+# This service creates zypper locks and causes package install failures.
+- name: Wait for stop of packagekit.service
+  ansible.builtin.shell: |
+    set -o pipefail && bash -c '
+    while (ps aux | grep "[z]ypper" | grep -v grep) || (ps aux | grep "/usr/lib/packagekitd" | grep -v grep) ||
+     ([ -f /var/run/zypp.pid ] && [ -s /var/run/zypp.pid ]); do
+      sleep 10;
+    done'
+  register: __packagekit_service_check
+  changed_when: false
+  until: __packagekit_service_check.rc == 0
+  retries: 60
+  when: "'packagekit.service' in ansible_facts.services"
 
 - name: Get info about possible package updates # noqa command-instead-of-module
   ansible.builtin.command:
     cmd: zypper -q patch-check
-  timeout: 120
-  retries: 5
+  timeout: 60
   register: __sap_general_preconfigure_register_zypper_check_update_assert
   changed_when: false
   ignore_errors: true  # true, because unpatched system is always error.
@@ -81,13 +118,24 @@
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 
-- name: Assert saptune is at requested version
-  ansible.builtin.assert:
-    that: ansible_facts.packages['saptune'][0]['version'] == sap_general_preconfigure_saptune_version
-    fail_msg: "FAIL: saptune version installed is {{ ansible_facts.packages['saptune'][0]['version']
-      }} but the version {{ sap_general_preconfigure_saptune_version }} was expected"
-    success_msg: "PASS: the installed version of saptune meets the expected version: {{ sap_general_preconfigure_saptune_version }}"
+- name: Block to assert that correct saptune version is installed
   when:
     - __sap_general_preconfigure_use_saptune
     - sap_general_preconfigure_saptune_version is defined
     - sap_general_preconfigure_saptune_version | length > 0
+  block:
+    # We are checking for %{VERSION} (e.g. 3.1.4), not full %{VERSION}-%{RELEASE}.%{ARCH}
+    - name: Check saptune version  # noqa: command-instead-of-module
+      ansible.builtin.command:
+        cmd: rpm -q --queryformat '%{VERSION}\n' saptune
+      register: __sap_general_preconfigure_register_saptune_version
+      changed_when: false
+      ignore_errors: true
+
+    - name: Assert saptune is at requested version
+      ansible.builtin.assert:
+        that: __sap_general_preconfigure_register_saptune_version.stdout == sap_general_preconfigure_saptune_version
+        fail_msg: "FAIL: saptune version installed is {{ __sap_general_preconfigure_register_saptune_version.stdout
+          }} but the version {{ sap_general_preconfigure_saptune_version }} was expected"
+        success_msg: "PASS: the installed version of saptune meets the expected version: {{ sap_general_preconfigure_saptune_version }}"
+      when: __sap_general_preconfigure_register_saptune_version.rc == 0
