@@ -115,6 +115,13 @@ In assertion mode, the role will abort when encountering any assertion error.<br
 If this parameter is set to `false`, the role will *not* abort when encountering an assertion error.<br>
 This is useful if the role is used for reporting a system's SAP notes compliance.<br>
 
+### sap_netweaver_preconfigure_packages
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+The list of packages to be installed for SAP NETWEAVER.<br>
+The default for this variable is set in the vars file which corresponds to the detected OS version.<br>
+
 ### sap_netweaver_preconfigure_min_swap_space_mb
 - _Type:_ `str`
 - _Default:_ `20480`
