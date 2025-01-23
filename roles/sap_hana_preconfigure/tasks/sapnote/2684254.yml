@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+# 2684254 - SAP HANA DB: Recommended OS settings for SLES 15 / SLES for SAP Applications 15
+
+- name: Configure - Display SAP note number 2684254 and its version
+  ansible.builtin.debug:
+    msg: "SAP note {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2684254$') | first).number }}
+          (version {{ (__sap_hana_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2684254$') | first).version }}):
+           SAP HANA DB: Recommended OS settings for SLES 15 / SLES for SAP Applications 15"
+
+- name: Set fact for SAP note number 2684254 - THP
+  ansible.builtin.set_fact:
+    # THP has different settings for each SP
+    __sap_hana_preconfigure_grub_cmdline_2684254_thp:
+      "{{ 'never' if ansible_distribution_version is version('15.4', '<=') else 'madvise' }}"
+
+- name: Set fact for SAP note number 2684254 - GRUB
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_grub_cmdline_2684254:
+      - "numa_balancing=disable"
+      - "transparent_hugepage={{ sap_hana_preconfigure_thp | d(__sap_hana_preconfigure_grub_cmdline_2684254_thp) }}"
+      - "intel_idle.max_cstate=1"
+      - "processor.max_cstate=1"
+      - "splash=silent"
+      - "mitigations=auto"
+      - "quiet"
+      - "audit=1"
+
+- name: Import tasks from '2684254/installation.yml'
+  ansible.builtin.import_tasks: 2684254/installation.yml
+
+- name: Import tasks from '2684254/configuration.yml'
+  ansible.builtin.import_tasks: 2684254/configuration.yml

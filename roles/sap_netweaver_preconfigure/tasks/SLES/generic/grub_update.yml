@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Generic task for updating GRUB configuration using provided list
+
+- name: Update existing GRUB entries
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=".*?)(\b{{ item.split("=")[0] }}=[^ ]*\b)(.*")'
+    line: '\1{{ item }}\3'
+    backrefs: true
+  register: __sap_netweaver_preconfigure_grub_update
+  loop: "{{ __sap_netweaver_preconfigure_grub_cmdline }}"
+
+
+- name: Get current of GRUB
+  ansible.builtin.slurp:
+    path: /etc/default/grub
+  register: __sap_netweaver_preconfigure_grub_contents
+
+
+- name: Add missing GRUB entries
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT="(.*?)"'
+    line: 'GRUB_CMDLINE_LINUX_DEFAULT="\1 {{ item }}"'
+    backrefs: true
+  register: __sap_netweaver_preconfigure_grub_add
+  loop: "{{ __sap_netweaver_preconfigure_grub_cmdline }}"
+  when: item not in (__sap_netweaver_preconfigure_grub_contents.content | b64decode)
+
+
+- name: Trigger grub update if necessary # noqa no-changed-when
+  ansible.builtin.command:
+    cmd: /bin/true
+  notify: __sap_netweaver_preconfigure_regenerate_grub2_conf_handler
+  when:
+    - (__sap_netweaver_preconfigure_grub_update.results | selectattr('changed', 'equalto', true) | list | length > 0)
+      or (__sap_netweaver_preconfigure_grub_add.results | selectattr('changed', 'equalto', true) | list | length > 0)

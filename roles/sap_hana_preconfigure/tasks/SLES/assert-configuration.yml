@@ -1,41 +1,47 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-- name: Populate service facts
-  ansible.builtin.service_facts:
 
-- name: Assert that saptune is running and enabled
-  ansible.builtin.assert:
-    that:
-      - "ansible_facts.services['saptune.service'].state == 'running'"
-      - "ansible_facts.services['saptune.service'].status == 'enabled'"
-    fail_msg: "FAIL: the service 'saptune' is not configured as expected"
-    success_msg: "PASS: the service 'saptune' is configured as expected"
+- name: Assert that saptune solution is correct
+  when: __sap_hana_preconfigure_use_saptune
+  block:
+    - name: Discover active solution
+      ansible.builtin.command:
+        cmd: saptune solution enabled
+      register: __sap_hana_preconfigure_register_saptune_status
+      changed_when: false
+      ignore_errors: true
 
-- name: Run saptune_check
-  ansible.builtin.command: saptune_check
-  register: __sap_hana_preconfigure_register_saptune_check
-  changed_when: false
-  failed_when: false
+    - name: Set fact for active solution
+      ansible.builtin.set_fact:
+        # Capture the first block on none whitespace
+        __sap_hana_preconfigure_register_solution_configured:
+          "{{ (__sap_hana_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}"
 
-- name: Assert that saptune_check executed correctly
-  ansible.builtin.assert:
-    that: __sap_hana_preconfigure_register_saptune_check.rc == 0
-    fail_msg: "FAIL: the command saptune_check fails"
-    success_msg: "PASS: the command saptune_check executes as expected"
+    - name: Assert that active solution is the expected solution
+      ansible.builtin.assert:
+        that: __sap_hana_preconfigure_register_solution_configured == sap_hana_preconfigure_saptune_solution
+        fail_msg: "FAIL: the configured saptune solution is '{{ __sap_hana_preconfigure_register_solution_configured
+          }}'' and does not match the expected solution '{{ sap_hana_preconfigure_saptune_solution }}'"
+        success_msg: "PASS: the configured saptune solution matches the expected solution '{{ sap_hana_preconfigure_saptune_solution }}'"
+      ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
-- name: Discover active solution
-  ansible.builtin.command: saptune solution enabled
-  register: __sap_hana_preconfigure_register_saptune_status
-  changed_when: false
+    - name: Verify saptune solution
+      ansible.builtin.command:
+        cmd: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
+      register: __sap_hana_preconfigure_register_saptune_verify
+      changed_when: false
+      failed_when: false
+      when:
+        - __sap_hana_preconfigure_register_solution_configured == sap_hana_preconfigure_saptune_solution
 
-- name: Set solution fact
-  ansible.builtin.set_fact:
-    __sap_hana_preconfigure_saptune_configured_solution:
-      "{{ (__sap_hana_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}"
 
-- name: Assert that active solution is the expected solution
-  ansible.builtin.assert:
-    that: __sap_hana_preconfigure_saptune_configured_solution == sap_hana_preconfigure_saptune_solution
-    fail_msg: "FAIL: the configured saptune solution is '{{ __sap_hana_preconfigure_saptune_configured_solution
-      }}'' and does not match the expected solution '{{ sap_hana_preconfigure_saptune_solution }}'"
-    success_msg: "PASS: the configured saptune solution matches the expected solution '{{ sap_hana_preconfigure_saptune_solution }}'"
+    - name: Assert that saptune solution is verified by saptune
+      ansible.builtin.assert:
+        that: "{{ __sap_hana_preconfigure_register_saptune_verify.rc == 0 }}"
+        success_msg: "PASS: saptune solution {{ sap_hana_preconfigure_saptune_solution }} is verified by saptune."
+        fail_msg: |
+          "FAIL: active saptune solution is not verified by saptune! See details below:"
+          {{ __sap_hana_preconfigure_register_saptune_verify.stdout_lines }}
+          {{ __sap_hana_preconfigure_register_saptune_verify.stderr_lines }}
+      when:
+        - __sap_hana_preconfigure_register_solution_configured == sap_hana_preconfigure_saptune_solution

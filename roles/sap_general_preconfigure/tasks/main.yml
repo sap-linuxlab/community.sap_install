@@ -106,19 +106,6 @@
   tags:
     - always
 
-# Requirement for package_facts Ansible Module
-- name: For SLES ensure OS Package for Python Lib of rpm bindings is enabled for System Python
-  ansible.builtin.package:
-    name: python3-rpm
-    state: present
-  when: ansible_os_family == "Suse"
-
-# required for installation and configuration tasks:
-- name: Gather package facts
-  ansible.builtin.package_facts:
-  tags:
-    - sap_general_preconfigure_installation
-
 - name: Include tasks from 'installation.yml'
   ansible.builtin.include_tasks:
     file: '{{ item }}/{{ __sap_general_preconfigure_fact_assert_filename_prefix }}installation.yml'
@@ -131,11 +118,6 @@
     - '{{ ansible_os_family }}.yml'
   tags:
     - sap_general_preconfigure_installation
-
-- name: Gather package facts again after the installation phase
-  ansible.builtin.package_facts:
-  tags:
-    - always
 
 - name: Include tasks from 'configuration.yml'
   ansible.builtin.include_tasks:
