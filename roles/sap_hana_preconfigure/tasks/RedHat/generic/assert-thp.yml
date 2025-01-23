@@ -40,8 +40,9 @@
       when:
         - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
         - ansible_distribution == 'RedHat'
-        - ansible_distribution_major_version == '9' and
-            __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int >= 2
+        - (ansible_distribution_major_version == '9' and
+            __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int >= 2) or
+          ansible_distribution_major_version == '10'
 
     - name: Set fact for THP if 'sap_hana_preconfigure_thp' is defined
       ansible.builtin.set_fact:
