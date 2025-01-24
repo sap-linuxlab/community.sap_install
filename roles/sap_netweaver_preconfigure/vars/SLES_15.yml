@@ -1,42 +1,49 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 # Variables specific to following versions:
-# - SUSE Linux Enterprise Server for SAP Applications 15
 # - SUSE Linux Enterprise Server 15
 
-__sap_netweaver_preconfigure_sapnotes:
-  - "1275776"
+__sap_netweaver_preconfigure_sapnotes_versions: []
+  # 2578899 - SUSE Linux Enterprise Server 15: Installation Note
+  # Already included in sap_general_preconfigure
+
+  # SAP Notes applicable to NETWEAVER saptune solution:
+  # 941735 1771258 2578899 2993054 1656250 900929
+
+  # 941735 - SAP memory management system for 64-bit Linux systems
+  # kernel.shmall, kernel.shmmax are already default.
+  # ShmFileSystemSizeMB, VSZ_TMPFS_PERCENT are optional parameters for /dev/shm
+
+  # 1771258 - Linux: User and system resource limits
+  # Limits are created by applying saptune solution or predefined in sapconf.
+
+  # 900929 - Linux: STORAGE_PARAMETERS_WRONG_SET and "mmap() failed"
+  # Parameter vm.max_map_count=2147483647 is already default value.
+
 
 __sap_netweaver_preconfigure_packages:
-  # Mandatory packages
+  # Mandatory patterns
+  - patterns-server-enterprise-sap_server
+
+  # Recommended packages
   - tcsh
   - acl
-  - insserv-compat
-  - system-user-uuidd
-  - uuidd
-  # gcc packages
+  - insserv-compat  # Support for System V init scripts
   - libstdc++6
   - libatomic1
   - libgcc_s1
-  - libltdl7
-  # System monitoring
-  - sysstat
+
+  # Recommended for System monitoring
   - cpupower
-  - libcpupower0
+  - "{{ 'libcpupower0' if ansible_distribution_version is version('15.6', '<') else 'libcpupower1' }}"
   - libsensors4
-  # Patterns
-  - patterns-base-basesystem
-  - patterns-server-enterprise-sap_server
-  - patterns-yast-yast2_basis
+
   # Additional packages
+  - nfs-utils
+  - bind-utils
   - procmail
-  # Not needed but kept for compatibility
-  - hicolor-icon-theme
-  - yast2-auth-client
-  - yast2-auth-server
-  - yast2-theme
-  - yast2-vpn
+  - libltdl7
+
 
 # SLES_SAP is using saptune, but SLES is using sapconf.
-# Default value true runs saptune, but installation.yml auto-detects base product and adjusts.
-__sap_netweaver_preconfigure_run_saptune: true
+__sap_netweaver_preconfigure_use_saptune: true

@@ -5,6 +5,25 @@ community.sap_install Release Notes
 .. contents:: Topics
 
 
+1.5.2
+Release Summary
+---------------
+- Release Date: 2025-01-24
+
+This is a bugfix release of the `community.sap_install` collection.
+
+Changes
+-------------
+- sap_*_preconfigure: Add code for RHEL 10 support (https://github.com/sap-linuxlab/community.sap_install/pull/938)
+- sap_*_preconfigure/Suse: Rework of preconfigure roles for Suse, add missing notes. (https://github.com/sap-linuxlab/community.sap_install/pull/930)
+
+Bugfixes
+--------
+- sap_netweaver_preconfigure: fix argument_specs validation error (https://github.com/sap-linuxlab/community.sap_install/pull/940)
+- sap_general_preconfigure: No longer install locale packages in RHEL 7 (https://github.com/sap-linuxlab/community.sap_install/pull/937)
+- sap_general_preconfigure: Fix check mode (https://github.com/sap-linuxlab/community.sap_install/pull/935)
+
+
 1.5.1
 Release Summary
 ---------------

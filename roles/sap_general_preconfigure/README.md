@@ -432,7 +432,7 @@ The IPV4 address to be used for updating or checking `/etc/hosts` entries.<br>
 ### sap_general_preconfigure_db_group_name
 - _Type:_ `str`
 
-Use this variable to specify the name of the RHEL group which is used for the database processes.<br>
+(RedHat specific) Use this variable to specify the name of the RHEL group which is used for the database processes.<br>
 If defined, it will be used to configure process limits as per step<br>
 Configuring Process Resource Limits<br>
 
