@@ -12,9 +12,10 @@ Release Summary
 
 This is a bugfix release of the `community.sap_install` collection.
 
-Minor Changes
+Changes
 -------------
 - sap_*_preconfigure: Add code for RHEL 10 support (https://github.com/sap-linuxlab/community.sap_install/pull/938)
+- sap_*_preconfigure/Suse: Rework of preconfigure roles for Suse, add missing notes. (https://github.com/sap-linuxlab/community.sap_install/pull/930)
 
 Bugfixes
 --------
