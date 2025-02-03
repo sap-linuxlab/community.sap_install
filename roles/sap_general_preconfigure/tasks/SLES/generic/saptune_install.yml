@@ -20,10 +20,11 @@
 - name: Block to ensure saptune is installed
   when: __sap_general_preconfigure_use_saptune | d(true)
   block:
-    - name: Ensure latest saptune is installed
+    # Reason for noqa: Zypper supports "state: latest"
+    - name: Ensure latest saptune is installed  # noqa package-latest
       ansible.builtin.package:
         name: saptune
-        state: present
+        state: latest
       when:
         - sap_general_preconfigure_saptune_version is undefined
          or sap_general_preconfigure_saptune_version | length == 0
