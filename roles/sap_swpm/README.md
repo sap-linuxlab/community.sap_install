@@ -110,6 +110,8 @@ It is also possible to use method 1 for creating the inifile and then replace or
 - Set expiry of Linux created users to 'never'
 
 - (Optional) Apply firewall rules for SAP Netweaver if `sap_swpm_setup_firewall` is set to `true` (Default: `false`).
+
+- (Optional) Handle the execution of SUM if SWPM started it (See Up-To-Date Installation below).
 <!-- END Execution Flow -->
 
 ### Example
@@ -180,6 +182,16 @@ With the following tags, the role can be called to perform certain activities on
 - tag `sap_swpm_setup_firewall`: Only perform the firewall preinstallation settings (but only if variable `sap_swpm_setup_firewall` is set to `true`).
 - tag `sap_swpm_update_etchosts`: Only update file `/etc/hosts` (but only if variable `sap_swpm_update_etchosts` is set to `true`).
 <!-- END Role Tags -->
+
+## Additional information
+<!-- BEGIN UDI -->
+### Up-To-Date Installation (UDI)
+The Software Update Manager can run on any host with an Application Server instance (e.g. NWAS ABAP PAS/AAS, NWAS JAVA CI/AAS) with correct permissions to access /usr/sap/ and /sapmnt/ directories.
+
+When using the Software Provisioning Manager (SWPM) with a Maintenance Planner Stack XML file to perform an "up-to-date installation" (UDI) - it will start the Software Update Manager (SUM) automatically at the end of the installation process. This UDI feature applies only to SAP ABAP Platform / SAP NetWeaver, and must be performed from the Primary Application Server instance (i.e. NWAS ABAP PAS, or a OneHost installation).
+
+Furthermore, during SWPM variable selection the enabling of Transport Management System (TMS) is required, see SAP Note 2522253 - SWPM can not call SUM automatically when doing the up-to-date installation.
+<!-- END UDI -->
 
 ## License
 <!-- BEGIN License -->
