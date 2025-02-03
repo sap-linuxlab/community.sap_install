@@ -48,7 +48,9 @@
 - name: Set THP to '{{ __sap_hana_preconfigure_fact_thp }}' on the running system
   ansible.builtin.shell: echo '{{ __sap_hana_preconfigure_fact_thp }}' > /sys/kernel/mm/transparent_hugepage/enabled
   changed_when: true
-  when: __sap_hana_preconfigure_register_thp_status_before.stdout.split('[')[1].split(']')[0] != __sap_hana_preconfigure_fact_thp
+  when:
+    - not ansible_check_mode
+    - __sap_hana_preconfigure_register_thp_status_before.stdout.split('[')[1].split(']')[0] != __sap_hana_preconfigure_fact_thp
 
 - name: Configure - Get the status of THP
   ansible.builtin.command: cat /sys/kernel/mm/transparent_hugepage/enabled
