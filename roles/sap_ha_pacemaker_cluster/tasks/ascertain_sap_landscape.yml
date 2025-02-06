@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-# TEMP to fix CFLF
 # The following tasks will check which SAP landscape can be configured with
 # the provided parameters.
 # It will validate if requirements are met for the cluster configuration.
@@ -40,8 +39,11 @@
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - Include NETWEAVER specific variables"
+  tags: nwas_postinst
   ansible.builtin.include_tasks:
     file: include_vars_nwas.yml
+    apply:
+      tags: nwas_postinst
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas') | length > 0
 
