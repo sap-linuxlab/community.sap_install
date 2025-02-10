@@ -29,6 +29,7 @@
 # Comment out lines in /usr/sap/sapservices, which
 # - contain the target instance profile names
 # - are not commented out yet
+# TODO: This is not matching systemd services. To be clarified if needed.
 - name: "SAP HA Pacemaker - Update /usr/sap/sapservices"
   ansible.builtin.replace:
     path: /usr/sap/sapservices
@@ -40,6 +41,8 @@
     - "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name }}"
   loop_control:
     loop_var: sapserv_item
+  when:
+    - ansible_os_family == 'RedHat'
 
 - name: "SAP HA Pacemaker - (systemd) Check for ASCS/ERS services"
   ansible.builtin.stat:
@@ -54,27 +57,55 @@
 
 - name: "SAP HA Pacemaker - (systemd) Save found ASCS/ERS services"
   ansible.builtin.set_fact:
-    sap_ha_pacemaker_cluster_instance_services_fact: "{{
+    sap_ha_pacemaker_cluster_instance_service_node_fact: "{{
       __sap_ha_pacemaker_cluster_register_instance_service.results
       | selectattr('stat.exists')
       | map(attribute='stat.path')
       | regex_replace('/etc/systemd/system/', '')
       }}"
 
+- name: "SAP HA Pacemaker - (systemd) Combine instance services from all nodes"
+  ansible.builtin.set_fact:
+    sap_ha_pacemaker_cluster_instance_service_all_fact: "{{
+      (sap_ha_pacemaker_cluster_instance_service_all_fact | d([])
+      + hostvars[task_host_item].sap_ha_pacemaker_cluster_instance_service_node_fact)
+      | unique
+      }}"
+  loop: "{{ ansible_play_hosts }}"
+  loop_control:
+    loop_var: task_host_item
+
+
 # BLOCK:
-# When the systemd based SAP startup framework is used, make sure that the
+# 1. When the systemd based SAP startup framework is used, make sure that the
 # instance services do not auto-start.
-- name: "SAP HA Pacemaker - Block to disable systemd auto-start of instances"
+# 2. Make sure that the SAP instance service units are registered and present on all hosts.
+- name: "SAP HA Pacemaker - Block to handle SAP service systemd configuration"
   when:
-    - sap_ha_pacemaker_cluster_instance_services_fact is defined
-    - sap_ha_pacemaker_cluster_instance_services_fact | length > 0
+    # At least one systemd service should be found per node, to consider the setup
+    # "systemd enabled" and proceed with the related configuration.
+    - sap_ha_pacemaker_cluster_instance_service_node_fact is defined
+    - sap_ha_pacemaker_cluster_instance_service_node_fact | length > 0
   block:
+
+    # After the installation, the systemd units are only configured on the node
+    # they were first installed on.
+    # The registration ensures that
+    # - systemd units for both instances are configured
+    # - the 'sapstartsrv' file contains both start commands
+    - name: "SAP HA Pacemaker - (systemd) Register ASCS/ERS instances on all nodes"
+      ansible.builtin.shell: |
+        export LD_LIBRARY_PATH=/usr/sap/hostctrl/exe:$LD_LIBRARY_PATH
+        /usr/sap/hostctrl/exe/sapstartsrv pf={{ __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_start_profile_string }} -reg
+        /usr/sap/hostctrl/exe/sapstartsrv pf={{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string }} -reg
+      register: __sap_ha_pacemaker_cluster_register_instance_reg
+      changed_when: true
 
     - name: "SAP HA Pacemaker - (systemd) Disable ASCS/ERS instance service"
       ansible.builtin.service:
         name: "{{ instance_srv_item }}"
         enabled: false
-      loop: "{{ sap_ha_pacemaker_cluster_instance_services_fact }}"
+      loop: "{{ sap_ha_pacemaker_cluster_instance_service_all_fact }}"
       loop_control:
         loop_var: instance_srv_item
 
@@ -88,7 +119,7 @@
         owner: root
         group: root
         mode: '0644'
-      loop: "{{ sap_ha_pacemaker_cluster_instance_services_fact }}"
+      loop: "{{ sap_ha_pacemaker_cluster_instance_service_all_fact }}"
       loop_control:
         loop_var: dropfile_item
 
@@ -101,11 +132,24 @@
         owner: root
         group: root
         mode: '0644'
-      loop: "{{ sap_ha_pacemaker_cluster_instance_services_fact }}"
+      loop: "{{ sap_ha_pacemaker_cluster_instance_service_all_fact }}"
       loop_control:
         loop_var: dropfile_item
 
 ### END of BLOCK for systemd setup.
+
+# SAPStartSrv resource agent / Simple Mount
+- name: "SAP HA Pacemaker - Make sure SAPStartSrv systemd units are enabled"
+  ansible.builtin.service:
+    name: "{{ sapstartsrv_srv_item }}"
+    enabled: true
+  loop:
+    - sapping
+    - sappong
+  loop_control:
+    loop_var: sapstartsrv_srv_item
+  when:
+    - __sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
 
 
 # Block for configuring the SAP HA Interface (sap_cluster_connector).
