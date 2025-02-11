@@ -26,24 +26,6 @@
   retries: 30
   delay: 10
 
-# Comment out lines in /usr/sap/sapservices, which
-# - contain the target instance profile names
-# - are not commented out yet
-# TODO: This is not matching systemd services. To be clarified if needed.
-- name: "SAP HA Pacemaker - Update /usr/sap/sapservices"
-  ansible.builtin.replace:
-    path: /usr/sap/sapservices
-    backup: true
-    regexp: '^([^#\n].+{{ sapserv_item }}.+)$'
-    replace: '# \1'
-  loop:
-    - "{{ __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name }}"
-    - "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name }}"
-  loop_control:
-    loop_var: sapserv_item
-  when:
-    - ansible_os_family == 'RedHat'
-
 - name: "SAP HA Pacemaker - (systemd) Check for ASCS/ERS services"
   ansible.builtin.stat:
     path: "/etc/systemd/system/SAP{{ __sap_ha_pacemaker_cluster_nwas_sid }}_{{ systemd_item }}.service"
@@ -137,6 +119,23 @@
         loop_var: dropfile_item
 
 ### END of BLOCK for systemd setup.
+
+# Comment out lines in /usr/sap/sapservices, which
+# - contain the target instance profile names
+# - are not commented out yet
+- name: "SAP HA Pacemaker - Update /usr/sap/sapservices"
+  ansible.builtin.replace:
+    path: /usr/sap/sapservices
+    backup: true
+    regexp: '^(?!#)(.*{{ sapserv_item }}.*)$'
+    replace: '# \1'
+  loop:
+    - "{{ __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name }}"
+    - "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name }}"
+  loop_control:
+    loop_var: sapserv_item
+  when:
+    - ansible_os_family == 'RedHat'
 
 # SAPStartSrv resource agent / Simple Mount
 - name: "SAP HA Pacemaker - Make sure SAPStartSrv systemd units are enabled"
