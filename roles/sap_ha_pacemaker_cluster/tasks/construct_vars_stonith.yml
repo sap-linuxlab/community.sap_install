@@ -109,6 +109,9 @@
       loop_control:
         loop_var: stonith_host_item
         label: "{{ stonith_host_item }}"
+      when:
+        - (hostvars[stonith_host_item].__sap_ha_pacemaker_cluster_stonith_default).id
+          not in (__sap_ha_pacemaker_cluster_stonith_resource | d([])| map(attribute='id'))
 
     # The location constraints are needed, when the fence resource is configured
     # per host and must not run on the host it targets.
