@@ -15,6 +15,15 @@
         - attrs:
             - name: InstanceName
               value: "{{ __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name }}"
+      operations:
+        - action: monitor
+          attrs:
+            - name: timeout
+              value: 20s
+            - name: interval
+              value: "{{ '120s' if ansible_os_family == 'Suse' else '0s' }}"
+            - name: enabled
+              value: 'false'
   when:
     - __resource_sapstartsrv.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
 
@@ -30,6 +39,15 @@
         - attrs:
             - name: InstanceName
               value: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name }}"
+      operations:
+        - action: monitor
+          attrs:
+            - name: timeout
+              value: 20s
+            - name: interval
+              value: "{{ '120s' if ansible_os_family == 'Suse' else '0s' }}"
+            - name: enabled
+              value: 'false'
   when:
     - __resource_sapstartsrv.id not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
 
