@@ -1,0 +1,242 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+# After SAP Webdispatcher instance was configured in the cluster,
+# they must be disabled from automatically (re)starting outside of
+# cluster control.
+
+- name: "SAP HA Pacemaker - (WebDisp profile) Prevent automatic restart of the instance"
+  ansible.builtin.replace:
+    path: "{{ sap_ha_pacemaker_cluster_wdp_sapinstance_start_profile_string }}"
+    backup: true
+    regexp: 'Restart_Program_01'
+    replace: 'Start_Program_01'
+  # Throttle and retry loop was added to combat NFS write lockups on Azure NFS
+  throttle: 1
+  retries: 30
+  delay: 10
+
+# Comment out lines in /usr/sap/sapservices, which
+# - contain the target instance profile names
+# - are not commented out yet
+- name: "SAP HA Pacemaker - Update /usr/sap/sapservices"
+  ansible.builtin.replace:
+    path: /usr/sap/sapservices
+    backup: true
+    regexp: '^([^#\n].+{{ sap_ha_pacemaker_cluster_wdp_sapinstance_instance_name }}.+)$'
+    replace: '# \1'
+
+- name: "SAP HA Pacemaker - (systemd) Check for WebDisp services"
+  ansible.builtin.stat:
+    path: "/etc/systemd/system/SAP{{ sap_ha_pacemaker_cluster_wdp_sid }}_{{ sap_ha_pacemaker_cluster_wdp_instance_nr }}.service"
+  register: __sap_ha_pacemaker_cluster_register_instance_service
+
+- name: "SAP HA Pacemaker - (systemd) Save found WebDisp services"
+  ansible.builtin.set_fact:
+    sap_ha_pacemaker_cluster_instance_services_fact: "{{ __sap_ha_pacemaker_cluster_register_instance_service.stat.path | regex_replace('/etc/systemd/system/', '') }}"
+  when: __sap_ha_pacemaker_cluster_register_instance_service.stat.exists
+
+
+# BLOCK:
+# When the systemd based SAP startup framework is used, make sure that the
+# instance services do not auto-start.
+- name: "SAP HA Pacemaker - Block to disable systemd auto-start of instances"
+  when:
+    - sap_ha_pacemaker_cluster_instance_services_fact is defined
+    - sap_ha_pacemaker_cluster_instance_services_fact | length > 0
+  block:
+
+    - name: "SAP HA Pacemaker - (systemd) Disable WebDisp instance service"
+      ansible.builtin.service:
+        name: "{{ sap_ha_pacemaker_cluster_instance_services_fact }}"
+        enabled: false
+
+    # Creates a config file for the services.
+    # Parent directories will be created when missing.
+    - name: "SAP HA Pacemaker - (systemd) Create WebDisp instance unit config file"
+      ansible.builtin.lineinfile:
+        create: true
+        path: "/etc/systemd/system/{{ sap_ha_pacemaker_cluster_instance_services_fact }}.d/HA.conf"
+        line: "[Service]"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: "SAP HA Pacemaker - (systemd) Disable WebDisp instance unit auto-restart"
+      ansible.builtin.lineinfile:
+        path: "/etc/systemd/system/{{ sap_ha_pacemaker_cluster_instance_services_fact }}.d/HA.conf"
+        regex: '^Restart\s*=\s*no'
+        insertafter: '^[Service]$'
+        line: "Restart=no"
+        owner: root
+        group: root
+        mode: '0644'
+### END of BLOCK for systemd setup.
+
+
+# Block for configuring the SAP HA Interface (sap_cluster_connector).
+#
+# The 'sap-cluster-connector' package is already optionally added to
+# '__sap_ha_pacemaker_cluster_sap_extra_packages'.
+- name: "SAP HA Pacemaker - (SAP HA Interface) Configure SAP HA Interface"
+  when:
+    - sap_ha_pacemaker_cluster_enable_cluster_connector
+  block:
+
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Add {{ sap_ha_pacemaker_cluster_wdp_sid | lower }}adm
+       user to 'haclient' group"  # noqa name[template]
+      ansible.builtin.user:
+        name: "{{ sap_ha_pacemaker_cluster_wdp_sid | lower }}adm"
+        groups: haclient
+        append: true
+        state: present
+
+    # Using 'lineinfile' with a nested loop to avoid duplicate entries for existing configuration.
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Add connector to start profiles"
+      ansible.builtin.lineinfile:
+        backup: true
+        path: "{{ nwas_profile_item.0 }}"
+        line: "{{ nwas_profile_item.1 }}"
+      loop: "{{ __sap_ha_pacemaker_cluster_wdp_profile_paths
+              | product(__sap_ha_pacemaker_cluster_connector_config_lines)
+             }}"
+      loop_control:
+        loop_var: nwas_profile_item
+        label: "{{ nwas_profile_item.0 }} -> {{ nwas_profile_item.1 }}"
+    # Throttle and retry loop was added to combat NFS write lockups on Azure NFS
+      throttle: 1
+      retries: 30
+      delay: 10
+
+    # Sleep added to resolve issue with WaitforStarted finishing before resources are available.
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Wait for WebDisp to be up and running"
+      become: true
+      become_user: "{{ sap_ha_pacemaker_cluster_wdp_sid | lower }}adm"
+      register: __sap_ha_pacemaker_cluster_register_where_wdp
+      ansible.builtin.shell: |
+        /usr/sap/hostctrl/exe/sapcontrol -nr {{ sap_ha_pacemaker_cluster_wdp_instance_nr }} -function WaitforStarted 600 30
+      changed_when: false
+      failed_when: false
+
+    # NOTE: RestartService can cause fencing lockup and hang forever,
+    # it might be good to remove them in future and leave reload to "Webdisp restart" block.
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Restart the service"
+      when:
+        - __sap_ha_pacemaker_cluster_register_where_wdp.rc == 0
+      become: true
+      become_user: "{{ sap_ha_pacemaker_cluster_wdp_sid | lower }}adm"
+      register: __sap_ha_pacemaker_cluster_register_restart_ascs
+      ansible.builtin.shell: |
+        /usr/sap/hostctrl/exe/sapcontrol -nr {{ sap_ha_pacemaker_cluster_wdp_instance_nr }} -function RestartService
+      changed_when: __sap_ha_pacemaker_cluster_register_restart_ascs.rc == 0
+
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Get HAGetFailoverConfig for WebDisp"
+      when:
+        - __sap_ha_pacemaker_cluster_register_where_wdp.rc == 0
+      become: true
+      become_user: "{{ sap_ha_pacemaker_cluster_wdp_sid | lower }}adm"
+      register: __sap_ha_pacemaker_cluster_register_wdp_ha_failover_config
+      ansible.builtin.shell: |
+        sleep 10
+        /usr/sap/hostctrl/exe/sapcontrol -nr {{ sap_ha_pacemaker_cluster_wdp_instance_nr }} -function HAGetFailoverConfig
+      changed_when: false
+
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Display HAGetFailoverConfig results"
+      when:
+        - __sap_ha_pacemaker_cluster_register_where_wdp.rc == 0
+        - __sap_ha_pacemaker_cluster_register_wdp_ha_failover_config.stdout_lines is defined
+      ansible.builtin.debug:
+        msg: |
+          {{ __sap_ha_pacemaker_cluster_register_wdp_ha_failover_config.stdout_lines }}
+
+
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Get HACheckConfig for WebDisp"
+      when:
+        - __sap_ha_pacemaker_cluster_register_where_wdp.rc == 0
+      become: true
+      become_user: "{{ sap_ha_pacemaker_cluster_wdp_sid | lower }}adm"
+      register: __sap_ha_pacemaker_cluster_register_wdp_ha_check_config
+      ansible.builtin.shell: |
+        /usr/sap/hostctrl/exe/sapcontrol -nr {{ sap_ha_pacemaker_cluster_wdp_instance_nr }} -function HACheckConfig
+      changed_when: false
+      failed_when: false
+
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Display HACheckConfig results"
+      when:
+        - __sap_ha_pacemaker_cluster_register_where_wdp.rc == 0
+        - __sap_ha_pacemaker_cluster_register_wdp_ha_check_config.stdout_lines is defined
+      ansible.builtin.debug:
+        msg: |
+          {{ __sap_ha_pacemaker_cluster_register_wdp_ha_check_config.stdout_lines }}
+
+
+    # Block to restart cluster resources if RestartService is not enough.
+    # This is required for SUSE, where SAP needs full restart to load HAlib.
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Block for WebDisp restart"
+      when:
+        - "(__sap_ha_pacemaker_cluster_register_wdp_ha_failover_config.stdout is defined
+           and 'FALSE' in __sap_ha_pacemaker_cluster_register_wdp_ha_failover_config.stdout)"
+      block:
+        - name: "SAP HA Pacemaker - (SAP HA Interface) Restart WebDisp resources"
+          ansible.builtin.shell: |
+            {{ __sap_ha_pacemaker_cluster_command.resource_restart }} {{ sap_ha_pacemaker_cluster_wdp_sapinstance_resource_name }}
+          when:
+            - __sap_ha_pacemaker_cluster_register_where_wdp.rc == 0
+          changed_when: true
+
+        - name: "SAP HA Pacemaker - (SAP HA Interface) Wait for WebDisp to be up and running"
+          become: true
+          become_user: "{{ sap_ha_pacemaker_cluster_wdp_sid | lower }}adm"
+          register: __sap_ha_pacemaker_cluster_register_where_wdp_restart
+          ansible.builtin.shell: |
+            /usr/sap/hostctrl/exe/sapcontrol -nr {{ sap_ha_pacemaker_cluster_wdp_instance_nr }} -function WaitforStarted 600 30
+          changed_when: false
+          failed_when: false
+
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Get HACheckConfig for WebDisp"
+      when:
+        - __sap_ha_pacemaker_cluster_register_where_wdp.rc == 0
+      become: true
+      become_user: "{{ sap_ha_pacemaker_cluster_wdp_sid | lower }}adm"
+      register: __sap_ha_pacemaker_cluster_register_wdp_ha_check_config
+      ansible.builtin.shell: |
+        sleep 30
+        /usr/sap/hostctrl/exe/sapcontrol -nr {{ sap_ha_pacemaker_cluster_wdp_instance_nr }} -function HACheckConfig
+      changed_when: false
+      failed_when:
+        - "'ERROR' in __sap_ha_pacemaker_cluster_register_wdp_ha_check_config.stdout"
+
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Get HAGetFailoverConfig for WebDisp"
+      when:
+        - __sap_ha_pacemaker_cluster_register_where_wdp.rc == 0
+      become: true
+      become_user: "{{ sap_ha_pacemaker_cluster_wdp_sid | lower }}adm"
+      register: __sap_ha_pacemaker_cluster_register_wdp_ha_failover_config
+      ansible.builtin.shell: |
+        /usr/sap/hostctrl/exe/sapcontrol -nr {{ sap_ha_pacemaker_cluster_wdp_instance_nr }} -function HAGetFailoverConfig
+      changed_when: false
+      # failed_when:
+      #   - __sap_ha_pacemaker_cluster_register_wdp_ha_failover_config.stdout is defined
+      #      and 'FALSE' in __sap_ha_pacemaker_cluster_register_wdp_ha_failover_config.stdout
+
+
+    # HAGetFailoverConfig is not consistent and it can show FALSE on one of nodes
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Display HAGetFailoverConfig results on WebDisp"
+      when:
+        - __sap_ha_pacemaker_cluster_register_where_wdp.rc == 0
+        - __sap_ha_pacemaker_cluster_register_wdp_ha_failover_config.stdout_lines is defined
+      ansible.builtin.debug:
+        msg: |
+          {{ __sap_ha_pacemaker_cluster_register_wdp_ha_failover_config.stdout_lines }}
+
+    # HACheckConfig shows same statues on both nodes, therefore only one is shown
+    - name: "SAP HA Pacemaker - (SAP HA Interface) Display HACheckConfig results"
+      when:
+        - __sap_ha_pacemaker_cluster_register_where_wdp.rc == 0
+        - __sap_ha_pacemaker_cluster_register_wdp_ha_check_config.stdout_lines is defined
+      ansible.builtin.debug:
+        msg: |
+          {{ __sap_ha_pacemaker_cluster_register_wdp_ha_check_config.stdout_lines }}
+
+    # TODO: verification checks that the instances are running and HA Interface is enabled
+
+### END of BLOCK for sap_cluster_connector.
