@@ -19,7 +19,7 @@ Specific installation and configuration steps then have to be performed with the
     - Roles:
         - `sap_maintain_etc_hosts`
 
-Install required collections by `ansible-galaxy install -vv -r meta/collection-requirements.yml`.
+Install required collections by `ansible-galaxy collection install -vv -r meta/collection-requirements.yml`.
 <!-- END Dependencies -->
 
 <!-- BEGIN Prerequisites -->
