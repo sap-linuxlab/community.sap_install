@@ -14,7 +14,7 @@ The Ansible role `sap_hana_preconfigure` installs additional required packages a
     - Roles:
         - `selinux`
 
-Install required collections by `ansible-galaxy install -vv -r meta/collection-requirements.yml`.
+Install required collections by `ansible-galaxy collection install -vv -r meta/collection-requirements.yml`.
 <!-- END Dependencies -->
 
 <!-- BEGIN Prerequisites -->

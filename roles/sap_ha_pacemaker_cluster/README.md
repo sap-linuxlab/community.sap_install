@@ -14,7 +14,7 @@ The Ansible Role `sap_ha_pacemaker_cluster` is used to install and configure Lin
     - Roles:
         - `ha_cluster`
 
-Install required collections by `ansible-galaxy install -vv -r meta/collection-requirements.yml`.
+Install required collections by `ansible-galaxy collection install -vv -r meta/collection-requirements.yml`.
 <!-- END Dependencies -->
 
 <!-- BEGIN Prerequisites -->
