@@ -212,6 +212,20 @@
         __sap_ha_pacemaker_cluster_platform_file: "{{ role_path }}/tasks/{{ item }}"
       tags: pre_ha_cluster
 
+    # Prerequisite changes for certain scenarios, if applicable
+    - name: "SAP HA Install Pacemaker - Include scenario specific prerequisites"
+      ansible.builtin.include_tasks:
+        file: "{{ pre_item }}"
+        apply:
+          tags: pre_ha_cluster
+      loop:
+        - pre_steps_nwas_cs_ers.yml
+      loop_control:
+        loop_var: pre_item
+      when:
+        - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_.*_ers') | length > 0
+      tags: pre_ha_cluster
+
     # Stop and disable services that conflict with cluster setups,
     # for instance cloud-init services on cloud platforms
     - name: "SAP HA Install Pacemaker - Stop and disable services"
