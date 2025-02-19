@@ -192,6 +192,49 @@
   tags: pre_ha_cluster
 
 
+# Save all the constructed cluster parameters into a vars file.
+#
+# This will help reusing ha_cluster afterwards without losing the already
+# configured resources and constraints.
+# The ha_cluster role will otherwise remove configuration that is not part
+# of the parameters provided during any subsequent run outside of the current
+# SAP system role.
+#
+# TODO: Deal with secrets in output. They should be masked, maybe with
+# their user provided variables?
+
+- name: "SAP HA Install Pacemaker - Create cluster configuration parameters file"
+  when:
+    - sap_ha_pacemaker_cluster_create_config_varfile
+    - sap_ha_pacemaker_cluster_create_config_dest | length
+  ansible.builtin.template:
+    backup: true
+    dest: "{{ sap_ha_pacemaker_cluster_create_config_dest }}"
+    mode: "0600"
+    src: cluster_create_config.j2
+    trim_blocks: true
+    lstrip_blocks: true
+  delegate_to: localhost
+  run_once: true
+  become: false
+  check_mode: false
+  tags: pre_ha_cluster
+
+- name: "SAP HA Install Pacemaker - Display configuration parameters SAVE FILE location"
+  when:
+    - sap_ha_pacemaker_cluster_create_config_varfile
+    - sap_ha_pacemaker_cluster_create_config_dest | length
+  ansible.builtin.debug:
+    msg: |
+      The cluster resource configuration parameters have been saved here:
+      >>>>>     {{ sap_ha_pacemaker_cluster_create_config_dest }}    <<<<<
+
+      Please include these variable definitions if you run the 'ha_cluster'
+      linux system role separately.
+      !! Secret values of resources may be included in this output !!
+  run_once: true
+  tags: pre_ha_cluster
+
 ##########################################################
 # BLOCK which covers actual changes on the target systems
 ##########################################################
@@ -353,7 +396,7 @@
       run_once: true
       tags: post_ha_cluster
 
-
+    # General post-steps
     - name: "SAP HA Install Pacemaker - Include NetWeaver ASCS/ERS post steps"
       ansible.builtin.include_tasks:
         file: configure_nwas_abap_ascs_ers_post_install.yml
@@ -367,6 +410,7 @@
       when:
         - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_ascs_ers') | length > 0
 
+    # General post-steps
     - name: "SAP HA Install Pacemaker - Include NetWeaver SCS/ERS post steps"
       ansible.builtin.include_tasks:
         file: configure_nwas_java_scs_ers_post_install.yml
@@ -380,48 +424,4 @@
       when:
         - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_java_scs_ers') | length > 0
 
-
 ### END OF BLOCK: prerequisite changes and cluster setup
-
-# Save all the constructed cluster parameters into a vars file.
-#
-# This will help reusing ha_cluster afterwards without losing the already
-# configured resources and constraints.
-# The ha_cluster role will otherwise remove configuration that is not part
-# of the parameters provided during any subsequent run outside of the current
-# SAP system role.
-#
-# TODO: Deal with secrets in output. They should be masked, maybe with
-# their user provided variables?
-
-- name: "SAP HA Install Pacemaker - Create cluster configuration parameters file"
-  when:
-    - sap_ha_pacemaker_cluster_create_config_varfile
-    - sap_ha_pacemaker_cluster_create_config_dest | length
-  ansible.builtin.template:
-    backup: true
-    dest: "{{ sap_ha_pacemaker_cluster_create_config_dest }}"
-    mode: "0600"
-    src: cluster_create_config.j2
-    trim_blocks: true
-    lstrip_blocks: true
-  delegate_to: localhost
-  run_once: true
-  become: false
-  check_mode: false
-  tags: post_ha_cluster
-
-- name: "SAP HA Install Pacemaker - Display configuration parameters SAVE FILE location"
-  when:
-    - sap_ha_pacemaker_cluster_create_config_varfile
-    - sap_ha_pacemaker_cluster_create_config_dest | length
-  ansible.builtin.debug:
-    msg: |
-      The cluster resource configuration parameters have been saved here:
-      >>>>>     {{ sap_ha_pacemaker_cluster_create_config_dest }}    <<<<<
-
-      Please include these variable definitions if you run the 'ha_cluster'
-      linux system role separately.
-      !! Secret values of resources may be included in this output !!
-  run_once: true
-  tags: post_ha_cluster
