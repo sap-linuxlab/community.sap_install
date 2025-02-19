@@ -36,9 +36,9 @@
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Check for duplicate or missing entries of {{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }} in /etc/hosts
-  ansible.builtin.command: awk 'BEGIN{a=0}/^{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}\s/||
+  ansible.builtin.command: awk 'BEGIN{a=0}!/^#/&&(/^{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}\s/||
                 /\s{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}\s/||
-                /\s{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}$/{a++}END{print a}' /etc/hosts
+                /\s{{ sap_general_preconfigure_hostname }}.{{ sap_general_preconfigure_domain }}$/){a++}END{print a}' /etc/hosts
   register: __sap_general_preconfigure_register_fqdn_once_assert
   ignore_errors: true
   changed_when: false
@@ -51,9 +51,9 @@
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Check for duplicate or missing entries of {{ sap_general_preconfigure_hostname }} in /etc/hosts
-  ansible.builtin.command: awk 'BEGIN{a=0}/^{{ sap_general_preconfigure_hostname }}\s/||
+  ansible.builtin.command: awk 'BEGIN{a=0}!/^#/&&(/^{{ sap_general_preconfigure_hostname }}\s/||
                 /\s{{ sap_general_preconfigure_hostname }}\s/||
-                /\s{{ sap_general_preconfigure_hostname }}$/{a++}END{print a}' /etc/hosts
+                /\s{{ sap_general_preconfigure_hostname }}$/){a++}END{print a}' /etc/hosts
   register: __sap_general_preconfigure_register_sap_hostname_once_assert
   ignore_errors: true
   changed_when: false

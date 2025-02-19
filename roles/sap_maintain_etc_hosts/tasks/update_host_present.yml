@@ -154,7 +154,7 @@
 # After all nodes are added or deleted, run the consistency check against the hosts file
 - name: Check for duplicate or missing entries of hostname and fqdn in {{ __sap_maintain_etc_hosts_file }}
   ansible.builtin.shell: |
-    n=$(awk 'BEGIN{a=0}/^{{ line_item }}\s/||/\s{{ line_item }}\s/||/\s{{ line_item }}$/{a++}END{print a}' {{ __sap_maintain_etc_hosts_file }})
+    n=$(awk 'BEGIN{a=0}!/^#/&&(/^{{ line_item }}\s/||/\s{{ line_item }}\s/||/\s{{ line_item }}$/){a++}END{print a}' {{ __sap_maintain_etc_hosts_file }})
     if [ $n -eq 1 ]; then
       exit 0
     else
@@ -169,7 +169,7 @@
   when: not ansible_check_mode
 
 - name: Perform the hosts file completeness check
-  ansible.builtin.command: awk 'BEGIN{a=0}/{{ thishost.node_ip }}/&&/{{ thishost.node_name }}.{{ __sap_maintain_etc_hosts_domain }}/&&/{{ thishost.node_name }}/{a++}END{print a}' {{ __sap_maintain_etc_hosts_file }}
+  ansible.builtin.command: awk 'BEGIN{a=0}!/^#/&&(/{{ thishost.node_ip }}/&&/{{ thishost.node_name }}.{{ __sap_maintain_etc_hosts_domain }}/&&/{{ thishost.node_name }}/){a++}END{print a}' {{ __sap_maintain_etc_hosts_file }}
   register: __sap_maintain_etc_hosts_register_ipv4_fqdn_sap_hostname_once_check
   changed_when: false
 
