@@ -17,29 +17,44 @@
   when: __sap_general_preconfigure_grub_cmdline | length > 0
 
 
-- name: Apply SAP note 2578899 using saptune
+# Verify SAP Note before block and revert if found invalid
+- name: Verify SAP note 2578899 before changes
+  ansible.builtin.command:
+    cmd: saptune note verify 2578899
+  register: __sap_general_preconfigure_verify_2578899_before
+  changed_when: false
+  ignore_errors: true
   when: __sap_general_preconfigure_use_saptune | d(true)
-  block:
 
-    - name: Apply SAP note 2578899 using saptune
+- name: Apply SAP note 2578899 using saptune
+  when:
+    - __sap_general_preconfigure_use_saptune | d(true)
+    - __sap_general_preconfigure_verify_2578899_before.rc != 0
+  block:
+    - name: Revert SAP note 2578899
+      ansible.builtin.command:
+        cmd: saptune note revert 2578899
+      changed_when: true
+
+    - name: Apply SAP note 2578899
       ansible.builtin.command:
         cmd: saptune note apply 2578899
       changed_when: true
 
-    - name: Verify SAP note 2578899 using saptune
+    - name: Verify SAP note 2578899 after changes
       ansible.builtin.command:
-        cmd: saptune note verify 2578899
-      register: __sap_general_preconfigure_saptune_verify_2578899
+        cmd: saptune note verify --show-non-compliant 2578899
+      register: __sap_general_preconfigure_verify_2578899_after
       changed_when: false
       ignore_errors: true
 
     - name: Display error if saptune verify failed
       ansible.builtin.debug:
         msg: |
-          {{ __sap_general_preconfigure_saptune_verify_2578899.stdout_lines }}
-          {{ __sap_general_preconfigure_saptune_verify_2578899.stderr_lines }}
+          {{ __sap_general_preconfigure_verify_2578899_after.stdout_lines }}
+          {{ __sap_general_preconfigure_verify_2578899_after.stderr_lines }}
       when:
-        __sap_general_preconfigure_saptune_verify_2578899.rc != 0
+        __sap_general_preconfigure_verify_2578899_after.rc != 0
 
 
 - name: Configuration changes without saptune
