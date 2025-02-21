@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+# 1275776 - Linux: Preparing SLES for SAP environments
+
+- name: Get contents of /etc/products.d/baseproduct
+  ansible.builtin.stat:
+    path: /etc/products.d/baseproduct
+  register: __sap_hana_preconfigure_register_baseproduct
+
+
+- name: Set fact if baseproduct contains SLES without SLES_SAP
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_use_saptune: false
+  when:
+    - '"SLES_SAP" not in __sap_hana_preconfigure_register_baseproduct.stat.lnk_target'
+    - '"SLES" in __sap_hana_preconfigure_register_baseproduct.stat.lnk_target
+      and ansible_distribution_major_version | int < 16'
+
+
+- name: Block to ensure saptune is installed
+  when: __sap_hana_preconfigure_use_saptune | d(true)
+  block:
+    # Reason for noqa: Zypper supports "state: latest"
+    - name: Ensure latest saptune is installed  # noqa package-latest
+      ansible.builtin.package:
+        name: saptune
+        state: present
+      when:
+        - sap_hana_preconfigure_saptune_version is undefined
+         or sap_hana_preconfigure_saptune_version | length == 0
+
+    - name: Ensure specific saptune version is installed
+      ansible.builtin.package:
+        name: "saptune={{ sap_hana_preconfigure_saptune_version }}"
+        state: present
+      when:
+        - sap_hana_preconfigure_saptune_version is defined
+        - sap_hana_preconfigure_saptune_version | length > 0
+
+
+- name: Block to ensure sapconf is installed
+  when: not __sap_hana_preconfigure_use_saptune | d(true)
+  block:
+    - name: Ensure sapconf is installed
+      ansible.builtin.package:
+        name: "sapconf"
+        state: present

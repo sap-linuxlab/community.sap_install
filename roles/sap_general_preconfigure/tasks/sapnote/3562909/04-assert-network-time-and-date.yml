@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Assert 3562909-4
+  ansible.builtin.debug:
+    msg: "SAP note 3562909 Step 4: Configure Network Time and Date"
+  tags:
+    - sap_general_preconfigure_network_time_and_date
+
+# Reason for noqa: We need to get the current status only
+- name: Get status of chronyd # noqa command-instead-of-module
+  ansible.builtin.command: systemctl status chronyd
+  register: __sap_general_preconfigure_register_chronyd_status_assert
+  ignore_errors: true
+  changed_when: false
+  tags:
+    - sap_general_preconfigure_network_time_and_date
+
+- name: Assert that chronyd is enabled
+  ansible.builtin.assert:
+    that: "'/usr/lib/systemd/system/chronyd.service; enabled' in __sap_general_preconfigure_register_chronyd_status_assert.stdout"
+    fail_msg: "FAIL: Service 'chronyd' is not enabled!"
+    success_msg: "PASS: Service 'chronyd' is enabled."
+  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+  tags:
+    - sap_general_preconfigure_network_time_and_date
+
+- name: Assert that chronyd is active
+  ansible.builtin.assert:
+    that: "'active (running)' in __sap_general_preconfigure_register_chronyd_status_assert.stdout"
+    fail_msg: "FAIL: Service 'chronyd' is not active!"
+    success_msg: "PASS: Service 'chronyd' is active."
+  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+  tags:
+    - sap_general_preconfigure_network_time_and_date

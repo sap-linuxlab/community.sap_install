@@ -22,7 +22,7 @@ This Ansible Role is agnostic, and will run on any Infrastructure Platform. Only
         - `lvg`
         - `lvol`
         - `filesystem`
-Install required collection by `ansible-galaxy install community.general`.
+Install required collection by `ansible-galaxy collection install community.general`.
 <!-- END Dependencies -->
 
 <!-- BEGIN Prerequisites -->

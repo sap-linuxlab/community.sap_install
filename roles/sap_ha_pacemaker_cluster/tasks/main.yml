@@ -21,13 +21,16 @@
 # supports.
 - name: "SAP HA Prepare Pacemaker - Include tasks from 'ha_cluster' role definitions"
   ansible.builtin.import_tasks: import_hacluster_vars_from_inventory.yml
+  tags: always
 
 - name: "SAP HA Prepare Pacemaker - Include facts and common variables"
   ansible.builtin.import_tasks: include_vars_common.yml
+  tags: always
 
 # Determine which SAP landscape we are going to configure in the cluster.
 - name: "SAP HA Prepare Pacemaker - Include tasks for SAP landscape calculation"
   ansible.builtin.import_tasks: ascertain_sap_landscape.yml
+  tags: always
 
 # Validate input variables after processing in include_vars_ tasks.
 - name: "SAP HA Prepare Pacemaker - Include parameter validation tasks"
@@ -208,9 +211,12 @@
     # Cluster installation and configuration through the dedicated
     # linux system role 'ha_cluster'
     - name: "SAP HA Install Pacemaker - Include System Role 'ha_cluster'"
-      ansible.builtin.import_role:
+      ansible.builtin.include_role:
         name: "{{ sap_ha_pacemaker_cluster_system_roles_collection }}.ha_cluster"
+        apply:
+          tags: run_ha_cluster
       no_log: "{{ __sap_ha_pacemaker_cluster_no_log }}"  # some parameters contain secrets
+      tags: run_ha_cluster
 
 
     # Corosync post-inst
@@ -297,7 +303,7 @@
 
 # Save all the constructed cluster parameters into a vars file.
 #
-# This will help re-using ha_cluster afterwards without losing the already
+# This will help reusing ha_cluster afterwards without losing the already
 # configured resources and constraints.
 # The ha_cluster role will otherwise remove configuration that is not part
 # of the parameters provided during any subsequent run outside of the current

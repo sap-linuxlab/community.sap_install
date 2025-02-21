@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+# 2578899 - SUSE Linux Enterprise Server 15: Installation Note
+
+- name: Configure - Display SAP note number 2578899 and its version
+  ansible.builtin.debug:
+    msg: "SAP note {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2578899$') | first).number }}
+          (version {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2578899$') | first).version }}):
+           SUSE Linux Enterprise Server 15: Installation Note"
+  tags:
+    - always
+
+- name: Set fact for SAP note number 2578899
+  ansible.builtin.set_fact:
+    __sap_general_preconfigure_services_2578899:
+      - uuidd.socket
+      - sysstat
+      - sysctl-logger.service
+
+    __sap_general_preconfigure_grub_cmdline_2578899: []
+      # I/O Scheduler parameter is already part of default saptune and sapconf configuration.
+      # - "elevator=noop"
+
+- name: Import tasks from '2578899/installation.yml'
+  ansible.builtin.import_tasks: 2578899/installation.yml
+
+- name: Import tasks from '2578899/configuration.yml'
+  ansible.builtin.import_tasks: 2578899/configuration.yml

@@ -14,7 +14,7 @@ The Ansible role `sap_hana_preconfigure` installs additional required packages a
     - Roles:
         - `selinux`
 
-Install required collections by `ansible-galaxy install -vv -r meta/collection-requirements.yml`.
+Install required collections by `ansible-galaxy collection install -vv -r meta/collection-requirements.yml`.
 <!-- END Dependencies -->
 
 <!-- BEGIN Prerequisites -->
@@ -203,7 +203,7 @@ Available values:
 - _Type:_ `bool`
 - _Default:_ `false`
 
-Check the RHEL release against parameter `sap_hana_preconfigure_supported_rhel_minor_releases`, which is a list of<br>
+(RedHat specific) Check the RHEL release against parameter `sap_hana_preconfigure_supported_rhel_minor_releases`, which is a list of<br>
 known SAP HANA supported RHEL minor releases. By default, the role will display a message and continue running if<br>
 the RHEL release is not part of that list. If set to `true`, the role will fail in such a case.<br>
 
@@ -211,13 +211,13 @@ the RHEL release is not part of that list. If set to `true`, the role will fail 
 - _Type:_ `list` with elements of type `str`
 - _Default:_ (set by platform/environment specific variables)
 
-Use this parameter to set your own list of SAP HANA supported RHEL minor releases.<br>
+(RedHat specific) Use this parameter to set your own list of SAP HANA supported RHEL minor releases.<br>
 
 ### sap_hana_preconfigure_enable_sap_hana_repos
 - _Type:_ `bool`
 - _Default:_ `false`
 
-Set to 'true' to enable the SAP HANA required RHEL repos.<br>
+(RedHat specific) Set to 'true' to enable the SAP HANA required RHEL repos.<br>
 This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
 The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_use_hana_repos`.<br>
 
@@ -225,7 +225,7 @@ The related parameters are `sap_general_preconfigure_enable_repos` and `sap_gene
 - _Type:_ `list` with elements of type `str`
 - _Default:_ (set by platform/environment specific variables)
 
-Use this parameter to set your own list of SAP HANA required RHEL 7 repos on x86_64'<br>
+(RedHat specific) Use this parameter to set your own list of SAP HANA required RHEL 7 repos on x86_64'<br>
 This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
 The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.<br>
 
@@ -233,7 +233,7 @@ The related parameters are `sap_general_preconfigure_enable_repos` and `sap_gene
 - _Type:_ `list` with elements of type `str`
 - _Default:_ (set by platform/environment specific variables)
 
-Use this parameter to set your own list of SAP HANA required RHEL 7 repos on ppc64le'<br>
+(RedHat specific) Use this parameter to set your own list of SAP HANA required RHEL 7 repos on ppc64le'<br>
 This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
 The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.<br>
 
@@ -241,7 +241,7 @@ The related parameters are `sap_general_preconfigure_enable_repos` and `sap_gene
 - _Type:_ `list` with elements of type `str`
 - _Default:_ (set by platform/environment specific variables)
 
-Use this parameter to set your own list of SAP HANA required RHEL 8 repos on x86_64'<br>
+(RedHat specific) Use this parameter to set your own list of SAP HANA required RHEL 8 repos on x86_64'<br>
 This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
 The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.<br>
 
@@ -249,7 +249,7 @@ The related parameters are `sap_general_preconfigure_enable_repos` and `sap_gene
 - _Type:_ `list` with elements of type `str`
 - _Default:_ (set by platform/environment specific variables)
 
-Use this parameter to set your own list of SAP HANA required RHEL 8 repos on ppc64le'<br>
+(RedHat specific) Use this parameter to set your own list of SAP HANA required RHEL 8 repos on ppc64le'<br>
 This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
 The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.<br>
 
@@ -257,7 +257,7 @@ The related parameters are `sap_general_preconfigure_enable_repos` and `sap_gene
 - _Type:_ `list` with elements of type `str`
 - _Default:_ (set by platform/environment specific variables)
 
-Use this parameter to set your own list of SAP HANA required RHEL 9 repos on x86_64'<br>
+(RedHat specific) Use this parameter to set your own list of SAP HANA required RHEL 9 repos on x86_64'<br>
 This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
 The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.<br>
 
@@ -265,7 +265,7 @@ The related parameters are `sap_general_preconfigure_enable_repos` and `sap_gene
 - _Type:_ `list` with elements of type `str`
 - _Default:_ (set by platform/environment specific variables)
 
-Use this parameter to set your own list of SAP HANA required RHEL 9 repos on ppc64le'<br>
+(RedHat specific) Use this parameter to set your own list of SAP HANA required RHEL 9 repos on ppc64le'<br>
 This parameter is deprecated because the role sap_general_preconfigure can be used for this purpose.<br>
 The related parameters are `sap_general_preconfigure_enable_repos` and `sap_general_preconfigure_req_repos`.<br>
 
@@ -273,7 +273,7 @@ The related parameters are `sap_general_preconfigure_enable_repos` and `sap_gene
 - _Type:_ `bool`
 - _Default:_ `false`
 
-Use this parameter to set the RHEL minor release, which is required for SAP HANA.<br>
+Use this parameter to set the minor release, which is required for SAP HANA.<br>
 The related parameter is `sap_general_preconfigure_set_minor_release`.<br>
 
 ### sap_hana_preconfigure_create_directories
@@ -306,7 +306,8 @@ how the variable `sap_hana_preconfigure_create_directories` (see above) is set.<
 - _Type:_ `list` with elements of type `str`
 - _Default:_ (set by platform/environment specific variables)
 
-List of RHEL packages to be installed for SAP HANA. For RHEL 8 and later, you can choose to install either the default list<br>
+The list of packages to be installed.<br>
+For RHEL 8 and later, you can choose to install either the default list<br>
 or a list of the minimum required packages for SAP HANA server (parameter `__sap_hana_preconfigure_packages_min_install`).<br>
 
 ### sap_hana_preconfigure_min_package_check
@@ -323,7 +324,7 @@ Set this parameter to `false` if you want to ignore these requirements.<br>
 Set this parameter to `true` to update the system to the latest package levels.<br>
 By setting the parameter `sap_general_preconfigure_set_minor_release` of the<br>
 role `sap_general_preconfigure` to `true`, you can install the most recent package updates<br>
-without updating to a more recent RHEL minor release.<br>
+without updating to a more recent minor release.<br>
 
 ### sap_hana_preconfigure_reboot_ok
 - _Type:_ `bool`
@@ -401,7 +402,7 @@ Set this parameter to `false` to use static kernel settings<br>
 - _Type:_ `str`
 - _Default:_ `'sap-hana'`
 
-Name of the SAP HANA tuned tuned profile to enable (RHEL).<br>
+(RedHat specific) Name of the SAP HANA tuned tuned profile to enable.<br>
 
 ### sap_hana_preconfigure_modify_grub_cmdline_linux
 - _Type:_ `bool`
@@ -420,12 +421,12 @@ Set this parameter to `false` if this is not desired.<br>
 - _Type:_ `str`
 - _Default:_ ``
 
-Override the default setting for THP, which is determined automatically by the role, depending on the RHEL version.
+Override the default setting for THP, which is determined automatically by the role, depending on the OS version.
 
 ### sap_hana_preconfigure_db_group_name
 - _Type:_ `str`
 
-Use this parameter to specify the name of the RHEL group which is used for the database processes.<br>
+(RedHat specific) Use this parameter to specify the name of the RHEL group which is used for the database processes.<br>
 It will be used to configure process limits as per step "Configuring Process Resource Limits" of SAP note 2772999.<br>
 
 Example:

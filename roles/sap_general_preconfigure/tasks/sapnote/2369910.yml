@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+- name: Configure - Display SAP note number 2369910 and its version
+  ansible.builtin.debug:
+    msg: "SAP note {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2369910$') | first).number }}
+          (version {{ (__sap_general_preconfigure_sapnotes_versions | selectattr('number', 'match', '^2369910$') | first).version }}): SAP Software on Linux: General Information"
+  tags:
+    - always
+
+- name: Check locales
+  when: sap_general_preconfigure_config_all | d(true) or sap_general_preconfigure_2369910 | d(false)
+  tags:
+    - sap_general_preconfigure_2369910
+    - sap_general_preconfigure_configure_locale
+  block:
+    - name: Configure an English locale
+      ansible.builtin.command: "localectl set-locale LANG={{ sap_general_preconfigure_default_locale }}"
+      changed_when: true
+      when:
+        - sap_general_preconfigure_default_locale is defined and sap_general_preconfigure_default_locale
+        - sap_general_preconfigure_default_locale == 'C.UTF-8' or
+          sap_general_preconfigure_default_locale == 'C.utf8' or
+          sap_general_preconfigure_default_locale.startswith('en_') and
+            (sap_general_preconfigure_default_locale.endswith('UTF-8') or
+             sap_general_preconfigure_default_locale.endswith('utf8'))
+
+    - name: Get the current default locale
+      ansible.builtin.command: awk '{gsub("\"","")}/^LANG=/&&(/=C\./||/=en_/)&&(/utf8$/||/UTF-8$/){print}' /etc/locale.conf
+      check_mode: false
+      register: __sap_general_preconfigure_current_default_locale
+      changed_when: false
+
+    - name: Assert that an English locale is the default
+      ansible.builtin.assert:
+        that: __sap_general_preconfigure_current_default_locale.stdout_lines | length > 0
+        fail_msg: >
+          "FAIL: English is not set as the default locale. Please define an English default locale
+          with the 'sap_general_preconfigure_default_locale' variable!"
+        success_msg: "PASS: An English default locale is set."

@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# ansible_facts.services do not work for socket services!
+# uuidd.socket is not found, while uuidd.service service is.
+- name: Check status of services - Active  # noqa command-instead-of-module
+  ansible.builtin.command:
+    cmd: "systemctl is-active {{ item }}"
+  loop: "{{ __sap_general_preconfigure_services_2578899 }}"
+  register: __sap_general_preconfigure_register_services_active
+  changed_when: false
+  ignore_errors: true  # Disabled is RC 1
+
+- name: Check status of services - Enabled  # noqa command-instead-of-module
+  ansible.builtin.command:
+    cmd: "systemctl is-enabled {{ item }}"
+  loop: "{{ __sap_general_preconfigure_services_2578899 }}"
+  register: __sap_general_preconfigure_register_services_enabled
+  changed_when: false
+  ignore_errors: true  # Disabled is RC 1
+
+- name: Assert that services are running and enabled
+  ansible.builtin.assert:
+    that:
+      - __sap_general_preconfigure_register_services_active.results | selectattr('item', 'equalto', item) | map(attribute='rc') | first == 0
+      - __sap_general_preconfigure_register_services_enabled.results | selectattr('item', 'equalto', item) | map(attribute='rc') | first == 0
+    fail_msg: "FAIL: Service '{{ item }}' is not running or not enabled!"
+    success_msg: "PASS: Package '{{ item }}' is running and enabled."
+  loop: "{{ __sap_general_preconfigure_services_2578899 }}"
+  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+
+
+- name: Verify SAP Note using saptune
+  when: __sap_general_preconfigure_use_saptune | d(true)
+  block:
+
+    - name: Verify SAP note 2578899 using saptune
+      ansible.builtin.command:
+        cmd: saptune note verify --show-non-compliant 2578899
+      register: __sap_general_preconfigure_saptune_verify_2578899
+      changed_when: false
+      ignore_errors: true
+
+    - name: Assert that SAP note 2578899 is verified by saptune
+      ansible.builtin.assert:
+        that: "{{ __sap_general_preconfigure_saptune_verify_2578899.rc == 0 }}"
+        success_msg: "PASS: SAP note 2578899 is verified by saptune."
+        fail_msg: |
+          "FAIL: SAP note 2578899 is not verified by saptune! See details below:"
+          {{ __sap_general_preconfigure_saptune_verify_2578899.stdout_lines }}
+          {{ __sap_general_preconfigure_saptune_verify_2578899.stderr_lines }}
+      ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+
+
+- name: Verify SAP Note without using saptune
+  when: not __sap_general_preconfigure_use_saptune | d(true)
+  block:
+
+    - name: Gather kernel parameters
+      ansible.builtin.command: sysctl kernel.pid_max
+      register: __sap_general_preconfigure_register_pid_max
+      changed_when: false
+
+    - name: Assert that kernel parameter pid_max is set to 4194304
+      ansible.builtin.assert:
+        that:
+          - "__sap_general_preconfigure_register_pid_max.stdout.split('=')[1] | trim == '4194304'"
+        fail_msg: "FAIL: Kernel parameter kernel.pid_max is not set to 4194304!"
+        success_msg: "PASS: Kernel parameter kernel.pid_max is set to 4194304."
+      ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+
+    - name: Get current contents of GRUB
+      ansible.builtin.slurp:
+        path: /etc/default/grub
+      register: __sap_general_preconfigure_grub_contents
+
+    - name: Assert that GRUB cmdline parameters are set
+      ansible.builtin.assert:
+        that:
+          - "'{{ item }}' in __sap_general_preconfigure_grub_contents.content | b64decode | string"
+        fail_msg: "FAIL: GRUB cmdline parameter {{ item }} is not set!"
+        success_msg: "PASS: GRUB cmdline parameter {{ item }} is set."
+      loop: "{{ __sap_general_preconfigure_grub_cmdline_2578899 }}"
+      when: __sap_general_preconfigure_grub_cmdline_2578899 | length > 0
+      ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"

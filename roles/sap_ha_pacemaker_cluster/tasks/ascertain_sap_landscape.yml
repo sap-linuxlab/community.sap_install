@@ -32,6 +32,20 @@
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
 
+# Host type rules:
+# - there can only be 0 or 1 HANA type in the list
+# - there can only be 0 or 1 NW (A)SCS/ERS type in the list
+- name: "SAP HA Prepare Pacemaker - Make sure that the host_type combination is valid"
+  ansible.builtin.assert:
+    that:
+      - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length < 2
+      - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_.*_ers') | length < 2
+    fail_msg: |
+      Host type = {{ sap_ha_pacemaker_cluster_host_type }}
+
+      Conflicting host types found!
+      There can only be max. 1 HANA and/or 1 NWAS (A)SCS/ERS type in the same definition.
+
 - name: "SAP HA Prepare Pacemaker - Include HANA specific variables"
   ansible.builtin.include_tasks:
     file: include_vars_hana.yml
@@ -39,7 +53,10 @@
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
 
 - name: "SAP HA Prepare Pacemaker - Include NETWEAVER specific variables"
+  tags: nwas_postinst
   ansible.builtin.include_tasks:
     file: include_vars_nwas.yml
+    apply:
+      tags: nwas_postinst
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas') | length > 0

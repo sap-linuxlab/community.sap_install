@@ -1,55 +1,76 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: Ensure required packages for SAP NetWeaver are installed
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+# Service packagekit is part of PackageKit-backend-zypp (SLE-Module-Desktop-Applications)
+# This service creates zypper locks and causes package install failures.
+# Service cannot be disabled and we have to mask its execution.
+- name: Mask packagekit.service when present
+  ansible.builtin.systemd_service:
+    name: packagekit.service
+    masked: true
+  when: "'packagekit.service' in ansible_facts.services"
+  notify: __sap_netweaver_preconfigure_packagekit_handler
+
+
+- name: Wait for stop of packagekit.service
+  ansible.builtin.shell: |
+    set -o pipefail && bash -c '
+    while (ps aux | grep "[z]ypper" | grep -v grep) || (ps aux | grep "/usr/lib/packagekitd" | grep -v grep) ||
+     ([ -f /var/run/zypp.pid ] && [ -s /var/run/zypp.pid ]); do
+      sleep 10;
+    done'
+  register: __packagekit_service_check
+  changed_when: false
+  until: __packagekit_service_check.rc == 0
+  retries: 60
+  when: "'packagekit.service' in ansible_facts.services"
+
+
+- name: Ensure that the required packages are installed
   ansible.builtin.package:
     state: present
-    name: "{{ __sap_netweaver_preconfigure_packages }}"
+    name: "{{ sap_netweaver_preconfigure_packages }}"
 
-- name: Get contents of /etc/products.d/baseproduct
-  ansible.builtin.stat:
-    path: /etc/products.d/baseproduct
-  register: sles_baseproduct
-  when: ansible_os_family == 'Suse'
 
-- name: Setfact if baseproduct contains SLES without SLES_SAP
-  ansible.builtin.set_fact:
-    __sap_netweaver_preconfigure_run_saptune: false
+# Reason for noqa: Zypper supports "state: latest"
+- name: Ensure that the system is updated to the latest patchlevel # noqa package-latest
+  ansible.builtin.package:
+    state: latest
+    name: "*"
+  when: sap_netweaver_preconfigure_update | bool
+
+
+# 1275776 - Linux: Preparing SLES for SAP environments
+- name: Install saptune if available
+  ansible.builtin.include_tasks:
+    file: generic/saptune_install.yml
+
+- name: Takeover and enable saptune if available
+  ansible.builtin.include_tasks:
+    file: generic/saptune_takeover.yml
+
+
+# Reason for noqa: The command to be executed might contain pipes
+- name: Determine if the system needs to be restarted # noqa command-instead-of-shell
+  ansible.builtin.shell:
+    cmd: "zypper ps"
+  register: __sap_netweaver_preconfigure_register_needs_restarting
+  ignore_errors: true
+  changed_when: false
+  check_mode: false
+
+- name: Display the output of the reboot requirement check
+  ansible.builtin.debug:
+    var: __sap_netweaver_preconfigure_register_needs_restarting
+
+- name: Call Reboot handler if necessary
+  ansible.builtin.command:
+    cmd: /bin/true
+  notify: __sap_netweaver_preconfigure_reboot_handler
+  changed_when: true
   when:
-    - '"SLES_SAP" not in sles_baseproduct.stat.lnk_target'
-    - '"SLES" in sles_baseproduct.stat.lnk_target'
-    - ansible_os_family == 'Suse'
-
-
-- name: Prepare saptune
-  when:
-    - __sap_netweaver_preconfigure_run_saptune
-  block:
-    - name: Ensure latest saptune is installed
-      community.general.zypper:
-        type: package
-        name: saptune
-        state: present
-      when:
-        - sap_netweaver_preconfigure_saptune_version is undefined
-         or sap_netweaver_preconfigure_saptune_version | length == 0
-
-    - name: Ensure specific saptune version is installed
-      community.general.zypper:
-        type: package
-        name: "saptune={{ sap_netweaver_preconfigure_saptune_version }}"
-        state: present
-        force: true
-      when:
-        - sap_netweaver_preconfigure_saptune_version is defined
-        - sap_netweaver_preconfigure_saptune_version | length > 0
-
-
-- name: Ensure sapconf is installed
-  community.general.zypper:
-    type: package
-    name: "sapconf"
-    state: present
-    force: true
-  when:
-    - not __sap_netweaver_preconfigure_run_saptune
+    - __sap_netweaver_preconfigure_register_needs_restarting is failed
+      or __sap_netweaver_preconfigure_register_needs_restarting.rc == 102

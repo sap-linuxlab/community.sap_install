@@ -92,22 +92,55 @@
 # Prepare default stonith method based on __sap_ha_pacemaker_cluster_stonith_default loaded
 # from platform __sap_ha_pacemaker_cluster_stonith_default_dict dictionary.
 
-- name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resource definition from platform default"
+- name: "SAP HA Prepare Pacemaker - (STONITH) Default configuration"
   when:
     - __sap_ha_pacemaker_cluster_stonith_default is defined
     - __sap_ha_pacemaker_cluster_stonith_default | length > 0
     - sap_ha_pacemaker_cluster_stonith_custom is not defined
       or sap_ha_pacemaker_cluster_stonith_custom | length == 0
-    - (hostvars[stonith_host_item].__sap_ha_pacemaker_cluster_stonith_default).id
-     not in (__sap_ha_pacemaker_cluster_stonith_resource | d([])| map(attribute='id'))
-  ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_stonith_resource:
-      "{{ __sap_ha_pacemaker_cluster_stonith_resource | d([])
-       + [hostvars[stonith_host_item].__sap_ha_pacemaker_cluster_stonith_default] }}"
-  loop: "{{ ansible_play_hosts_all }}"
-  loop_control:
-    loop_var: stonith_host_item
-    label: "{{ stonith_host_item }}"
+  block:
+
+    - name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resource definition from platform default"
+      ansible.builtin.set_fact:
+        __sap_ha_pacemaker_cluster_stonith_resource:
+          "{{ __sap_ha_pacemaker_cluster_stonith_resource | d([])
+          + [hostvars[stonith_host_item].__sap_ha_pacemaker_cluster_stonith_default] }}"
+      loop: "{{ ansible_play_hosts_all }}"
+      loop_control:
+        loop_var: stonith_host_item
+        label: "{{ stonith_host_item }}"
+      when:
+        - (hostvars[stonith_host_item].__sap_ha_pacemaker_cluster_stonith_default).id
+          not in (__sap_ha_pacemaker_cluster_stonith_resource | d([])| map(attribute='id'))
+
+    # The location constraints are needed, when the fence resource is configured
+    # per host and must not run on the host it targets.
+    - name: "SAP HA Prepare Pacemaker - (STONITH) Add location constraints"
+      ansible.builtin.set_fact:
+        __sap_ha_pacemaker_cluster_constraints_location: "{{ __sap_ha_pacemaker_cluster_constraints_location + [__constraint_location_stonith] }}"
+      vars:
+        # get host name from port definition
+        __port_name: "{{ (stonith_item.instance_attrs[0].attrs | selectattr('name', 'equalto', 'port'))[0].value }}"
+        __constraint_location_stonith:
+          resource:
+            id: "{{ stonith_item.id }}"
+          node: "{{ __port_name }}"
+          options:
+            - name: score
+              value: "-INFINITY"
+      loop: "{{ __sap_ha_pacemaker_cluster_stonith_resource }}"
+      loop_control:
+        loop_var: stonith_item
+        label: "{{ stonith_item.id }}"
+      when:
+        # Only apply when a port attribute is defined and contains a name of ansible play hosts.
+        # This is true e.g. for fence_gce.
+        - __port_name is defined
+        - __port_name | length > 0
+        - __port_name in ansible_play_hosts_all
+
+### End of default stonith configuration block
+
 
 # Requirements to run SBD block:
 # sap_ha_pacemaker_cluster_sbd_enabled is true
@@ -202,6 +235,8 @@
     - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Set __sap_ha_pacemaker_cluster_sbd_enabled"
       ansible.builtin.set_fact:
         __sap_ha_pacemaker_cluster_sbd_enabled: true
+
+### End of SBD configuration block.
 
 
 # sap_ha_pacemaker_cluster_stonith_custom input was redesigned to use ha_cluster structure.
