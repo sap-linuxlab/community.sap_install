@@ -24,54 +24,43 @@
     - __sap_hana_preconfigure_use_saptune
 
 
-- name: Apply saptune solution
+# Verify SAP Solution before block and revert if found invalid
+- name: Verify saptune solution before changes
+  ansible.builtin.command:
+    cmd: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
+  register: __sap_hana_preconfigure_register_solution_verify_before
+  changed_when: false
+  failed_when: false
   when: __sap_hana_preconfigure_use_saptune
+
+- name: Apply saptune solution
+  when:
+    - __sap_hana_preconfigure_use_saptune
+    - __sap_hana_preconfigure_register_solution_verify_before.rc != 0
   block:
-    - name: Discover active solution
+    - name: Revert saptune configuration
       ansible.builtin.command:
-        cmd: saptune solution enabled
-      register: __sap_hana_preconfigure_register_saptune_status
-      changed_when: false
-
-    - name: Set fact for active solution
-      ansible.builtin.set_fact:
-        # Capture the first block on none whitespace
-        __sap_hana_preconfigure_register_solution_configured:
-          "{{ (__sap_hana_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}"
-
-
-    - name: Revert solution when different to sap_hana_preconfigure_saptune_solution
-      ansible.builtin.command:
-        cmd: "saptune solution revert {{ __sap_hana_preconfigure_register_solution_configured }}"
+        cmd: "saptune revert all"
       changed_when: true
-      when:
-        - __sap_hana_preconfigure_register_solution_configured != 'NONE'
-        - __sap_hana_preconfigure_register_solution_configured != sap_hana_preconfigure_saptune_solution
-
-
-    - name: Verify saptune solution
-      ansible.builtin.command:
-        cmd: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
-      register: __sap_hana_preconfigure_register_saptune_verify
-      changed_when: false
-      failed_when: false
-      when:
-        - __sap_hana_preconfigure_register_solution_configured == sap_hana_preconfigure_saptune_solution
-
 
     - name: Ensure saptune solution is applied
       ansible.builtin.command:
         cmd: "saptune solution apply {{ sap_hana_preconfigure_saptune_solution }}"
       changed_when: true
-      when:
-        - __sap_hana_preconfigure_register_solution_configured != sap_hana_preconfigure_saptune_solution
-          or __sap_hana_preconfigure_register_saptune_verify.rc != 0
 
-
-    - name: Ensure solution was successful
+    - name: Verify saptune solution after changes
       ansible.builtin.command:
-        cmd: "saptune solution verify {{ sap_hana_preconfigure_saptune_solution }}"
+        cmd: "saptune solution verify --show-non-compliant {{ sap_hana_preconfigure_saptune_solution }}"
       changed_when: false
+      failed_when: false
+      register: __sap_hana_preconfigure_register_solution_verify_after
+
+    - name: Display error if saptune verify failed
+      ansible.builtin.fail:
+        msg: |
+          {{ __sap_hana_preconfigure_register_solution_verify_after.stdout_lines }}
+          {{ __sap_hana_preconfigure_register_solution_verify_after.stderr_lines }}
+      when: __sap_hana_preconfigure_register_solution_verify_after.rc != 0
 
 
 - name: Configure - Include configuration actions for required sapnotes
