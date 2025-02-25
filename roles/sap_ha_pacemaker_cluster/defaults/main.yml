@@ -45,7 +45,7 @@ sap_ha_pacemaker_cluster_operation_defaults: {}
 # nwas_abap_ascs_ers    (available)
 # nwas_abap_pas_aas     (not yet)
 # nwas_java_scs_ers     (available)
-
+# sap_webdisp           (beta)
 # 'sap_ha_pacemaker_cluster_host_type' is converted from string to list type in
 # 'tasks/ascertain_sap_landscape.yml'.
 sap_ha_pacemaker_cluster_host_type: "{{ sap_host_type | d(['hana_scaleup_perf']) }}"
@@ -312,6 +312,54 @@ sap_ha_pacemaker_cluster_nwas_ers_sapinstance_automatic_recover_bool: false
 # sap_ha_pacemaker_cluster_nwas_abap_aas_filesystem_resource_name: ''
 # sap_ha_pacemaker_cluster_nwas_abap_aas_sapinstance_resource_name: ''
 
+################################################################################
+# Web Dispatcher resource defaults
+################################################################################
+
+#TODO - check if these need to be moved to include_vars_webdisp.yml and converted to __*
+
+sap_ha_pacemaker_cluster_wdp_sid: "{{ sap_swpm_wdp_sid | d('') }}"
+sap_ha_pacemaker_cluster_wdp_instance_nr: "{{ sap_swpm_wdp_instance_nr | d('') }}"
+
+sap_ha_pacemaker_cluster_vip_wdp_ip_address: ''
+sap_ha_pacemaker_cluster_vip_wdp_resource_name: >-
+  rsc_vip_{{ sap_ha_pacemaker_cluster_wdp_sid }}_WDP{{ sap_ha_pacemaker_cluster_wdp_instance_nr }}
+sap_ha_pacemaker_cluster_healthcheck_wdp_resource_name: >-
+  rsc_vip_health_check_{{ sap_ha_pacemaker_cluster_wdp_sid }}_WDP{{ sap_ha_pacemaker_cluster_wdp_instance_nr }}
+
+# Name of the instance profile - mandatory to be user-defined
+sap_ha_pacemaker_cluster_wdp_sapinstance_instance_name: ''
+# Full path with instance profile name - mandatory to be user-defined
+sap_ha_pacemaker_cluster_wdp_sapinstance_start_profile_string: ''
+
+sap_ha_pacemaker_cluster_wdp_filesystem_resource_name: >-
+  rsc_fs_{{ sap_ha_pacemaker_cluster_wdp_sid }}_WDP{{ sap_ha_pacemaker_cluster_wdp_instance_nr }}
+sap_ha_pacemaker_cluster_wdp_sapinstance_resource_name: >-
+  rsc_SAPInstance_{{ sap_ha_pacemaker_cluster_wdp_sid }}_WDP{{ sap_ha_pacemaker_cluster_wdp_instance_nr }}
+sap_ha_pacemaker_cluster_wdp_sapstartsrv_resource_name: >-
+  rsc_SAPStartSrv_{{ sap_ha_pacemaker_cluster_wdp_sid }}_WDP{{ sap_ha_pacemaker_cluster_wdp_instance_nr }}
+
+sap_ha_pacemaker_cluster_vip_wdp_resource_group_name: >-
+  grp_{{ sap_ha_pacemaker_cluster_wdp_sid }}_WDP{{ sap_ha_pacemaker_cluster_wdp_instance_nr }}
+
+# Currently unused
+# sap_ha_pacemaker_cluster_wdp_order_wdp_last_name: >-
+#   ord_wdp_last_{{ sap_ha_pacemaker_cluster_wdp_sid }}
+
+sap_ha_pacemaker_cluster_wdp_sapinstance_automatic_recover_bool: false
+sap_ha_pacemaker_cluster_wdp_sapinstance_resource_stickiness: 5000
+
+# Stickiness of the WebDisp group
+sap_ha_pacemaker_cluster_wdp_group_stickiness: 3000
+
+# Clustered filesystem for Web Dispatcher
+sap_ha_pacemaker_cluster_wdp_filesystem_host_mount_path: ''
+sap_ha_pacemaker_cluster_wdp_filesystem_local_mount_path: "/usr/sap/{{ sap_ha_pacemaker_cluster_wdp_sid }}/W{{ sap_ha_pacemaker_cluster_wdp_instance_nr }}"
+sap_ha_pacemaker_cluster_wdp_filesystem_fstype: "{{ sap_ha_pacemaker_cluster_storage_nfs_filesytem_type }}"
+sap_ha_pacemaker_cluster_wdp_filesystem_options_string: "{{ sap_ha_pacemaker_cluster_storage_nfs_mount_options }}"
+sap_ha_pacemaker_cluster_wdp_filesystem_force_unmount: "{{ sap_ha_pacemaker_cluster_resource_filesystem_force_unmount }}"
+
+sap_ha_pacemaker_cluster_healthcheck_wdp_id: "{{ sap_ha_pacemaker_cluster_wdp_sid + 'wdp' }}"
 
 ################################################################################
 # Platform specific

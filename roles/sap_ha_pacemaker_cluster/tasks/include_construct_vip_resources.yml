@@ -52,6 +52,14 @@
             sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_port
         } if sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_pas_aas') | length > 0 else omit }}"
 
+      sap_webdisp: "{{
+        {
+          sap_ha_pacemaker_cluster_vip_wdp_resource_name:
+            sap_ha_pacemaker_cluster_vip_wdp_ip_address | regex_replace('/.*', ''),
+          sap_ha_pacemaker_cluster_healthcheck_wdp_resource_name:
+            sap_ha_pacemaker_cluster_healthcheck_wdp_port
+        } if sap_ha_pacemaker_cluster_host_type | select('search', 'sap_webdisp') | length > 0 else omit }}"
+
 ### Maintenance note
 #
 # The above task returns the following structure with a definition for HANA and ASCS/ERS,
@@ -112,6 +120,7 @@
       - "{{ __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_name | d('') }}"
       - "{{ __sap_ha_pacemaker_cluster_vip_nwas_abap_pas_resource_name | d('') }}"
       - "{{ __sap_ha_pacemaker_cluster_vip_nwas_abap_aas_resource_name | d('') }}"
+      - "{{ sap_ha_pacemaker_cluster_vip_wdp_resource_name | d('') }}"
 
     __sap_ha_pacemaker_cluster_healthcheck_resource_list:
       - "{{ __sap_ha_pacemaker_cluster_healthcheck_hana_primary_resource_name | d('') }}"
@@ -121,6 +130,7 @@
       - "{{ __sap_ha_pacemaker_cluster_healthcheck_nwas_ers_resource_name | d('') }}"
       - "{{ __sap_ha_pacemaker_cluster_healthcheck_nwas_abap_pas_resource_name | d('') }}"
       - "{{ __sap_ha_pacemaker_cluster_healthcheck_nwas_abap_aas_resource_name | d('') }}"
+      - "{{ sap_ha_pacemaker_cluster_healthcheck_wdp_resource_name | d('') }}"
 
 # Repeat the VIP resource definition in a loop over the above combined possible parameters.
 # Applies to systems with no particular platform detected.

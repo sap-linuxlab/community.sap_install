@@ -39,6 +39,38 @@
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas') | length > 0
 
+- name: "SAP HA Prepare Pacemaker - (SAP WebDisp) Validate WebDisp System ID"
+  ansible.builtin.assert:
+    that:
+      - sap_ha_pacemaker_cluster_wdp_sid | length == 3
+      - sap_ha_pacemaker_cluster_wdp_sid not in __sap_ha_pacemaker_cluster_sid_prohibited
+    fail_msg: |
+      Host type = {{ sap_ha_pacemaker_cluster_host_type }}
+      Requires 'sap_ha_pacemaker_cluster_wdp_sid' to be defined!
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'sap_webdisp') | length > 0
+
+- name: "SAP HA Prepare Pacemaker - (SAP WebDisp) Validate WebDisp Instance Number"
+  ansible.builtin.assert:
+    that:
+      - (
+          sap_ha_pacemaker_cluster_wdp_instance_nr | type_debug != 'int'
+          and sap_ha_pacemaker_cluster_wdp_instance_nr | length == 2
+        )
+        or
+        (
+          sap_ha_pacemaker_cluster_wdp_instance_nr | type_debug == 'int'
+          and ssap_ha_pacemaker_cluster_wdp_instance_nr is regex("^[0-9][0-9]$")
+        )
+    fail_msg: |
+
+      Host type = {{ sap_ha_pacemaker_cluster_host_type }}
+      Requires 'sap_ha_pacemaker_cluster_wdp_instance_nr' to be defined.
+
+      The instance number must be exactly 2 digits.
+      Add quotes if the number starts with a 0!
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'sap_webdisp') | length > 0
 
 # Validate SAP Instance Number
 - name: "SAP HA Prepare Pacemaker - (SAP NetWeaver) Validate SAP Instance Number"
@@ -220,3 +252,12 @@
     fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_nwas_abap_aas_ip_address' is not defined."
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_abap_pas_aas') | length > 0
+
+- name: "SAP HA Prepare Pacemaker - (SAP WebDisp) Verify that the VIP is defined"
+  ansible.builtin.assert:
+    that:
+      - sap_ha_pacemaker_cluster_vip_wdp_ip_address is defined
+      - sap_ha_pacemaker_cluster_vip_wdp_ip_address | length > 0
+    fail_msg: "Host type = '{{ sap_ha_pacemaker_cluster_host_type }}', but 'sap_ha_pacemaker_cluster_vip_wdp_ip_address' is not defined."
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'sap_webdisp') | length > 0
