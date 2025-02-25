@@ -1,141 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-# After NetWeaver SCS/ERS instances were configured in the cluster,
-# they must be disabled from automatically (re)starting outside of
-# cluster control.
-
-- name: "SAP HA Pacemaker - (SCS profile) Prevent automatic restart of enqueue server"
-  ansible.builtin.replace:
-    path: "{{ __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_start_profile_string }}"
-    backup: true
-    regexp: 'Restart_Program_01'
-    replace: 'Start_Program_01'
-  # Throttle and retry loop was added to combat NFS write lockups on Azure NFS
-  throttle: 1
-  retries: 30
-  delay: 10
-
-- name: "SAP HA Pacemaker - (ERS profile) Prevent automatic restart"
-  ansible.builtin.replace:
-    path: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string }}"
-    backup: true
-    regexp: 'Restart_Program_00'
-    replace: 'Start_Program_00'
-  # Throttle and retry loop was added to combat NFS write lockups on Azure NFS
-  throttle: 1
-  retries: 30
-  delay: 10
-
-- name: "SAP HA Pacemaker - (systemd) Check for SCS/ERS services"
-  ansible.builtin.stat:
-    path: "/etc/systemd/system/SAP{{ __sap_ha_pacemaker_cluster_nwas_sid }}_{{ systemd_item }}.service"
-  loop:
-    - "{{ __sap_ha_pacemaker_cluster_nwas_scs_instance_nr }}"
-    - "{{ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr }}"
-  loop_control:
-    loop_var: systemd_item
-    label: "SAP{{ __sap_ha_pacemaker_cluster_nwas_sid }}_{{ systemd_item }}.service"
-  register: __sap_ha_pacemaker_cluster_register_instance_service
-
-- name: "SAP HA Pacemaker - (systemd) Save found SCS/ERS services"
-  ansible.builtin.set_fact:
-    sap_ha_pacemaker_cluster_instance_service_node_fact: "{{
-      __sap_ha_pacemaker_cluster_register_instance_service.results
-      | selectattr('stat.exists')
-      | map(attribute='stat.path')
-      | regex_replace('/etc/systemd/system/', '')
-      }}"
-
-- name: "SAP HA Pacemaker - (systemd) Combine instance services from all nodes"
-  ansible.builtin.set_fact:
-    sap_ha_pacemaker_cluster_instance_service_all_fact: "{{
-      (sap_ha_pacemaker_cluster_instance_service_all_fact | d([])
-      + hostvars[task_host_item].sap_ha_pacemaker_cluster_instance_service_node_fact)
-      | unique
-      }}"
-  loop: "{{ ansible_play_hosts }}"
-  loop_control:
-    loop_var: task_host_item
-
-
-# BLOCK:
-# 1. When the systemd based SAP startup framework is used, make sure that the
-# instance services do not auto-start.
-# 2. Make sure that the SAP instance service units are registered and present on all hosts.
-- name: "SAP HA Pacemaker - Block to handle SAP service systemd configuration"
-  when:
-    # At least one systemd service should be found per node, to consider the setup
-    # "systemd enabled" and proceed with the related configuration.
-    - sap_ha_pacemaker_cluster_instance_service_node_fact is defined
-    - sap_ha_pacemaker_cluster_instance_service_node_fact | length > 0
-  block:
-
-    # After the installation, the systemd units are only configured on the node
-    # they were first installed on.
-    # The registration ensures that
-    # - systemd units for both instances are configured
-    # - the 'sapstartsrv' file contains both start commands
-    - name: "SAP HA Pacemaker - (systemd) Register SCS/ERS instances on all nodes"
-      ansible.builtin.shell: |
-        export LD_LIBRARY_PATH=/usr/sap/hostctrl/exe:$LD_LIBRARY_PATH
-        /usr/sap/hostctrl/exe/sapstartsrv pf={{ __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_start_profile_string }} -reg
-        /usr/sap/hostctrl/exe/sapstartsrv pf={{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string }} -reg
-      register: __sap_ha_pacemaker_cluster_register_instance_reg
-      changed_when: true
-
-    - name: "SAP HA Pacemaker - (systemd) Disable SCS/ERS instance service"
-      ansible.builtin.service:
-        name: "{{ instance_srv_item }}"
-        enabled: false
-      loop: "{{ sap_ha_pacemaker_cluster_instance_service_all_fact }}"
-      loop_control:
-        loop_var: instance_srv_item
-
-    # Creates a config file for the services.
-    # Parent directories will be created when missing.
-    - name: "SAP HA Pacemaker - (systemd) Create SCS/ERS instance unit config file"
-      ansible.builtin.lineinfile:
-        create: true
-        path: "/etc/systemd/system/{{ dropfile_item }}.d/HA.conf"
-        line: "[Service]"
-        owner: root
-        group: root
-        mode: '0644'
-      loop: "{{ sap_ha_pacemaker_cluster_instance_service_all_fact }}"
-      loop_control:
-        loop_var: dropfile_item
-
-    - name: "SAP HA Pacemaker - (systemd) Disable SCS/ERS instance unit auto-restart"
-      ansible.builtin.lineinfile:
-        path: "/etc/systemd/system/{{ dropfile_item }}.d/HA.conf"
-        regex: '^Restart\s*=\s*no'
-        insertafter: '^[Service]$'
-        line: "Restart=no"
-        owner: root
-        group: root
-        mode: '0644'
-      loop: "{{ sap_ha_pacemaker_cluster_instance_service_all_fact }}"
-      loop_control:
-        loop_var: dropfile_item
-
-### END of BLOCK for systemd setup.
-
-# Comment out lines in /usr/sap/sapservices, which
-# - contain the target instance profile names
-# - are not commented out yet
-- name: "SAP HA Pacemaker - Update /usr/sap/sapservices"
-  ansible.builtin.replace:
-    path: /usr/sap/sapservices
-    backup: true
-    regexp: '^(?!#)(.*{{ sapserv_item }}.*)$'
-    replace: '# \1'
-  loop:
-    - "{{ __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name }}"
-    - "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name }}"
-  loop_control:
-    loop_var: sapserv_item
-  when:
-    - ansible_os_family == 'RedHat'
+# Common NWAS ASCS/ERS post-installation steps AFTER the cluster setup.
 
 # SAPStartSrv resource agent / Simple Mount
 - name: "SAP HA Pacemaker - Make sure SAPStartSrv systemd units are enabled"
@@ -277,6 +142,12 @@
           {{ __sap_ha_pacemaker_cluster_register_scs_ha_check_config.stdout_lines }}
 
 
+    # Ensure there are no errors before resources get restarted
+    - name: "SAP HA Install Pacemaker - Cluster resource cleanup before restart"
+      ansible.builtin.shell: |
+        {{ __sap_ha_pacemaker_cluster_command.resource_cleanup }}
+      changed_when: true
+
     # Block to restart cluster resources if RestartService is not enough.
     # This is required for SUSE, where SAP needs full restart to load HAlib.
     - name: "SAP HA Pacemaker - (SAP HA Interface) Block for SCS ERS restart"
@@ -288,12 +159,8 @@
           or (__sap_ha_pacemaker_cluster_register_scs_ha_check_config.stdout is defined
            and 'ERROR' in __sap_ha_pacemaker_cluster_register_scs_ha_check_config.stdout)"
       vars:
-        __rsc_scs: "{{ __sap_ha_pacemaker_cluster_nwas_scs_sapstartsrv_resource_name
-          if __sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
-          else __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_resource_name }}"
-        __rsc_ers: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapstartsrv_resource_name
-          if __sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
-          else __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_resource_name }}"
+        __rsc_scs: "{{ __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_resource_name }}"
+        __rsc_ers: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_resource_name }}"
       block:
         - name: "SAP HA Pacemaker - (SAP HA Interface) Restart SCS ERS resources"
           ansible.builtin.shell: |
