@@ -20,7 +20,6 @@
     - name: "SAP HA Install Pacemaker - Put cluster in maintenance mode"
       ansible.builtin.command:
         cmd: crm --force configure property maintenance-mode=true
-      check_mode: false
       changed_when: true
 
     - name: "SAP HA Install Pacemaker - Verify that maintenance-mode is true"
@@ -31,7 +30,6 @@
       delay: 5
       until:
         '"Resource management is DISABLED" in __sap_ha_pacemaker_cluster_crm_status_maint.stdout'
-      check_mode: false
       changed_when: false
       run_once: true  # noqa: run_once[task]
 
@@ -39,7 +37,6 @@
       ansible.builtin.command:
         cmd: cibadmin --query
       register: __sap_ha_pacemaker_cluster_cib_query
-      check_mode: false
       changed_when: false
 
     - name: "SAP HA Install Pacemaker - Save CIB configuration"
@@ -49,7 +46,7 @@
         owner: root
         group: root
         mode: '0600'
-      check_mode: false
+      ignore_errors: "{{ ansible_check_mode }}"
 
     # SAPStartSrv - Remove monitor, start, stop operations from SAPStartSrv
     # These operations are not supported and not recommended.
@@ -74,5 +71,4 @@
     - name: "SAP HA Install Pacemaker - Disable maintenance mode"
       ansible.builtin.command:
         cmd: crm --force configure property maintenance-mode=false
-      check_mode: false
       changed_when: true

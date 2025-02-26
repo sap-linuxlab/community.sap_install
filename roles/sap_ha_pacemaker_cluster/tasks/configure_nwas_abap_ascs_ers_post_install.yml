@@ -14,6 +14,7 @@
     loop_var: sapstartsrv_srv_item
   when:
     - __sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount
+  ignore_errors: "{{ ansible_check_mode }}"
 
 
 # Block for configuring the SAP HA Interface (sap_cluster_connector).
@@ -47,8 +48,9 @@
         label: "{{ nwas_profile_item.0 }} -> {{ nwas_profile_item.1 }}"
     # Throttle and retry loop was added to combat NFS write lockups on Azure NFS
       throttle: 1
-      retries: 30
-      delay: 10
+      retries: "{{ 1 if ansible_check_mode else 30 }}"
+      delay: "{{ 1 if ansible_check_mode else 10 }}"
+      ignore_errors: "{{ ansible_check_mode }}"
 
     # Sleep added to resolve issue with WaitforStarted finishing before resources are available.
     - name: "SAP HA Pacemaker - (SAP HA Interface) Wait for ASCS to be up and running"
@@ -59,7 +61,7 @@
         /usr/sap/hostctrl/exe/sapcontrol -nr {{ __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr }} -function WaitforStarted 600 30
       changed_when: false
       failed_when: false
-      when: not ansible_check_mode
+      check_mode: false
 
     - name: "SAP HA Pacemaker - (SAP HA Interface) Wait for ERS to be up and running"
       become: true
@@ -69,14 +71,13 @@
         /usr/sap/hostctrl/exe/sapcontrol -nr {{ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr }} -function WaitforStarted 600 30
       changed_when: false
       failed_when: false
-      when: not ansible_check_mode
+      check_mode: false
 
     # NOTE: RestartService can cause fencing lockup and hang forever,
     # it might be good to remove them in future and leave reload to "ASCS ERS restart" block.
     - name: "SAP HA Pacemaker - (SAP HA Interface) Restart the ASCS service"
       when:
         - __sap_ha_pacemaker_cluster_register_where_ascs.rc == 0
-        - not ansible_check_mode
       become: true
       become_user: "{{ __sap_ha_pacemaker_cluster_nwas_sid | lower }}adm"
       register: __sap_ha_pacemaker_cluster_register_restart_ascs
@@ -87,7 +88,6 @@
     - name: "SAP HA Pacemaker - (SAP HA Interface) Restart the ERS service"
       when:
         - __sap_ha_pacemaker_cluster_register_where_ers.rc == 0
-        - not ansible_check_mode
       become: true
       become_user: "{{ __sap_ha_pacemaker_cluster_nwas_sid | lower }}adm"
       register: __sap_ha_pacemaker_cluster_register_restart_ers
@@ -154,13 +154,11 @@
       ansible.builtin.shell: |
         {{ __sap_ha_pacemaker_cluster_command.resource_cleanup }}
       changed_when: true
-      when: not ansible_check_mode
 
     # Block to restart cluster resources if RestartService is not enough.
     # This is required for SUSE, where SAP needs full restart to load HAlib.
     - name: "SAP HA Pacemaker - (SAP HA Interface) Block for ASCS ERS restart"
       when:
-        - not ansible_check_mode
         - "(__sap_ha_pacemaker_cluster_register_ascs_ha_failover_config.stdout is defined
            and 'FALSE' in __sap_ha_pacemaker_cluster_register_ascs_ha_failover_config.stdout)
           or (__sap_ha_pacemaker_cluster_register_ers_ha_failover_config.stdout is defined
@@ -213,7 +211,6 @@
     - name: "SAP HA Pacemaker - (SAP HA Interface) Get HACheckConfig for ASCS"
       when:
         - __sap_ha_pacemaker_cluster_register_where_ascs.rc == 0
-        - not ansible_check_mode
       become: true
       become_user: "{{ __sap_ha_pacemaker_cluster_nwas_sid | lower }}adm"
       register: __sap_ha_pacemaker_cluster_register_ascs_ha_check_config
@@ -223,11 +220,12 @@
       changed_when: false
       failed_when:
         - "'ERROR' in __sap_ha_pacemaker_cluster_register_ascs_ha_check_config.stdout"
+      check_mode: false
+      ignore_errors: "{{ ansible_check_mode }}"
 
     - name: "SAP HA Pacemaker - (SAP HA Interface) Get HACheckConfig for ERS"
       when:
         - __sap_ha_pacemaker_cluster_register_where_ers.rc == 0
-        - not ansible_check_mode
       become: true
       become_user: "{{ __sap_ha_pacemaker_cluster_nwas_sid | lower }}adm"
       register: __sap_ha_pacemaker_cluster_register_ers_ha_check_config
@@ -236,18 +234,21 @@
       changed_when: false
       failed_when:
         - "'ERROR' in __sap_ha_pacemaker_cluster_register_ers_ha_check_config.stdout"
+      check_mode: false
+      ignore_errors: "{{ ansible_check_mode }}"
 
 
     - name: "SAP HA Pacemaker - (SAP HA Interface) Get HAGetFailoverConfig for ASCS"
       when:
         - __sap_ha_pacemaker_cluster_register_where_ascs.rc == 0
-        - not ansible_check_mode
       become: true
       become_user: "{{ __sap_ha_pacemaker_cluster_nwas_sid | lower }}adm"
       register: __sap_ha_pacemaker_cluster_register_ascs_ha_failover_config
       ansible.builtin.shell: |
         /usr/sap/hostctrl/exe/sapcontrol -nr {{ __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr }} -function HAGetFailoverConfig
       changed_when: false
+      check_mode: false
+      ignore_errors: "{{ ansible_check_mode }}"
       # failed_when:
       #   - __sap_ha_pacemaker_cluster_register_ascs_ha_failover_config.stdout is defined
       #      and 'FALSE' in __sap_ha_pacemaker_cluster_register_ascs_ha_failover_config.stdout
@@ -255,13 +256,14 @@
     - name: "SAP HA Pacemaker - (SAP HA Interface) Get HAGetFailoverConfig for ERS"
       when:
         - __sap_ha_pacemaker_cluster_register_where_ers.rc == 0
-        - not ansible_check_mode
       become: true
       become_user: "{{ __sap_ha_pacemaker_cluster_nwas_sid | lower }}adm"
       register: __sap_ha_pacemaker_cluster_register_ers_ha_failover_config
       ansible.builtin.shell: |
         /usr/sap/hostctrl/exe/sapcontrol -nr {{ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr }} -function HAGetFailoverConfig
       changed_when: false
+      check_mode: false
+      ignore_errors: "{{ ansible_check_mode }}"
       # failed_when:
       #   - __sap_ha_pacemaker_cluster_register_ers_ha_failover_config.stdout is defined
       #      and 'FALSE' in __sap_ha_pacemaker_cluster_register_ers_ha_failover_config.stdout
@@ -272,17 +274,16 @@
       when:
         - __sap_ha_pacemaker_cluster_register_where_ascs.rc == 0
         - __sap_ha_pacemaker_cluster_register_ascs_ha_failover_config.stdout_lines is defined
-        - not ansible_check_mode
       ansible.builtin.debug:
         msg: |
           {{ __sap_ha_pacemaker_cluster_register_ascs_ha_failover_config.stdout_lines }}
+
 
     # HAGetFailoverConfig is not consistent and it can show FALSE on one of nodes
     - name: "SAP HA Pacemaker - (SAP HA Interface) Display HAGetFailoverConfig results on ERS"
       when:
         - __sap_ha_pacemaker_cluster_register_where_ers.rc == 0
         - __sap_ha_pacemaker_cluster_register_ers_ha_failover_config.stdout_lines is defined
-        - not ansible_check_mode
       ansible.builtin.debug:
         msg: |
           {{ __sap_ha_pacemaker_cluster_register_ers_ha_failover_config.stdout_lines }}
@@ -292,7 +293,6 @@
       when:
         - __sap_ha_pacemaker_cluster_register_where_ascs.rc == 0
         - __sap_ha_pacemaker_cluster_register_ascs_ha_check_config.stdout_lines is defined
-        - not ansible_check_mode
       ansible.builtin.debug:
         msg: |
           {{ __sap_ha_pacemaker_cluster_register_ascs_ha_check_config.stdout_lines }}
