@@ -26,12 +26,13 @@
       ansible.builtin.command:
         cmd: crm status
       register: __sap_ha_pacemaker_cluster_crm_status_maint
-      retries: 10
+      retries: "{{ 1 if ansible_check_mode else 10 }}"
       delay: 5
       until:
         '"Resource management is DISABLED" in __sap_ha_pacemaker_cluster_crm_status_maint.stdout'
       changed_when: false
       run_once: true  # noqa: run_once[task]
+      ignore_errors: "{{ ansible_check_mode }}"
 
     - name: "SAP HA Install Pacemaker - Fetch CIB configuration"
       ansible.builtin.command:
