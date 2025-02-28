@@ -17,8 +17,9 @@
       else __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_start_profile_string
       }}"
   throttle: 1
-  retries: 30
-  delay: 10
+  retries: "{{ 1 if ansible_check_mode else 30 }}"
+  delay: "{{ 1 if ansible_check_mode else 10 }}"
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: "SAP HA Pacemaker - (ERS profile) Prevent automatic restart"
   ansible.builtin.replace:
@@ -28,8 +29,9 @@
     replace: 'Start_Program_00'
   # Throttle and retry loop was added to combat NFS write lockups on Azure NFS
   throttle: 1
-  retries: 30
-  delay: 10
+  retries: "{{ 1 if ansible_check_mode else 30 }}"
+  delay: "{{ 1 if ansible_check_mode else 10 }}"
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: "SAP HA Pacemaker - (systemd) Check for (A)SCS/ERS services"
   ansible.builtin.stat:
@@ -137,6 +139,7 @@
       loop: "{{ sap_ha_pacemaker_cluster_instance_service_all_fact }}"
       loop_control:
         loop_var: instance_srv_item
+      ignore_errors: "{{ ansible_check_mode }}"
 
     # Creates a config file for the services.
     # Parent directories will be created when missing.
@@ -151,6 +154,7 @@
       loop: "{{ sap_ha_pacemaker_cluster_instance_service_all_fact }}"
       loop_control:
         loop_var: dropfile_item
+      ignore_errors: "{{ ansible_check_mode }}"
 
     - name: "SAP HA Pacemaker - (systemd) Disable (A)SCS/ERS instance unit auto-restart"
       ansible.builtin.lineinfile:
@@ -164,6 +168,7 @@
       loop: "{{ sap_ha_pacemaker_cluster_instance_service_all_fact }}"
       loop_control:
         loop_var: dropfile_item
+      ignore_errors: "{{ ansible_check_mode }}"
 
 ### END of BLOCK for systemd setup.
 
@@ -190,3 +195,4 @@
       }}"
   when:
     - ansible_os_family == 'RedHat'
+  ignore_errors: "{{ ansible_check_mode }}"
