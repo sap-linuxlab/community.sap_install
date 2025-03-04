@@ -411,19 +411,20 @@ sap_general_preconfigure_kernel_parameters:
 
 The maximum length of the hostname. See SAP note 611361.<br>
 
-### sap_hostname
+### sap_general_preconfigure_hostname
 - _Type:_ `str`
 - _Default:_ `"{{ ansible_hostname }}"`
 
 The hostname to be used for updating or checking `/etc/hosts` entries.<br>
 
-### sap_domain
+### sap_general_preconfigure_domain
 - _Type:_ `str`
 - _Default:_ `"{{ ansible_domain }}"`
 
 The DNS domain name to be used for updating or checking `/etc/hosts` entries.<br>
+Mandatory parameter when sap_general_preconfigure_modify_etc_hosts is set to true.<br>
 
-### sap_ip
+### sap_general_preconfigure_ip
 - _Type:_ `str`
 - _Default:_ `"{{ ansible_default_ipv4.address }}"`
 

@@ -5,6 +5,20 @@
   ansible.builtin.debug:
     var: __sap_general_preconfigure_sapnotes_versions | difference([''])
 
+# Configure /etc/hosts
+- name: Import role sap_maintain_etc_hosts
+  ansible.builtin.import_role:
+    name: '{{ sap_general_preconfigure_sap_install_collection }}.sap_maintain_etc_hosts'
+  vars:
+    sap_maintain_etc_hosts_list:
+      - node_ip: "{{ sap_general_preconfigure_ip }}"
+        node_name: "{{ sap_general_preconfigure_hostname }}"
+        node_domain: "{{ sap_general_preconfigure_domain }}"
+        state: present
+  when: sap_general_preconfigure_modify_etc_hosts
+  tags:
+    - sap_general_preconfigure_etc_hosts
+
 - name: Configure - Include configuration actions for required sapnotes
   ansible.builtin.include_tasks: "sapnote/{{ sap_note_line_item.number }}.yml"
   loop: "{{ __sap_general_preconfigure_sapnotes_versions | difference(['']) }}"
