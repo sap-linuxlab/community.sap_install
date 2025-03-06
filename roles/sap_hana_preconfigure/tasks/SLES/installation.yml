@@ -29,10 +29,21 @@
   when: "'packagekit.service' in ansible_facts.services"
 
 
+# Pattern installation will run only if pattern is not installed
+# This ensures that command module shows correct changed status
+- name: Query installed zypper patterns
+  ansible.builtin.command:
+    cmd: zypper patterns --installed-only
+  register: __sap_hana_preconfigure_register_patterns
+  changed_when: false
+  ignore_errors: true
+
 - name: Ensure that the required zypper patterns are installed
   ansible.builtin.command:
     cmd: zypper install -y -t pattern {{ item }}
   loop: "{{ sap_hana_preconfigure_patterns }}"
+  when: item not in __sap_hana_preconfigure_register_patterns.stdout
+  changed_when: item not in __sap_hana_preconfigure_register_patterns.stdout
 
 - name: Ensure that the required packages are installed
   ansible.builtin.package:
