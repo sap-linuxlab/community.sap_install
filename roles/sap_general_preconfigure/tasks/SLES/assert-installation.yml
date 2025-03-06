@@ -1,6 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+- name: Query installed zypper patterns
+  ansible.builtin.command:
+    cmd: zypper patterns --installed-only
+  register: __sap_general_preconfigure_register_patterns
+  changed_when: false
+  ignore_errors: true
+
+- name: Assert that all required zypper patterns are installed
+  ansible.builtin.assert:
+    that: "'{{ item }}' in __sap_general_preconfigure_register_patterns.stdout"
+    fail_msg: "FAIL: Pattern '{{ item }}' is not installed!"
+    success_msg: "PASS: Pattern '{{ item }}' is installed."
+  loop: "{{ sap_general_preconfigure_patterns }}"
+  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
+
+
 # Both sap_general_preconfigure_packages and __sap_general_preconfigure_min_pkgs are checked at same time.
 # Check rpm --whatprovides only if package cannot be found directly.
 - name: Query RPM packages

@@ -258,7 +258,7 @@ If you set the RHEL minor release, then you must also use the `eus` or `e4s` rep
 - _Type:_ `str`
 - _Default:_ (set by platform/environment specific variables)
 
-The name of the software package group to install.<br>
+(RedHat specific) The name of the software package group to install.<br>
 The default for this parameter is set in the vars file which corresponds to the detected OS version.<br>
 
 Example:
@@ -271,7 +271,7 @@ Example:
 - _Type:_ `str`
 - _Default:_ (set by platform/environment specific variables)
 
-The name of the software environment group to check.<br>
+(RedHat specific) The name of the software environment group to check.<br>
 The default for this parameter is set in the vars file which corresponds to the detected OS version.<br>
 
 Example:
@@ -279,6 +279,13 @@ Example:
 ```yaml
 '@minimal-environment'
 ```
+
+### sap_general_preconfigure_patterns
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+(SUSE specific) The list of the zypper patterns to install.<br>
+The default for this parameter is set in the vars file which corresponds to the detected OS version.<br>
 
 ### sap_general_preconfigure_packages
 - _Type:_ `list` with elements of type `str`
