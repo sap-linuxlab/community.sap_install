@@ -29,6 +29,11 @@
   when: "'packagekit.service' in ansible_facts.services"
 
 
+- name: Ensure that the required zypper patterns are installed
+  ansible.builtin.command:
+    cmd: zypper install -y -t pattern {{ item }}
+  loop: "{{ sap_netweaver_preconfigure_patterns }}"
+
 - name: Ensure that the required packages are installed
   ansible.builtin.package:
     state: present

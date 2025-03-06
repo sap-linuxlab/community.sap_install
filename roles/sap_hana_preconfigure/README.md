@@ -317,6 +317,13 @@ or a list of the minimum required packages for SAP HANA server (parameter `__sap
 SAP HANA requires certain minimum package versions to be supported. These minimum levels are listed in SAP Note 2235581.<br>
 Set this parameter to `false` if you want to ignore these requirements.<br>
 
+### sap_hana_preconfigure_patterns
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+(SUSE specific) The list of the zypper patterns to install.<br>
+The default for this parameter is set in the vars file which corresponds to the detected OS version.<br>
+
 ### sap_hana_preconfigure_update
 - _Type:_ `bool`
 - _Default:_ `false`
@@ -448,6 +455,12 @@ This will replace the current installed version if present, even downgrade if ne
 
 (SUSE specific) Specifies the saptune solution to apply.<br>
 Available values: `HANA`, `NETWEAVER+HANA`, `S4HANA-APP+DB`, `S4HANA-DBSERVER`
+
+### sap_hana_preconfigure_saptune_solution_force
+- _Type:_ `bool`
+- _Default:_ `false`
+
+(SUSE specific) Apply saptune solution regardless if it is already enabled and verified.<br>
 
 ### sap_hana_preconfigure_saptune_azure
 - _Type:_ `bool`
