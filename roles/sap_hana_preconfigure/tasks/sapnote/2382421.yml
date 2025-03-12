@@ -71,7 +71,7 @@
 # in __sap_hana_preconfigure_etc_sysctl_saphana_conf so that the "Reload kernel parameters from file ..." task
 # can correctly report its 'changed' state. See also https://github.com/sap-linuxlab/community.sap_install/issues/752 .
     - name: Construct the command for getting all current parameters of file '{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}'
-      ansible.builtin.command: awk 'BEGIN{FS="="; printf ("sysctl ")}{printf ("%s ", $1)}' "{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}"
+      ansible.builtin.command: awk 'BEGIN{FS="="; printf ("sysctl ")} !/^#/{printf ("%s ", $1)}' "{{ __sap_hana_preconfigure_etc_sysctl_saphana_conf }}"
       register: __sap_hana_preconfigure_register_saphana_conf_sysctl_command
       check_mode: false
       changed_when: false
