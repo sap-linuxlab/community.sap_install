@@ -1,0 +1,121 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+## Try to use saphostctrl to list installed SAP instances
+- name: SAP Instance Checks - Check if saphostctrl is installed
+  ansible.builtin.stat:
+    path: /usr/sap/hostctrl/exe/saphostctrl
+  check_mode: false
+  register: __sap_swpm_register_stat_saphostctrl
+  failed_when: false
+
+- name: SAP Instance Checks - Check with saphostctrl if SAP instances are installed
+  when: __sap_swpm_register_stat_saphostctrl.stat.exists
+  block:
+
+    - name: SAP Instance Checks - Get list of installed SAP instances
+      ansible.builtin.shell: set -o pipefail && /usr/sap/hostctrl/exe/saphostctrl -function ListInstances | cut -d":" -f2-
+      register: __sap_swpm_register_instancelist
+      changed_when: false
+
+    - name: SAP Instance Checks - Display instances
+      ansible.builtin.debug:
+        var: __sap_swpm_register_instancelist.stdout_lines
+        verbosity: 1
+
+    - name: SAP Instance Checks - Desired SAP instance is installed and running
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_is_installed: true
+      when:
+        - __sap_swpm_loop_instance.split('-')[0] | trim == sap_swpm_sid
+        - (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_aas_instance_nr
+            if sap_swpm_aas_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_java_scs_instance_nr
+            if sap_swpm_java_scs_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_pas_instance_nr
+            if sap_swpm_pas_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_ers_instance_nr
+            if sap_swpm_ers_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_aas_instance_nr
+            if sap_swpm_aas_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_ume_instance_nr
+            if sap_swpm_ume_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_wd_instance_nr
+            if sap_swpm_wd_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_wd_backend_rfc_instance_nr
+            if sap_swpm_wd_backend_rfc_instance_nr is defined else False)
+      loop: "{{ __sap_swpm_register_instancelist.stdout_lines }}"
+      loop_control:
+        loop_var: __sap_swpm_loop_instance
+        label: "{{ __sap_swpm_loop_instance.split('-')[0] | trim }} - {{ __sap_swpm_loop_instance.split('-')[1] | trim }}"
+
+    - name: SAP Instance Checks - Trying to install SAP instance with other SID and existing instance number
+      ansible.builtin.fail:
+        msg: "One or more of the desired instance numbers are already used by
+              SAP system {{ __sap_swpm_loop_instance.split('-')[0] | trim }}!"
+      when:
+        - not __sap_swpm_fact_is_installed
+        - __sap_swpm_loop_instance.split('-')[0] | trim != sap_swpm_sid
+        - (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_aas_instance_nr
+            if sap_swpm_aas_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_java_scs_instance_nr
+            if sap_swpm_java_scs_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_pas_instance_nr
+            if sap_swpm_pas_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_ers_instance_nr
+            if sap_swpm_ers_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_aas_instance_nr
+            if sap_swpm_aas_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_ume_instance_nr
+            if sap_swpm_ume_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_wd_instance_nr
+            if sap_swpm_wd_instance_nr is defined else False) or
+          (__sap_swpm_loop_instance.split('-')[1] | trim == sap_swpm_wd_backend_rfc_instance_nr
+            if sap_swpm_wd_backend_rfc_instance_nr is defined else False)
+      loop: "{{ __sap_swpm_register_instancelist.stdout_lines }}"
+      loop_control:
+        loop_var: __sap_swpm_loop_instance
+        label: "{{ __sap_swpm_loop_instance.split('-')[0] | trim }} - {{ __sap_swpm_loop_instance.split('-')[1] | trim }}"
+
+## If saphostcontrol is not installed, we should check for directories and users
+- name: SAP Instance Checks - Check directories if no saphostctrl is found
+  when: not __sap_swpm_register_stat_saphostctrl.stat.exists
+  block:
+
+    - name: SAP Instance Checks - Get status of '/usr/sap/{{ sap_swpm_sid }}'
+      ansible.builtin.stat:
+        path: "/usr/sap/{{ sap_swpm_sid }}"
+      check_mode: false
+      register: __sap_swpm_register_stat_usr_sap_sid_assert
+      failed_when: false
+
+    - name: SAP Instance Checks - Get contents of '/usr/sap/{{ sap_swpm_sid }}'
+      ansible.builtin.find:
+        paths: "/usr/sap/{{ sap_swpm_sid }}"
+        patterns: '*'
+      register: __sap_swpm_register_files_in_usr_sap_sid_assert
+      when: __sap_swpm_register_stat_usr_sap_sid_assert.stat.exists
+
+    - name: SAP Instance Checks - Fail if directory '/usr/sap/{{ sap_swpm_sid }}' exists and is not empty
+      ansible.builtin.fail:
+        msg: "FAIL: Directory '/usr/sap/{{ sap_swpm_sid }}' exists and is not empty!"
+      when:
+        - __sap_swpm_register_stat_usr_sap_sid_assert.stat.exists
+        - __sap_swpm_register_files_in_usr_sap_sid_assert.matched | int != 0
+
+- name: SAP Instance Checks - SAP admin user check
+  when:
+    - not __sap_swpm_fact_is_installed
+  block:
+
+    - name: SAP Instance Checks - Get info about '{{ sap_swpm_sid | lower }}adm' user
+      ansible.builtin.command: getent passwd {{ sap_swpm_sid | lower }}adm
+      check_mode: false
+      register: __sap_swpm_register_getent_passwd_sidadm
+      changed_when: false
+      failed_when: false
+
+    - name: SAP Instance Checks - Fail if the user '{{ sap_swpm_sid | lower }}adm' exists
+      ansible.builtin.fail:
+        msg: "FAIL: User '{{ sap_swpm_sid | lower }}adm' exists!"
+      when: __sap_swpm_register_getent_passwd_sidadm.rc == 0

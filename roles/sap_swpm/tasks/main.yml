@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+- name: SAP SWPM - set fact for installation
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_is_installed: false
+
 - name: SAP SWPM - run pre_install tasks
   ansible.builtin.import_tasks: pre_install.yml
   tags:
@@ -9,10 +13,14 @@
 
 - name: SAP SWPM - run swpm
   ansible.builtin.import_tasks: swpm.yml
-  when: sap_swpm_run_sapinst
+  when:
+    - not __sap_swpm_fact_is_installed
+    - sap_swpm_run_sapinst
   tags:
     - sap_swpm_install
 
 - name: SAP SWPM - run postinstall task
   ansible.builtin.import_tasks: post_install.yml
-  when: sap_swpm_run_sapinst
+  when:
+    - not __sap_swpm_fact_is_installed
+    - sap_swpm_run_sapinst

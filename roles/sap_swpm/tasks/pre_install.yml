@@ -146,89 +146,93 @@
     - sap_swpm_generate_inifile
     - sap_swpm_sapinst_commandline
 
-################
-# Pre Install Optional Tasks
-################
+- name: SAP SWPM Pre Install - Proceed with Further Preinstallation Steps
+  when: not __sap_swpm_fact_is_installed
+  block:
 
-# Firewall
+    ################
+    # Pre Install Optional Tasks
+    ################
 
-- name: SAP SWPM Pre Install - Setup Firewall
-  ansible.builtin.include_tasks:
-    file: pre_install/firewall.yml
-    apply:
+    # Firewall
+
+    - name: SAP SWPM Pre Install - Setup Firewall
+      ansible.builtin.include_tasks:
+        file: pre_install/firewall.yml
+        apply:
+          tags: sap_swpm_setup_firewall
+      when:
+        - sap_swpm_run_sapinst
+        - sap_swpm_setup_firewall
       tags: sap_swpm_setup_firewall
-  when:
-    - sap_swpm_run_sapinst
-    - sap_swpm_setup_firewall
-  tags: sap_swpm_setup_firewall
 
-# /etc/hosts
+    # /etc/hosts
 
-- name: SAP SWPM Pre Install - Update /etc/hosts
-  ansible.builtin.include_tasks:
-    file: pre_install/update_etchosts.yml
-    apply:
+    - name: SAP SWPM Pre Install - Update /etc/hosts
+      ansible.builtin.include_tasks:
+        file: pre_install/update_etchosts.yml
+        apply:
+          tags: sap_swpm_update_etchosts
+      when:
+        - sap_swpm_run_sapinst
+        - sap_swpm_update_etchosts
       tags: sap_swpm_update_etchosts
-  when:
-    - sap_swpm_run_sapinst
-    - sap_swpm_update_etchosts
-  tags: sap_swpm_update_etchosts
 
-################
-# Display Parameters
-################
+    ################
+    # Display Parameters
+    ################
 
-- name: SAP SWPM - Display Software
-  ansible.builtin.debug:
-    msg:
-      - " SAPEXEDB   -   {{ sap_swpm_kernel_dependent_path }}/{{ sap_swpm_kernel_dependent_file_name }} "
-      - " SAPEXE     -   {{ sap_swpm_kernel_independent_path }}/{{ sap_swpm_kernel_independent_file_name }} "
-      - " IGS Helper -   {{ sap_swpm_igs_helper_path }}/{{ sap_swpm_igs_helper_file_name }} "
-      - " IGS        -   {{ sap_swpm_igs_path }}/{{ sap_swpm_igs_file_name }} "
-      - " WEBDISP    -   {{ sap_swpm_web_dispatcher_path }}/{{ sap_swpm_web_dispatcher_file_name }} "
-      - " SAPCAR     -   {{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }} "
-      - " SWPM       -   {{ sap_swpm_swpm_path }}/{{ sap_swpm_swpm_sar_file_name }} "
-      - " MP Stack   -   {{ (sap_swpm_mp_stack_path | d('', true) + '/' + sap_swpm_mp_stack_file_name | d('', true)) | regex_replace('//*', '/') }}"
-      - " Backup     -   {{ sap_swpm_backup_location }} "
+    - name: SAP SWPM - Display Software
+      ansible.builtin.debug:
+        msg:
+          - " SAPEXEDB   -   {{ sap_swpm_kernel_dependent_path }}/{{ sap_swpm_kernel_dependent_file_name }} "
+          - " SAPEXE     -   {{ sap_swpm_kernel_independent_path }}/{{ sap_swpm_kernel_independent_file_name }} "
+          - " IGS Helper -   {{ sap_swpm_igs_helper_path }}/{{ sap_swpm_igs_helper_file_name }} "
+          - " IGS        -   {{ sap_swpm_igs_path }}/{{ sap_swpm_igs_file_name }} "
+          - " WEBDISP    -   {{ sap_swpm_web_dispatcher_path }}/{{ sap_swpm_web_dispatcher_file_name }} "
+          - " SAPCAR     -   {{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }} "
+          - " SWPM       -   {{ sap_swpm_swpm_path }}/{{ sap_swpm_swpm_sar_file_name }} "
+          - " MP Stack   -   {{ (sap_swpm_mp_stack_path | d('', true) + '/' + sap_swpm_mp_stack_file_name | d('', true)) | regex_replace('//*', '/') }}"
+          - " Backup     -   {{ sap_swpm_backup_location }} "
 
-- name: SAP SWPM - Installation Process
-  ansible.builtin.debug:
-    msg:
-      - '   Ready to run SWPM for SAP Software Installation  '
-      - ' '
-      - '   SAP Product        -       {{ sap_swpm_product_catalog_id }}  '
-      - '   SID                -       {{ sap_swpm_sid }} '
-      - '   Host               -       {{ ansible_hostname }} '
-      - ' '
-      - '   The installation can take up to 3 hours. Run the following command as root'
-      - '   on {{ ansible_hostname }} to display the installation logs:'
-      - '   # tail -f $(cat /tmp/sapinst_instdir/.lastInstallationLocation)/sapinst.log'
+    - name: SAP SWPM - Installation Process
+      ansible.builtin.debug:
+        msg:
+          - '   Ready to run SWPM for SAP Software Installation  '
+          - ' '
+          - '   SAP Product        -       {{ sap_swpm_product_catalog_id }}  '
+          - '   SID                -       {{ sap_swpm_sid }} '
+          - '   Host               -       {{ ansible_hostname }} '
+          - ' '
+          - '   The installation can take up to 3 hours. Run the following command as root'
+          - '   on {{ ansible_hostname }} to display the installation logs:'
+          - '   # tail -f $(cat /tmp/sapinst_instdir/.lastInstallationLocation)/sapinst.log'
 
-################
-# Set sapinst command
-################
+    ################
+    # Set sapinst command
+    ################
 
-- name: SAP SWPM Pre Install - Set the sapinst command parameters
-  vars:
-    sap_swpm_swpm_command_guiserver: "{{ 'SAPINST_START_GUISERVER=false' if not sap_swpm_swpm_observer_mode else '' }}"
-    sap_swpm_swpm_command_observer: "{{ 'SAPINST_REMOTE_ACCESS_USER=' + sap_swpm_swpm_remote_access_user + ' SAPINST_REMOTE_ACCESS_USER_IS_TRUSTED=true' if sap_swpm_swpm_observer_mode and sap_swpm_swpm_remote_access_user | d('', true) | length > 0 else '' }}"
-  ansible.builtin.set_fact:
-    sap_swpm_swpm_command_inifile: "SAPINST_INPUT_PARAMETERS_URL={{ sap_swpm_tmpdir.path }}/inifile.params"
-    sap_swpm_swpm_command_product_id: "SAPINST_EXECUTE_PRODUCT_ID={{ sap_swpm_product_catalog_id }}"
-    # If SWPM is running a normal install Ansible Variable sap_swpm_swpm_command_virtual_hostname is blank
-    # IF SWPM is running a HA installation, Ansible Variable sap_swpm_swpm_command_virtual_hostname is set and contains "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }} IS_HOST_LOCAL_USING_STRING_COMPARE=true"
-    # If SWPM is running a MP Stack XML installation, Ansible Variable sap_swpm_swpm_command_mp_stack is set and contains "SAPINST_STACK_XML={{ sap_swpm_mp_stack_path }} + '/' (if needed) + {{ sap_swpm_mp_stack_file_name }}"
-    sap_swpm_swpm_command_extra_args: "SAPINST_SKIP_DIALOGS=true {{ sap_swpm_swpm_command_guiserver }} {{ sap_swpm_swpm_command_observer }} {{ sap_swpm_swpm_command_virtual_hostname }} {{ sap_swpm_swpm_command_mp_stack }}"
-  tags: sap_swpm_sapinst_commandline
+    - name: SAP SWPM Pre Install - Set the sapinst command parameters
+      vars:
+        sap_swpm_swpm_command_guiserver: "{{ 'SAPINST_START_GUISERVER=false' if not sap_swpm_swpm_observer_mode else '' }}"
+        sap_swpm_swpm_command_observer: "{{ 'SAPINST_REMOTE_ACCESS_USER=' + sap_swpm_swpm_remote_access_user + ' SAPINST_REMOTE_ACCESS_USER_IS_TRUSTED=true' if sap_swpm_swpm_observer_mode and sap_swpm_swpm_remote_access_user | d('', true) | length > 0 else '' }}"
+      ansible.builtin.set_fact:
+        sap_swpm_swpm_command_inifile: "SAPINST_INPUT_PARAMETERS_URL={{ sap_swpm_tmpdir.path }}/inifile.params"
+        sap_swpm_swpm_command_product_id: "SAPINST_EXECUTE_PRODUCT_ID={{ sap_swpm_product_catalog_id }}"
+        # If SWPM is running a normal install Ansible Variable sap_swpm_swpm_command_virtual_hostname is blank
+        # IF SWPM is running a HA installation, Ansible Variable sap_swpm_swpm_command_virtual_hostname is set and contains "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }} IS_HOST_LOCAL_USING_STRING_COMPARE=true"
+        # If SWPM is running a MP Stack XML installation, Ansible Variable sap_swpm_swpm_command_mp_stack is set and contains "SAPINST_STACK_XML={{ sap_swpm_mp_stack_path }} + '/' (if needed) + {{ sap_swpm_mp_stack_file_name }}"
+        sap_swpm_swpm_command_extra_args: "SAPINST_SKIP_DIALOGS=true {{ sap_swpm_swpm_command_guiserver }} {{ sap_swpm_swpm_command_observer }} {{ sap_swpm_swpm_command_virtual_hostname }} {{ sap_swpm_swpm_command_mp_stack }}"
+      tags: sap_swpm_sapinst_commandline
 
-- name: Set fact for the sapinst command line
-  ansible.builtin.set_fact:
-    __sap_swpm_sapinst_command: "umask {{ sap_swpm_umask | d('022') }} ; ./sapinst {{ sap_swpm_swpm_command_inifile }}
-    {{ sap_swpm_swpm_command_product_id }}
-    {{ sap_swpm_swpm_command_extra_args }}"
-  tags: sap_swpm_sapinst_commandline
+    - name: Set fact for the sapinst command line
+      ansible.builtin.set_fact:
+        __sap_swpm_sapinst_command: "umask {{ sap_swpm_umask | d('022') }} ; ./sapinst {{ sap_swpm_swpm_command_inifile }}
+        {{ sap_swpm_swpm_command_product_id }}
+        {{ sap_swpm_swpm_command_extra_args }}"
+      tags: sap_swpm_sapinst_commandline
 
-- name: Display the sapinst command line
-  ansible.builtin.debug:
-    msg: "SAP SWPM install command: '{{ __sap_swpm_sapinst_command }}'"
-  tags: sap_swpm_sapinst_commandline
+    - name: Display the sapinst command line
+      ansible.builtin.debug:
+        msg: "SAP SWPM install command: '{{ __sap_swpm_sapinst_command }}'"
+      tags: sap_swpm_sapinst_commandline
