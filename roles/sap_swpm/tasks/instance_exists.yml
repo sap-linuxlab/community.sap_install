@@ -108,14 +108,15 @@
     - not __sap_swpm_fact_is_installed
   block:
 
-    - name: SAP Instance Checks - Get info about '{{ sap_swpm_sid | lower }}adm' user
-      ansible.builtin.command: getent passwd {{ sap_swpm_sid | lower }}adm
-      check_mode: false
+# Note: register only needed to populate ansible_facts.getent_passwd
+    - name: SAP Instance Checks - Get info about '{{ __sap_swpm_fact_sidadm }}' user
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ __sap_swpm_fact_sidadm }}"
+        fail_key: false
       register: __sap_swpm_register_getent_passwd_sidadm
-      changed_when: false
-      failed_when: false
 
-    - name: SAP Instance Checks - Fail if the user '{{ sap_swpm_sid | lower }}adm' exists
+    - name: SAP Instance Checks - Fail if the user '{{ __sap_swpm_fact_sidadm }}' exists
       ansible.builtin.fail:
-        msg: "FAIL: User '{{ sap_swpm_sid | lower }}adm' exists!"
-      when: __sap_swpm_register_getent_passwd_sidadm.rc == 0
+        msg: "FAIL: User {{ __sap_swpm_fact_sidadm }} exists!"
+      when: getent_passwd[__sap_swpm_fact_sidadm] is defined and getent_passwd[__sap_swpm_fact_sidadm]
