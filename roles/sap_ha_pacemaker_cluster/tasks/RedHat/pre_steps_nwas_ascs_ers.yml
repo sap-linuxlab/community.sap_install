@@ -12,6 +12,7 @@
           dnf info resource-agents-sap | awk '/^Version/ {print $3}' | sort | tail -n1
       register: __sap_ha_pacemaker_cluster_sapstartsrv_check
       changed_when: false
+      check_mode: false
       failed_when: false
 
     - name: "SAP HA Prepare Pacemaker - Disable Simple Mount when min. package version is not available"
@@ -20,4 +21,5 @@
       when:
         - sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount | bool
         - __sap_ha_pacemaker_cluster_sapstartsrv_check.stdout is defined
+        - __sap_ha_pacemaker_cluster_sapstartsrv_check.stdout | length > 0
         - "(__sap_ha_pacemaker_cluster_sapstartsrv_check.stdout) is version(__sap_ha_pacemaker_cluster_nwas_simple_mount_version, '<')"

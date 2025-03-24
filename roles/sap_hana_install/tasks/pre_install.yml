@@ -34,18 +34,22 @@
 # Otherwise, the installation of SAP HANA will fail
 ################
 
-- name: SAP HANA Pre Install, fapolicyd - Gather package facts
-  ansible.builtin.package_facts:
-  tags: sap_hana_install_use_fapolicyd
-
-- name: SAP HANA Pre Install, fapolicyd - Disable fapolicyd
-  ansible.builtin.service:
-    name: fapolicyd
-    enabled: false
-    state: stopped
+- name: SAP HANA Pre Install, fapolicyd - Block to disable fapolicyd
   when:
-    - '"fapolicyd" in ansible_facts.packages'
+    # Ensure fapolicyd is checked only on supported systems.
+    - ansible_os_family == "RedHat"
   tags: sap_hana_install_use_fapolicyd
+  block:
+    - name: SAP HANA Pre Install, fapolicyd - Gather package facts
+      ansible.builtin.package_facts:
+
+    - name: SAP HANA Pre Install, fapolicyd - Disable fapolicyd
+      ansible.builtin.service:
+        name: fapolicyd
+        enabled: false
+        state: stopped
+      when:
+        - '"fapolicyd" in ansible_facts.packages'
 
 ################
 # Prepare software path

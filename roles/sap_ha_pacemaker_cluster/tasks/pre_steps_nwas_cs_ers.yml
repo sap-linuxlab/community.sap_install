@@ -1,0 +1,198 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+# Preconfiguration tasks for NWAS (A)SCS/ERS servers.
+# These tasks are run before the cluster setup.
+
+- name: "SAP HA Pacemaker - ((A)SCS profile) Prevent automatic restart of enqueue server"
+  ansible.builtin.replace:
+    path: "{{ __task_cs_sapinstance_start_profile_string }}"
+    backup: true
+    regexp: 'Restart_Program_01'
+    replace: 'Start_Program_01'
+  # Throttle and retry loop was added to combat NFS write lockups on Azure NFS
+  vars:
+    __task_cs_sapinstance_start_profile_string: "{{
+      __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_start_profile_string
+      if 'nwas_java_scs_ers' in sap_ha_pacemaker_cluster_host_type
+      else __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_start_profile_string
+      }}"
+  throttle: 1
+  retries: "{{ 1 if ansible_check_mode else 30 }}"
+  delay: "{{ 1 if ansible_check_mode else 10 }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: "SAP HA Pacemaker - (ERS profile) Prevent automatic restart"
+  ansible.builtin.replace:
+    path: "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string }}"
+    backup: true
+    regexp: 'Restart_Program_00'
+    replace: 'Start_Program_00'
+  # Throttle and retry loop was added to combat NFS write lockups on Azure NFS
+  throttle: 1
+  retries: "{{ 1 if ansible_check_mode else 30 }}"
+  delay: "{{ 1 if ansible_check_mode else 10 }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: "SAP HA Pacemaker - (systemd) Check for (A)SCS/ERS services"
+  ansible.builtin.stat:
+    path: "/etc/systemd/system/SAP{{ __sap_ha_pacemaker_cluster_nwas_sid }}_{{ systemd_item }}.service"
+  loop:
+    - "{{ __task_cs_instance_nr }}"
+    - "{{ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr }}"
+  loop_control:
+    loop_var: systemd_item
+    label: "SAP{{ __sap_ha_pacemaker_cluster_nwas_sid }}_{{ systemd_item }}.service"
+  vars:
+    __task_cs_instance_nr: "{{
+      __sap_ha_pacemaker_cluster_nwas_scs_instance_nr
+      if 'nwas_java_scs_ers' in sap_ha_pacemaker_cluster_host_type
+      else __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr
+      }}"
+  register: __sap_ha_pacemaker_cluster_register_instance_service
+
+- name: "SAP HA Pacemaker - (systemd) Save found (A)SCS/ERS services"
+  ansible.builtin.set_fact:
+    sap_ha_pacemaker_cluster_instance_service_node_fact: "{{
+      __sap_ha_pacemaker_cluster_register_instance_service.results
+      | selectattr('stat.exists')
+      | map(attribute='stat.path')
+      | regex_replace('/etc/systemd/system/', '')
+      }}"
+
+- name: "SAP HA Pacemaker - (systemd) Combine instance services from all nodes"
+  ansible.builtin.set_fact:
+    sap_ha_pacemaker_cluster_instance_service_all_fact: "{{
+      (sap_ha_pacemaker_cluster_instance_service_all_fact | d([])
+      + hostvars[task_host_item].sap_ha_pacemaker_cluster_instance_service_node_fact)
+      | unique
+      }}"
+  loop: "{{ ansible_play_hosts }}"
+  loop_control:
+    loop_var: task_host_item
+
+
+# BLOCK:
+# When the systemd based SAP startup framework is used, make sure that
+# 1. the instance services do not auto-start
+# 2. the SAP instance service units are registered and present on all hosts
+- name: "SAP HA Pacemaker - Block to handle SAP service systemd configuration"
+  when:
+    # At least one systemd service should be found across all nodes,
+    # to consider the setup "systemd enabled" and proceed with the
+    # systemd related configuration.
+    - sap_ha_pacemaker_cluster_instance_service_all_fact is defined
+    - sap_ha_pacemaker_cluster_instance_service_all_fact | length > 0
+  block:
+
+    # After the installation, the systemd units are only configured on the node
+    # they were first installed on.
+    # The registration ensures that
+    # - systemd units for both instances are configured
+    # - the 'sapstartsrv' file contains both start commands
+
+    - name: "SAP HA Pacemaker - (systemd) Register (A)SCS/ERS instances on partner node"
+      ansible.builtin.shell: |
+        export LD_LIBRARY_PATH=/usr/sap/hostctrl/exe:$LD_LIBRARY_PATH
+        /usr/sap/hostctrl/exe/sapstartsrv pf={{ reg_item }} -reg
+      vars:
+        __task_cs_sapinstance_start_profile_string: "{{
+          __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_start_profile_string
+          if 'nwas_java_scs_ers' in sap_ha_pacemaker_cluster_host_type
+          else __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_start_profile_string
+          }}"
+        __task_cs_instance_nr: "{{
+          __sap_ha_pacemaker_cluster_nwas_scs_instance_nr
+          if 'nwas_java_scs_ers' in sap_ha_pacemaker_cluster_host_type
+          else __sap_ha_pacemaker_cluster_nwas_ascs_instance_nr
+          }}"
+      loop:
+        - "{{ __task_cs_sapinstance_start_profile_string }}"
+        - "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string }}"
+      loop_control:
+        loop_var: reg_item
+      when:
+        # <SID> and CS <nr> are both in the looped profile (reg_item)
+        # and "SAP<SID>_<nr>.service" (CS) are missing in local systemd services list
+        # or
+        # <SID> and ERS <nr> are both in the looped profile (reg_item)
+        # and "SAP<SID>_<nr>.service" (ERS) are missing in the local systemd services list
+        - (__sap_ha_pacemaker_cluster_nwas_sid in reg_item
+          and __task_cs_instance_nr in reg_item
+          and ('SAP' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_' ~ __task_cs_instance_nr ~ '.service')
+          in
+          (sap_ha_pacemaker_cluster_instance_service_all_fact
+          | difference(sap_ha_pacemaker_cluster_instance_service_node_fact)))
+          or
+          (__sap_ha_pacemaker_cluster_nwas_sid in reg_item
+          and __sap_ha_pacemaker_cluster_nwas_ers_instance_nr in reg_item
+          and ('SAP' ~ __sap_ha_pacemaker_cluster_nwas_sid ~ '_' ~ __sap_ha_pacemaker_cluster_nwas_ers_instance_nr ~ '.service')
+          in
+          (sap_ha_pacemaker_cluster_instance_service_all_fact
+          | difference(sap_ha_pacemaker_cluster_instance_service_node_fact)))
+      changed_when: true
+
+
+    - name: "SAP HA Pacemaker - (systemd) Disable (A)SCS/ERS instance service"
+      ansible.builtin.service:
+        name: "{{ instance_srv_item }}"
+        enabled: false
+      loop: "{{ sap_ha_pacemaker_cluster_instance_service_all_fact }}"
+      loop_control:
+        loop_var: instance_srv_item
+      ignore_errors: "{{ ansible_check_mode }}"
+
+    # Creates a config file for the services.
+    # Parent directories will be created when missing.
+    - name: "SAP HA Pacemaker - (systemd) Create (A)SCS/ERS instance unit config file"
+      ansible.builtin.lineinfile:
+        create: true
+        path: "/etc/systemd/system/{{ dropfile_item }}.d/HA.conf"
+        line: "[Service]"
+        owner: root
+        group: root
+        mode: '0644'
+      loop: "{{ sap_ha_pacemaker_cluster_instance_service_all_fact }}"
+      loop_control:
+        loop_var: dropfile_item
+      ignore_errors: "{{ ansible_check_mode }}"
+
+    - name: "SAP HA Pacemaker - (systemd) Disable (A)SCS/ERS instance unit auto-restart"
+      ansible.builtin.lineinfile:
+        path: "/etc/systemd/system/{{ dropfile_item }}.d/HA.conf"
+        regex: '^Restart\s*=\s*no'
+        insertafter: '^[Service]$'
+        line: "Restart=no"
+        owner: root
+        group: root
+        mode: '0644'
+      loop: "{{ sap_ha_pacemaker_cluster_instance_service_all_fact }}"
+      loop_control:
+        loop_var: dropfile_item
+      ignore_errors: "{{ ansible_check_mode }}"
+
+### END of BLOCK for systemd setup.
+
+
+# Comment out lines in /usr/sap/sapservices, which
+# - contain the target instance profile names
+# - are not commented out yet
+- name: "SAP HA Pacemaker - Update /usr/sap/sapservices"
+  ansible.builtin.replace:
+    path: /usr/sap/sapservices
+    backup: true
+    regexp: '^(?!#)(.*{{ sapserv_item }}.*)$'
+    replace: '# \1'
+  loop:
+    - "{{ __task_cs_instance_name }}"
+    - "{{ __sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name }}"
+  loop_control:
+    loop_var: sapserv_item
+  vars:
+    __task_cs_instance_name: "{{
+      __sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name
+      if 'nwas_java_scs_ers' in sap_ha_pacemaker_cluster_host_type
+      else __sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name
+      }}"
+  when:
+    - ansible_os_family == 'RedHat'
+  ignore_errors: "{{ ansible_check_mode }}"

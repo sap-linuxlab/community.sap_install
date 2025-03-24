@@ -122,6 +122,13 @@ This is useful if the role is used for reporting a system's SAP notes compliance
 The list of packages to be installed for SAP NETWEAVER.<br>
 The default for this variable is set in the vars file which corresponds to the detected OS version.<br>
 
+### sap_netweaver_preconfigure_patterns
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+(SUSE specific) The list of the zypper patterns to install.<br>
+The default for this parameter is set in the vars file which corresponds to the detected OS version.<br>
+
 ### sap_netweaver_preconfigure_min_swap_space_mb
 - _Type:_ `str`
 - _Default:_ `20480`
@@ -163,4 +170,10 @@ Set this parameter to `true` when using Adobe Document Services, to ensure all r
 
 (SUSE specific) Specifies the saptune solution to apply.<br>
 Available values: `NETWEAVER`, `NETWEAVER+HANA`, `S4HANA-APP+DB`, `S4HANA-APPSERVER`, `S4HANA-DBSERVER`
+
+### sap_netweaver_preconfigure_saptune_solution_force
+- _Type:_ `bool`
+- _Default:_ `false`
+
+(SUSE specific) Apply saptune solution regardless if it is already enabled and verified.<br>
 <!-- END Role Variables -->

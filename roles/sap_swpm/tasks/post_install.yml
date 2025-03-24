@@ -57,3 +57,13 @@
     - __sap_swpm_post_install_register_hdbuserstore_exists.stat.exists
   register: __sap_swpm_post_install_register_hdbuserstore_connection
   changed_when: __sap_swpm_post_install_register_hdbuserstore_connection is succeeded
+
+# Now that SWPM finished we may need to deal with SUM before continuing when sap_swpm_sum_start: 'true'
+# and if we are doing OneHost or CI/PAS installation
+# If observer mode is enabled, SWPM will wait for SUM to finish before continuing so we can't do anything here
+- name: SAP SWPM Post Install - Control SUM if required
+  ansible.builtin.include_tasks: post_install/sum_push_to_finish.yml
+  when:
+    - sap_swpm_sum_start
+    - not sap_swpm_swpm_observer_mode
+    - "'NW_ABAP_CI:' in sap_swpm_product_catalog_id or 'NW_ABAP_OneHost:' in sap_swpm_product_catalog_id"

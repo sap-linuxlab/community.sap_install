@@ -44,6 +44,7 @@
     mode: '0644'
   when:
     - not __sap_ha_pacemaker_cluster_register_haproxy_template.stat.exists
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: "SAP HA Install Pacemaker - IBM Cloud VS - Update haproxy service template description"
   ansible.builtin.lineinfile:
@@ -54,6 +55,7 @@
     state: present
     insertafter: '^[Unit]$'
   notify: "systemd daemon-reload"
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: "SAP HA Install Pacemaker - IBM Cloud VS - Update haproxy service template"
   ansible.builtin.replace:
@@ -76,6 +78,7 @@
     loop_var: replace_item
     label: "{{ replace_item.label }}"
   notify: "systemd daemon-reload"
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: "SAP HA Install Pacemaker - IBM Cloud VS - Define healthcheck details for HANA"
   ansible.builtin.set_fact:
@@ -199,3 +202,4 @@
     name: haproxy
     state: started
     enabled: false # Do not start on boot
+  ignore_errors: "{{ ansible_check_mode }}"

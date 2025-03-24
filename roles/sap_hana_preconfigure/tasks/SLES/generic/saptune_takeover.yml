@@ -62,29 +62,6 @@
       changed_when: false
 
 
-- name: Check active saptune solution
-  when:
-    - __sap_hana_preconfigure_use_saptune
-    - __sap_hana_preconfigure_register_saptune_check_before.rc == 0
-      or (__sap_hana_preconfigure_register_saptune_check_after.rc == 0)
-  block:
-    - name: Discover active solution
-      ansible.builtin.command:
-        cmd: saptune solution enabled
-      register: __sap_hana_preconfigure_register_saptune_status
-      changed_when: false
-
-    - name: Set fact for active solution
-      ansible.builtin.set_fact:
-        # Capture the first block on none whitespace
-        __sap_hana_preconfigure_register_solution_configured:
-          "{{ (__sap_hana_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}"
-
-    - name: Show configured solution
-      ansible.builtin.debug:
-        var: __sap_hana_preconfigure_register_solution_configured
-
-
 - name: Enable sapconf
   when: not __sap_hana_preconfigure_use_saptune
   block:

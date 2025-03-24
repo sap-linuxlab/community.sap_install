@@ -14,7 +14,7 @@ The Ansible role `sap_hana_install` installs SAP HANA using the SAP HANA databas
     - Roles:
         - `selinux`
 
-Install required collections by `ansible-galaxy install -vv -r meta/collection-requirements.yml`.
+Install required collections by `ansible-galaxy collection install -vv -r meta/collection-requirements.yml`.
 <!-- END Dependencies -->
 
 ## Prerequisites

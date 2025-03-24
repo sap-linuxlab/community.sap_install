@@ -62,27 +62,29 @@
       changed_when: false
 
 
-- name: Check active saptune solution
+- name: Block to show current enabled saptune solution
   when:
     - __sap_general_preconfigure_use_saptune
     - __sap_general_preconfigure_register_saptune_check_before.rc == 0
       or (__sap_general_preconfigure_register_saptune_check_after.rc == 0)
   block:
-    - name: Discover active solution
+    - name: Get current enabled saptune solution
       ansible.builtin.command:
         cmd: saptune solution enabled
-      register: __sap_general_preconfigure_register_saptune_status
+      register: __sap_general_preconfigure_register_saptune_enabled
       changed_when: false
+      failed_when: false
 
-    - name: Set fact for active solution
+    # Enabled solution contains newline, which has to be removed
+    - name: Cleanup saptune solution enabled output
       ansible.builtin.set_fact:
-        # Capture the first block on none whitespace
-        __sap_general_preconfigure_register_solution_configured:
-          "{{ (__sap_general_preconfigure_register_saptune_status.stdout | regex_search('(\\S+)', '\\1'))[0] | default('NONE') }}"
+        __sap_general_preconfigure_register_saptune_enabled_trim:
+          "{{ __sap_general_preconfigure_register_saptune_enabled.stdout | trim | replace('\n', '') }}"
 
-    - name: Show configured solution
+    - name: Show current enabled saptune solution
       ansible.builtin.debug:
-        var: __sap_general_preconfigure_register_solution_configured
+        msg: "{{ __sap_general_preconfigure_register_saptune_enabled_trim }}"
+      when: __sap_general_preconfigure_register_saptune_enabled_trim != ''
 
 
 - name: Enable sapconf

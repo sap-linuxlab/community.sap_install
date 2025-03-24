@@ -19,7 +19,7 @@ Specific installation and configuration steps then have to be performed with the
     - Roles:
         - `sap_maintain_etc_hosts`
 
-Install required collections by `ansible-galaxy install -vv -r meta/collection-requirements.yml`.
+Install required collections by `ansible-galaxy collection install -vv -r meta/collection-requirements.yml`.
 <!-- END Dependencies -->
 
 <!-- BEGIN Prerequisites -->
@@ -258,7 +258,7 @@ If you set the RHEL minor release, then you must also use the `eus` or `e4s` rep
 - _Type:_ `str`
 - _Default:_ (set by platform/environment specific variables)
 
-The name of the software package group to install.<br>
+(RedHat specific) The name of the software package group to install.<br>
 The default for this parameter is set in the vars file which corresponds to the detected OS version.<br>
 
 Example:
@@ -271,7 +271,7 @@ Example:
 - _Type:_ `str`
 - _Default:_ (set by platform/environment specific variables)
 
-The name of the software environment group to check.<br>
+(RedHat specific) The name of the software environment group to check.<br>
 The default for this parameter is set in the vars file which corresponds to the detected OS version.<br>
 
 Example:
@@ -279,6 +279,13 @@ Example:
 ```yaml
 '@minimal-environment'
 ```
+
+### sap_general_preconfigure_patterns
+- _Type:_ `list` with elements of type `str`
+- _Default:_ (set by platform/environment specific variables)
+
+(SUSE specific) The list of the zypper patterns to install.<br>
+The default for this parameter is set in the vars file which corresponds to the detected OS version.<br>
 
 ### sap_general_preconfigure_packages
 - _Type:_ `list` with elements of type `str`
@@ -411,19 +418,20 @@ sap_general_preconfigure_kernel_parameters:
 
 The maximum length of the hostname. See SAP note 611361.<br>
 
-### sap_hostname
+### sap_general_preconfigure_hostname
 - _Type:_ `str`
 - _Default:_ `"{{ ansible_hostname }}"`
 
 The hostname to be used for updating or checking `/etc/hosts` entries.<br>
 
-### sap_domain
+### sap_general_preconfigure_domain
 - _Type:_ `str`
 - _Default:_ `"{{ ansible_domain }}"`
 
 The DNS domain name to be used for updating or checking `/etc/hosts` entries.<br>
+Mandatory parameter when sap_general_preconfigure_modify_etc_hosts is set to true.<br>
 
-### sap_ip
+### sap_general_preconfigure_ip
 - _Type:_ `str`
 - _Default:_ `"{{ ansible_default_ipv4.address }}"`
 
