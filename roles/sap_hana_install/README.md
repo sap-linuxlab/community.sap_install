@@ -263,7 +263,7 @@ in a temporary directory for use by the hdblcm command in the next step.
     - name: Execute Ansible Role sap_hana_install
       ansible.builtin.include_role:
         name: community.sap_install.sap_hana_install
-      vars:  
+      vars:
         sap_hana_install_software_directory: /software/hana
         sap_hana_install_common_master_password: 'NewPass$321'
         sap_hana_install_sid: 'H01'
@@ -280,7 +280,7 @@ in a temporary directory for use by the hdblcm command in the next step.
     - name: Execute Ansible Role sap_hana_install
       ansible.builtin.include_role:
         name: community.sap_install.sap_hana_install
-      vars:  
+      vars:
         sap_hana_install_software_directory: /software/hana
         sap_hana_install_common_master_password: 'NewPass$321'
         sap_hana_install_root_password: 'NewPass$321'
@@ -299,7 +299,7 @@ in a temporary directory for use by the hdblcm command in the next step.
     - name: Execute Ansible Role sap_hana_install
       ansible.builtin.include_role:
         name: community.sap_install.sap_hana_install
-      vars:  
+      vars:
         sap_hana_install_software_directory: /software/hana
         sap_hana_install_new_system: no
         sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02'
@@ -363,7 +363,7 @@ With the following tags, the role can be called to perform certain activities on
   ansible-playbook sap-hana-install.yml --tags=sap_hana_install_prepare_sarfiles --skip-tags=sap_hana_install_extract_sarfiles
   ```
 
-  #### Display SAP HANA hdblcm command without using it 
+  #### Display SAP HANA hdblcm command without using it
   ```
   ansible-playbook sap-hana-install.yml --tags=sap_hana_install_hdblcm_commandline
   ```
@@ -374,11 +374,23 @@ With the following tags, the role can be called to perform certain activities on
 
 <!-- BEGIN Further Information -->
 ## Further Information
-- Starting with SAP HANA 2.0 SPS08, the component LSS (Local Secure Store) will be installed by default
-when installing SAP HANA. This requires the installation execution mode to be set to 'optimized', which is
-now set in the file `defaults/main.yml`.
+- ### Local Secure Store (LSS)
+  Starting with SAP HANA 2.0 SPS08, the LSS component is installed by default when installing SAP HANA. This role will install all components (including LSS) and the installation will use default values.
+  - If you don't want to install LSS, the simplest way is to set parameter `sap_hana_install_components: 'server'` (the default is `all`).
+  - If you want to install LSS, check/set the following parameters and adjust accordingly as the defaults may not be suitable (list below shows the default values hdblcm will use):
+    ```
+    sap_hana_insall_lss_inst_path: /lss/shared
+    sap_hana_insall_lss_user_password: ''
+    sap_hana_insall_lss_userid: ''
+    sap_hana_insall_lss_groupid: ''
+    sap_hana_insall_lss_user_home: /usr/sap/${SID}/lss/home
+    sap_hana_insall_lss_user_shell: /bin/sh
+    sap_hana_insall_lss_backup_password: ''
+    sap_hana_install_secure_store: localsecurestore
+    ```
 
-- For more examples on how to use this role in different installation scenarios, refer to the [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
+- ### Additional examples
+  For more examples on how to use this role in different installation scenarios, refer to the [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
 <!-- END Further Information -->
 
 ## License
