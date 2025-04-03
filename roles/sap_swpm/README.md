@@ -9,12 +9,6 @@ The Ansible role `sap_swpm` installs various SAP Systems installable by SAP Soft
 <!-- END Description -->
 
 <!-- BEGIN Dependencies -->
-## Dependencies
-- `fedora.linux_system_roles`
-    - Roles:
-        - `selinux`
-
-Install required collections by `ansible-galaxy collection install -vv -r meta/collection-requirements.yml`.
 <!-- END Dependencies -->
 
 ## Prerequisites
