@@ -14,7 +14,7 @@ The Ansible role `sap_swpm` installs various SAP Systems installable by SAP Soft
 ## Prerequisites
 <!-- BEGIN Prerequisites -->
 Managed nodes:
-- Directory with SAP Installation media is present and `sap_swpm_software_path` updated. Download can be completed using [community.sap_launchpad](https://github.com/sap-linuxlab/community).
+- Directory with SAP Installation media is present and `sap_swpm_software_path` updated. Download can be completed using [community.sap_launchpad](https://github.com/sap-linuxlab/community.sap_launchpad).
 - Ensure that servers are configured for SAP Systems. See [Recommended](#recommended) section.
 - Ensure that volumes and filesystems are configured correctly. See [Recommended](#recommended) section.
 
