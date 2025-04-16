@@ -433,6 +433,14 @@ Available values: `none`, `size`, `sha256`, `ima`.
 Set to `False` to install SAP HANA even if the `sidadm` user exists.</br>
 Default is `True`, in which case the installation will not be performed if the `sidadm` user exists.
 
+### sap_hana_install_set_sidadm_noexpire
+
+- _Type:_ `bool`
+- _Default:_ `true`
+
+Set to `true` to ensure the SAP system user `{{ sap_hana_install_sid | lower }}adm` is configured with a non-expiring password.
+Set to `false` to skip this step — typically done when the user is managed by a central identity provider (e.g. Active Directory or LDAP).
+
 ### sap_hana_install_new_system
 
 - _Type:_ `bool`
