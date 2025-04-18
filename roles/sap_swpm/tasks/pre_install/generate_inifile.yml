@@ -25,10 +25,10 @@
         msg: "INFO: Using existing sapinst inifile '{{ sap_swpm_inifile_directory }}/inifile.params'."
 
 #    - name: SAP SWPM Pre Install, existing inifile - Copy 'inifile.params' to the control node
-    - name: SAP SWPM Pre Install, existing inifile - Copy 'inifile.params' to sap_swpm_tmpdir
+    - name: SAP SWPM Pre Install, existing inifile - Copy 'inifile.params' to __sap_swpm_register_tmpdir
       ansible.builtin.copy:
         src: "{{ sap_swpm_inifile_directory }}/inifile.params"
-        dest: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+        dest: "{{ __sap_swpm_register_tmpdir.path }}/inifile.params"
         owner: 'root'
         group: 'root'
         mode: '0640'
@@ -36,7 +36,7 @@
 # Now we need to confirm that des25 is not in the inifile
     - name: SAP SWPM Pre Install, existing inifile - Search inifile for des25
       ansible.builtin.shell: |
-        set -o pipefail && awk 'BEGIN{a=0}!/^#/&&/des25\(/{a++}END{print a}' {{ sap_swpm_tmpdir.path }}/inifile.params
+        set -o pipefail && awk 'BEGIN{a=0}!/^#/&&/des25\(/{a++}END{print a}' {{ __sap_swpm_register_tmpdir.path }}/inifile.params
       register: sap_swpm_inifile_count_des25
       changed_when: false
 
@@ -122,7 +122,7 @@
     - name: SAP SWPM Pre Install, create inifile - Process SWPM inifile template for creating 'inifile.params'
       ansible.builtin.template:
         src: "{{ role_path }}/templates/inifile_params.j2"
-        dest: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+        dest: "{{ __sap_swpm_register_tmpdir.path }}/inifile.params"
         owner: 'root'
         group: 'root'
         mode: '0640'
@@ -139,7 +139,7 @@
 
         - name: SAP SWPM Pre Install, create inifile - Configure entries in 'inifile.params' from 'sap_swpm_inifile_parameters_dict'
           ansible.builtin.lineinfile:
-            path: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+            path: "{{ __sap_swpm_register_tmpdir.path }}/inifile.params"
             create: true
             state: present
             line: "{{ sap_swpm_line_item.key }} = {{ sap_swpm_line_item.value }}"
