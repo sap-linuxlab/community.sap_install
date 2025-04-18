@@ -72,6 +72,8 @@ Note: For most scenarios, a database like SAP HANA must be available. Use the ro
 
 - (Optional) Update `/etc/hosts` if `sap_swpm_update_etchosts` is set to `true` (Default: `false`).
 
+- (Optional) Do not disable password expiry if `sap_swpm_set_sidadm_noexpire` is set to `false` (Default: `true`).
+
 - (Optional) Apply firewall rules for SAP HANA if `sap_swpm_setup_firewall` is set to `true` (Default: `false`).
 
 - At this stage, the role is searching for a sapinst inifile on the managed node, or it will create one:
