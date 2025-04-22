@@ -5,7 +5,7 @@
   ansible.builtin.tempfile:
     state: directory
     suffix: _swpm_config
-  register: sap_swpm_tmpdir
+  register: __sap_swpm_register_tmpdir
   tags:
     - sap_swpm_sapinst_commandline
     - sap_swpm_generate_inifile
@@ -14,7 +14,7 @@
 - name: SAP SWPM Pre Install - Copy password file to the same location as inifile.params
   ansible.builtin.copy:
     src: "{{ sap_swpm_password_file_path }}/instkey.pkey"
-    dest: "{{ sap_swpm_tmpdir.path }}/instkey.pkey"
+    dest: "{{ __sap_swpm_register_tmpdir.path }}/instkey.pkey"
     remote_src: yes
     mode: '0640'
   when: sap_swpm_use_password_file
