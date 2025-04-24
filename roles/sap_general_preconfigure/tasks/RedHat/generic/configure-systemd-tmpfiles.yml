@@ -3,20 +3,20 @@
 
 - name: Copy file /etc/tmpfiles.d/sap.conf, RHEL 7 or 8
   ansible.builtin.copy:
-    src: etc/tmpfiles.d/sap.conf
+    src: etc/tmpfiles.d/sap_RedHat_7_8.conf
     dest: /etc/tmpfiles.d/sap.conf
     owner: root
     group: root
     mode: '0644'
     backup: true
-  when: ansible_distribution_major_version != '9'
+  when: ansible_distribution_major_version | int <= 8
 
-- name: Copy file /etc/tmpfiles.d/sap.conf, RHEL 9
+- name: Copy file /etc/tmpfiles.d/sap.conf, RHEL 9 and later
   ansible.builtin.copy:
-    src: etc/tmpfiles.d/sap_RedHat_9.conf
+    src: etc/tmpfiles.d/sap_RedHat_9_plus.conf
     dest: /etc/tmpfiles.d/sap.conf
     owner: root
     group: root
     mode: '0644'
     backup: true
-  when: ansible_distribution_major_version == '9'
+  when: ansible_distribution_major_version | int >= 9
