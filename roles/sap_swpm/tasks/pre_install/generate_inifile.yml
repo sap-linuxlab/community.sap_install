@@ -13,7 +13,7 @@
 - name: SAP SWPM Pre Install - Check if file '{{ sap_swpm_inifile_directory }}/inifile.params' exists on the managed node
   ansible.builtin.stat:
     path: "{{ sap_swpm_inifile_directory }}/inifile.params"
-  check_mode: no
+  check_mode: false
   register: __sap_swpm_register_stat_sapinst_inifile
 
 - name: SAP SWPM Pre Install - Try using existing SWPM inifile 'inifile.params'
@@ -29,6 +29,7 @@
       ansible.builtin.copy:
         src: "{{ sap_swpm_inifile_directory }}/inifile.params"
         dest: "{{ __sap_swpm_register_tmpdir.path }}/inifile.params"
+        remote_src: true
         owner: 'root'
         group: 'root'
         mode: '0640'
@@ -163,3 +164,9 @@
               - "sap_swpm_software_path:      >{{ sap_swpm_software_path }}<"
               - "sap_swpm_sid:                >{{ sap_swpm_sid }}<"
               - "sap_swpm_fqdn:               >{{ sap_swpm_fqdn }}<"
+
+
+- name: SAP SWPM Pre Install - Display the path name of the inifile
+  ansible.builtin.debug:
+    msg: "INFO: The sapinst inifile is: '{{ __sap_swpm_register_tmpdir.path }}/inifile.params'"
+  tags: sap_swpm_generate_inifile
