@@ -10,16 +10,12 @@
 - name: "SAP HA Prepare Pacemaker - Block for preparation of SAPHanaSR-angi HANA cluster"
   when: (sap_ha_pacemaker_cluster_saphanasr_angi_detection | bool)
   block:
-    # Requirement for package_facts Ansible Module
-    # SLES: Ensure OS Package for Python Lib of rpm bindings is enabled for System Python
-    - name: "SAP HA Prepare Pacemaker - Ensure python3-rpm package is present"
-      ansible.builtin.package:
-        name: python3-rpm
-        state: present
-
-    - name: "SAP HA Prepare Pacemaker - Gather installed packages facts"
-      ansible.builtin.package_facts:
-        manager: auto
+    - name: Query package SAPHanaSR  # noqa command-instead-of-module
+      ansible.builtin.command:
+        cmd: rpm -q SAPHanaSR
+      register: __sap_ha_pacemaker_cluster_rpm_query_saphanasr
+      changed_when: false
+      ignore_errors: true
 
     - name: "SAP HA Prepare Pacemaker - Search for SAPHanaSR-angi"
       ansible.builtin.command:
@@ -41,7 +37,7 @@
       when:
         - __sap_ha_pacemaker_cluster_zypper_angi_check is defined
         - __sap_ha_pacemaker_cluster_zypper_angi_check.rc == 0
-        - "'SAPHanaSR' in ansible_facts.packages"
+        - __sap_ha_pacemaker_cluster_rpm_query_saphanasr.rc == 0
         # SAPHanaSR (Classic) is not available on SLES 16
         - ansible_distribution_major_version | int < 16
 
@@ -59,16 +55,12 @@
     # SAPHanaSR (Classic) is not available on SLES 16
     - ansible_distribution_major_version | int < 16
   block:
-    # Requirement for package_facts Ansible Module
-    # SLES: Ensure OS Package for Python Lib of rpm bindings is enabled for System Python
-    - name: "SAP HA Prepare Pacemaker - Ensure python3-rpm package is present"
-      ansible.builtin.package:
-        name: python3-rpm
-        state: present
-
-    - name: "SAP HA Prepare Pacemaker - Gather installed packages facts"
-      ansible.builtin.package_facts:
-        manager: auto
+    - name: Query package SAPHanaSR-angi  # noqa command-instead-of-module
+      ansible.builtin.command:
+        cmd: rpm -q SAPHanaSR-angi
+      register: __sap_ha_pacemaker_cluster_rpm_query_saphanasr_angi
+      changed_when: false
+      ignore_errors: true
 
     # package can be replaced with "rpm -e --nodeps {{ item }}"
     - name: "SAP HA Prepare Pacemaker - Remove SAPHanaSR-angi"
@@ -78,7 +70,7 @@
       loop:
         - SAPHanaSR-angi
       when:
-        - "'SAPHanaSR-angi' in ansible_facts.packages"
+        - __sap_ha_pacemaker_cluster_rpm_query_saphanasr_angi.rc == 0
 
     - name: "SAP HA Prepare Pacemaker - Set fact angi_available"
       ansible.builtin.set_fact:
