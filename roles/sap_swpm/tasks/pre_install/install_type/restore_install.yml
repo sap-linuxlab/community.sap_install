@@ -7,7 +7,9 @@
   ansible.builtin.stat:
     path: "{{ sap_swpm_backup_location }}"
   register: sap_swpm_backup_location_stat
-  failed_when: not sap_swpm_backup_location_stat.stat.exists and '.CP' in sap_swpm_product_catalog_id
+  failed_when:
+    - not sap_swpm_backup_location_stat.stat.exists
+    - "'.CP' in sap_swpm_product_catalog_id | string"
 
 - name: SAP SWPM Pre Install - Change ownership of backup location - {{ sap_swpm_backup_location }}
   ansible.builtin.file:
@@ -18,4 +20,5 @@
     owner: root
     group: root
   when:
-    - sap_swpm_backup_location_stat.stat.exists and sap_swpm_backup_location_stat.stat.isdir
+    - sap_swpm_backup_location_stat.stat.exists
+    - sap_swpm_backup_location_stat.stat.isdir
