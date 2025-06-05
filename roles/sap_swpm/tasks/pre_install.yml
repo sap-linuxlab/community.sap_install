@@ -1,6 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+- name: SAP SWPM Pre Install - Assert the number of characters in the hostname, see SAP note 611361
+  ansible.builtin.include_tasks:
+    file: pre_install/assert_hostname_length.yml
+    apply:
+      tags:
+        - sap_swpm_generate_inifile
+        - sap_swpm_sapinst_commandline
+  tags:
+    - sap_swpm_generate_inifile
+    - sap_swpm_sapinst_commandline
+
 - name: SAP SWPM Pre Install - Define the temporary directory for SWPM
   ansible.builtin.set_fact:
     __sap_swpm_fact_tempdir_from_env: "{{ ansible_env.TEMP | d('/tmp') }}"
