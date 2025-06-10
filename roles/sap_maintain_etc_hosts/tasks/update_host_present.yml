@@ -30,7 +30,9 @@
 
 - name: Ensure node_domain is set
   ansible.builtin.set_fact:
-    __sap_maintain_etc_hosts_domain: "{{ thishost.node_domain | default(sap_domain) | default(ansible_domain) }}"
+    __sap_maintain_etc_hosts_domain:
+      "{{ thishost.node_domain if thishost.node_domain is defined and thishost.node_domain != ''
+        else (sap_domain if sap_domain is defined and sap_domain != '' else ansible_domain | d('')) }}"
 
 - name: Verify that variable domain_name is set
   ansible.builtin.assert:
