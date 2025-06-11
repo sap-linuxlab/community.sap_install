@@ -1,0 +1,26 @@
+---
+
+# Assert hostname length
+
+- name: SAP SWPM Pre Install - Assert that hostnames are not longer than 13 characters
+  ansible.builtin.assert:
+    that: "{{ __sap_swpm_hostnames_line_item }} | length <= 13"
+    fail_msg: |
+      FAIL: The variable '{{ __sap_swpm_hostnames_line_item }}'
+      is defined as: '{{ lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item) }}', which is longer
+      than allowed as per SAP note 611361 (max. 13 characters).
+    success_msg: |
+      PASS: The variable '{{ __sap_swpm_hostnames_line_item }}' has 13 or fewer characters.
+  loop:
+    - sap_swpm_ascs_instance_hostname
+    - sap_swpm_ers_instance_hostname
+    - sap_swpm_pas_instance_hostname
+    - sap_swpm_aas_instance_hostname
+    - sap_swpm_java_scs_instance_hostname
+    - sap_swpm_virtual_hostname
+  loop_control:
+    loop_var: __sap_swpm_hostnames_line_item
+  when:
+    - lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item) is defined
+    - lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item) is not none
+    - lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item)
