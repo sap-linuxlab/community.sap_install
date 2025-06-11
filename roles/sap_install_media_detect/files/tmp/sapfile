@@ -244,7 +244,7 @@ for _FILE in "$@"; do
    /SAPCAR/&&/\.EXE/{_sap_file_type="sapcar"; exit}
    /IMDB_SERVER/&&/\.SAR/{_sap_file_type="saphana"; exit}
    /IMDB_CLIENT/&&/\.SAR/{_sap_file_type="saphana_client"; exit}
-   !/IMDB_SERVER/&&!/IMDB_CLIENT/&&/IMDB/&&/\.SAR/{_sap_file_type="saphana_other"; exit}
+   !/IMDB_SERVER/&&!/IMDB_CLIENT/&&(/IMDB/||/HDB_LSS/)&&/\.SAR/{_sap_file_type="saphana_other"; exit}
    /SWPM/&&/\.SAR/{_sap_file_type="sap_swpm"; exit}
    /SAPHOSTAGENT/&&/\.SAR/{_sap_file_type="sap_hostagent"; exit}
    /SAPEXE_/{_sap_file_type="sap_kernel"; exit}
@@ -260,7 +260,7 @@ for _FILE in "$@"; do
    /VCH/&&/\.SAR/{_sap_file_type="saphana_vch_afl"; exit}
    END{print _sap_file_type}')
    if [[ ${SAP_FILE_TYPE_FROM_FILENAME}. == "sap_kernel_db." ]]; then
-      SAP_FILE_TYPE_FROM_FILENAME=$(eval "${_list_content}" "${_FILE}" | awk '
+      SAP_FILE_TYPE_FROM_FILENAME=$(eval "${_list_content}" "'${_FILE}'" | awk '
       /exe_/&&/\.lst/{gsub ("exe_", ""); gsub ("\\.lst", ""); db_type=$NF}
       END{printf ("sap_kernel_db_%s\n", db_type)}')
    fi
@@ -275,7 +275,7 @@ for _FILE in "$@"; do
               ${_GENERIC_FILE_TYPE}. == "zip." ||
               ${_GENERIC_FILE_TYPE}. == "sapcar." ||
               ${_GENERIC_FILE_TYPE}. == "xml." ]]; then
-         _SAP_FILE_TYPE=$(eval "${_list_content}" "${_FILE}" | awk '
+         _SAP_FILE_TYPE=$(eval "${_list_content}" "'${_FILE}'" | awk '
          BEGIN{_sap_file_type="sap_unknown"}
          /BD_SYBASE_ASE/{_sap_file_type="sapase"; exit}
          /ASEBC/{_sap_file_type="sapase_client"; exit}
@@ -286,10 +286,9 @@ for _FILE in "$@"; do
          /db2setup/{_sap_file_type="ibmdb2"; exit}
          /db6_update_client.sh/{_sap_file_type="ibmdb2_client"; exit}
          /db2aese_c.lic/{_sap_file_type="ibmdb2_license"; exit}
-         /DATA_UNITS\/JAVA_EXPORT_JDMP/{_sap_file_type="sap_export_nwas_java"}
+         /DATA_UNITS\/JAVA_EXPORT_JDMP/{_sap_file_type="sap_export_nwas_java"; exit}
          /DATA_UNITS\/EXPORT/{_sap_file_type="sap_export_ecc"; exit}
          /DATA_UNITS\/EXP[0-9]/{_sap_file_type="sap_export_nwas_abap"; exit}
-         /DATA_UNITS\/SOLMAN/&&/_JAVA_UT/{_sap_file_type="sap_export_solman_java"; exit}
          /EXP[0-9]/{_sap_file_type="sap_export_ecc_ides"; exit}
          /<sp-stacks/{_sap_file_type="sap_mp_xml"; exit}
          /format error in header/{_sap_file_type="format_error_in_header"; exit}
@@ -299,19 +298,36 @@ for _FILE in "$@"; do
             BEGIN{_sap_file_type="sap_export_nwas_abap"}
             /SAP SOLUTION MANAGER/{_sap_file_type="sap_export_solman_abap"}
             END{print _sap_file_type}')
-         fi
-         if [[ ${_SAP_FILE_TYPE}. == "sap_unknown." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
-            _SAP_FILE_TYPE=$(unzip -p "${_FILE}" META-INF/SAPMANIFEST.MF | awk '
-            BEGIN{FS="="; _sap_file_type="sap_unknown"}
-            /total/{total=$NF}
-            /number/{number=$NF}
-            /product-id/{
-               product_id=$NF; if (length(total)>0 && length(number)>0) {
-                  a=substr(product_id, index(product_id, "4")+1, index(product_id, "1")-(index(product_id, "4")+1));
-                  if (a=="fnd" || a=="hanaop"){_sap_file_type="sap_export_s4hana"}
-               }
-            }
+         elif [[ ${_SAP_FILE_TYPE}. == "sap_export_nwas_java." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
+            _SAP_FILE_TYPE=$(unzip -p "${_FILE}" LABEL.ASC | awk '
+            BEGIN{_sap_file_type="sap_export_nwas_java"}
+            /SAP:D51054655_/{_sap_file_type="sap_export_solman_java"}
             END{print _sap_file_type}')
+         elif [[ ${_SAP_FILE_TYPE}. == "sap_unknown." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
+            unzip -t "${_FILE}" META-INF/SAPMANIFEST.MF >/dev/null 2>&1
+            _RC1=$?
+            if [[ ${_RC1} -eq 0 ]]; then
+               _SAP_FILE_TYPE=$(unzip -p "${_FILE}" META-INF/SAPMANIFEST.MF | awk '
+               BEGIN{FS="="; _sap_file_type="sap_unknown"}
+               /total/{total=$NF}
+               /number/{number=$NF}
+               /product-id/{
+                  product_id=$NF; if (length(total)>0 && length(number)>0) {
+                     a=substr(product_id, index(product_id, "4")+1, index(product_id, "1")-(index(product_id, "4")+1));
+                     if (a=="fnd" || a=="hanaop"){_sap_file_type="sap_export_s4hana"}
+                  }
+               }
+               END{print _sap_file_type}')
+            else
+               unzip -t "${_FILE}" CDLABEL.ASC >/dev/null 2>&1
+               _RC2=$?
+               if [[ ${_RC2} -eq 0 ]]; then
+                  _SAP_FILE_TYPE=$(unzip -p "${_FILE}" CDLABEL.ASC | awk '
+                  BEGIN{FS="="; _sap_file_type="sap_unknown"}
+                  /SAP Solution Manager/&&/Language/{_sap_file_type="sap_export_solman_lang"}
+                  END{print _sap_file_type}')
+               fi
+            fi
          fi
       else
          _SAP_FILE_TYPE="sap_unknown"
