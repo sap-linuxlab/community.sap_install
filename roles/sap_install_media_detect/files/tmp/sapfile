@@ -299,9 +299,9 @@ for _FILE in "$@"; do
             /SAP SOLUTION MANAGER/{_sap_file_type="sap_export_solman_abap"}
             END{print _sap_file_type}')
          elif [[ ${_SAP_FILE_TYPE}. == "sap_export_nwas_java." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
-            _SAP_FILE_TYPE=$(unzip -p "${_FILE}" LABEL.ASC | awk '
+            _SAP_FILE_TYPE=$(unzip -p "${_FILE}" DATA_UNITS/LABELIDX.ASC | awk '
             BEGIN{_sap_file_type="sap_export_nwas_java"}
-            /SAP:D51054655_/{_sap_file_type="sap_export_solman_java"}
+            /^SOLMAN/&&/_JAVA/{_sap_file_type="sap_export_solman_java"}
             END{print _sap_file_type}')
          elif [[ ${_SAP_FILE_TYPE}. == "sap_unknown." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
             unzip -t "${_FILE}" META-INF/SAPMANIFEST.MF >/dev/null 2>&1
