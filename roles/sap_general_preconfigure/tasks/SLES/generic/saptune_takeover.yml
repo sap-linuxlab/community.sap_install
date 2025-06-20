@@ -2,6 +2,7 @@
 ---
 # 1275776 - Linux: Preparing SLES for SAP environments
 
+# saptune_check fails if 'saptune service takeover' was not executed.
 - name: Execute saptune_check - before takeover
   ansible.builtin.command:
     cmd: saptune_check
@@ -10,10 +11,12 @@
   changed_when: false
   failed_when: false
 
-- name: Takeover and enable saptune
+- name: Takeover saptune
   when:
     - __sap_general_preconfigure_use_saptune
     - __sap_general_preconfigure_register_saptune_check_before.rc != 0
+    # sapconf is not present on SLES 16 and takeover is not required.
+    - ansible_distribution_major_version | int < 16
   block:
     - name: Check saptune version  # noqa: command-instead-of-module
       ansible.builtin.command:
@@ -27,7 +30,7 @@
         name: sapconf
         state: stopped
         enabled: false
-      when: __sap_general_preconfigure_register_sapconf
+      when: __sap_general_preconfigure_register_sapconf.rc == 0
 
     - name: Make sure that sapconf and tuned are stopped and disabled
       ansible.builtin.command:
@@ -42,13 +45,21 @@
       register: __sap_general_preconfigure_register_sapconf_failed
       changed_when: false
       ignore_errors: true
+      when: __sap_general_preconfigure_register_sapconf.rc == 0
 
     - name: Execute systemctl reset-failed sapconf.service  # noqa command-instead-of-module
       ansible.builtin.command:
         cmd: systemctl reset-failed sapconf.service
-      when: __sap_general_preconfigure_register_sapconf_failed.rc == 0
+      when:
+        - __sap_general_preconfigure_register_sapconf.rc == 0
+        - __sap_general_preconfigure_register_sapconf_failed.rc == 0
       changed_when: true
 
+
+- name: Enable saptune service
+  when:
+    - __sap_general_preconfigure_use_saptune
+  block:
     - name: Ensure saptune is running and enabled
       ansible.builtin.systemd:
         name: saptune
