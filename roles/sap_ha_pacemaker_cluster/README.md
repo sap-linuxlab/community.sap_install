@@ -10,7 +10,7 @@ The Ansible Role `sap_ha_pacemaker_cluster` is used to install and configure Lin
 
 <!-- BEGIN Dependencies -->
 ## Dependencies
-- `fedora.linux_system_roles`
+- `fedora.linux_system_roles`, commonly referenced as `LSR`.
     - Roles:
         - `ha_cluster`
 
@@ -1167,5 +1167,10 @@ Name of the NetWeaver SCS resource group.<br>
 - _Default:_ `rsc_vip_<SID>_SCS<SCS-instance-number>`<br>
 
 Name of the Virtual IP resource for NetWeaver Central Services (SCS).<br>
+
+### sap_ha_pacemaker_cluster_zypper_patterns
+- _Type:_ `list`<br>
+
+(SUSE Specific) Additional zypper patterns to be installed.<br>
 
 <!-- END Role Variables -->
