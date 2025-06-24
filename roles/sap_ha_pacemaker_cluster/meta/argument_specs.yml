@@ -310,6 +310,37 @@ argument_specs:
             stonith-timeout: 900
             concurrent-fencing: true
 
+      sap_ha_pacemaker_cluster_corosync_totem:
+        type: dict
+        default: Specified in Operating System and Platform variables.
+        description:
+          - Define dictionary of options for corosync totem configuration.
+
+        example:
+          sap_ha_pacemaker_cluster_corosync_totem:
+            options:
+              token: 5000
+              token_retransmits_before_loss_const: 10
+              join: 60
+              consensus: 6000
+              max_messages: 20
+
+      sap_ha_pacemaker_cluster_corosync_transport:
+        type: dict
+        default: Specified in Operating System variables.
+        description:
+          - Define dictionary of options for corosync transport configuration.
+          - Available options are defined in (LSR `ha_cluster` documentation)[https://github.com/linux-system-roles/ha_cluster/blob/main/README.md].
+
+        example:
+          sap_ha_pacemaker_cluster_corosync_transport:
+            type: knet
+            crypto:
+              - name: crypto_hash
+                value: sha256
+              - name: crypto_cipher
+                value: aes256
+
 
       ##########################################################################
       # Parameters that are optionally imported from 'ha_cluster' LSR parameters
@@ -353,6 +384,11 @@ argument_specs:
           - "This is automatically combined with default packages in:"
           - "`__sap_ha_pacemaker_cluster_fence_agent_packages_minimal`"
           - "`__sap_ha_pacemaker_cluster_fence_agent_packages_platform`"
+
+      sap_ha_pacemaker_cluster_zypper_patterns:
+        type: list
+        description:
+          - (SUSE Specific) Additional zypper patterns to be installed.
 
       sap_ha_pacemaker_cluster_hacluster_user_password:
         description:

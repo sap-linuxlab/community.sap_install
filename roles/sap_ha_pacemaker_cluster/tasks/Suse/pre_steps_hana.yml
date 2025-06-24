@@ -6,9 +6,13 @@
 # This is destructive step if executed on running cluster
 # without proper migration from SAPHanaSR to SAPHanaSR-angi!
 
+# SLES_SAP 16 includes only SAPHanaSR-angi and SAPHanaSR tasks are skipped.
+
 
 - name: "SAP HA Prepare Pacemaker - Block for preparation of SAPHanaSR-angi HANA cluster"
-  when: (sap_ha_pacemaker_cluster_saphanasr_angi_detection | bool)
+  when:
+    - sap_ha_pacemaker_cluster_saphanasr_angi_detection | bool
+    - ansible_distribution_major_version | int < 16
   block:
     - name: Query package SAPHanaSR  # noqa command-instead-of-module
       ansible.builtin.command:
@@ -38,8 +42,6 @@
         - __sap_ha_pacemaker_cluster_zypper_angi_check is defined
         - __sap_ha_pacemaker_cluster_zypper_angi_check.rc == 0
         - __sap_ha_pacemaker_cluster_rpm_query_saphanasr.rc == 0
-        # SAPHanaSR (Classic) is not available on SLES 16
-        - ansible_distribution_major_version | int < 16
 
     - name: "SAP HA Prepare Pacemaker - Set fact angi_available"
       ansible.builtin.set_fact:
@@ -52,7 +54,6 @@
 - name: "SAP HA Prepare Pacemaker - Block for preparation of Classic HANA cluster"
   when:
     - not (sap_ha_pacemaker_cluster_saphanasr_angi_detection | bool)
-    # SAPHanaSR (Classic) is not available on SLES 16
     - ansible_distribution_major_version | int < 16
   block:
     - name: Query package SAPHanaSR-angi  # noqa command-instead-of-module
