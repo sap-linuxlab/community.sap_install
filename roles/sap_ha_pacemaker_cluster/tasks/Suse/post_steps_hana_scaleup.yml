@@ -4,30 +4,74 @@
 # Following steps will leave enough time for resource agents to load HANA configuration
 # before disabling maintenance.
 #
+# All steps are executed on clones to ensure it affects instances across nodes.
+#
 # Steps are SUSE specific and they use crmsh.
 
-- name: "SAP HA Install Pacemaker - SAPHana crm resource cleanup"
+
+# SAPHanaTopology refresh ensures that SAP HANA attributes are refreshed.
+- name: "SAP HA Install Pacemaker - crm resource refresh SAPHanaTopology"
   ansible.builtin.command:
-    cmd: crm resource cleanup {{ __sap_ha_pacemaker_cluster_hana_resource_name
-     if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
-     else __sap_ha_pacemaker_cluster_hanacontroller_resource_name }}
+    cmd: |
+      cs_wait_for_idle -s 5
+      crm resource refresh {{ __sap_ha_pacemaker_cluster_hana_topology_resource_clone_name }}
   changed_when: true
 
-# - name: "SAP HA Install Pacemaker - SAPHana clone crm resource refresh"
-#   ansible.builtin.command:
-#     cmd: crm resource refresh {{ __sap_ha_pacemaker_cluster_hana_resource_clone_name
-#      if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
-#      else __sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }}
-#   changed_when: true
 
+# SAPHana cleanup and refresh ensures that errors are cleared and attributes are refreshed.
+- name: Block for SAPHana
+  when: not __sap_ha_pacemaker_cluster_saphanasr_angi_available
+  block:
+    - name: "SAP HA Install Pacemaker - crm resource cleanup SAPHana"
+      ansible.builtin.command:
+        cmd: |
+          cs_wait_for_idle -s 5
+          crm resource cleanup {{ __sap_ha_pacemaker_cluster_hana_resource_clone_name }}
+      changed_when: true
+
+    - name: "SAP HA Install Pacemaker - crm resource refresh SAPHana"
+      ansible.builtin.command:
+        cmd: |
+          cs_wait_for_idle -s 5
+          crm resource refresh {{ __sap_ha_pacemaker_cluster_hana_resource_clone_name }}
+      changed_when: true
+
+    - name: "SAP HA Install Pacemaker - crm resource maintenance SAPHana off"
+      ansible.builtin.command:
+        cmd: |
+          cs_wait_for_idle -s 5
+          crm resource maintenance {{ __sap_ha_pacemaker_cluster_hana_resource_clone_name }} off
+      changed_when: true
+
+
+# SAPHanaController cleanup and refresh ensures that errors are cleared and attributes are refreshed.
+- name: Block for SAPHanaController
+  when: __sap_ha_pacemaker_cluster_saphanasr_angi_available
+  block:
+    - name: "SAP HA Install Pacemaker - crm resource cleanup SAPHanaController"
+      ansible.builtin.command:
+        cmd: |
+          cs_wait_for_idle -s 5
+          crm resource cleanup {{ __sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }}
+      changed_when: true
+
+    - name: "SAP HA Install Pacemaker - crm resource refresh SAPHanaController"
+      ansible.builtin.command:
+        cmd: |
+          cs_wait_for_idle -s 5
+          crm resource refresh {{ __sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }}
+      changed_when: true
+
+    - name: "SAP HA Install Pacemaker - crm resource maintenance SAPHanaController off"
+      ansible.builtin.command:
+        cmd: |
+          cs_wait_for_idle -s 5
+          crm resource maintenance {{ __sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }} off
+      changed_when: true
+
+
+# Ensure SAP HANA is idle after all post steps.
 - name: "SAP HA Install Pacemaker - Wait for SAP HANA to become idle"
   ansible.builtin.command:
     cmd: cs_wait_for_idle -s 5
-  changed_when: true
-
-- name: "SAP HA Install Pacemaker - SAPHana crm resource maintenance off"
-  ansible.builtin.command:
-    cmd: crm resource maintenance {{ __sap_ha_pacemaker_cluster_hana_resource_clone_name
-     if not __sap_ha_pacemaker_cluster_saphanasr_angi_available
-     else __sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name }} off
-  changed_when: true
+  changed_when: false
