@@ -15,14 +15,14 @@ Various improvements and bug fixes
 Minor Changes
 -------------
 
+- New Feature - sap_anydb_install_oracle - Add handling of OS specific vars (https://github.com/sap-linuxlab/community.sap_install/pull/1033)
+- New Feature - sap_ha_pacemaker_cluster - SLES16 support, new vars for ha_cluster for corosync and zypper patterns (https://github.com/sap-linuxlab/community.sap_install/pull/1056)
+- New Feature - sap_storage_setup - Allow /software NFS mount (https://github.com/sap-linuxlab/community.sap_install/pull/1029)
 - sap_*_preconfigure - Add missing RHEL 10.x vars (https://github.com/sap-linuxlab/community.sap_install/pull/1059)
-- sap_anydb_install_oracle - Add handling of OS specific vars (https://github.com/sap-linuxlab/community.sap_install/pull/1033)
 - sap_general_preconfigure - Modify the kernel command line for SELinux also for RHEL 10 (https://github.com/sap-linuxlab/community.sap_install/pull/1036)
 - sap_general_preconfigure - Use the correct sap.conf file for RHEL 10 (https://github.com/sap-linuxlab/community.sap_install/pull/1022)
-- sap_ha_pacemaker_cluster - SLES16 support, new vars for ha_cluster for corosync and zypper patterns (https://github.com/sap-linuxlab/community.sap_install/pull/1056)
 - sap_ha_pacemaker_cluster/SUSE - SAP HANA scaleup post steps updated (https://github.com/sap-linuxlab/community.sap_install/pull/1061)
 - sap_hana_install - Add opt-out for setting sidadm to noexpire (https://github.com/sap-linuxlab/community.sap_install/pull/1016)
-- sap_storage_setup - Allow /software NFS mount (https://github.com/sap-linuxlab/community.sap_install/pull/1029)
 - sap_swpm - Add opt-out for setting sidadm to noexpire (https://github.com/sap-linuxlab/community.sap_install/pull/1018)
 
 Bugfixes
