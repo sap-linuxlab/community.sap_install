@@ -38,7 +38,7 @@ Bugfixes
 - sap_swpm - Ensure sap_swpm_product_catalog_id is a string (https://github.com/sap-linuxlab/community.sap_install/pull/1035)
 - sap_swpm - Fix TEMP handling (https://github.com/sap-linuxlab/community.sap_install/pull/1019)
 - sap_swpm - Remove selinux role dependency from README.md (https://github.com/sap-linuxlab/community.sap_install/pull/1012)
-- sap_swpm - Require inifile.params only on the managed node when re-using an existing inifile.params. (https://github.com/sap-linuxlab/community.sap_install/pull/1024)
+- sap_swpm - Require inifile.params only on the managed node when reusing an existing inifile.params. (https://github.com/sap-linuxlab/community.sap_install/pull/1024)
 - sap_swpm - Sanitize hostname length (https://github.com/sap-linuxlab/community.sap_install/pull/1042)
 
 v1.5.3
