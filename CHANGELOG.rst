@@ -4,6 +4,43 @@ community.sap\_install Release Notes
 
 .. contents:: Topics
 
+v1.6.0
+======
+
+Release Summary
+---------------
+
+Various improvements and bug fixes
+
+Minor Changes
+-------------
+
+- sap_*_preconfigure - Add missing RHEL 10.x vars (https://github.com/sap-linuxlab/community.sap_install/pull/1059)
+- sap_anydb_install_oracle - Add handling of OS specific vars (https://github.com/sap-linuxlab/community.sap_install/pull/1033)
+- sap_general_preconfigure - Modify the kernel command line for SELinux also for RHEL 10 (https://github.com/sap-linuxlab/community.sap_install/pull/1036)
+- sap_general_preconfigure - Use the correct sap.conf file for RHEL 10 (https://github.com/sap-linuxlab/community.sap_install/pull/1022)
+- sap_ha_pacemaker_cluster - SLES16 support, new vars for ha_cluster for corosync and zypper patterns (https://github.com/sap-linuxlab/community.sap_install/pull/1056)
+- sap_ha_pacemaker_cluster/SUSE - SAP HANA scaleup post steps updated (https://github.com/sap-linuxlab/community.sap_install/pull/1061)
+- sap_hana_install - Add opt-out for setting sidadm to noexpire (https://github.com/sap-linuxlab/community.sap_install/pull/1016)
+- sap_storage_setup - Allow /software NFS mount (https://github.com/sap-linuxlab/community.sap_install/pull/1029)
+- sap_swpm - Add opt-out for setting sidadm to noexpire (https://github.com/sap-linuxlab/community.sap_install/pull/1018)
+
+Bugfixes
+--------
+
+- Collection - fix documentation link in galaxy.yml (https://github.com/sap-linuxlab/community.sap_install/pull/1009)
+- sap_*_preconfigure - Make SELinux booleans persistent (https://github.com/sap-linuxlab/community.sap_install/pull/1013)
+- sap_*_preconfigure/SUSE - Add retry attempts to zypper pattern installation  (https://github.com/sap-linuxlab/community.sap_install/pull/1032)
+- sap_*_preconfigure/SUSE - Update SLES16 pattern names and add packages for hardened images (https://github.com/sap-linuxlab/community.sap_install/pull/1057)
+- sap_ha_pacemaker_cluster/SUSE - Remove python3-rpm dependency in pre_steps_hana (https://github.com/sap-linuxlab/community.sap_install/pull/1028)
+- sap_hana_install - update README.md with Local Secure Store (LSS) installation details and examples (https://github.com/sap-linuxlab/community.sap_install/pull/1008)
+- sap_maintain_etc_hosts - Resolve situation with empty domain, but not undefined (https://github.com/sap-linuxlab/community.sap_install/pull/1044)
+- sap_swpm - Ensure sap_swpm_product_catalog_id is a string (https://github.com/sap-linuxlab/community.sap_install/pull/1035)
+- sap_swpm - Fix TEMP handling (https://github.com/sap-linuxlab/community.sap_install/pull/1019)
+- sap_swpm - Remove selinux role dependency from README.md (https://github.com/sap-linuxlab/community.sap_install/pull/1012)
+- sap_swpm - Require inifile.params only on the managed node when re-using an existing inifile.params. (https://github.com/sap-linuxlab/community.sap_install/pull/1024)
+- sap_swpm - Sanitize hostname length (https://github.com/sap-linuxlab/community.sap_install/pull/1042)
+
 v1.5.3
 ======
 
