@@ -10,7 +10,7 @@ The Ansible Role `sap_ha_pacemaker_cluster` is used to install and configure Lin
 
 <!-- BEGIN Dependencies -->
 ## Dependencies
-- `fedora.linux_system_roles`
+- `fedora.linux_system_roles`, commonly referenced as `LSR`.
     - Roles:
         - `ha_cluster`
 
@@ -235,11 +235,11 @@ Role of the defined `node_name` in the SAP HANA cluster setup.<br>There must be 
 Example:
 ```yaml
 sap_ha_pacemaker_cluster_cluster_nodes:
-- hana_site: DC01
-  node_ip: 192.168.5.1
-  node_name: nodeA
-  node_role: primary
-- hana_site: DC02
+  - hana_site: DC01
+    node_ip: 192.168.5.1
+    node_name: nodeA
+    node_role: primary
+  - hana_site: DC02
 ```
 ### sap_ha_pacemaker_cluster_cluster_properties
 - _Type:_ `dict`<br>
@@ -254,6 +254,39 @@ sap_ha_pacemaker_cluster_cluster_properties:
   concurrent-fencing: true
   stonith-enabled: true
   stonith-timeout: 900
+```
+### sap_ha_pacemaker_cluster_corosync_totem
+- _Type:_ `dict`<br>
+- _Default:_ `Specified in Operating System and Platform variables.`<br>
+
+Define dictionary of options for corosync totem configuration.<br>
+
+Example:
+```yaml
+sap_ha_pacemaker_cluster_corosync_totem:
+  options:
+    consensus: 6000
+    join: 60
+    max_messages: 20
+    token: 5000
+    token_retransmits_before_loss_const: 10
+```
+### sap_ha_pacemaker_cluster_corosync_transport
+- _Type:_ `dict`<br>
+- _Default:_ `Specified in Operating System variables.`<br>
+
+Define dictionary of options for corosync transport configuration.<br>
+Available options are defined in (LSR `ha_cluster` documentation)[https://github.com/linux-system-roles/ha_cluster/blob/main/README.md].<br>
+
+Example:
+```yaml
+sap_ha_pacemaker_cluster_corosync_transport:
+  crypto:
+    - name: crypto_hash
+      value: sha256
+    - name: crypto_cipher
+      value: aes256
+  type: knet
 ```
 ### sap_ha_pacemaker_cluster_create_config_dest
 - _Type:_ `string`<br>
@@ -319,8 +352,8 @@ Example:
 ```yaml
 sap_ha_pacemaker_cluster_ha_cluster:
   corosync_addresses:
-  - 192.168.1.10
-  - 192.168.2.10
+    - 192.168.1.10
+    - 192.168.2.10
   node_name: nodeA
 ```
 ### sap_ha_pacemaker_cluster_hacluster_user_password <sup>required</sup>
@@ -494,7 +527,7 @@ Customize the cluster resource name of the SAP HANA Topology resource.<br>
 
 ### sap_ha_pacemaker_cluster_hanacontroller_resource_clone_name
 - _Type:_ `string`<br>
-- _Default:_ `cln_SAPHanaCon_<SID>_HDB<Instance Number>`<br>
+- _Default:_ `<cln|mst>_SAPHanaCon_<SID>_HDB<Instance Number>`<br>
 
 Customize the cluster resource name of the SAP HANA Controller clone.<br>
 
@@ -913,9 +946,9 @@ sap_ha_pacemaker_cluster_stonith_custom:
   - agent: stonith:external/sbd
     id: stonith_sbd
     instance_attrs:
-    - attrs:
-      - name: pcmk_delay_max
-        value: 15
+      - attrs:
+        - name: pcmk_delay_max
+          value: 15
 ```
 ### sap_ha_pacemaker_cluster_sbd_options
 - _Type:_ `list`<br>
@@ -983,28 +1016,28 @@ sap_ha_pacemaker_cluster_stonith_custom:
   - agent: stonith:fence_rhevm
     id: my-fence-resource
     instance_attrs:
-    - attrs:
-      - name: ip
-        value: rhevm-server
-      - name: username
-        value: login-user
-      - name: password
-        value: login-user-password
-      - name: pcmk_host_list
-        value: node1,node2
-      - name: power_wait
-        value: 3
+      - attrs:
+        - name: ip
+          value: rhevm-server
+        - name: username
+          value: login-user
+        - name: password
+          value: login-user-password
+        - name: pcmk_host_list
+          value: node1,node2
+        - name: power_wait
+          value: 3
     meta_attrs:
-    - attrs:
-      - name: target-role
-        value: Started
+      - attrs:
+        - name: target-role
+          value: Started
     operations:
-    - action: start
-      attrs:
-      - name: interval
-        value: 0
-      - name: timeout
-        value: 180
+      - action: start
+        attrs:
+        - name: interval
+          value: 0
+        - name: timeout
+          value: 180
 ```
 ### sap_ha_pacemaker_cluster_storage_definition
 - _Type:_ `list`<br>
@@ -1167,5 +1200,10 @@ Name of the NetWeaver SCS resource group.<br>
 - _Default:_ `rsc_vip_<SID>_SCS<SCS-instance-number>`<br>
 
 Name of the Virtual IP resource for NetWeaver Central Services (SCS).<br>
+
+### sap_ha_pacemaker_cluster_zypper_patterns
+- _Type:_ `list`<br>
+
+(SUSE Specific) Additional zypper patterns to be installed.<br>
 
 <!-- END Role Variables -->

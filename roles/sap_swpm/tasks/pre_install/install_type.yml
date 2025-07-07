@@ -17,27 +17,19 @@
 # - Advanced Adapter Engine Extended (AEX) with .AEX .AEXHA
 # - Process Integration / Process Orchestration (PI/PO) with .PI .PIHA .PIABAP .PIABAPHA .PIJAVA .PIJAVAHA
 
-#- name: SAP SWPM Pre Install - Check if general SAP Software installation
-#  ansible.builtin.set_fact:
-#    sap_swpm_swpm_installation_type: "general"
-#    sap_swpm_swpm_installation_header: "General installation of SAP Software"
-#  when:
-#    - "not '.ABAPHA' in sap_swpm_product_catalog_id"
-#    - "not '.CP' in sap_swpm_product_catalog_id"
-
 - name: SAP SWPM Pre Install - Check if System Copy (Backup/Restore)
   ansible.builtin.set_fact:
     sap_swpm_swpm_installation_type: "restore"
     sap_swpm_swpm_installation_header: "System Copy restore from backup"
-  when:
-    - "'.CP' in sap_swpm_product_catalog_id"
+  when: "'.CP' in sap_swpm_product_catalog_id | string"
 
 - name: SAP SWPM Pre Install - Check if SAP High Availability installation
   ansible.builtin.set_fact:
     sap_swpm_swpm_installation_type: "ha"
     sap_swpm_swpm_installation_header: "High Availability Installation using virtual hostname"
-  when:
-    - "'.ABAPHA' in sap_swpm_product_catalog_id or '.HA' in sap_swpm_product_catalog_id or '.HACP' in sap_swpm_product_catalog_id"
+  when: "'.ABAPHA' in sap_swpm_product_catalog_id | string or
+         '.HA' in sap_swpm_product_catalog_id | string or
+         '.HACP' in sap_swpm_product_catalog_id | string"
 
 - name: SAP SWPM Pre Install - Check if installation using SAP Maintenance Planner
   ansible.builtin.set_fact:
@@ -51,7 +43,7 @@
     sap_swpm_swpm_installation_type: "ha_maint_plan_stack"
     sap_swpm_swpm_installation_header: "High Availability Installation using virtual hostname and SAP Maintenance Planner Stack XML"
   when:
-    - "'.ABAPHA' in sap_swpm_product_catalog_id"
+    - "'.ABAPHA' in sap_swpm_product_catalog_id | string"
     - sap_swpm_mp_stack_path is defined and not sap_swpm_mp_stack_path is none
 
 ################

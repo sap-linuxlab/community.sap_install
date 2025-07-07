@@ -43,12 +43,10 @@
   changed_when: false
   when: __sap_general_preconfigure_fact_selinux_mode != sap_general_preconfigure_selinux_state
 
-- name: Set or unset SELinux kernel parameter, RHEL 8 and RHEL 9
+- name: Set or unset SELinux kernel parameter, RHEL >= 8
   when:
     - ansible_os_family == 'RedHat'
-    - ( ansible_distribution_major_version == '8' or
-        ansible_distribution_major_version == '9'
-      )
+    - ansible_distribution_major_version | int >= 8
   block:
 
     - name: SELinux - Examine grub entries
@@ -57,7 +55,7 @@
       check_mode: false
       changed_when: false
 
-    - name: Disable SELinux on the kernel command line, RHEL 8 and RHEL 9
+    - name: Disable SELinux on the kernel command line, RHEL >= 8
       when:
         - sap_general_preconfigure_selinux_state == 'disabled'
         - __sap_general_preconfigure_register_grubby_info_all_selinux.stdout.split(' ').1 !=
@@ -67,7 +65,7 @@
 # If the number of grub entries for args is different from the number of grub entries with "selinux=0",
 # we know that at least one grub entry is missing "selinux=0", so we make sure that all grub entries
 # contain "selinux=0"
-        - name: Disable SELinux also on the kernel command line, RHEL 8 and RHEL 9
+        - name: Disable SELinux also on the kernel command line, RHEL >= 8
           ansible.builtin.command: grubby --args="selinux=0" --update-kernel=ALL
           notify: __sap_general_preconfigure_reboot_handler
           changed_when: true
@@ -77,7 +75,7 @@
           ansible.builtin.set_fact:
             sap_general_preconfigure_fact_reboot_required: true
 
-    - name: Enable SELinux on the kernel command line, RHEL 8 and RHEL 9
+    - name: Enable SELinux on the kernel command line, RHEL >= 8
       when:
         - sap_general_preconfigure_selinux_state == 'enforcing' or
           sap_general_preconfigure_selinux_state == 'permissive'
@@ -86,7 +84,7 @@
 
 # If the number of grub entries for args with "selinux=0" is not 0, we know that there is at least
 # one grub entry with "selinux=0", so we make sure that no grub entry contains "selinux=0"
-        - name: Make sure SELinux is not disabled on the kernel command line, RHEL 8 and RHEL 9
+        - name: Make sure SELinux is not disabled on the kernel command line, RHEL >= 8
           ansible.builtin.command: grubby --remove-args="selinux" --update-kernel=ALL
           notify: __sap_general_preconfigure_reboot_handler
           changed_when: true
@@ -112,7 +110,7 @@
     name: '{{ sap_general_preconfigure_system_roles_collection }}.selinux'
   vars:
     selinux_booleans:
-      - { name: 'selinuxuser_execmod', state: 'on' }
+      - { name: 'selinuxuser_execmod', state: 'on', persistent: 'true' }
     selinux_fcontexts:
       - "{{ sap_general_preconfigure_fact_targets_setypes }}"
     selinux_restore_dirs:

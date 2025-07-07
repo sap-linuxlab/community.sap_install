@@ -13,7 +13,7 @@
 - name: SAP SWPM Pre Install - Check if file '{{ sap_swpm_inifile_directory }}/inifile.params' exists on the managed node
   ansible.builtin.stat:
     path: "{{ sap_swpm_inifile_directory }}/inifile.params"
-  check_mode: no
+  check_mode: false
   register: __sap_swpm_register_stat_sapinst_inifile
 
 - name: SAP SWPM Pre Install - Try using existing SWPM inifile 'inifile.params'
@@ -25,10 +25,11 @@
         msg: "INFO: Using existing sapinst inifile '{{ sap_swpm_inifile_directory }}/inifile.params'."
 
 #    - name: SAP SWPM Pre Install, existing inifile - Copy 'inifile.params' to the control node
-    - name: SAP SWPM Pre Install, existing inifile - Copy 'inifile.params' to sap_swpm_tmpdir
+    - name: SAP SWPM Pre Install, existing inifile - Copy 'inifile.params' to __sap_swpm_register_tmpdir
       ansible.builtin.copy:
         src: "{{ sap_swpm_inifile_directory }}/inifile.params"
-        dest: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+        dest: "{{ __sap_swpm_register_tmpdir.path }}/inifile.params"
+        remote_src: true
         owner: 'root'
         group: 'root'
         mode: '0640'
@@ -36,7 +37,7 @@
 # Now we need to confirm that des25 is not in the inifile
     - name: SAP SWPM Pre Install, existing inifile - Search inifile for des25
       ansible.builtin.shell: |
-        set -o pipefail && awk 'BEGIN{a=0}!/^#/&&/des25\(/{a++}END{print a}' {{ sap_swpm_tmpdir.path }}/inifile.params
+        set -o pipefail && awk 'BEGIN{a=0}!/^#/&&/des25\(/{a++}END{print a}' {{ __sap_swpm_register_tmpdir.path }}/inifile.params
       register: sap_swpm_inifile_count_des25
       changed_when: false
 
@@ -97,13 +98,13 @@
       ansible.builtin.set_fact:
         sap_swpm_db_schema: "{{ sap_swpm_db_schema_abap }}"
         sap_swpm_db_schema_password: "{{ sap_swpm_db_schema_abap_password }}"
-      when: "'ABAP' in sap_swpm_product_catalog_id"
+      when: "'ABAP' in sap_swpm_product_catalog_id | string"
 
     - name: SAP SWPM Pre Install - Set password facts when Java
       ansible.builtin.set_fact:
         sap_swpm_db_schema: "{{ sap_swpm_db_schema_java }}"
         sap_swpm_db_schema_password: "{{ sap_swpm_db_schema_java_password }}"
-      when: "'Java' in sap_swpm_product_catalog_id"
+      when: "'Java' in sap_swpm_product_catalog_id | string"
 
 # If the individual passwords are set to a non empty string, use those:
     - name: SAP SWPM Pre Install - Set other user passwords using master password
@@ -122,7 +123,7 @@
     - name: SAP SWPM Pre Install, create inifile - Process SWPM inifile template for creating 'inifile.params'
       ansible.builtin.template:
         src: "{{ role_path }}/templates/inifile_params.j2"
-        dest: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+        dest: "{{ __sap_swpm_register_tmpdir.path }}/inifile.params"
         owner: 'root'
         group: 'root'
         mode: '0640'
@@ -139,7 +140,7 @@
 
         - name: SAP SWPM Pre Install, create inifile - Configure entries in 'inifile.params' from 'sap_swpm_inifile_parameters_dict'
           ansible.builtin.lineinfile:
-            path: "{{ sap_swpm_tmpdir.path }}/inifile.params"
+            path: "{{ __sap_swpm_register_tmpdir.path }}/inifile.params"
             create: true
             state: present
             line: "{{ sap_swpm_line_item.key }} = {{ sap_swpm_line_item.value }}"
@@ -163,3 +164,9 @@
               - "sap_swpm_software_path:      >{{ sap_swpm_software_path }}<"
               - "sap_swpm_sid:                >{{ sap_swpm_sid }}<"
               - "sap_swpm_fqdn:               >{{ sap_swpm_fqdn }}<"
+
+
+- name: SAP SWPM Pre Install - Display the path name of the inifile
+  ansible.builtin.debug:
+    msg: "INFO: The sapinst inifile is: '{{ __sap_swpm_register_tmpdir.path }}/inifile.params'"
+  tags: sap_swpm_generate_inifile

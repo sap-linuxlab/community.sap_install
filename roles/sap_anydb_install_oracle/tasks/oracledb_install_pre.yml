@@ -1,45 +1,32 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# See further:
-## oracle-database-preinstall-12cr1.rpm
-## oracle-database-preinstall-12cr2.rpm
-## oracle-database-preinstall-19c.rpm >> https://yum.oracle.com/repo/OracleLinux/OL8/appstream/x86_64/getPackage/oracle-database-preinstall-19c-1.0-2.el8.x86_64.rpm
+# SUSE Specific - zypper pattern installation
+# Pattern installation will run only if pattern is not installed
+# This ensures that command module shows correct changed status
+- name: Query installed zypper patterns
+  ansible.builtin.command:
+    cmd: zypper patterns --installed-only
+  register: __sap_anydb_install_oracle_register_patterns
+  changed_when: false
+  ignore_errors: true
+  when: ansible_os_family == 'Suse'
+
+- name: Ensure that the required zypper patterns are installed
+  ansible.builtin.command:
+    cmd: zypper install -y -t pattern {{ item }}
+  loop: "{{ __sap_anydb_install_oracle_patterns }}"
+  when:
+    - ansible_os_family == 'Suse'
+    - item not in __sap_anydb_install_oracle_register_patterns.stdout
+  changed_when: item not in __sap_anydb_install_oracle_register_patterns.stdout
+
+
 - name: Install C Shell (CSH), Korn Shell (KSH) and other dependencies for Oracle DB
   ansible.builtin.package:
-    name:
-    - csh
-    - ksh
-    - mksh
-    - bc
-    - bind-utils
-    - gcc
-    - gcc-c++
-    - glibc-devel
-    - libcap
-    - libaio
-    - libaio-devel
-    - libgcc
-    - libstdc++
-    - libstdc++-devel
-    - make
-    - psmisc
-    - rdma-core-devel
-    - smartmontools
-    - sysstat
-    - unzip
-    - xorg-x11-utils
-    - xorg-x11-xauth
-    - unixODBC
-    - unixODBC-devel
-    - libnsl
+    name: "{{ __sap_anydb_install_oracle_packages | d([]) }}"
     state: present
   notify: __sap_anydb_install_oracle_reboot_handler
-
-# Removed Packages from RHEL 8.x
-# https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html-single/considerations_in_adopting_rhel_8/index#removed-packages_changes-to-packages
-#    - compat-libcap1
-#    - compat-libstdc++-33
 
 
 - name: Oracle DB - Create Linux User Groups

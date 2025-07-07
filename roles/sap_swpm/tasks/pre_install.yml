@@ -1,6 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+- name: SAP SWPM Pre Install - Assert the number of characters in the hostname, see SAP note 611361
+  ansible.builtin.include_tasks:
+    file: pre_install/assert_hostname_length.yml
+    apply:
+      tags:
+        - sap_swpm_generate_inifile
+        - sap_swpm_sapinst_commandline
+  tags:
+    - sap_swpm_generate_inifile
+    - sap_swpm_sapinst_commandline
+
+- name: SAP SWPM Pre Install - Define the temporary directory for SWPM
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_tempdir_from_env: "{{ ansible_env.TEMP | d('/tmp') }}"
+
 - name: SAP SWPM Pre Install - Define 'sap_swpm_inifile_sections_list' from 'sap_swpm_inifile_list' if necessary
   ansible.builtin.set_fact:
     sap_swpm_inifile_sections_list: "{{ sap_swpm_inifile_list }}"
@@ -202,7 +217,7 @@
       - ' '
       - '   The installation can take up to 3 hours. Run the following command as root'
       - '   on {{ ansible_hostname }} to display the installation logs:'
-      - '   # tail -f $(cat /tmp/sapinst_instdir/.lastInstallationLocation)/sapinst.log'
+      - '   # tail -f $(cat {{ __sap_swpm_fact_tempdir_from_env }}/sapinst_instdir/.lastInstallationLocation)/sapinst.log'
 
 ################
 # Set sapinst command
@@ -213,7 +228,7 @@
     sap_swpm_swpm_command_guiserver: "{{ 'SAPINST_START_GUISERVER=false' if not sap_swpm_swpm_observer_mode else '' }}"
     sap_swpm_swpm_command_observer: "{{ 'SAPINST_REMOTE_ACCESS_USER=' + sap_swpm_swpm_remote_access_user + ' SAPINST_REMOTE_ACCESS_USER_IS_TRUSTED=true' if sap_swpm_swpm_observer_mode and sap_swpm_swpm_remote_access_user | d('', true) | length > 0 else '' }}"
   ansible.builtin.set_fact:
-    sap_swpm_swpm_command_inifile: "SAPINST_INPUT_PARAMETERS_URL={{ sap_swpm_tmpdir.path }}/inifile.params"
+    sap_swpm_swpm_command_inifile: "SAPINST_INPUT_PARAMETERS_URL={{ __sap_swpm_register_tmpdir.path }}/inifile.params"
     sap_swpm_swpm_command_product_id: "SAPINST_EXECUTE_PRODUCT_ID={{ sap_swpm_product_catalog_id }}"
     # If SWPM is running a normal install Ansible Variable sap_swpm_swpm_command_virtual_hostname is blank
     # IF SWPM is running a HA installation, Ansible Variable sap_swpm_swpm_command_virtual_hostname is set and contains "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }} IS_HOST_LOCAL_USING_STRING_COMPARE=true"

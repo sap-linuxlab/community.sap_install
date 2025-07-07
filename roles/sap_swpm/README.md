@@ -9,18 +9,12 @@ The Ansible role `sap_swpm` installs various SAP Systems installable by SAP Soft
 <!-- END Description -->
 
 <!-- BEGIN Dependencies -->
-## Dependencies
-- `fedora.linux_system_roles`
-    - Roles:
-        - `selinux`
-
-Install required collections by `ansible-galaxy collection install -vv -r meta/collection-requirements.yml`.
 <!-- END Dependencies -->
 
 ## Prerequisites
 <!-- BEGIN Prerequisites -->
 Managed nodes:
-- Directory with SAP Installation media is present and `sap_swpm_software_path` updated. Download can be completed using [community.sap_launchpad](https://github.com/sap-linuxlab/community).
+- Directory with SAP Installation media is present and `sap_swpm_software_path` updated. Download can be completed using [community.sap_launchpad](https://github.com/sap-linuxlab/community.sap_launchpad).
 - Ensure that servers are configured for SAP Systems. See [Recommended](#recommended) section.
 - Ensure that volumes and filesystems are configured correctly. See [Recommended](#recommended) section.
 
@@ -77,6 +71,8 @@ Note: For most scenarios, a database like SAP HANA must be available. Use the ro
 - Get all .SAR filenames  from `sap_swpm_software_path`
 
 - (Optional) Update `/etc/hosts` if `sap_swpm_update_etchosts` is set to `true` (Default: `false`).
+
+- (Optional) Do not disable password expiry if `sap_swpm_set_sidadm_noexpire` is set to `false` (Default: `true`).
 
 - (Optional) Apply firewall rules for SAP HANA if `sap_swpm_setup_firewall` is set to `true` (Default: `false`).
 
