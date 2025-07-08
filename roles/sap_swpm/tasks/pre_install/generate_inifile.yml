@@ -56,9 +56,11 @@
 # sap_swpm_product_catalog_id, sap_swpm_software_path, sap_swpm_sid, sap_swpm_fqdn
 - name: SAP SWPM Pre Install - Assert that certain variables are set
   ansible.builtin.assert:
-    that: "{{ __sap_swpm_vars_line_item }} is defined and {{ __sap_swpm_vars_line_item }}"
-    fail_msg: "FAIL: '{{ __sap_swpm_vars_line_item }}' is either undefined or empty!"
-    success_msg: "PASS: '{{ __sap_swpm_vars_line_item }}' is set."
+    that:
+      - "{{ __sap_swpm_vars_line_item }} is defined"
+      - "{{ __sap_swpm_vars_line_item }} is not none"
+      - "{{ __sap_swpm_vars_line_item | length > 0 }}"
+    fail_msg: "FAIL: The variable '{{ __sap_swpm_vars_line_item }}' is undefined or has a length of 0!"
   loop:
     - sap_swpm_product_catalog_id
     - sap_swpm_software_path

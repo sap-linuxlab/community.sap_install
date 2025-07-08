@@ -1,0 +1,99 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Assert vars of templates/inifile_params.j2
+
+# We validate:
+# - sap_swpm_software_path: always
+# - sap_swpm_sid: always
+# - sap_swpm_fqdn for section:
+#     nw_config_other
+# - sap_swpm_ascs_instance_hostname for section:
+#     nw_config_central_services_abap
+#     db_config_anydb_sapase
+# - sap_swpm_ascs_instance_nr for section:
+#     nw_config_central_services_abap
+#     nw_config_ports
+# - sap_swpm_ers_instance_hostname for section:
+#     nw_config_ers
+# - sap_swpm_ers_instance_nr for section:
+#     nw_config_ers
+# - sap_swpm_pas_instance_nr for section:
+#     nw_config_primary_application_server_instance
+# - sap_swpm_aas_instance_hostname for section:
+#     nw_config_additional_application_server_instance
+# - sap_swpm_aas_instance_nr for section:
+#     nw_config_additional_application_server_instance
+# - sap_swpm_sapadm_uid for section:
+#     sap_os_linux_user
+# - sap_swpm_sapsys_gid for section:
+#     sap_os_linux_user
+# - sap_swpm_sidadm_uid for section:
+#     sap_os_linux_user
+# - sap_swpm_master_password for section:
+#     credentials
+#     credentials_anydb_sapase
+#     nw_config_central_services_java
+# - sap_swpm_ddic_000_password for section:
+#     credentials_syscopy
+# - sap_swpm_sap_sidadm_password for sections:
+#     credentials
+#     credentials_anydb_ibmdb2
+#     credentials_anydb_oracledb
+#     credentials_anydb_sapase
+#     credentials_anydb_sapmaxdb
+#     maintenance_plan_stack_sum_config
+# - sap_swpm_db_system_password for sections:
+#     credentials_anydb_oracledb
+#     credentials_anydb_sapase
+#     credentials_anydb_sapmaxdb
+#     credentials_hana
+#     db_connection_nw_hana
+# - sap_swpm_db_host for sections:
+#     db_config_anydb_ibmdb2
+#     db_config_anydb_sapase
+#     db_connection_nw_hana
+#     db_restore_hana
+#     syscopy_import_anydb_ibmdb2
+# - sap_swpm_db_schema_abap for sections:
+#     db_config_anydb_oracledb
+#     db_connection_nw_anydb_oracledb
+#     db_connection_nw_hana
+# - sap_swpm_db_sid for sections:
+#     db_config_anydb_ibmdb2
+#     db_config_anydb_oracledb
+#     db_config_anydb_oracledb_121
+#     db_config_anydb_oracledb_122
+#     db_config_anydb_oracledb_19
+#     db_config_anydb_sapmaxdb
+#     db_connection_nw_hana
+#     db_restore_hana
+#     syscopy_import_anydb_ibmdb2
+
+- name: SAP SWPM Pre Install - Assert 'sap_swpm_software_path'
+  ansible.builtin.assert:
+    that:
+      - sap_swpm_software_path is defined
+      - sap_swpm_software_path is not none
+      - sap_swpm_software_path | length > 0
+    fail_msg: |
+      FAIL: The variable 'sap_swpm_installation_media' is undefined or has a length of 0!
+
+- name: SAP SWPM Pre Install - Assert 'sap_swpm_sid'
+  ansible.builtin.assert:
+    that:
+      - sap_swpm_sid is defined
+      - sap_swpm_sid is not none
+      - sap_swpm_sid | length > 0
+    fail_msg: |
+      FAIL: The variable 'sap_swpm_sid' is undefined or has a length of 0!
+
+- name: SAP SWPM Pre Install - Create a new list of vars only used in defined sections
+  ansible.builtin.set_fact:
+    __sap_swpm_inifile_vars_to_be_asserted_final: "{{ __sap_swpm_inifile_vars_to_be_asserted | selectattr('section', 'in', sap_swpm_inifile_sections_list) }}"
+
+- name: SAP SWPM Pre Install - Assert vars
+  ansible.builtin.include_tasks: assert_inifile_vars_loop_block.yml
+  loop: "{{ __sap_swpm_inifile_vars_to_be_asserted_final }}"
+  loop_control:
+    loop_var: __sap_swpm_vars_to_be_asserted_line_item
