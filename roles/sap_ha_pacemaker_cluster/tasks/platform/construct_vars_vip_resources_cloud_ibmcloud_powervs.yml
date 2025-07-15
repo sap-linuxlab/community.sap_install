@@ -6,17 +6,24 @@
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_resource_primitives: "{{ __sap_ha_pacemaker_cluster_resource_primitives + [__resource_vip] }}"
   vars:
+    __ipaddr_ip_cidr:
+      - name: ip
+        value: "{{ vip_list_item.value | quote }}"
+      - name: cidr_netmask
+        value: "{{ __sap_ha_pacemaker_cluster_vip_client_interface_subnet_cidr.stdout | int }}"
+    # Create separate list for nic parameter only when it is defined and not empty.
+    __ipaddr_nic:
+      - name: nic
+        value: "{{ sap_ha_pacemaker_cluster_vip_client_interface | d('') }}"
+
     __resource_vip:
       id: "{{ vip_list_item.key }}"
       agent: "{{ __sap_ha_pacemaker_cluster_available_vip_agents[sap_ha_pacemaker_cluster_vip_method].agent }}"
       instance_attrs:
-        - attrs:
-            - name: ip
-              value: "{{ vip_list_item.value }}"
-            - name: cidr_netmask
-              value: "{{ __sap_ha_pacemaker_cluster_vip_client_interface_subnet_cidr.stdout | int }}"
-            - name: nic
-              value: "{{ sap_ha_pacemaker_cluster_vip_client_interface }}"
+        # Combine both lists if sap_ha_pacemaker_cluster_vip_client_interface is defined and not empty.
+        - attrs: "{{ __ipaddr_ip_cidr + __ipaddr_nic
+            if sap_ha_pacemaker_cluster_vip_client_interface is defined and sap_ha_pacemaker_cluster_vip_client_interface | length > 0
+            else __ipaddr_ip_cidr }}"
   when:
     - vip_list_item.key not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='id'))
     - sap_ha_pacemaker_cluster_vip_method == 'ipaddr_custom' or

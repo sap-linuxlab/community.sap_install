@@ -22,9 +22,11 @@
 - name: "SAP HA Prepare Pacemaker - IBM Cloud PowerVS - Calculate network interface subnet CIDR"
   ansible.builtin.shell: |
     set -o pipefail && ipcalc --prefix \
-     {{ ansible_facts[sap_ha_pacemaker_cluster_vip_client_interface].ipv4.network
-     + '/' + ansible_facts[sap_ha_pacemaker_cluster_vip_client_interface].ipv4.netmask }} \
+     {{ ansible_facts[__interface].ipv4.network
+     + '/' + ansible_facts[__interface].ipv4.netmask }} \
      | sed 's|PREFIX=||'
   register: __sap_ha_pacemaker_cluster_vip_client_interface_subnet_cidr
   changed_when: false
   check_mode: false
+  vars:
+    __interface: "{{ __sap_ha_pacemaker_cluster_vip_client_interface | d(sap_ha_pacemaker_cluster_vip_client_interface) }}"

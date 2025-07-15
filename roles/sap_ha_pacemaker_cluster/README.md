@@ -1098,6 +1098,8 @@ For RHEL System Roles for SAP, or Red Hat Automation Hub, use 'redhat.rhel_syste
 
 OS device name of the network interface to use for the Virtual IP configuration.<br>
 When there is only one interface on the system, its name will be used by default.<br>
+Ensure that same network interface is present on all cluster nodes.<br>
+IPaddr2 resource agent does not require network interface defined (except Google Cloud).<br>
 
 ### sap_ha_pacemaker_cluster_vip_hana_primary_ip_address
 - _Type:_ `string`<br>
