@@ -207,17 +207,13 @@
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_needs_restarting_command_assert: "needs-restarting -r"
   when:
-    - ansible_os_family == 'RedHat'
     - ansible_distribution_major_version == '7'
 
-- name: "Assert - Set needs-restarting command in case of RHEL 8 or RHEL 9, except RHEL 8.0"
+- name: "Assert - Set needs-restarting command in case of RHEL 8 or greater, except RHEL 8.0"
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_needs_restarting_command_assert: "yum needs-restarting -r"
   when:
-    - ansible_os_family == 'RedHat'
-    - (ansible_distribution_major_version == '8' or
-         ansible_distribution_major_version == '9'
-      )
+    - ansible_distribution_major_version | int >= 8
     - ansible_distribution_version != '8.0'
 
 - name: "Assert - Set customized needs-restarting command in case of RHEL 8.0"
@@ -233,7 +229,7 @@
     var: __sap_hana_preconfigure_fact_needs_restarting_command_assert
 
 # Reason for noqa: The command to be executed might contain pipes
-- name: Assert - Determine if system needs to be restarted # noqa command-instead-of-shell
+- name: Assert - Determine if the system needs to be restarted # noqa command-instead-of-shell
   ansible.builtin.shell: "{{ __sap_hana_preconfigure_fact_needs_restarting_command_assert }}"
   register: __sap_hana_preconfigure_register_needs_restarting_assert
   changed_when: false
