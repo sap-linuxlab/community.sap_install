@@ -4,6 +4,22 @@ community.sap\_install Release Notes
 
 .. contents:: Topics
 
+v1.6.1
+======
+
+Release Summary
+---------------
+
+A few minor bug fixes
+
+Bugfixes
+--------
+
+- sap_*_preconfigure - Assert the presence of the IBM tools only if necessary (https://github.com/sap-linuxlab/community.sap_install/pull/1078)
+- sap_*_preconfigure - Define needs-restarting also for RHEL 10 (https://github.com/sap-linuxlab/community.sap_install/pull/1071)
+- sap_*_preconfigure - Define needs-restarting also for RHEL 10, assert mode (https://github.com/sap-linuxlab/community.sap_install/pull/1076)
+- sap_ha_pacemaker_cluster - Remove NIC parameter from IPaddr2 resource agents (https://github.com/sap-linuxlab/community.sap_install/pull/1074)
+
 v1.6.0
 ======
 
