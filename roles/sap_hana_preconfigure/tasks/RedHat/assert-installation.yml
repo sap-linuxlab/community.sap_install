@@ -89,17 +89,16 @@
 ### # /opt/ibm/lop/configure
 ### # yum -y install ibm-power-managed-rhel7
 ###
-# Reasons for noqa:
-# command-instead-of-module: I need to examine the output of the yum info command.
-# risky-shell-pipe: If a package is not installed, the shell command will fail. But I want the command to
-#   succeed so that the awk command can examine the result.
-- name: Get install status of required IBM packages # noqa command-instead-of-module risky-shell-pipe
+- name: Get install status of required IBM packages
   ansible.builtin.shell: |
-    yum info installed {{ __sap_hana_preconfigure_required_ppc64le | map('quote') | join(' ') }} |
+    set -o pipefail && yum info installed {{ __sap_hana_preconfigure_required_ppc64le | map('quote') | join(' ') }} |
     awk '/Name/{n=$NF}/Version/{v=$NF}/Release/{r=$NF}/Description/{printf ("%s\n", n)}'
   register: __sap_hana_preconfigure_register_required_ppc64le_packages_assert
-  changed_when: no
-  when: ansible_architecture == "ppc64le"
+  changed_when: false
+  when:
+    - ansible_architecture == "ppc64le"
+    - sap_general_preconfigure_install_ibm_power_tools
+  ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Assert that all required IBM packages are installed
   ansible.builtin.assert:
@@ -110,7 +109,9 @@
     - "{{ __sap_hana_preconfigure_required_ppc64le }}"
   loop_control:
     loop_var: line_item
-  when: ansible_architecture == "ppc64le"
+  when:
+    - ansible_architecture == "ppc64le"
+    - sap_general_preconfigure_install_ibm_power_tools
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Minimum required package version check
@@ -207,17 +208,13 @@
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_needs_restarting_command_assert: "needs-restarting -r"
   when:
-    - ansible_os_family == 'RedHat'
     - ansible_distribution_major_version == '7'
 
-- name: "Assert - Set needs-restarting command in case of RHEL 8 or RHEL 9, except RHEL 8.0"
+- name: "Assert - Set needs-restarting command in case of RHEL 8 or greater, except RHEL 8.0"
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_needs_restarting_command_assert: "yum needs-restarting -r"
   when:
-    - ansible_os_family == 'RedHat'
-    - (ansible_distribution_major_version == '8' or
-         ansible_distribution_major_version == '9'
-      )
+    - ansible_distribution_major_version | int >= 8
     - ansible_distribution_version != '8.0'
 
 - name: "Assert - Set customized needs-restarting command in case of RHEL 8.0"
@@ -233,7 +230,7 @@
     var: __sap_hana_preconfigure_fact_needs_restarting_command_assert
 
 # Reason for noqa: The command to be executed might contain pipes
-- name: Assert - Determine if system needs to be restarted # noqa command-instead-of-shell
+- name: Assert - Determine if the system needs to be restarted # noqa command-instead-of-shell
   ansible.builtin.shell: "{{ __sap_hana_preconfigure_fact_needs_restarting_command_assert }}"
   register: __sap_hana_preconfigure_register_needs_restarting_assert
   changed_when: false

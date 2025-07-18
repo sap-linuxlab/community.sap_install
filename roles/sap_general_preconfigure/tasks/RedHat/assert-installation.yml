@@ -168,7 +168,9 @@
     awk '/Name/{n=$NF}/Version/{v=$NF}/Release/{r=$NF}/Description/{printf ("%s\n", n)}'
   register: __sap_general_preconfigure_register_required_ppc64le_packages_assert
   changed_when: false
-  when: ansible_architecture == "ppc64le"
+  when:
+    - ansible_architecture == "ppc64le"
+    - sap_general_preconfigure_install_ibm_power_tools
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Assert that all required IBM packages are installed
@@ -180,7 +182,9 @@
     - "{{ __sap_general_preconfigure_required_ppc64le }}"
   loop_control:
     loop_var: line_item
-  when: ansible_architecture == "ppc64le"
+  when:
+    - ansible_architecture == "ppc64le"
+    - sap_general_preconfigure_install_ibm_power_tools
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Minimum required package version check
@@ -278,13 +282,11 @@
     __sap_general_preconfigure_fact_needs_restarting_command_assert: "needs-restarting -r"
   when: ansible_distribution_major_version == '7'
 
-- name: "Assert - Set needs-restarting command in case of RHEL 8 or RHEL 9, except RHEL 8.0"
+- name: "Assert - Set needs-restarting command in case of RHEL 8 or greater, except RHEL 8.0"
   ansible.builtin.set_fact:
     __sap_general_preconfigure_fact_needs_restarting_command_assert: "yum needs-restarting -r"
   when:
-    - (ansible_distribution_major_version == '8' or
-         ansible_distribution_major_version == '9'
-      )
+    - ansible_distribution_major_version | int >= 8
     - ansible_distribution_version != '8.0'
 
 - name: "Assert - Set customized needs-restarting command in case of RHEL 8.0"
