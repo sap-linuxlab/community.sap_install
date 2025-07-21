@@ -6,32 +6,23 @@
     src: /proc/cmdline
   register: __sap_hana_preconfigure_register_proc_cmdline_thp
 
-- name: Set fact for THP, RHEL up to RHEL 9.1
-  ansible.builtin.set_fact:
-    __sap_hana_preconfigure_fact_thp: 'never'
-  when:
-    - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
-    - ansible_distribution == 'RedHat'
-    - ansible_distribution_major_version == '7' or
-      ansible_distribution_major_version == '8' or
-      ansible_distribution_version == '9.0' or
-      ansible_distribution_version == '9.1'
-
-- name: Set fact for THP, RHEL 9.2 and later
-  ansible.builtin.set_fact:
-    __sap_hana_preconfigure_fact_thp: 'madvise'
-  when:
-    - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
-    - ansible_distribution == 'RedHat'
-    - (ansible_distribution_major_version == '9' and
-        __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int >= 2) or
-      ansible_distribution_major_version == '10'
-
-- name: Set fact for THP if 'sap_hana_preconfigure_thp' is defined
+- name: Set fact for THP if 'sap_hana_preconfigure_thp' if defined
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_thp: "{{ sap_hana_preconfigure_thp }}"
   when:
-    - sap_hana_preconfigure_thp is defined and sap_hana_preconfigure_thp
+    - sap_hana_preconfigure_thp is defined
+    - sap_hana_preconfigure_thp | length > 0
+
+- name: Set fact for THP if 'sap_hana_preconfigure_thp' if undefined
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_fact_thp: "{{ __sap_hana_preconfigure_boot_command_line_args['thp']['args'].split('=')[1] }}"
+  when:
+    - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
+
+- name: Add boot command line args for configuring THP
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_boot_command_line_args_final: >-
+      {{ __sap_hana_preconfigure_boot_command_line_args_final | d('') + 'transparent_hugepage=' + __sap_hana_preconfigure_fact_thp + ' ' }}
 
 - name: Set THP to '{{ __sap_hana_preconfigure_fact_thp }}' at boot time
   ansible.builtin.command: /bin/true

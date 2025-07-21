@@ -1,20 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: Get boot command line
-  ansible.builtin.slurp:
-    src: /proc/cmdline
-  register: __sap_hana_preconfigure_register_proc_cmdline
-
-- name: Enable TSX at boot time
-  ansible.builtin.command: /bin/true
+- name: Add boot command line args for configuring TSX
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_boot_command_line_args_final: >-
+      {{ __sap_hana_preconfigure_boot_command_line_args_final | d('') + __sap_hana_preconfigure_boot_command_line_args['tsx']['args'] + ' ' }}
   notify: __sap_hana_preconfigure_grubby_update_handler
   changed_when: true
   when:
     - ansible_architecture == 'x86_64'
-    - ansible_distribution == 'RedHat'
-    - (ansible_distribution_major_version >= '9') or
+    - ansible_distribution_major_version | int >= 9 or
       (ansible_distribution_major_version == '8' and
        __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int >= 3)
-    - not ( __sap_hana_preconfigure_register_proc_cmdline['content'] | b64decode | regex_findall('tsx=on') )
   tags: grubconfig

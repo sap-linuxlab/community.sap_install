@@ -2,21 +2,11 @@
 ---
 
 # can be configured by tuned profile sap-hana, entry "force_latency=70"
-- name: Configure C-States for lower latency
-  ansible.builtin.lineinfile:
-    path: /etc/default/grub
-    backup: yes
-    backrefs: yes
-    state: present
-    regexp: '^(GRUB_CMDLINE_LINUX=(?!.* {{ line_item }}).*). *$'
-    line: "\\1 {{ line_item }}\""
-  with_items:
-    - "processor.max_cstate=1"
-    - "intel_idle.max_cstate=1"
-  notify: __sap_hana_preconfigure_regenerate_grub2_conf_handler
-  when: ansible_architecture == 'x86_64' and
-        (not sap_hana_preconfigure_use_tuned or
-           sap_hana_preconfigure_modify_grub_cmdline_linux)
+- name: Add boot command line args for configuring C-States for lower latency
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_boot_command_line_args_final: >-
+      {{ __sap_hana_preconfigure_boot_command_line_args_final | d('') + __sap_hana_preconfigure_boot_command_line_args['c-states']['args'] + ' ' }}
+  notify: __sap_hana_preconfigure_grubby_update_handler
+  changed_when: true
+  when: ansible_architecture == 'x86_64'
   tags: grubconfig
-  loop_control:
-    loop_var: line_item

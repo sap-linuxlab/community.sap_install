@@ -76,7 +76,7 @@
   ansible.builtin.command:
     cmd: grubby --args="tsx=on" --update-kernel=ALL
   changed_when: true
-  listen: __sap_hana_preconfigure_grubby_update_handler
+  listen: __sap_hana_preconfigure_grubby_tsx_handler
   notify: __sap_hana_preconfigure_reboot_handler
 
 - name: "Run grubby for setting THP to '{{ __sap_hana_preconfigure_fact_thp }}'"
@@ -84,6 +84,13 @@
     cmd: grubby --args="transparent_hugepage={{ __sap_hana_preconfigure_fact_thp }}" --update-kernel=ALL
   changed_when: true
   listen: __sap_hana_preconfigure_grubby_thp_handler
+  notify: __sap_hana_preconfigure_reboot_handler
+
+- name: "Run grubby for configuring kernel command line entries for SAP"
+  ansible.builtin.command:
+    cmd: grubby --args="{{ __sap_hana_preconfigure_boot_command_line_args_final | trim }}" --update-kernel=ALL
+  changed_when: true
+  listen: __sap_hana_preconfigure_grubby_update_handler
   notify: __sap_hana_preconfigure_reboot_handler
 
 # END - GRUB section
