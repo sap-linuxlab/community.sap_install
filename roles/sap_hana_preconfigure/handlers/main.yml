@@ -72,20 +72,6 @@
     - __sap_hana_preconfigure_register_stat_sys_firmware_efi.stat.exists
     - sap_hana_preconfigure_run_grub2_mkconfig | d(true)
 
-- name: "Run grubby for enabling TSX"
-  ansible.builtin.command:
-    cmd: grubby --args="tsx=on" --update-kernel=ALL
-  changed_when: true
-  listen: __sap_hana_preconfigure_grubby_tsx_handler
-  notify: __sap_hana_preconfigure_reboot_handler
-
-- name: "Run grubby for setting THP to '{{ __sap_hana_preconfigure_fact_thp }}'"
-  ansible.builtin.command:
-    cmd: grubby --args="transparent_hugepage={{ __sap_hana_preconfigure_fact_thp }}" --update-kernel=ALL
-  changed_when: true
-  listen: __sap_hana_preconfigure_grubby_thp_handler
-  notify: __sap_hana_preconfigure_reboot_handler
-
 - name: "Run grubby for configuring kernel command line entries for SAP"
   ansible.builtin.command:
     cmd: grubby --args="{{ __sap_hana_preconfigure_boot_command_line_args_final | trim }}" --update-kernel=ALL
