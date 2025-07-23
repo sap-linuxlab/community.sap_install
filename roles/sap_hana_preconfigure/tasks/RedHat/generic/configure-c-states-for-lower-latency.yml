@@ -5,9 +5,9 @@
 - name: Add boot command line args for configuring C-States for lower latency
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_boot_command_line_args_final: >-
-      {{ __sap_hana_preconfigure_boot_command_line_args_final | d('') + __sap_hana_preconfigure_boot_command_line_args['c-states']['args'] + ' ' }}
-  notify: __sap_hana_preconfigure_grubby_update_handler
-  changed_when: true
+      {{ __sap_hana_preconfigure_boot_command_line_args_final + [__sap_hana_preconfigure_kernel_arg_line_item] }}
+  loop: "{{ __sap_hana_preconfigure_boot_command_line_args['c-states']['args'] }}"
+  loop_control:
+    loop_var: __sap_hana_preconfigure_kernel_arg_line_item
   when:
     - ansible_architecture in __sap_hana_preconfigure_boot_command_line_args['c-states']['arch']
-  tags: grubconfig

@@ -10,17 +10,14 @@
 
 - name: Set fact for THP if 'sap_hana_preconfigure_thp' is undefined
   ansible.builtin.set_fact:
-    __sap_hana_preconfigure_fact_thp: "{{ __sap_hana_preconfigure_boot_command_line_args['thp']['args'].split('=')[1] }}"
+    __sap_hana_preconfigure_fact_thp: "{{ __sap_hana_preconfigure_boot_command_line_args['thp']['args'][0].split('=')[1] }}"
   when:
     - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
 
 - name: Add boot command line args for configuring THP
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_boot_command_line_args_final: >-
-      {{ __sap_hana_preconfigure_boot_command_line_args_final | d('') + 'transparent_hugepage=' + __sap_hana_preconfigure_fact_thp + ' ' }}
-  notify: __sap_hana_preconfigure_grubby_update_handler
-  changed_when: true
-  tags: grubconfig
+      {{ __sap_hana_preconfigure_boot_command_line_args_final + ['transparent_hugepage=' + __sap_hana_preconfigure_fact_thp] }}
 
 - name: Configure - Get initial status of THP
   ansible.builtin.command: cat /sys/kernel/mm/transparent_hugepage/enabled

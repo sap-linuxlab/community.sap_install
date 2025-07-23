@@ -1,0 +1,90 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Get all kernel command line args for all grub entries
+  ansible.builtin.shell: set -o pipefail && grubby --info=ALL
+  register: __sap_hana_preconfigure_register_grubby_info_all
+  check_mode: false
+  changed_when: false
+
+- name: Validate the grubby output
+  ansible.builtin.fail:
+    msg: "FAIL: No grub or grub args entries found!"
+  when:
+    - __sap_hana_preconfigure_register_grubby_info_all.stdout == ""
+    - "'args=' not in __sap_hana_preconfigure_register_grubby_info_all.stdout"
+
+- name: Store all lines containing the kernel arguments
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_fact_all_kernel_args_lines: >-
+      {{
+        __sap_hana_preconfigure_register_grubby_info_all.stdout |
+        regex_findall('args="([^"]*)"')
+      }}
+
+# We first identify kernel args which are missing in at least one grub entry
+- name: Identify missing kernel args
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_fact_missing_kernel_args: >-
+      {{
+        __sap_hana_preconfigure_fact_missing_kernel_args + [__sap_hana_preconfigure_kernel_arg_item]
+      }}
+  loop: "{{ __sap_hana_preconfigure_boot_command_line_args_final }}"
+  loop_control:
+    loop_var: __sap_hana_preconfigure_kernel_arg_item
+  when: >-
+    __sap_hana_preconfigure_fact_all_kernel_args_lines |
+    select('search', __sap_hana_preconfigure_kernel_arg_item.split('=')[0] + '=') |
+    list | length < __sap_hana_preconfigure_fact_all_kernel_args_lines | length
+
+# We then identify kernel args which are
+# - either not set correctly in all grub entries, or
+# - set differently (meaning that the arg/value combination for a desired arg occurs more than once)
+- name: Identify kernel args to be updated
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_kernel_args_to_be_updated: >-
+      {{
+        __sap_hana_preconfigure_kernel_args_to_be_updated + [__sap_hana_preconfigure_kernel_arg_item]
+      }}
+  loop: "{{ __sap_hana_preconfigure_boot_command_line_args_final }}"
+  loop_control:
+    loop_var: __sap_hana_preconfigure_kernel_arg_item
+  when: >-
+    (
+      __sap_hana_preconfigure_kernel_arg_item not in
+      __sap_hana_preconfigure_fact_all_kernel_args_lines
+      | join(' ') | split | unique
+    ) or (
+      __sap_hana_preconfigure_fact_all_kernel_args_lines
+      | join(' ') | split | unique
+      | select('search', __sap_hana_preconfigure_kernel_arg_item.split('=')[0]) | list | length > 1
+    )
+
+- name: Display grub and kernel args information
+  ansible.builtin.debug:
+    msg: |
+      Number of grub entries: {{ __sap_hana_preconfigure_fact_all_kernel_args_lines | length }}
+      Required arguments: {{ __sap_hana_preconfigure_boot_command_line_args_final }}
+      Missing kernel args: {{ __sap_hana_preconfigure_fact_missing_kernel_args }}
+      Kernel args to be updated: {{ __sap_hana_preconfigure_kernel_args_to_be_updated }}
+
+- name: Set fact for all required kernel arg updates
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_fact_kernel_args_to_be_set:
+      - "{{ __sap_hana_preconfigure_fact_missing_kernel_args }}"
+      - "{{ __sap_hana_preconfigure_kernel_args_to_be_updated }}"
+  when: __sap_hana_preconfigure_fact_missing_kernel_args | length > 0 or
+        __sap_hana_preconfigure_kernel_args_to_be_updated | length > 0
+
+- name: Display kernel args to be set
+  ansible.builtin.debug:
+    msg: "Kernel args to be set: {{ __sap_hana_preconfigure_fact_kernel_args_to_be_set }}"
+
+# Reason for noqa: The command does not change anything but if we set 'changed_when: true',
+# the handler will not be notified.
+- name: Trigger kernel command line update if necessary # noqa no-changed-when
+  ansible.builtin.command:
+    cmd: /bin/true
+  notify: __sap_hana_preconfigure_grubby_update_handler
+  when:
+    - __sap_hana_preconfigure_fact_kernel_args_to_be_set | length > 0
