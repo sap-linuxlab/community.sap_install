@@ -27,14 +27,14 @@
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_missing_kernel_args: >-
       {{
-        __sap_hana_preconfigure_fact_missing_kernel_args + [__sap_hana_preconfigure_kernel_arg_item]
+        __sap_hana_preconfigure_fact_missing_kernel_args + [__sap_hana_preconfigure_missing_kernel_arg_item]
       }}
   loop: "{{ __sap_hana_preconfigure_boot_command_line_args_final }}"
   loop_control:
-    loop_var: __sap_hana_preconfigure_kernel_arg_item
+    loop_var: __sap_hana_preconfigure_missing_kernel_arg_item
   when: >-
     __sap_hana_preconfigure_fact_all_kernel_args_lines |
-    select('search', __sap_hana_preconfigure_kernel_arg_item.split('=')[0] + '=') |
+    select('search', __sap_hana_preconfigure_missing_kernel_arg_item.split('=')[0] + '=') |
     list | length < __sap_hana_preconfigure_fact_all_kernel_args_lines | length
 
 # We then identify kernel args which are
@@ -44,20 +44,20 @@
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_kernel_args_to_be_updated: >-
       {{
-        __sap_hana_preconfigure_kernel_args_to_be_updated + [__sap_hana_preconfigure_kernel_arg_item]
+        __sap_hana_preconfigure_kernel_args_to_be_updated + [__sap_hana_preconfigure_kernel_arg_to_be_updated_item]
       }}
   loop: "{{ __sap_hana_preconfigure_boot_command_line_args_final }}"
   loop_control:
-    loop_var: __sap_hana_preconfigure_kernel_arg_item
+    loop_var: __sap_hana_preconfigure_kernel_arg_to_be_updated_item
   when: >-
     (
-      __sap_hana_preconfigure_kernel_arg_item not in
+      __sap_hana_preconfigure_kernel_arg_to_be_updated_item not in
       __sap_hana_preconfigure_fact_all_kernel_args_lines
       | join(' ') | split | unique
     ) or (
       __sap_hana_preconfigure_fact_all_kernel_args_lines
       | join(' ') | split | unique
-      | select('search', __sap_hana_preconfigure_kernel_arg_item.split('=')[0]) | list | length > 1
+      | select('search', __sap_hana_preconfigure_kernel_arg_to_be_updated_item.split('=')[0]) | list | length > 1
     )
 
 - name: Display grub and kernel args information
@@ -70,11 +70,10 @@
 
 - name: Set fact for all required kernel arg updates
   ansible.builtin.set_fact:
-    __sap_hana_preconfigure_fact_kernel_args_to_be_set:
-      - "{{ __sap_hana_preconfigure_fact_missing_kernel_args }}"
-      - "{{ __sap_hana_preconfigure_kernel_args_to_be_updated }}"
-  when: __sap_hana_preconfigure_fact_missing_kernel_args | length > 0 or
-        __sap_hana_preconfigure_kernel_args_to_be_updated | length > 0
+    __sap_hana_preconfigure_fact_kernel_args_to_be_set: >-
+      {{ (__sap_hana_preconfigure_fact_missing_kernel_args
+        + __sap_hana_preconfigure_kernel_args_to_be_updated) | unique
+      }}
 
 - name: Display kernel args to be set
   ansible.builtin.debug:
