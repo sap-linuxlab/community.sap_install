@@ -77,7 +77,20 @@
 
 - name: Display kernel args to be set
   ansible.builtin.debug:
-    msg: "Kernel args to be set: {{ __sap_hana_preconfigure_fact_kernel_args_to_be_set }}"
+    msg: "Kernel args to be set: '{{ __sap_hana_preconfigure_fact_kernel_args_to_be_set }}'"
+
+- name: Construct the grubby command for configuring the kernel command line entries
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_fact_grubby_command: >-
+      grubby --args="{{ __sap_hana_preconfigure_fact_kernel_args_to_be_set | join(' ') | trim }}" --update-kernel=ALL
+  when:
+    - __sap_hana_preconfigure_fact_kernel_args_to_be_set | length > 0
+
+- name: Display the grubby command to be run
+  ansible.builtin.debug:
+    msg: "Grubby command: '{{ __sap_hana_preconfigure_fact_grubby_command }}'"
+  when:
+    - __sap_hana_preconfigure_fact_kernel_args_to_be_set | length > 0
 
 # Reason for noqa: The command does not change anything but if we set 'changed_when: true',
 # the handler will not be notified.
