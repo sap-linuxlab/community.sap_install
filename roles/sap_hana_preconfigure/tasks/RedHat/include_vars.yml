@@ -5,7 +5,7 @@
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_ansible_distribution_minor_version: '{{ ansible_distribution_version.split(".")[1] }}'
 
-- name: Find all RHEL vars files
+- name: Find all vars files for the current RHEL minor version or later
   ansible.builtin.find:
     paths:
       - "{{ role_path }}/vars"
@@ -14,9 +14,7 @@
   delegate_to: localhost
   register: __sap_hana_preconfigure_fact_find_result_rhel_minor_plus_vars_files
 
-# Note: vars files for RHEL minor plus versions: vars files for certain RHEL minor versions which are also valid
-# for all later RHEL minor versions
-- name: Create a dict containing the additional vars files for the current RHEL minor version or later
+- name: Create a dict containing these vars files
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_rhel_minor_plus_vars_files_dict: >-
       {{ __sap_hana_preconfigure_fact_rhel_minor_plus_vars_files_dict | d([])
@@ -31,7 +29,7 @@
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_rhel_minor_plus_vars_files_dict_sorted: "{{ __sap_hana_preconfigure_fact_rhel_minor_plus_vars_files_dict | sort(attribute='minor_version') }}"
 
-- name: Create the final list of additional vars files for the current RHEL minor version or later
+- name: Create the final list of additional vars files
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_rhel_minor_plus_vars_files_sorted: >-
       {{ __sap_hana_preconfigure_fact_rhel_minor_plus_vars_files_sorted | d([])
@@ -41,7 +39,7 @@
   loop_control:
     loop_var: __sap_hana_preconfigure_vars_files_dict_line_item
 
-- name: Display the list of additional vars files
+- name: Display the final list of additional vars files
   ansible.builtin.debug:
     var: __sap_hana_preconfigure_fact_rhel_minor_plus_vars_files_sorted
 
