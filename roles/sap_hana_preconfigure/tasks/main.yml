@@ -34,25 +34,9 @@
       }}
   when: __vars_file is file
 
-- name: Examine the OS minor version, RHEL
-  ansible.builtin.set_fact:
-    __sap_hana_preconfigure_fact_ansible_distribution_minor_version: '{{ ansible_distribution_version.split(".")[1] }}'
+- name: Include RHEL minor release specific vars files
+  ansible.builtin.include_tasks: 'RedHat/include_vars.yml'
   when: ansible_distribution == 'RedHat'
-
-- name: Include additional RHEL specific vars, minor version or lower
-  ansible.builtin.include_vars:
-    file: "{{ __vars_file }}"
-  loop: "{{ range(0, 11) }}"
-  loop_control:
-    loop_var: __minor_release_line_item
-    label: "{{ __vars_file.split('/')[-1] }}"
-  vars:
-    __vars_file: >-
-      {{ role_path }}/vars/{{ ansible_distribution ~ '_' ~ ansible_distribution_major_version ~ '.' ~ __minor_release_line_item ~ '.plus' ~ '.yml' }}
-  when:
-    - ansible_distribution == 'RedHat'
-    - __minor_release_line_item <= __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int
-    - lookup('file', __vars_file, errors='ignore') is not none
 
 - name: Set filename prefix to empty string if role is run in normal mode
   ansible.builtin.set_fact:
