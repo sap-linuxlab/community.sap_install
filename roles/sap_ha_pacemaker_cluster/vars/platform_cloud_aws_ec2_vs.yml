@@ -218,6 +218,22 @@ __sap_ha_pacemaker_cluster_corosync_totem_platform:
    else __sap_ha_pacemaker_cluster_corosync_totem_platform_dict[ansible_os_family | lower ~ '_nwas'] }}"
 
 
+# Dictionary with default platform specific cluster properties
+__sap_ha_pacemaker_cluster_cluster_properties_platform_dict:
+  hana:
+    stonith-enabled: true
+    stonith-timeout: 600
+
+  nwas:
+    stonith-enabled: true
+    stonith-timeout: 300
+
+__sap_ha_pacemaker_cluster_cluster_properties_platform:
+  "{{ __sap_ha_pacemaker_cluster_cluster_properties_platform_dict['hana']
+    if sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+   else __sap_ha_pacemaker_cluster_cluster_properties_platform_dict['nwas'] }}"
+
+
 # Platform specific VIP handling
 sap_ha_pacemaker_cluster_vip_method: "{{ __sap_ha_pacemaker_cluster_vip_method_dict.cloud_aws_ec2_vs | d('aws_vpc_move_ip') }}"
 sap_ha_pacemaker_cluster_vip_group_prefix: ''  # the default supported VIP agent is a single resource only

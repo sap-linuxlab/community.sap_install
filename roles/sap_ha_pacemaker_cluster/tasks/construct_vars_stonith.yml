@@ -35,10 +35,13 @@
       )
   block:
 
+    # Ensure that property 'stonith-enabled' is set to 'false' if no Stonith resources are defined.
+    # NOTE: We cannot allow user set 'stonith-enabled' 'true' if there are no fencing resources.
     - name: "SAP HA Prepare Pacemaker - (STONITH) Set to disabled when no fencing resource is defined"
+      when: ha_cluster_cluster_properties is not defined  # We cannot append to defined variable due to precedence.
       ansible.builtin.set_fact:
-        sap_ha_pacemaker_cluster_cluster_properties:
-          "{{ sap_ha_pacemaker_cluster_cluster_properties | combine({'stonith-enabled': false}) }}"
+        __sap_ha_pacemaker_cluster_cluster_properties:
+          "{{ __sap_ha_pacemaker_cluster_cluster_properties | combine({'stonith-enabled': false}) }}"
 
     - name: "SAP HA Prepare Pacemaker - Warn that there is no STONITH configured"
       ansible.builtin.pause:
@@ -53,38 +56,64 @@
 
 # END of block for disabling stonith
 
-# Add additional stonith properties to sap_ha_pacemaker_cluster_cluster_properties
-# Checks if pcmk_delay_max is defined and non zero, then multiples it by 2.
-- name: "SAP HA Prepare Pacemaker - (STONITH) Add priority-fencing-delay property"
-  ansible.builtin.set_fact:
-    sap_ha_pacemaker_cluster_cluster_properties:
-      "{{ sap_ha_pacemaker_cluster_cluster_properties | combine({'priority-fencing-delay':
-          __sap_ha_pacemaker_cluster_stonith_default.options.pcmk_delay_max | int * 2})
-        if __sap_ha_pacemaker_cluster_stonith_default.options.pcmk_delay_max is defined
-        and __sap_ha_pacemaker_cluster_stonith_default.options.pcmk_delay_max | int != 0
-        else sap_ha_pacemaker_cluster_cluster_properties }}"
+# Stonith cluster properties
+# Property 'concurrent-fencing' is 'false' by default, but Scale-Out requires 'true'.
+# NOTE: Reversed combine ensures that user defined values are retained.
+# TODO: Enable during implementation of Scale-Out.
+# - name: "SAP HA Prepare Pacemaker - Disable concurrent-fencing in properties"
+#   when: ha_cluster_cluster_properties is not defined  # We cannot append to defined variable due to precedence.
+#   ansible.builtin.set_fact:
+#     __sap_ha_pacemaker_cluster_cluster_properties:
+#       "{{ {'concurrent-fencing': true} | combine(__sap_ha_pacemaker_cluster_cluster_properties) }}"
+#   when:
+#     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleout') | length > 0
 
-- name: "SAP HA Prepare Pacemaker - (STONITH) Define cluster properties"
-  when:
-    - sap_ha_pacemaker_cluster_cluster_properties is defined
-    - sap_ha_pacemaker_cluster_cluster_properties is iterable
-    - sap_ha_pacemaker_cluster_cluster_properties | length > 0
+
+# Property 'priority-fencing-delay' is required to ensure proper fencing order.
+# The value is based on 'pcmk_delay_max', if it is defined in '__sap_ha_pacemaker_cluster_stonith_default'.
+# This task will not change property if it is already defined.
+# NOTE: Reversed combine ensures that user defined values are retained.
+- name: "SAP HA Prepare Pacemaker - (STONITH) Add priority-fencing-delay property"
+  when: ha_cluster_cluster_properties is not defined  # We cannot append to defined variable due to precedence.
   ansible.builtin.set_fact:
-    __sap_ha_pacemaker_cluster_cluster_properties: "{{ __sap_ha_pacemaker_cluster_cluster_properties | d([]) + __stonith_properties }}"
+    __sap_ha_pacemaker_cluster_cluster_properties:
+      "{{ {'priority-fencing-delay': (__pcmk_delay_max | int * 2
+          if __pcmk_delay_max is defined and __pcmk_delay_max | int != 0
+          else 30)} | combine(__sap_ha_pacemaker_cluster_cluster_properties)
+        if __sap_ha_pacemaker_cluster_cluster_properties['priority-fencing-delay'] is not defined
+        else __sap_ha_pacemaker_cluster_cluster_properties }}"
   vars:
-    __stonith_properties:
+    __pcmk_delay_max:
+      "{{ (__sap_ha_pacemaker_cluster_stonith_default['instance_attrs'][0]['attrs']
+        | selectattr('name', 'equalto', 'pcmk_delay_max') | first).value }}"
+
+# Ensure that property 'concurrent-fencing' is set to 'true' for Azure.
+# Source: https://learn.microsoft.com/en-us/azure/sap/workloads/high-availability-guide-suse-pacemaker?tabs=msi#create-a-fencing-device-on-the-pacemaker-cluster
+# NOTE: Reversed combine ensures that user defined values are retained.
+- name: "SAP HA Prepare Pacemaker - (STONITH) - MSAZURE VM - Add cluster property 'concurrent-fencing'"
+  when:
+    - ha_cluster_cluster_properties is not defined  # We cannot append to defined variable due to precedence.
+    - __sap_ha_pacemaker_cluster_platform == "cloud_msazure_vm"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_cluster_properties:
+      "{{ {'concurrent-fencing': true} | combine(__sap_ha_pacemaker_cluster_cluster_properties) }}"
+
+
+# Prepare structure compatible with the variable 'ha_cluster_cluster_properties'.
+- name: "SAP HA Prepare Pacemaker - (STONITH) Define cluster properties"
+  # This task is skipped if 'ha_cluster_cluster_properties' is defined, as both structures are different.
+  when: ha_cluster_cluster_properties is not defined  # We cannot append to defined variable due to precedence.
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_cluster_properties:
       - attrs: |-
-          {% set attrs = __sap_ha_pacemaker_cluster_cluster_properties | map(attribute='attrs') | flatten -%}
-          {%- for default_cluster_properties in (sap_ha_pacemaker_cluster_cluster_properties | dict2items) -%}
-            {% if default_cluster_properties.key not in
-            (__sap_ha_pacemaker_cluster_cluster_properties | map(attribute='attrs') | flatten | map(attribute='name')) -%}
-              {% set role_attrs = attrs.extend([
-                {
-                  'name': default_cluster_properties.key,
-                  'value': default_cluster_properties.value
-                }
-              ]) -%}
-            {%- endif %}
+          {% set attrs = [] -%}
+          {%- for default_cluster_properties in (__sap_ha_pacemaker_cluster_cluster_properties | dict2items) -%}
+            {% set role_attrs = attrs.extend([
+              {
+                'name': default_cluster_properties.key,
+                'value': default_cluster_properties.value
+              }
+            ]) -%}
           {%- endfor %}
           {{ attrs }}
 

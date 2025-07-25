@@ -23,18 +23,6 @@
     - "(role_path + '/vars/' + include_item + '.yml') is file"
 
 
-# Disable concurrent-fencing for Scale-up scenario.
-# This assignment cannot be in scaleup var file, because it results in nested error.
-- name: "SAP HA Prepare Pacemaker - Disable concurrent-fencing in properties"
-  ansible.builtin.set_fact:
-    sap_ha_pacemaker_cluster_cluster_properties:
-      "{{ sap_ha_pacemaker_cluster_cluster_properties | combine({'concurrent-fencing': false})
-      if sap_ha_pacemaker_cluster_cluster_properties['concurrent-fencing'] is defined
-      else sap_ha_pacemaker_cluster_cluster_properties }}"
-  when:
-    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
-
-
 # Private variables are assigned following logic:
 # 1. Use backwards compatible var if new var is empty
 # 2. Use user input if new var is not empty
