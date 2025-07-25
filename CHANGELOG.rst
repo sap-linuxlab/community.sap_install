@@ -4,6 +4,19 @@ community.sap\_install Release Notes
 
 .. contents:: Topics
 
+v1.6.2
+======
+
+Release Summary
+---------------
+
+Enhancement and bux fix
+
+Bugfixes
+--------
+
+- sap_hana_preconfigure - Replace grub2-mkconfig for RHEL by grubby from RHEL 8 onward
+
 v1.6.1
 ======
 
