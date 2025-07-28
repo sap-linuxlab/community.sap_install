@@ -82,9 +82,9 @@
     # In the first step, we execute the file command for each of the SAPCAR EXE files. It displays the
     # hardware architecture in the second output field, using a string which is different from the output
     # of the 'uname -m' command.
-    - name: SAP HANA hdblcm prepare - SAPCAR auto-detection - Find matching SAR executables in '{{ __sap_hana_install_fact_software_directory }}'  # noqa risky-shell-pipe
+    - name: SAP HANA hdblcm prepare - SAPCAR auto-detection - Find matching SAPCAR executables in '{{ __sap_hana_install_fact_software_directory }}'
       ansible.builtin.shell:
-        cmd: find . -name 'SAPCAR*EXE' -exec file {} + | sed 's|^\./||'
+        cmd: set -o pipefail && find . -name 'SAPCAR*EXE' -exec file {} + | sed 's|^\./||'
       args:
         chdir: "{{ __sap_hana_install_fact_software_directory }}"
       register: __sap_hana_install_register_sapcar_file_contents
@@ -95,7 +95,7 @@
     # Each platform can contain multiple search words. AND operator is achieved by counting all found keywords.
     - name: SAP HANA hdblcm prepare - SAPCAR auto-detection - Compare found files against the variable ansible_architecture
       ansible.builtin.set_fact:
-        __sap_hana_install_register_sapcar_matching_arch: |
+        __sap_hana_install_fact_sapcar_matching_arch: |
           {%- set matching_files = [] -%}
           {%- set rule_sets = __sap_hana_install_architecture_matrix.get(ansible_architecture, []) -%}
           {%- if rule_sets -%}
@@ -124,7 +124,7 @@
       ansible.builtin.fail:
         msg: "FAIL: No SAPCAR EXE file for architecture '{{ ansible_architecture }}' was found in
               {{ __sap_hana_install_fact_software_directory }}!"
-      when: __sap_hana_install_register_sapcar_matching_arch | length == 0
+      when: __sap_hana_install_fact_sapcar_matching_arch | length == 0
 
     # After selecting the SAPCAR EXE files for the current architecture, we copy them to a temporary
     # directory sapcar_tmp in the software extract directory and then perform a checksum verification
@@ -137,12 +137,12 @@
         owner: 'root'
         group: 'root'
         mode: '0755'
-      loop: "{{ __sap_hana_install_register_sapcar_matching_arch }}"
+      loop: "{{ __sap_hana_install_fact_sapcar_matching_arch }}"
 
     - name: SAP HANA hdblcm prepare - SAPCAR auto-detection - Fill list of dicts containing dir, file, and global checksum file
       ansible.builtin.set_fact:
         __sap_hana_install_fact_sapcar_dict: "{{ __sap_hana_install_fact_sapcar_dict | d([]) + [__sap_hana_install_tmp_sapcar_dict] }}"
-      loop: "{{ __sap_hana_install_register_sapcar_matching_arch }}"
+      loop: "{{ __sap_hana_install_fact_sapcar_matching_arch }}"
       vars:
         __sap_hana_install_tmp_sapcar_dict:
           dir: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp"
@@ -153,7 +153,7 @@
     - name: SAP HANA hdblcm prepare - SAPCAR auto-detection - Fill list of dicts containing dir, file, and specific checksum file
       ansible.builtin.set_fact:
         __sap_hana_install_fact_sapcar_dict: "{{ __sap_hana_install_fact_sapcar_dict | d([]) + [__sap_hana_install_tmp_sapcar_dict] }}"
-      loop: "{{ __sap_hana_install_register_sapcar_matching_arch }}"
+      loop: "{{ __sap_hana_install_fact_sapcar_matching_arch }}"
       vars:
         __sap_hana_install_tmp_sapcar_dict:
           dir: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp"
@@ -173,12 +173,12 @@
 
     # For each file in temporary directory sapcar_tmp in the software extract directory, we run it with option
     # --version and then identify the most recent one, which is then copied to directory sapcar.
-    - name: SAP HANA hdblcm prepare - SAPCAR auto-detection - Get version of all SAPCAR executable files  # noqa command-instead-of-shell
+    - name: SAP HANA hdblcm prepare - SAPCAR auto-detection - Get version of all SAPCAR executable files
       ansible.builtin.command:
         cmd: "./{{ item }} --version"
       args:
         chdir: "{{ sap_hana_install_software_extract_directory }}/sapcar_tmp"
-      loop: "{{ __sap_hana_install_register_sapcar_matching_arch }}"
+      loop: "{{ __sap_hana_install_fact_sapcar_matching_arch }}"
       register: __sap_hana_install_register_sapcar_versions
       ignore_errors: true
       changed_when: false
@@ -187,7 +187,7 @@
     # Resulting variable is used together with '| trim' to ensure that empty spaces are removed from shell command output.
     - name: SAP HANA hdblcm prepare - SAPCAR auto-detection - Identify the SAPCAR executable with the latest version
       ansible.builtin.set_fact:
-        __sap_hana_install_register_latest_sapcar_file: |
+        __sap_hana_install_fact_latest_sapcar_file: |
           {%- set files_with_versions = [] -%}
           {%- for result in __sap_hana_install_register_sapcar_versions.results -%}
             {%- if not result.failed -%}
@@ -206,7 +206,7 @@
 
     - name: SAP HANA hdblcm prepare - SAPCAR auto-detection - Set fact for SAPCAR executable from auto-detection
       ansible.builtin.set_fact:
-        __sap_hana_install_fact_selected_sapcar_filename: "{{ __sap_hana_install_register_latest_sapcar_file | trim }}"
+        __sap_hana_install_fact_selected_sapcar_filename: "{{ __sap_hana_install_fact_latest_sapcar_file | trim }}"
 
     - name: SAP HANA hdblcm prepare - SAPCAR auto-detection - Display SAPCAR executable file name
       ansible.builtin.debug:
