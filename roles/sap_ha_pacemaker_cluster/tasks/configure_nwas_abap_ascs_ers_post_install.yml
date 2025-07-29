@@ -71,9 +71,10 @@
     # Resource restart is initiated from one node.
     - name: "SAP HA Pacemaker - (SAP HA Interface) Restart ASCS and ERS resource groups"
       ansible.builtin.shell: |
-        {{ __sap_ha_pacemaker_cluster_command.resource_restart }} \
-        {{ __sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_group_name }} \
-        {{ __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name }}
+        {{ __sap_ha_pacemaker_cluster_command.resource_restart }} {{ item }}
+      loop:
+        - "{{ __sap_ha_pacemaker_cluster_vip_nwas_ascs_resource_group_name }}"
+        - "{{ __sap_ha_pacemaker_cluster_vip_nwas_ers_resource_group_name }}"
       run_once: true
       changed_when: true
 
