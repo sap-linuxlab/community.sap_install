@@ -53,21 +53,23 @@ sap_ha_pacemaker_cluster_host_type: "{{ sap_host_type | d(['hana_scaleup_perf'])
 ### VIP resource default patterns
 sap_ha_pacemaker_cluster_vip_client_interface: ''
 
-## A custom stonith definition that takes precedence over platform defaults.
+### STONITH
+## Recommended fencing methods are defined only for platforms, where applicable.
+## It is not recommended to configure cluster without fencing resources (e.g. SBD).
+## You can define custom stonith resource using variable 'sap_ha_pacemaker_cluster_stonith_custom'.
+## NOTE: Not providing stonith resource will result in cluster property 'stonith-enabled: false'.
 # sap_ha_pacemaker_cluster_stonith_custom:
 #   - name: ""
 #     agent: "stonith:"
 #     options:
 #       pcmk_host_list: ""
 
-# sap_ha_pacemaker_cluster_stonith_custom: []
-
-# Simpler definition format here which gets transformed into the 'ha_cluster' LSR native
-# 'ha_cluster_cluster_properties' parameter.
-sap_ha_pacemaker_cluster_cluster_properties:
-  stonith-enabled: true
-  stonith-timeout: 900
-  concurrent-fencing: true
+## The variable 'sap_ha_pacemaker_cluster_cluster_properties' is used to configure cluster properties (e.g. cib-bootstrap-options).
+# NOTE: Default values are defined by Operating System and Platforms, if the variable is not defined.
+# Simpler definition format here which gets transformed into the 'ha_cluster' LSR native 'ha_cluster_cluster_properties' parameter.
+# sap_ha_pacemaker_cluster_cluster_properties:
+#   stonith-enabled: true
+#   stonith-timeout: 150  # Default value 150 is for SBD method.
 
 ### Constraints:
 # score is dynamic and automatically increased for groups

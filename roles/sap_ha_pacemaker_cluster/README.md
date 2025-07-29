@@ -243,17 +243,17 @@ sap_ha_pacemaker_cluster_cluster_nodes:
 ```
 ### sap_ha_pacemaker_cluster_cluster_properties
 - _Type:_ `dict`<br>
-- _Default:_ `{'concurrent-fencing': True, 'stonith-enabled': True, 'stonith-timeout': 900}`<br>
 
 Standard pacemaker cluster properties are configured with recommended settings for cluster node fencing.<br>
 When no STONITH resource is defined, STONITH will be disabled and a warning displayed.<br>
+Default values are predefined by OS and Platform if the variable is not defined.<br>
+Some mandatory properties are appended, if not defined.<br>
 
 Example:
 ```yaml
 sap_ha_pacemaker_cluster_cluster_properties:
-  concurrent-fencing: true
   stonith-enabled: true
-  stonith-timeout: 900
+  stonith-timeout: 150
 ```
 ### sap_ha_pacemaker_cluster_corosync_totem
 - _Type:_ `dict`<br>

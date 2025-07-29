@@ -88,8 +88,23 @@
         else __sap_ha_pacemaker_cluster_fence_agent_packages_minimal }}"
 
 
+# Prepare cluster properties variable with either:
+# - User provided 'sap_ha_pacemaker_cluster_cluster_properties' if defined and not empty.
+# - Platform specific defaults, if defined.
+# - OS specific defaults.
+# If the variable 'ha_cluster_properties' is defined, it will append only missing keys.
+- name: "SAP HA Prepare Pacemaker - Prepare cluster properties variable"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_cluster_properties:
+      "{{ sap_ha_pacemaker_cluster_cluster_properties
+        if sap_ha_pacemaker_cluster_cluster_properties is defined and sap_ha_pacemaker_cluster_cluster_properties | length > 0
+        else (__sap_ha_pacemaker_cluster_cluster_properties_platform
+          if __sap_ha_pacemaker_cluster_cluster_properties_platform is defined
+          else __sap_ha_pacemaker_cluster_cluster_properties_default) }}"
+
+
 # Prepare corosync totem variable with either:
-# - User provided sap_ha_pacemaker_cluster_corosync_totem if present
+# - User provided 'sap_ha_pacemaker_cluster_corosync_totem' if present
 # - Combine corosync totem from OS variables and Platform variables if present
 # - Use default corosync totem from OS variables if Platform variable is not present
 - name: "SAP HA Prepare Pacemaker - Prepare corosync totem settings"
