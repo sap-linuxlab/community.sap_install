@@ -10,7 +10,7 @@
 
 
 # Ensure that we create same folder structure inside of user provided path.
-- name: "SAP HSR - Create sub-directories in provided {{ sap_ha_install_hana_hsr_backup_path }}"
+- name: "SAP HSR - Create sub-directories in the path provided in variable 'sap_ha_install_hana_hsr_backup_path'"
   ansible.builtin.file:
     path: "{{ sap_ha_install_hana_hsr_backup_path | regex_replace('/$', '') ~ '/' ~ item }}"
     state: directory
@@ -59,7 +59,8 @@
     - name: "SAP HSR - Block to process obtained 'basepath_databackup'"
       when:
         - not __sap_ha_install_hana_hsr_register_basepath_databackup.failed
-        - not __sap_ha_install_hana_hsr_register_basepath_databackup.stdout_lines[0] == '"NONE"'
+        - __sap_ha_install_hana_hsr_register_basepath_databackup.stdout_lines | length > 0
+        - __sap_ha_install_hana_hsr_register_basepath_databackup.stdout_lines[0] != '"NONE"'
       vars:
         # Remove double quotes around query result.
         __basepath_databackup_trimmed:
@@ -73,7 +74,7 @@
 
       block:
         # Ansible become is not enough to load ENV so we have to use source.
-        - name: "SAP HSR - Get value of the expanded variable {{ __basepath_databackup_expand_var }}"
+        - name: "SAP HSR - Get value of the expanded variable"
           become: true
           become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
           ansible.builtin.shell:
