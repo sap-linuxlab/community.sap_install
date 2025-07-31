@@ -4,6 +4,28 @@ community.sap\_install Release Notes
 
 .. contents:: Topics
 
+v1.7.0
+======
+
+Release Summary
+---------------
+
+Various improvements and bug fixes
+
+Minor Changes
+-------------
+
+- sap_ha_install_hana_hsr - Add backup location detection and user variable (https://github.com/sap-linuxlab/community.sap_install/pull/1090)
+- sap_hana_preconfigure - Implement SAP note 3108302 v.13 (https://github.com/sap-linuxlab/community.sap_install/pull/1089)
+
+Bugfixes
+--------
+
+- collection - Cleanup scripts (https://github.com/sap-linuxlab/community.sap_install/pull/1086)
+- sap_ha_pacemaker_cluster - Enhance handling of cluster properties and improve ASCS ERS post steps (https://github.com/sap-linuxlab/community.sap_install/pull/1084)
+- sap_hana_install - Enhance SAPCAR detection functionality and handling of multiple files (https://github.com/sap-linuxlab/community.sap_install/pull/1082)
+- sap_hana_preconfigure - Replace grub2-mkconfig for RHEL by grubby from RHEL 8 onward (https://github.com/sap-linuxlab/community.sap_install/pull/1083)
+
 v1.6.1
 ======
 
