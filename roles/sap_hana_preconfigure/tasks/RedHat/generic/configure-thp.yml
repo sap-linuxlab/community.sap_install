@@ -1,63 +1,50 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: Get boot command line
-  ansible.builtin.slurp:
-    src: /proc/cmdline
-  register: __sap_hana_preconfigure_register_proc_cmdline_thp
-
-- name: Set fact for THP, RHEL up to RHEL 9.1
-  ansible.builtin.set_fact:
-    __sap_hana_preconfigure_fact_thp: 'never'
-  when:
-    - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
-    - ansible_distribution == 'RedHat'
-    - ansible_distribution_major_version == '7' or
-      ansible_distribution_major_version == '8' or
-      ansible_distribution_version == '9.0' or
-      ansible_distribution_version == '9.1'
-
-- name: Set fact for THP, RHEL 9.2 and later
-  ansible.builtin.set_fact:
-    __sap_hana_preconfigure_fact_thp: 'madvise'
-  when:
-    - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
-    - ansible_distribution == 'RedHat'
-    - (ansible_distribution_major_version == '9' and
-        __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int >= 2) or
-      ansible_distribution_major_version == '10'
-
 - name: Set fact for THP if 'sap_hana_preconfigure_thp' is defined
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_thp: "{{ sap_hana_preconfigure_thp }}"
   when:
-    - sap_hana_preconfigure_thp is defined and sap_hana_preconfigure_thp
+    - sap_hana_preconfigure_thp is defined
+    - sap_hana_preconfigure_thp | length > 0
 
-- name: Set THP to '{{ __sap_hana_preconfigure_fact_thp }}' at boot time
-  ansible.builtin.command: /bin/true
-  notify: __sap_hana_preconfigure_grubby_thp_handler
-  changed_when: true
-  when: not ( __sap_hana_preconfigure_register_proc_cmdline_thp['content'] | b64decode | regex_findall('transparent_hugepage=' + __sap_hana_preconfigure_fact_thp) )
-  tags: grubconfig
-
-- name: Configure - Get initial status of THP
-  ansible.builtin.command: cat /sys/kernel/mm/transparent_hugepage/enabled
-  register: __sap_hana_preconfigure_register_thp_status_before
-  changed_when: false
-
-- name: Set THP to '{{ __sap_hana_preconfigure_fact_thp }}' on the running system
-  ansible.builtin.shell: echo '{{ __sap_hana_preconfigure_fact_thp }}' > /sys/kernel/mm/transparent_hugepage/enabled
-  changed_when: true
+- name: Set fact for THP if 'sap_hana_preconfigure_thp' is undefined
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_fact_thp: "{{ __sap_hana_preconfigure_boot_command_line_args['thp']['args'][0].split('=')[1] }}"
   when:
-    - not ansible_check_mode
-    - __sap_hana_preconfigure_register_thp_status_before.stdout.split('[')[1].split(']')[0] != __sap_hana_preconfigure_fact_thp
+    - __sap_hana_preconfigure_boot_command_line_args['thp']['arch'] is defined
+    - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
 
-- name: Configure - Get the status of THP
-  ansible.builtin.command: cat /sys/kernel/mm/transparent_hugepage/enabled
-  register: __sap_hana_preconfigure_register_thp_status
-  ignore_errors: true
-  changed_when: false
+- name: Add boot command line args for configuring THP if applicable
+  when:
+    - (sap_hana_preconfigure_thp is defined and sap_hana_preconfigure_thp | length > 0)
+      or __sap_hana_preconfigure_boot_command_line_args['thp']['arch'] is defined
+  block:
 
-- name: Display the status of THP
-  ansible.builtin.debug:
-    var: __sap_hana_preconfigure_register_thp_status.stdout_lines, __sap_hana_preconfigure_register_thp_status.stderr_lines
+    - name: Add boot command line args for configuring THP
+      ansible.builtin.set_fact:
+        __sap_hana_preconfigure_boot_command_line_args_final: >-
+          {{ __sap_hana_preconfigure_boot_command_line_args_final
+          + ['transparent_hugepage=' + __sap_hana_preconfigure_fact_thp] }}
+
+    - name: Configure - Get initial status of THP
+      ansible.builtin.command: cat /sys/kernel/mm/transparent_hugepage/enabled
+      register: __sap_hana_preconfigure_register_thp_status_before
+      changed_when: false
+
+    - name: Set THP to '{{ __sap_hana_preconfigure_fact_thp }}' on the running system
+      ansible.builtin.shell: echo '{{ __sap_hana_preconfigure_fact_thp }}' > /sys/kernel/mm/transparent_hugepage/enabled
+      changed_when: true
+      when:
+        - not ansible_check_mode
+        - __sap_hana_preconfigure_register_thp_status_before.stdout.split('[')[1].split(']')[0] != __sap_hana_preconfigure_fact_thp
+
+    - name: Configure - Get the status of THP
+      ansible.builtin.command: cat /sys/kernel/mm/transparent_hugepage/enabled
+      register: __sap_hana_preconfigure_register_thp_status
+      ignore_errors: true
+      changed_when: false
+
+    - name: Display the status of THP
+      ansible.builtin.debug:
+        var: __sap_hana_preconfigure_register_thp_status.stdout_lines, __sap_hana_preconfigure_register_thp_status.stderr_lines

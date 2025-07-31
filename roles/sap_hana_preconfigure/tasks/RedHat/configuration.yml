@@ -8,6 +8,13 @@
   ansible.builtin.debug:
     var: __sap_hana_preconfigure_sapnotes_versions | difference([''])
 
+- name: Configure - Initialize vars for boot command line updates
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_boot_command_line_args_final: []
+    __sap_hana_preconfigure_fact_missing_kernel_args: []
+    __sap_hana_preconfigure_kernel_args_to_be_updated: []
+    __sap_hana_preconfigure_fact_kernel_args_to_be_set: []
+
 - name: Configure - Set directory variables for setting SELinux file contexts
   ansible.builtin.set_fact:
     sap_hana_preconfigure_fact_targets_setypes: "{{ sap_hana_preconfigure_fact_targets_setypes | d([]) +
@@ -43,3 +50,12 @@
   with_items: "{{ __sap_hana_preconfigure_sapnotes_versions | difference(['']) }}"
   loop_control:
     loop_var: sap_note_line_item
+
+- name: Configure - Initiate GRUB update if necessary
+  ansible.builtin.include_tasks:
+    file: "generic/set-boot-kernel-args.yml"
+    apply:
+      tags:
+        - grubconfig
+  when: __sap_hana_preconfigure_boot_command_line_args_final | length > 0
+  tags: grubconfig

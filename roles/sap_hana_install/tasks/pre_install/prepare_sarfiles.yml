@@ -8,13 +8,7 @@
 
 - name: SAP HANA hdblcm prepare - Set fact list of SAR files if 'sap_hana_install_sarfiles' is defined
   ansible.builtin.set_fact:
-    __sap_hana_install_fact_sarfiles: "{{ sap_hana_install_sarfiles }}"
-  when: sap_hana_install_sarfiles is defined
-
-- name: Display the resulting list of file names from variable
-  ansible.builtin.debug:
-    var: __sap_hana_install_fact_sarfiles
-  when: sap_hana_install_sarfiles is defined
+    __sap_hana_install_fact_sarfiles: "{{ sap_hana_install_sarfiles | d([]) }}"
 
 - name: SAP HANA hdblcm prepare - Find all SAR files if 'sap_hana_install_sarfiles' is undefined
   when: sap_hana_install_sarfiles is not defined
@@ -32,10 +26,6 @@
       ansible.builtin.set_fact:
         __sap_hana_install_fact_sarfiles: "{{ __sap_hana_install_fact_sarfiles | d([]) + [item.path | basename] }}"
       loop: "{{ __sap_hana_install_register_find_sarfiles.files }}"
-
-    - name: Display the resulting list of file names after find
-      ansible.builtin.debug:
-        var: __sap_hana_install_fact_sarfiles
 
 - name: Copy SAR files to final destination if 'sap_hana_install_copy_sarfiles' is 'true'
   when: sap_hana_install_copy_sarfiles
@@ -60,6 +50,22 @@
     - name: SAP HANA hdblcm prepare - Set fact for final location of SAR files, copy_sarfiles
       ansible.builtin.set_fact:
         __sap_hana_install_fact_sar_dir: "{{ sap_hana_install_software_extract_directory }}/sarfiles"
+
+- name: SAP HANA hdblcm prepare - Fail if no SAR files were found
+  ansible.builtin.fail:
+    msg: |
+      {% if sap_hana_install_sarfiles is defined -%}
+        FAIL: The variable 'sap_hana_install_sarfiles' is defined but empty.
+        Correct this variable in extra vars or remove it from extra vars to enable SAR file search
+        in directory defined in the variable 'sap_hana_install_software_directory'.
+      {% else -%}
+        FAIL: No SAR files were found in directory '{{ sap_hana_install_software_extract_directory }}'.
+      {% endif %}
+  when: __sap_hana_install_fact_sarfiles | list | length == 0
+
+- name: Display the resulting list of SAR file names
+  ansible.builtin.debug:
+    var: __sap_hana_install_fact_sarfiles
 
 - name: SAP HANA hdblcm prepare - Fill list of dicts containing dir, file, and global checksum file
   ansible.builtin.set_fact:
