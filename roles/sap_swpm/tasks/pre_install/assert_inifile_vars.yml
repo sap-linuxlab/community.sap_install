@@ -1,0 +1,58 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Assert vars of templates/inifile_params.j2
+
+# We validate:
+# - sap_swpm_software_path: always
+# - sap_swpm_sid: always
+# - other variables: See the file vars/main.yml for the variables, their checks,
+#   and the sections of sap_swpm_inifile_sections_list in which they are contained
+
+- name: SAP SWPM Pre Install - Assert 'sap_swpm_software_path'
+  ansible.builtin.assert:
+    that:
+      - sap_swpm_software_path is defined
+      - sap_swpm_software_path is string
+      - sap_swpm_software_path | length > 0
+    fail_msg: |
+      FAIL: The variable 'sap_swpm_software_path' is undefined, not a string or has a length of 0!
+
+- name: SAP SWPM Pre Install - Assert 'sap_swpm_sid'
+  ansible.builtin.assert:
+    that:
+      - sap_swpm_sid is defined
+      - sap_swpm_sid is string
+      - sap_swpm_sid | length > 0
+    fail_msg: |
+      FAIL: The variable 'sap_swpm_sid' is undefined, not a string or has a length of 0!
+
+# We cannot loop inside when conditions so we need to do some preprocessing:
+- name: SAP SWPM Pre Install - Eliminate nested lists of sections
+  ansible.builtin.set_fact:
+    __sap_swpm_inifile_vars_to_be_asserted_flat: |
+      {{ __sap_swpm_inifile_vars_to_be_asserted_flat | d([]) +
+         [{'name': __sap_swpm_vars_to_be_asserted_initial_line_item.0.name,
+           'check': __sap_swpm_vars_to_be_asserted_initial_line_item.0.check,
+           'section': __sap_swpm_vars_to_be_asserted_initial_line_item.1}]
+      }}
+  loop: "{{ __sap_swpm_inifile_vars_to_be_asserted | subelements('sections') }}"
+  loop_control:
+    loop_var: __sap_swpm_vars_to_be_asserted_initial_line_item
+    label: |
+      {{ __sap_swpm_vars_to_be_asserted_initial_line_item.0.name,
+         __sap_swpm_vars_to_be_asserted_initial_line_item.0.check,
+         __sap_swpm_vars_to_be_asserted_initial_line_item.1 }}
+
+- name: SAP SWPM Pre Install - Create a new list of vars only used in defined sections
+  ansible.builtin.set_fact:
+    __sap_swpm_inifile_vars_to_be_asserted_final: "{{ __sap_swpm_inifile_vars_to_be_asserted_flat | selectattr('section', 'in', sap_swpm_inifile_sections_list) }}"
+
+- name: SAP SWPM Pre Install - Assert vars
+  ansible.builtin.include_tasks: assert_inifile_vars_loop_block.yml
+  loop: "{{ __sap_swpm_inifile_vars_to_be_asserted_final }}"
+  loop_control:
+    loop_var: __sap_swpm_vars_to_be_asserted_line_item
+    label: |
+      {{ __sap_swpm_vars_to_be_asserted_line_item.name,
+         __sap_swpm_vars_to_be_asserted_line_item.section }}
