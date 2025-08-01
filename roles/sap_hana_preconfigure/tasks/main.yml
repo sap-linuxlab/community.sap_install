@@ -5,38 +5,78 @@
   ansible.builtin.debug:
     var: role_path
 
-# Load variable files in order:
-# 1. Suse.yml / RedHat.yml - Specific to OS family.
-# 2. SLES_15.yml / RedHat_9.yml - Specific to distribution (SLES, SLES_SAP or RedHat) and major release.
-# 3. SLES_15.6.yml / RedHat_9.2 - Specific to distribution (SLES, SLES_SAP or RedHat) and minor release.
-# 4. SLES_SAP_15.yml - Specific to distribution SLES_SAP and major release.
-# 5. SLES_SAP_15.6.yml - Specific to distribution SLES_SAP and minor release.
-- name: Include OS specific vars, specific
-  ansible.builtin.include_vars: "{{ __vars_file }}"
-  loop: "{{ __var_files }}"
+- name: Examine the OS minor version
+  ansible.builtin.set_fact:
+    __sap_hana_preconfigure_fact_ansible_distribution_minor_version: '{{ ansible_distribution_version.split(".")[1] }}'
+
+# Load variable files in the following order (example for SLES and SLES_SAP 15.6 and RHEL 9.2):
+# 1. Suse.yml    / RedHat.yml          - Specific to OS family.
+# 2. SLES_15.yml / RedHat_9.yml        - Specific to distribution major release.
+# 3. (SLES_SAP only) SLES_SAP_15.yml   - Specific to distribution SLES_SAP major release.
+# 4. (RHEL only) RedHat_9.1.plus.yml   - Valid for RHEL release 9.1 and all later minor releases.
+# 5. (RHEL only) RedHat_9.2.plus.yml   - Valid for RHEL release 9.2 and all later minor releases.
+# 6. SLES_15.6.yml / RedHat_9.2.yml    - Specific to distribution major + minor release.
+# 7. (SLES_SAP only) SLES_SAP_15.6.yml - Specific to distribution SLES_SAP major and minor release.
+
+# Step 1: Include any vars files which apply to the OS family and the OS major release
+- name: Include OS major specific vars
+  ansible.builtin.include_vars: "{{ __vars_file_major }}"
+  loop: "{{ __vars_files_major }}"
   vars:
-    __vars_file: "{{ role_path }}/vars/{{ item }}"
+    __vars_file_major: "{{ role_path }}/vars/{{ item }}"
     __distribution_major: "{{ ansible_distribution ~ '_' ~ ansible_distribution_major_version }}"
-    __distribution_major_minor: "{{ ansible_distribution ~ '_' ~ ansible_distribution_version }}"
     # Enables loading of shared vars between SLES and SLES_SAP
     __distribution_split_major: "{{ ansible_distribution.split('_')[0] ~ '_' ~ ansible_distribution_major_version }}"
-    __distribution_split_major_minor: "{{ ansible_distribution.split('_')[0] ~ '_' ~ ansible_distribution_version }}"
-    __var_files: >-
+    __vars_files_major: >-
       {{
         [
           ansible_os_family ~ '.yml',
           (ansible_distribution ~ '.yml') if ansible_distribution != ansible_os_family else None,
           (__distribution_split_major ~ '.yml') if __distribution_split_major != __distribution_major else None,
-          (__distribution_split_major_minor ~ '.yml') if __distribution_split_major_minor != __distribution_major_minor else None,
           __distribution_major ~ '.yml',
+        ] | select('defined') | select('string') | list
+      }}
+  when: __vars_file_major is file
+
+# Step 2 (RHEL only): Include any vars files which are valid for all RHEL minor and later minor releases up to the current one.
+- name: Include minor plus specific vars, RHEL only
+  ansible.builtin.include_vars: "{{ __vars_file_plus }}"
+  loop: "{{ __vars_files_plus }}"
+  vars:
+    __vars_file_plus: "{{ role_path }}/vars/{{ item }}"
+    __distribution_major_minor_plus_yml: |
+      {%- set major_minor_plus = [] -%}
+      {%- for minor_number in range(1, __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int + 1, 1) -%}
+        {%- set _ = major_minor_plus.append(
+            ansible_distribution ~ '_' ~
+            ansible_distribution_major_version ~ '.' ~
+            (minor_number | string) ~ '.plus' ~ '.yml')
+        -%}
+      {%- endfor -%}
+      {{ major_minor_plus }}
+    __vars_files_plus: >-
+      {{ __distribution_major_minor_plus_yml | list }}
+  when:
+    - __vars_file_plus is file
+    - ansible_distribution == 'RedHat'
+
+# Step 3: Include any vars files which are valid only for the OS minor release
+- name: Include OS minor specific vars
+  ansible.builtin.include_vars: "{{ __vars_file_minor }}"
+  loop: "{{ __vars_files_minor }}"
+  vars:
+    __vars_file_minor: "{{ role_path }}/vars/{{ item }}"
+    __distribution_major_minor: "{{ ansible_distribution ~ '_' ~ ansible_distribution_version }}"
+    # Enables loading of shared vars between SLES and SLES_SAP
+    __distribution_split_major_minor: "{{ ansible_distribution.split('_')[0] ~ '_' ~ ansible_distribution_version }}"
+    __vars_files_minor: >-
+      {{
+        [
+          (__distribution_split_major_minor ~ '.yml') if __distribution_split_major_minor != __distribution_major_minor else None,
           __distribution_major_minor ~ '.yml',
         ] | select('defined') | select('string') | list
       }}
-  when: __vars_file is file
-
-- name: Include RHEL minor release specific vars files
-  ansible.builtin.include_tasks: 'RedHat/include_vars.yml'
-  when: ansible_distribution == 'RedHat'
+  when: __vars_file_minor is file
 
 - name: Set filename prefix to empty string if role is run in normal mode
   ansible.builtin.set_fact:
