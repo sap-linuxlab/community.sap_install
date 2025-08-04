@@ -10,15 +10,20 @@
 
 - name: Set fact for THP if 'sap_hana_preconfigure_thp' is undefined
   ansible.builtin.set_fact:
-    __sap_hana_preconfigure_fact_thp: "{{ __sap_hana_preconfigure_boot_command_line_args['thp']['args'][0].split('=')[1] }}"
+    __sap_hana_preconfigure_fact_thp: "{{ sap_hana_preconfigure_boot_command_line_args['thp']['args'][0].split('=')[1] }}"
   when:
-    - __sap_hana_preconfigure_boot_command_line_args['thp']['arch'] is defined
+    - sap_hana_preconfigure_boot_command_line_args['thp']['arch'] is defined
+    - ansible_architecture in sap_hana_preconfigure_boot_command_line_args['thp']['arch']
     - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
 
 - name: Add boot command line args for configuring THP if applicable
   when:
     - (sap_hana_preconfigure_thp is defined and sap_hana_preconfigure_thp | length > 0)
-      or __sap_hana_preconfigure_boot_command_line_args['thp']['arch'] is defined
+      or
+      (
+        sap_hana_preconfigure_boot_command_line_args['thp']['arch'] is defined and
+        ansible_architecture in sap_hana_preconfigure_boot_command_line_args['thp']['arch']
+      )
   block:
 
     - name: Add boot command line args for configuring THP
