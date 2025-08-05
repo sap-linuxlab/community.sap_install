@@ -1,13 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+# Load variables while maintaining backwards compatibility when variable is empty string.
+# Check if variable is defined and non-empty before using it, otherwise fall back to backwards
+# compatible variable or default empty string that will fail asserts afterwards.
 - name: Rename some variables used by hdblcm configfile
   ansible.builtin.set_fact:
-    sap_hana_install_sid: "{{ sap_hana_sid | d(sap_hana_install_sid) | d('') }}"
-    sap_hana_install_number: "{{ sap_hana_instance_number | d(sap_hana_install_instance_nr) | d(sap_hana_install_instance_number) | d(sap_hana_install_number) | d('') }}"
-    sap_hana_install_master_password: "{{ sap_hana_install_common_master_password | d(sap_hana_install_master_password) }}"
-    sap_hana_install_system_usage: "{{ sap_hana_install_env_type | d(sap_hana_install_system_usage) }}"
-    sap_hana_install_restrict_max_mem: "{{ sap_hana_install_mem_restrict | d(sap_hana_install_restrict_max_mem) }}"
+    sap_hana_install_sid:
+      "{{ sap_hana_sid | d('')
+        if sap_hana_install_sid | string | length == 0
+        else sap_hana_install_sid }}"
+    sap_hana_install_number:
+      "{{ sap_hana_instance_number | d(sap_hana_install_instance_nr) | d(sap_hana_install_instance_number) | d('')
+        if sap_hana_install_number | string | length == 0
+        else sap_hana_install_number }}"
+    sap_hana_install_system_usage: "{{ sap_hana_install_env_type | d(sap_hana_install_system_usage) | d('custom') }}"
+    sap_hana_install_restrict_max_mem: "{{ sap_hana_install_mem_restrict | d(sap_hana_install_restrict_max_mem) | d('n') }}"
   tags:
     - sap_hana_install_check_hana_exists
     - sap_hana_install_check_installation
@@ -15,19 +23,38 @@
     - sap_hana_install_set_log_mode
     - sap_hana_install_configure_firewall
 
-- name: Fail if necessary variable 'sap_hana_install_sid' is not defined
-  ansible.builtin.fail:
-    msg: "The variable 'sap_hana_install_sid' is not defined."
-  when: sap_hana_install_sid | length == 0
+# Separate task for password with no_log
+- name: Rename some variables used by hdblcm configfile - passwords
+  ansible.builtin.set_fact:
+    sap_hana_install_master_password:
+      "{{ sap_hana_install_common_master_password | d('')
+        if sap_hana_install_master_password is not defined or sap_hana_install_master_password | string | length == 0
+        else sap_hana_install_master_password }}"
+  no_log: true  # Required for password handling
   tags:
     - sap_hana_install_check_hana_exists
+    - sap_hana_install_check_installation
     - sap_hana_install_preinstall
+    - sap_hana_install_set_log_mode
+    - sap_hana_install_configure_firewall
 
-- name: Validate SAP HANA System ID - 'sap_hana_install_sid' consists of 3 characters
+
+- name: Validate SAP HANA System ID - 'sap_hana_install_sid' is defined as String consisting of 3 characters
   ansible.builtin.assert:
-    that: sap_hana_install_sid | length == 3
-    success_msg: "PASS: The length of the SAP System ID '{{ sap_hana_install_sid }}' is 3 characters."
-    fail_msg: "FAIL: The length of the SAP HANA System ID '{{ sap_hana_install_sid }}' is not 3 characters!"
+    that:
+      - sap_hana_install_sid is defined
+      - sap_hana_install_sid is string
+      - sap_hana_install_sid | length == 3
+    success_msg: |
+      PASS: The length of the SAP HANA System ID '{{ sap_hana_install_sid }}' is 3 characters.
+    fail_msg: |
+      {% if sap_hana_install_sid is not string %}
+        FAIL: The variable 'sap_hana_install_sid' is not String. Value: {{ sap_hana_install_sid }}
+      {% elif sap_hana_install_sid | length == 0 %}
+        FAIL: The variable 'sap_hana_install_sid' is empty.
+      {% else %}
+        FAIL: The length of the SAP HANA System ID '{{ sap_hana_install_sid }}' is not 3 characters!
+      {% endif %}
   tags:
     - sap_hana_install_check_hana_exists
     - sap_hana_install_preinstall
@@ -35,19 +62,52 @@
 - name: Validate SAP HANA System ID - 'sap_hana_install_sid' is not in the list of reserved SAP SIDs
   ansible.builtin.assert:
     that: sap_hana_install_sid not in __sap_hana_install_sid_prohibited
-    success_msg: "PASS: The SAP HANA System ID '{{ sap_hana_install_sid }}' is not in the list of reserved SAP SIDs in SAP note 1979280 v.20."
-    fail_msg: "FAIL: The SAP HANA System ID '{{ sap_hana_install_sid }}' is in the list of reserved SAP SIDs in SAP note 1979280 v.20!"
+    success_msg: |
+      PASS: The SAP HANA System ID '{{ sap_hana_install_sid }}' is not in the list of reserved SAP SIDs in SAP note 1979280 v.20.
+    fail_msg: |
+      FAIL: The SAP HANA System ID '{{ sap_hana_install_sid }}' is in the list of reserved SAP SIDs in SAP note 1979280 v.20!
   tags:
     - sap_hana_install_check_hana_exists
     - sap_hana_install_preinstall
 
-- name: Fail if necessary variable 'sap_hana_install_number' is not defined
-  ansible.builtin.fail:
-    msg: "The variable 'sap_hana_install_number' is not defined."
-  when: sap_hana_install_number | length == 0
+- name: Validate SAP HANA Instance Number - 'sap_hana_install_number' is defined as String consisting of 2 characters
+  ansible.builtin.assert:
+    that:
+      - sap_hana_install_number is defined
+      - sap_hana_install_number is string
+      - sap_hana_install_number | length == 2
+    success_msg: |
+      PASS: The length of the SAP HANA Instance Number '{{ sap_hana_install_number }}' is 2 characters.
+    fail_msg: |
+      {% if sap_hana_install_number is not string %}
+        FAIL: The variable 'sap_hana_install_number' is not String. Value: {{ sap_hana_install_number }}
+      {% elif sap_hana_install_number | length == 0 %}
+        FAIL: The variable 'sap_hana_install_number' is empty.
+      {% else %}
+        FAIL: The length of the SAP HANA Instance Number '{{ sap_hana_install_number }}' is not 2 characters!
+      {% endif %}
   tags:
     - sap_hana_install_check_hana_exists
     - sap_hana_install_preinstall
+
+- name: Validate SAP HANA Master Password - 'sap_hana_install_master_password' is defined as String and not empty
+  ansible.builtin.assert:
+    that:
+      - sap_hana_install_master_password is defined
+      - sap_hana_install_master_password is string
+      - sap_hana_install_master_password | length > 0
+    fail_msg: |
+      {% if sap_hana_install_master_password is not defined %}
+        FAIL: The variable 'sap_hana_install_master_password' is not defined.
+      {% elif sap_hana_install_master_password is not string %}
+        FAIL: The variable 'sap_hana_install_master_password' is not String.
+      {% else %}
+        FAIL: The variable 'sap_hana_install_master_password' is empty.
+      {% endif %}
+  tags:
+    - sap_hana_install_check_hana_exists
+    - sap_hana_install_preinstall
+
 
 - name: SAP HANA existence checking
   ansible.builtin.import_tasks: hana_exists.yml

@@ -4,6 +4,21 @@ community.sap\_install Release Notes
 
 .. contents:: Topics
 
+v1.7.1
+======
+
+Release Summary
+---------------
+
+A few fixes
+
+Bugfixes
+--------
+
+- sap_hana_install - Enhance validation of variables (https://github.com/sap-linuxlab/community.sap_install/pull/1096)
+- sap_hana_preconfigure - New mechanism for loading rhel minor plus vars without having to use "find" files on localhost. (https://github.com/sap-linuxlab/community.sap_install/pull/1097)
+- sap_hana_preconfigure/RHEL - Be more flexible with boot command line args (https://github.com/sap-linuxlab/community.sap_install/pull/1098)
+
 v1.7.0
 ======
 
