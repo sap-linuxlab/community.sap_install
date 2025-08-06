@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# loop block for pre_install/assert_inifile_sections_vars.yml
+
+- name: SAP SWPM Pre Install - Assert variable '{{ __sap_swpm_vars_to_be_asserted_for_length_line_item.name }}' for 'length_greater_zero''
+  ansible.builtin.assert:
+    that:
+      - lookup('ansible.builtin.vars', __sap_swpm_vars_to_be_asserted_for_length_line_item.name, default='') is defined
+      - lookup('ansible.builtin.vars', __sap_swpm_vars_to_be_asserted_for_length_line_item.name, default='') is string
+      - lookup('ansible.builtin.vars', __sap_swpm_vars_to_be_asserted_for_length_line_item.name, default='') | trim | length > 0
+    success_msg: |
+      PASS: The variable '{{ __sap_swpm_vars_to_be_asserted_for_length_line_item.name }}' used in '{{ __sap_swpm_vars_to_be_asserted_for_length_line_item.section }}', is defined as '{{ lookup('ansible.builtin.vars', __sap_swpm_vars_to_be_asserted_for_length_line_item.name) }}'.
+    fail_msg: |
+      FAIL: The variable '{{ __sap_swpm_vars_to_be_asserted_for_length_line_item.name }}' used in '{{ __sap_swpm_vars_to_be_asserted_for_length_line_item.section }}', is undefined, not a string, contains only spaces, or has a length of 0!
+    quiet: "{{ true if 'passw' in __sap_swpm_vars_to_be_asserted_for_length_line_item.name else false }}"
+  when:
+    - __sap_swpm_vars_to_be_asserted_for_length_line_item.section in sap_swpm_inifile_sections_list
