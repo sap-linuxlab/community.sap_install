@@ -1,11 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+# TODO: Replace with full validations for accepted values ['always', 'madvise', 'never']
+# and implement block for followup tasks.
 - name: Set fact for THP if 'sap_hana_preconfigure_thp' is defined
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_thp: "{{ sap_hana_preconfigure_thp }}"
   when:
     - sap_hana_preconfigure_thp is defined
+    - sap_hana_preconfigure_thp is string
     - sap_hana_preconfigure_thp | length > 0
 
 - name: Set fact for THP if 'sap_hana_preconfigure_thp' is undefined
@@ -14,11 +17,13 @@
   when:
     - __sap_hana_preconfigure_boot_command_line_args['thp']['arch'] is defined
     - ansible_architecture in __sap_hana_preconfigure_boot_command_line_args['thp']['arch']
-    - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
+    - sap_hana_preconfigure_thp is undefined
+      or not sap_hana_preconfigure_thp is string
+      or sap_hana_preconfigure_thp | length == 0
 
 - name: Add boot command line args for configuring THP if applicable
   when:
-    - (sap_hana_preconfigure_thp is defined and sap_hana_preconfigure_thp | length > 0)
+    - (sap_hana_preconfigure_thp is defined and sap_hana_preconfigure_thp is string and sap_hana_preconfigure_thp | length > 0)
       or
       (
         __sap_hana_preconfigure_boot_command_line_args['thp']['arch'] is defined and
