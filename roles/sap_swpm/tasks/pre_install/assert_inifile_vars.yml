@@ -5,27 +5,27 @@
 
 # We validate:
 # - sap_swpm_software_path: always
+# - sap_swpm_sapcar_path: always
+# - sap_swpm_swpm_path: always
 # - sap_swpm_sid: always
 # - other variables: See the file vars/main.yml for the variables, their checks,
 #   and the sections of sap_swpm_inifile_sections_list in which they are contained
 
-- name: SAP SWPM Pre Install - Assert 'sap_swpm_software_path'
-  ansible.builtin.assert:
-    that:
-      - sap_swpm_software_path is defined
-      - sap_swpm_software_path is string
-      - sap_swpm_software_path | length > 0
-    fail_msg: |
-      FAIL: The variable 'sap_swpm_software_path' is undefined, not a string or has a length of 0!
-
-- name: SAP SWPM Pre Install - Assert 'sap_swpm_sid'
-  ansible.builtin.assert:
-    that:
-      - sap_swpm_sid is defined
-      - sap_swpm_sid is string
-      - sap_swpm_sid | length > 0
-    fail_msg: |
-      FAIL: The variable 'sap_swpm_sid' is undefined, not a string or has a length of 0!
+- name: SAP SWPM Pre Install - Assert essential vars for length
+  ansible.builtin.include_tasks:
+    file: assert_vars_length_loop_block.yml
+    apply:
+      tags: sap_swpm_generate_inifile
+  loop:
+    - sap_swpm_software_path
+    - sap_swpm_sapcar_path
+    - sap_swpm_swpm_path
+    - sap_swpm_sid
+  loop_control:
+    loop_var: __sap_swpm_vars_to_be_asserted_for_length_line_item
+    label: |
+      {{ __sap_swpm_vars_to_be_asserted_for_length_line_item }}
+  tags: sap_swpm_generate_inifile
 
 # We cannot loop inside when conditions so we need to do some preprocessing:
 - name: SAP SWPM Pre Install - Eliminate nested lists of sections
@@ -49,7 +49,7 @@
     __sap_swpm_inifile_vars_to_be_asserted_for_length_final: "{{ __sap_swpm_inifile_vars_to_be_asserted_flat | selectattr('section', 'in', sap_swpm_inifile_sections_list) | selectattr('check', 'equalto', 'length_greater_zero') }}"
     __sap_swpm_inifile_vars_to_be_asserted_for_number_final: "{{ __sap_swpm_inifile_vars_to_be_asserted_flat | selectattr('section', 'in', sap_swpm_inifile_sections_list) | selectattr('check', 'equalto', 'two_digit_number') }}"
 
-- name: SAP SWPM Pre Install - Assert vars for length
+- name: SAP SWPM Pre Install - Assert inifile vars for length
   ansible.builtin.include_tasks: assert_inifile_vars_length_loop_block.yml
   loop: "{{ __sap_swpm_inifile_vars_to_be_asserted_for_length_final }}"
   loop_control:
@@ -58,7 +58,7 @@
       {{ __sap_swpm_vars_to_be_asserted_for_length_line_item.name,
          __sap_swpm_vars_to_be_asserted_for_length_line_item.section }}
 
-- name: SAP SWPM Pre Install - Assert vars for number
+- name: SAP SWPM Pre Install - Assert inifile vars for number
   ansible.builtin.include_tasks: assert_inifile_vars_number_loop_block.yml
   loop: "{{ __sap_swpm_inifile_vars_to_be_asserted_for_number_final }}"
   loop_control:

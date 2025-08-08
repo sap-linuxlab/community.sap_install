@@ -54,21 +54,20 @@
 
 # At this point, the following variables need to be set:
 # sap_swpm_product_catalog_id, sap_swpm_software_path, sap_swpm_sid, sap_swpm_fqdn
-- name: SAP SWPM Pre Install - Assert that certain variables are set
-  ansible.builtin.assert:
-    that:
-      - lookup('ansible.builtin.vars', __sap_swpm_vars_line_item, default='') is defined
-      - lookup('ansible.builtin.vars', __sap_swpm_vars_line_item, default='') is string
-      - lookup('ansible.builtin.vars', __sap_swpm_vars_line_item, default='') | length > 0
-    fail_msg: "FAIL: The variable '{{ __sap_swpm_vars_line_item }}' is undefined, not a string or has a length of 0!"
+- name: SAP SWPM Pre Install - Assert that certain essential variables are set after creating the inifile
+  ansible.builtin.include_tasks:
+    file: assert_vars_length_loop_block.yml
+    apply:
+      tags: sap_swpm_generate_inifile
   loop:
     - sap_swpm_product_catalog_id
     - sap_swpm_software_path
     - sap_swpm_sid
     - sap_swpm_fqdn
   loop_control:
-    loop_var: __sap_swpm_vars_line_item
-    label: __sap_swpm_vars_line_item
+    loop_var: __sap_swpm_vars_to_be_asserted_for_length_line_item
+    label: |
+      {{ __sap_swpm_vars_to_be_asserted_for_length_line_item }}
   tags: sap_swpm_generate_inifile
 
 - name: SAP SWPM Pre Install - Display these variables
@@ -78,6 +77,7 @@
       - "sap_swpm_software_path:      >{{ sap_swpm_software_path }}<"
       - "sap_swpm_sid:                >{{ sap_swpm_sid }}<"
       - "sap_swpm_fqdn:               >{{ sap_swpm_fqdn }}<"
+  tags: sap_swpm_generate_inifile
 
 # We are creating the inifile dynamically in one of the two cases:
 # 1 - The tag sap_swpm_generate_inifile is specified
@@ -100,12 +100,14 @@
       ansible.builtin.set_fact:
         sap_swpm_db_schema: "{{ sap_swpm_db_schema_abap }}"
         sap_swpm_db_schema_password: "{{ sap_swpm_db_schema_abap_password }}"
+      no_log: true
       when: "'ABAP' in sap_swpm_product_catalog_id | string"
 
     - name: SAP SWPM Pre Install - Set password facts when Java
       ansible.builtin.set_fact:
         sap_swpm_db_schema: "{{ sap_swpm_db_schema_java }}"
         sap_swpm_db_schema_password: "{{ sap_swpm_db_schema_java_password }}"
+      no_log: true
       when: "'Java' in sap_swpm_product_catalog_id | string"
 
 # If the individual passwords are set to a non empty string, use those:
@@ -120,6 +122,7 @@
         sap_swpm_diagnostics_agent_password: "{{ sap_swpm_master_password
           if sap_swpm_master_password | d('') and not sap_swpm_diagnostics_agent_password | d('')
           else sap_swpm_diagnostics_agent_password | d('') }}"
+      no_log: true
 
 # Generate inifile.params, step 1: Process SWPM Configfile template locally for creating inifile.params
     - name: SAP SWPM Pre Install, create inifile - Process SWPM inifile template for creating 'inifile.params'

@@ -1,20 +1,26 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# loop block for pre_install/assert_inifile_sections_vars.yml
+# loop block for pre_install/assert_inifile_vars.yml
 
-- name: SAP SWPM Pre Install - Assert variable '{{ __sap_swpm_vars_to_be_asserted_for_number_line_item.name }}' for 'two_digit_number'
+- name: SAP SWPM Pre Install - Assert variable {{ __sap_swpm_var_name }} for 'two_digit_number'
   ansible.builtin.assert:
     that:
-      - lookup('ansible.builtin.vars', __sap_swpm_vars_to_be_asserted_for_number_line_item.name, default='') is defined
-      - lookup('ansible.builtin.vars', __sap_swpm_vars_to_be_asserted_for_number_line_item.name, default='') is string or
-        lookup('ansible.builtin.vars', __sap_swpm_vars_to_be_asserted_for_number_line_item.name, default='') is number
-      - lookup('ansible.builtin.vars', __sap_swpm_vars_to_be_asserted_for_number_line_item.name, default='') | string | trim | length > 0
-      - lookup('ansible.builtin.vars', __sap_swpm_vars_to_be_asserted_for_number_line_item.name, default='') | string | int >= 0
-      - lookup('ansible.builtin.vars', __sap_swpm_vars_to_be_asserted_for_number_line_item.name, default='') | string | int <= 99
+      - lookup('ansible.builtin.vars', __sap_swpm_var_name, default='SAP_SWPM_UNDEFINED_VARIABLE_DETECTED') != 'SAP_SWPM_UNDEFINED_VARIABLE_DETECTED'
+      - (lookup('ansible.builtin.vars', __sap_swpm_var_name) | trim) is ansible.builtin.regex('^\\d{2}$')
     success_msg: |
-      PASS: The variable '{{ __sap_swpm_vars_to_be_asserted_for_number_line_item.name }}' used in '{{ __sap_swpm_vars_to_be_asserted_for_number_line_item.section }}', is defined as '{{ lookup('ansible.builtin.vars', __sap_swpm_vars_to_be_asserted_for_number_line_item.name) }}'.
+      PASS: The variable '{{ __sap_swpm_var_name }}' used in section '{{ __sap_swpm_var_section }}' is valid.
     fail_msg: |
-      FAIL: The variable '{{ __sap_swpm_vars_to_be_asserted_for_number_line_item.name }}' used in '{{ __sap_swpm_vars_to_be_asserted_for_number_line_item.section }}', is undefined, not a string or number, less than 0 or greater than 99!
+      {% if lookup('ansible.builtin.vars', __sap_swpm_var_name, default='SAP_SWPM_UNDEFINED_VARIABLE_DETECTED') == 'SAP_SWPM_UNDEFINED_VARIABLE_DETECTED' %}
+        FAIL: The variable '{{ __sap_swpm_var_name }}' used in section '{{ __sap_swpm_var_section }}' is undefined.
+      {% elif lookup('ansible.builtin.vars', __sap_swpm_var_name) | string | trim | length == 0 %}
+        FAIL: The variable '{{ __sap_swpm_var_name }}' used in section '{{ __sap_swpm_var_section }}' is empty.
+      {% else %}
+        FAIL: The variable '{{ __sap_swpm_var_name }}' used in section '{{ __sap_swpm_var_section }}' is not a double digit number.
+        The value can be defined as a String or Integer between 00 and 99.
+      {% endif %}
+  vars:
+    __sap_swpm_var_name: "{{ __sap_swpm_vars_to_be_asserted_for_number_line_item.name }}"
+    __sap_swpm_var_section: "{{ __sap_swpm_vars_to_be_asserted_for_number_line_item.section }}"
   when:
-    - __sap_swpm_vars_to_be_asserted_for_number_line_item.section in sap_swpm_inifile_sections_list
+    - __sap_swpm_var_section in sap_swpm_inifile_sections_list
