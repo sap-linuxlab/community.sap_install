@@ -113,12 +113,6 @@
   # Stop execution of tasks after this block for any host, if one host
   # failed a task in this block.
   any_errors_fatal: true
-  vars:
-    attach_item: |
-      {{ sap_storage_setup_definition
-        | selectattr('name', 'eq', nfs_item.name)
-        | join('')
-      }} # convert this single element list to a simple dict
   block:
 
     - name: SAP Storage Setup - ({{ nfs_item.name }}) Create directory as temporary mountpoint
@@ -131,9 +125,9 @@
       throttle: 1   # avoid NFS request flooding and silent timeout failures (observed on MS Azure Files)
       ansible.posix.mount:
         path: "{{ sap_storage_setup_tmpnfs_register.path }}"
-        src: "{{ attach_item.nfs_server | default(sap_storage_setup_nfs_server) }}"
-        fstype: "{{ attach_item.nfs_filesystem_type | default(sap_storage_setup_nfs_filesystem_type) }}"
-        opts: "{{ attach_item.nfs_mount_options | default(sap_storage_setup_nfs_mount_options) }}"
+        src: "{{ nfs_item.nfs_server | default(sap_storage_setup_nfs_server) }}"
+        fstype: "{{ nfs_item.nfs_filesystem_type | default(sap_storage_setup_nfs_filesystem_type) }}"
+        opts: "{{ nfs_item.nfs_mount_options | default(sap_storage_setup_nfs_mount_options) }}"
         state: mounted
       when:
         - sap_storage_setup_tmpnfs_register.path is defined
@@ -197,7 +191,7 @@
     path: "{{ mount_item.mountpoint }}"
     src: "{{ nfs_server }}/{{ mount_item.mount_src | regex_replace('^/', '') }}"
     fstype: "{{ nfs_item.nfs_filesystem_type | default(sap_storage_setup_nfs_filesystem_type) }}"
-    opts: "{{ attach_item.nfs_mount_options | default(sap_storage_setup_nfs_mount_options) }}"
+    opts: "{{ nfs_item.nfs_mount_options | default(sap_storage_setup_nfs_mount_options) }}"
     state: mounted
   loop: "{{ sap_storage_setup_related_directories }}"
   loop_control:
@@ -206,8 +200,3 @@
   vars:
     nfs_path: "{{ nfs_item.nfs_path | regex_replace('^/', '') | regex_replace('/$', '') }}"
     nfs_server: "{{ nfs_item.nfs_server | default(sap_storage_setup_nfs_server) | regex_replace('/$', '') }}"
-    attach_item: |
-      {{ sap_storage_setup_definition
-        | selectattr('name', 'eq', nfs_item.name)
-        | join('')
-      }} # convert this single element list to a simple dict
