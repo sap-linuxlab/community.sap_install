@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# loop block for pre_install/assert_inifile_vars.yml
+
+- name: SAP SWPM Pre Install - Assert variable '{{ __sap_swpm_vars_to_be_asserted_for_length_line_item }}' for 'length_greater_zero''
+  ansible.builtin.assert:
+    that:
+      - lookup('ansible.builtin.vars', __sap_swpm_var_name, default='SAP_SWPM_UNDEFINED_VARIABLE_DETECTED') != 'SAP_SWPM_UNDEFINED_VARIABLE_DETECTED'
+      - lookup('ansible.builtin.vars', __sap_swpm_var_name) is string
+      - lookup('ansible.builtin.vars', __sap_swpm_var_name) | trim | length > 0
+    success_msg: |
+      PASS: The variable '{{ __sap_swpm_var_name }}' is valid.
+    fail_msg: |
+      {% if lookup('ansible.builtin.vars', __sap_swpm_var_name, default='SAP_SWPM_UNDEFINED_VARIABLE_DETECTED') == 'SAP_SWPM_UNDEFINED_VARIABLE_DETECTED' %}
+        FAIL: The variable '{{ __sap_swpm_var_name }}' is undefined.
+      {% elif lookup('ansible.builtin.vars', __sap_swpm_var_name) is not string %}
+        FAIL: The variable '{{ __sap_swpm_var_name }}' is not a String.
+      {% else %}
+        FAIL: The variable '{{ __sap_swpm_var_name }}' is empty.
+      {% endif %}
+  vars:
+    __sap_swpm_var_name: "{{ __sap_swpm_vars_to_be_asserted_for_length_line_item }}"
