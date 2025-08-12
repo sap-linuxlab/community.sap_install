@@ -8,13 +8,12 @@
     that:
       - lookup('ansible.builtin.vars', __sap_swpm_var_name, default='SAP_SWPM_UNDEFINED_VARIABLE_DETECTED') != 'SAP_SWPM_UNDEFINED_VARIABLE_DETECTED'
       - lookup('ansible.builtin.vars', __sap_swpm_var_name) is boolean
-      - lookup('ansible.builtin.vars', __sap_swpm_var_name) | trim | length > 0
     success_msg: |
       PASS: The variable '{{ __sap_swpm_var_name }}', used in section '{{ __sap_swpm_var_section }}' of 'sap_swpm_inifile_sections_list', is valid.
     fail_msg: |
       {% if lookup('ansible.builtin.vars', __sap_swpm_var_name, default='SAP_SWPM_UNDEFINED_VARIABLE_DETECTED') == 'SAP_SWPM_UNDEFINED_VARIABLE_DETECTED' %}
         FAIL: The variable '{{ __sap_swpm_var_name }}' is undefined.
-      {% elif lookup('ansible.builtin.vars', __sap_swpm_var_name) is not string %}
+      {% elif lookup('ansible.builtin.vars', __sap_swpm_var_name) is not boolean %}
         FAIL: The variable '{{ __sap_swpm_var_name }}' is not a Boolean.
       {% else %}
         FAIL: The variable '{{ __sap_swpm_var_name }}' is empty.
