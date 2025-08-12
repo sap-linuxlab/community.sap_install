@@ -23,8 +23,6 @@
     - sap_swpm_sid
   loop_control:
     loop_var: __sap_swpm_vars_to_be_asserted_for_length_line_item
-    label: |
-      {{ __sap_swpm_vars_to_be_asserted_for_length_line_item }}
   tags: sap_swpm_generate_inifile
 
 # We cannot loop inside when conditions so we need to do some preprocessing:
@@ -48,6 +46,7 @@
   ansible.builtin.set_fact:
     __sap_swpm_inifile_vars_to_be_asserted_for_length_final: "{{ __sap_swpm_inifile_vars_to_be_asserted_flat | selectattr('section', 'in', sap_swpm_inifile_sections_list) | selectattr('check', 'equalto', 'length_greater_zero') }}"
     __sap_swpm_inifile_vars_to_be_asserted_for_number_final: "{{ __sap_swpm_inifile_vars_to_be_asserted_flat | selectattr('section', 'in', sap_swpm_inifile_sections_list) | selectattr('check', 'equalto', 'two_digit_number') }}"
+    __sap_swpm_inifile_vars_to_be_asserted_for_boolean_final: "{{ __sap_swpm_inifile_vars_to_be_asserted_flat | selectattr('section', 'in', sap_swpm_inifile_sections_list) | selectattr('check', 'equalto', 'boolean') }}"
 
 - name: SAP SWPM Pre Install - Assert inifile vars for length
   ansible.builtin.include_tasks: assert_inifile_vars_length_loop_block.yml
@@ -66,3 +65,12 @@
     label: |
       {{ __sap_swpm_vars_to_be_asserted_for_number_line_item.name,
          __sap_swpm_vars_to_be_asserted_for_number_line_item.section }}
+
+- name: SAP SWPM Pre Install - Assert inifile vars for boolean
+  ansible.builtin.include_tasks: assert_inifile_vars_boolean_loop_block.yml
+  loop: "{{ __sap_swpm_inifile_vars_to_be_asserted_for_boolean_final }}"
+  loop_control:
+    loop_var: __sap_swpm_vars_to_be_asserted_for_boolean_line_item
+    label: |
+      {{ __sap_swpm_vars_to_be_asserted_for_boolean_line_item.name,
+         __sap_swpm_vars_to_be_asserted_for_boolean_line_item.section }}

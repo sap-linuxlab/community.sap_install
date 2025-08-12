@@ -53,8 +53,8 @@ sap_swpm_files_non_sapcar_group: root
 sap_swpm_run_sapinst: true
 
 # Inifile Reuse Mode
-sap_swpm_inifile_reuse_source:
-sap_swpm_inifile_reuse_destination:
+#sap_swpm_inifile_reuse_source:
+#sap_swpm_inifile_reuse_destination:
 
 #sap_swpm_inifile_parameters_dict:
 #  archives.downloadBasket: /software/download_basket
@@ -140,24 +140,10 @@ sap_swpm_inifile_sections_list:
 
 # SAP product that will be installed and passed as argument to the sapinst installer, example 'NW_ABAP_OneHost:S4HANA2020.CORE.HDB.ABAP'
 # Needs to be defined in the playbook or inventory or can be determined from an existing inifile.params file.
-#sap_swpm_product_catalog_id:
-
-# SAPCAR path and file name, only path is mandatory. The script will automatically get file_name
-sap_swpm_sapcar_path:
-sap_swpm_sapcar_file_name:
-
-# SWPM path and file name, only path is mandatory. The script will automatically get file_name
-sap_swpm_swpm_path: # e.g. /software/sap_swpm
-sap_swpm_swpm_sar_file_name:
-sap_swpm_software_extract_directory: # e.g. /software/sap_swpm_extracted
-
-# Note:
-# When using SWPM2 (for modern SAP products such as S/4 B/4), using .SAR files is recommended - param value should be false
-# When using SWPM1 (for older SAP products), using CD Media is the only choice - param value should be true
-sap_swpm_software_use_media: false
+sap_swpm_product_catalog_id: ''
 
 # Main path that this role will look for .SAR files
-#sap_swpm_software_path: /software/sapfiles
+sap_swpm_software_path: '/software/sapfiles'
 ## This directory path should include these files:
 ##   - igs*sar
 ##   - igshelper*sar
@@ -166,38 +152,54 @@ sap_swpm_software_use_media: false
 ##   - IMDB_CLIENT*SAR
 ##   - SAPHOSTAGENT*SAR
 
+# Directory and file name of SAPCAR*EXE. Only path is mandatory. The role will automatically determine file_name
+sap_swpm_sapcar_path: "{{ sap_swpm_software_path }}"
+# sap_swpm_sapcar_file_name:
+
+# Directory and file name of SWPM. Only path is mandatory. The role will automatically determine file_name
+sap_swpm_swpm_path: "{{ sap_swpm_software_path }}"
+# sap_swpm_swpm_sar_file_name:
+#
+# Define your own software extraction directory. If undefined, the role will use './extracted' as a subdirectory
+# of sap_swpm_swpm_path.
+# sap_swpm_software_extract_directory: # e.g. /software/sap_swpm_extracted
+
+# Note:
+# When using SWPM2 (for modern SAP products such as S/4 B/4), using .SAR files is recommended - param value should be false
+# When using SWPM1 (for older SAP products), using CD Media is the only choice - param value should be true
+sap_swpm_software_use_media: false
+
 # Directory in which a sapinst inifile which is to be used by the role can be stored:
 sap_swpm_inifile_directory: '/software/sap_swpm/inifiles'
-#sap_swpm_local_inifile_directory: '/tmp/inifiles'
 
 # SWPM1 - paths that this role will look for CD Media software
-sap_swpm_cd_export_pt1_path:
-sap_swpm_cd_export_pt2_path:
-sap_swpm_cd_language_path:
-sap_swpm_cd_java_path:
-sap_swpm_cd_rdbms_path:
-sap_swpm_cd_export_path:
-sap_swpm_cd_ibmdb2_path:
-sap_swpm_cd_ibmdb2_client_path:
-sap_swpm_cd_oracle121_path:
-sap_swpm_cd_oracle121_client_path:
-sap_swpm_cd_sapase_path:
-sap_swpm_cd_sapmaxdb_path:
+sap_swpm_cd_export_pt1_path: ''
+sap_swpm_cd_export_pt2_path: ''
+sap_swpm_cd_language_path: ''
+sap_swpm_cd_java_path: ''
+sap_swpm_cd_rdbms_path: ''
+sap_swpm_cd_export_path: ''
+sap_swpm_cd_ibmdb2_path: ''
+sap_swpm_cd_ibmdb2_client_path: ''
+sap_swpm_cd_oracle121_path: ''
+sap_swpm_cd_oracle121_client_path: ''
+sap_swpm_cd_sapase_path: ''
+sap_swpm_cd_sapmaxdb_path: ''
 sap_swpm_ibmdb2_unpack_path: "/db2/db2{{ sap_swpm_db_sid | lower }}/db2_software"
 
 # --- Experimental --- #
 # MP Stack
-sap_swpm_mp_stack_path:
-sap_swpm_mp_stack_file_name:
+sap_swpm_mp_stack_path: ''
+sap_swpm_mp_stack_file_name: ''
 # SUM
 sap_swpm_sum_prepare: false
 sap_swpm_sum_start: false
-sap_swpm_sum_batch_file:
+sap_swpm_sum_batch_file: ''
 sap_swpm_spam_update: false
-sap_swpm_spam_update_sar:
+sap_swpm_spam_update_sar: ''
 sap_swpm_configure_tms: true
 sap_swpm_tmsadm_password: ''
-sap_swpm_tms_tr_files_path:
+sap_swpm_tms_tr_files_path: ''
 # --- Experimental --- #
 
 # --- Experimental - SWPM Observer mode --- #
@@ -207,7 +209,7 @@ sap_swpm_tms_tr_files_path:
 sap_swpm_swpm_observer_mode: false
 # Allows to specify a different remote access user (e.g. when root's password is unknown). Default SWPM behaviour is to use root. This may not be desirable as
 # root's password may not be available for security reasons. The remote access user must exist before SWPM is executed (i.e. <sid>adm can't be used if it doesn't exist yet).
-sap_swpm_swpm_remote_access_user:
+sap_swpm_swpm_remote_access_user: ''
 # --- Experimental - SWPM Observer mode --- #
 
 sap_swpm_install_saphostagent: true
@@ -219,18 +221,18 @@ sap_swpm_install_saphostagent: true
 #   - SAP NetWeaver
 ########################################
 
-sap_swpm_sid: ""
-sap_swpm_ascs_instance_nr: ""
-sap_swpm_ascs_instance_hostname: ""
-sap_swpm_ers_instance_nr: ""
-sap_swpm_ers_instance_hostname: ""
-sap_swpm_pas_instance_nr: ""
-sap_swpm_pas_instance_hostname: ""
-sap_swpm_aas_instance_nr: ""
-sap_swpm_aas_instance_hostname: ""
+sap_swpm_sid: ''
+#sap_swpm_ascs_instance_nr: ''
+#sap_swpm_ascs_instance_hostname: ''
+#sap_swpm_ers_instance_nr: ''
+#sap_swpm_ers_instance_hostname: ''
+#sap_swpm_pas_instance_nr: ''
+#sap_swpm_pas_instance_hostname: ''
+#sap_swpm_aas_instance_nr: ''
+#sap_swpm_aas_instance_hostname: ''
 
-sap_swpm_java_scs_instance_nr: ""
-sap_swpm_java_scs_instance_hostname: ""
+#sap_swpm_java_scs_instance_nr: ''
+#sap_swpm_java_scs_instance_hostname: ''
 
 # Password used for all users created during SWPM installation
 sap_swpm_master_password: ''
@@ -241,7 +243,7 @@ sap_swpm_ddic_000_password: ''
 
 # initial = not an HA setup
 # set this in the input file when installing ascs, ers to indicate an HA setup
-sap_swpm_virtual_hostname:
+sap_swpm_virtual_hostname: ''
 
 
 ########################################
@@ -308,11 +310,11 @@ sap_swpm_java_template_id_lookup_dictionary:
 #   - DB Connection (existing SAP HANA)
 ########################################
 
-sap_swpm_db_ip:
-sap_swpm_db_fqdn:
-sap_swpm_db_host:
-sap_swpm_db_sid:
-sap_swpm_db_instance_nr:
+sap_swpm_db_ip: ''
+sap_swpm_db_fqdn: ''
+sap_swpm_db_host: ''
+sap_swpm_db_sid: ''
+sap_swpm_db_instance_nr: ''
 
 sap_swpm_db_system_password: ''
 sap_swpm_db_systemdb_password: ''
@@ -325,20 +327,20 @@ sap_swpm_db_schema_abap_password: ''
 
 # New Install - define schema password (Java)
 # Restore - schema details from backup (Java)
-sap_swpm_db_schema_java:
+sap_swpm_db_schema_java: ''
 sap_swpm_db_schema_java_password: ''
 
-sap_swpm_db_schema:
+sap_swpm_db_schema: ''
 sap_swpm_db_schema_password: ''
 
 # JAVA UME
-sap_swpm_ume_client_nr: '000'
-sap_swpm_ume_type:
-sap_swpm_ume_instance_nr: '{{ sap_swpm_pas_instance_nr }}'
-sap_swpm_ume_j2ee_admin_password: ''
-sap_swpm_ume_j2ee_guest_password: ''
-sap_swpm_ume_sapjsf_password: ''
-sap_swpm_ume_instance_hostname:
+#sap_swpm_ume_client_nr: '000'
+#sap_swpm_ume_type:
+#sap_swpm_ume_instance_nr: '{{ sap_swpm_pas_instance_nr }}'
+#sap_swpm_ume_j2ee_admin_password: ''
+#sap_swpm_ume_j2ee_guest_password: ''
+#sap_swpm_ume_sapjsf_password: ''
+#sap_swpm_ume_instance_hostname:
 
 
 ########################################
@@ -348,16 +350,16 @@ sap_swpm_ume_instance_hostname:
 ########################################
 
 # Location of the database backup files.
-sap_swpm_backup_location:
+sap_swpm_backup_location: ''
 
 # Backup prefix
-sap_swpm_backup_prefix:
+sap_swpm_backup_prefix: ''
 
 # SYSTEM password of the backup
 sap_swpm_backup_system_password: ''
 
 # ASCS Install Gateway
-sap_swpm_ascs_install_gateway: true
+#sap_swpm_ascs_install_gateway: true
 
 
 ########################################
@@ -366,20 +368,20 @@ sap_swpm_ascs_install_gateway: true
 #   - Web Dispatcher
 ########################################
 
-sap_swpm_wd_instance_nr:
+#sap_swpm_wd_instance_nr:
 
-sap_swpm_wd_system_connectivity: false
-sap_swpm_wd_activate_icf: false
-sap_swpm_wd_backend_sid:
-sap_swpm_wd_backend_ms_http_port:
-sap_swpm_wd_backend_ms_host:
-sap_swpm_wd_backend_rfc_host:
-sap_swpm_wd_backend_rfc_instance_nr:
-sap_swpm_wd_backend_rfc_client_nr: # 000 default
-sap_swpm_wd_backend_rfc_user: # DDIC default
-sap_swpm_wd_backend_rfc_user_password: ''
-sap_swpm_wd_backend_scenario_size:
-sap_swpm_wd_virtual_host:
+#sap_swpm_wd_system_connectivity: false
+#sap_swpm_wd_activate_icf: false
+#sap_swpm_wd_backend_sid:
+#sap_swpm_wd_backend_ms_http_port:
+#sap_swpm_wd_backend_ms_host:
+#sap_swpm_wd_backend_rfc_host:
+#sap_swpm_wd_backend_rfc_instance_nr:
+#sap_swpm_wd_backend_rfc_client_nr: # 000 default
+#sap_swpm_wd_backend_rfc_user: # DDIC default
+#sap_swpm_wd_backend_rfc_user_password: ''
+#sap_swpm_wd_backend_scenario_size:
+#sap_swpm_wd_virtual_host:
 
 
 ########################################
@@ -391,9 +393,9 @@ sap_swpm_wd_virtual_host:
 sap_swpm_sapadm_password: ''
 sap_swpm_sap_sidadm_password: ''
 
-sap_swpm_sapadm_uid:
-sap_swpm_sapsys_gid:
-sap_swpm_sidadm_uid:
+sap_swpm_sapadm_uid: ''
+sap_swpm_sapsys_gid: ''
+sap_swpm_sidadm_uid: ''
 
 
 ########################################
@@ -411,35 +413,35 @@ sap_swpm_diagnostics_agent_password: ''
 # will follow sap_swpm_software_path
 # alternatively, can be detected and set with sap_install_media_detect Ansible Role
 
-sap_swpm_igs_path:
-sap_swpm_igs_file_name:
-sap_swpm_igs_helper_path:
-sap_swpm_igs_helper_file_name:
-sap_swpm_kernel_dependent_path:
-sap_swpm_kernel_dependent_file_name:
-sap_swpm_kernel_independent_path:
-sap_swpm_kernel_independent_file_name:
-sap_swpm_web_dispatcher_path:
-sap_swpm_web_dispatcher_file_name:
-sap_swpm_fqdn:
+#sap_swpm_igs_path:
+#sap_swpm_igs_file_name:
+#sap_swpm_igs_helper_path:
+#sap_swpm_igs_helper_file_name:
+#sap_swpm_kernel_dependent_path:
+#sap_swpm_kernel_dependent_file_name:
+#sap_swpm_kernel_independent_path:
+#sap_swpm_kernel_independent_file_name:
+#sap_swpm_web_dispatcher_path:
+#sap_swpm_web_dispatcher_file_name:
+sap_swpm_fqdn: ''
 sap_swpm_set_fqdn: true
 
 # If the template to use already has the passwords and they are encrypted the password file must be in the same path as the parameter file
 sap_swpm_use_password_file: false
-sap_swpm_password_file_path:
+sap_swpm_password_file_path: ''
 
 sap_swpm_use_livecache: false
-sap_swpm_ddic_001_password:
+sap_swpm_ddic_001_password: ''
 sap_swpm_load_type: 'SAP'
 
 
 sap_swpm_generic: false
 
-# SWPM
-sap_swpm_swpm_installation_type: ""
-sap_swpm_swpm_installation_header: ""
-sap_swpm_swpm_command_virtual_hostname: ""
-sap_swpm_swpm_command_mp_stack: ""
+# SWPM - defined in the role by set_fact:
+#sap_swpm_swpm_installation_type: ''
+#sap_swpm_swpm_installation_header: ''
+#sap_swpm_swpm_command_virtual_hostname: ''
+#sap_swpm_swpm_command_mp_stack: ''
 
 # Set linux user password expiry settings
 sap_swpm_set_sidadm_noexpire: true

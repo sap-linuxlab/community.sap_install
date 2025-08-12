@@ -3,25 +3,25 @@
 
 # loop block for pre_install/assert_inifile_vars.yml
 
-- name: SAP SWPM Pre Install - Assert variable {{ __sap_swpm_var_name }} for 'two_digit_number'
+- name: SAP SWPM Pre Install - Assert variable '{{ __sap_swpm_vars_to_be_asserted_for_boolean_line_item.name }}' for 'boolean'
   ansible.builtin.assert:
     that:
       - lookup('ansible.builtin.vars', __sap_swpm_var_name, default='SAP_SWPM_UNDEFINED_VARIABLE_DETECTED') != 'SAP_SWPM_UNDEFINED_VARIABLE_DETECTED'
-      - (lookup('ansible.builtin.vars', __sap_swpm_var_name) | trim) is ansible.builtin.regex('^\\d{2}$')
+      - lookup('ansible.builtin.vars', __sap_swpm_var_name) is boolean
+      - lookup('ansible.builtin.vars', __sap_swpm_var_name) | trim | length > 0
     success_msg: |
       PASS: The variable '{{ __sap_swpm_var_name }}', used in section '{{ __sap_swpm_var_section }}' of 'sap_swpm_inifile_sections_list', is valid.
     fail_msg: |
       {% if lookup('ansible.builtin.vars', __sap_swpm_var_name, default='SAP_SWPM_UNDEFINED_VARIABLE_DETECTED') == 'SAP_SWPM_UNDEFINED_VARIABLE_DETECTED' %}
         FAIL: The variable '{{ __sap_swpm_var_name }}' is undefined.
-      {% elif lookup('ansible.builtin.vars', __sap_swpm_var_name) | string | trim | length == 0 %}
-        FAIL: The variable '{{ __sap_swpm_var_name }}' is empty.
+      {% elif lookup('ansible.builtin.vars', __sap_swpm_var_name) is not string %}
+        FAIL: The variable '{{ __sap_swpm_var_name }}' is not a Boolean.
       {% else %}
-        FAIL: The variable '{{ __sap_swpm_var_name }}' is not a double digit number.
-        The value must be defined as a String or Integer between 00 and 99.
+        FAIL: The variable '{{ __sap_swpm_var_name }}' is empty.
       {% endif %}
         This variable is required for section '{{ __sap_swpm_var_section }}' of 'sap_swpm_inifile_sections_list'.
   vars:
-    __sap_swpm_var_name: "{{ __sap_swpm_vars_to_be_asserted_for_number_line_item.name }}"
-    __sap_swpm_var_section: "{{ __sap_swpm_vars_to_be_asserted_for_number_line_item.section }}"
+    __sap_swpm_var_name: "{{ __sap_swpm_vars_to_be_asserted_for_boolean_line_item.name }}"
+    __sap_swpm_var_section: "{{ __sap_swpm_vars_to_be_asserted_for_boolean_line_item.section }}"
   when:
     - __sap_swpm_var_section in sap_swpm_inifile_sections_list
