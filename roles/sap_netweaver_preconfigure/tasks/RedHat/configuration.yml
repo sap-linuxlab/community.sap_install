@@ -7,7 +7,7 @@
 
 - name: Include configuration actions for required sapnotes
   ansible.builtin.include_tasks: "sapnote/{{ sap_note_line_item.number }}.yml"
-  with_items: "{{ __sap_netweaver_preconfigure_sapnotes_versions | difference(['']) }}"
+  loop: "{{ __sap_netweaver_preconfigure_sapnotes_versions | difference(['']) | flatten(levels=1) }}"
   loop_control:
     loop_var: sap_note_line_item
   when: __sap_netweaver_preconfigure_sapnotes_versions is defined
