@@ -90,7 +90,7 @@ def validate_sap_abap_platform_hostname(value):
     # String contains other characters besides alpha characters, digits and the hyphen character
     if str_value and not str_value.replace('-', 'x').isalnum():
         result['valid'] = False
-        result['failed_conditions'].append(f"Must not contain any other character than alpha characters, digits, or hyphens!")
+        result['failed_conditions'].append("Must not contain any other character than alpha characters, digits, or hyphens!")
 
     # String contains a dot character
     if str_value and str_value.find('.') != -1:
