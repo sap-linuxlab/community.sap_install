@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Assert hostname compliance with SAP note 611361
+- name: SAP SWPM Pre Install - Assert that hostnames comply with SAP note 611361
+  ansible.builtin.assert:
+    that:
+      - __sap_swpm_hostnames_var is community.sap_install.valid_sap_abap_platform_hostname
+    fail_msg: |
+      FAIL: The variable '{{ __sap_swpm_hostnames_line_item }}' is defined as:
+      '{{ lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item) }}', which fails the following validation criteria:
+      {% for condition in (__sap_swpm_hostnames_var | community.sap_install.validate_sap_abap_platform_hostname).failed_conditions %}
+      - {{ condition }}
+      {% endfor %}
+    success_msg: |
+      PASS: The variable '{{ __sap_swpm_hostnames_line_item }}' is a valid SAP hostname.
+  loop:
+    - sap_swpm_ascs_instance_hostname
+    - sap_swpm_ers_instance_hostname
+    - sap_swpm_pas_instance_hostname
+    - sap_swpm_aas_instance_hostname
+    - sap_swpm_java_scs_instance_hostname
+    - sap_swpm_virtual_hostname
+  loop_control:
+    loop_var: __sap_swpm_hostnames_line_item
+  vars:
+    __sap_swpm_hostnames_var: "{{ lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item) }}"
+  when:
+    - lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item, default='') is defined
+    - lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item, default='') is not none
+    - lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item, default='') | string | length > 0
