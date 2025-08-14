@@ -47,13 +47,13 @@
 
 - name: Configure - Include configuration actions for required sapnotes
   ansible.builtin.include_tasks: "sapnote/{{ sap_note_line_item.number }}.yml"
-  with_items: "{{ __sap_hana_preconfigure_sapnotes_versions | difference(['']) }}"
+  loop: "{{ __sap_hana_preconfigure_sapnotes_versions | difference(['']) | flatten(levels=1) }}"
   loop_control:
     loop_var: sap_note_line_item
 
 - name: Configure - Initiate GRUB update if necessary
   ansible.builtin.include_tasks:
-    file: "generic/set-boot-kernel-args.yml"
+    file: "RedHat/generic/set-boot-kernel-args.yml"
     apply:
       tags:
         - grubconfig

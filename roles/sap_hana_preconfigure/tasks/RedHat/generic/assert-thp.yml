@@ -26,6 +26,7 @@
     - name: Set fact for THP, RHEL up to RHEL 9.1
       ansible.builtin.set_fact:
         __sap_hana_preconfigure_fact_thp: 'never'
+        __sap_hana_preconfigure_fact_thp_boot_command_line_arg: "transparent_hugepage=never"
       when:
         - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
         - ansible_distribution_major_version == '7' or
@@ -36,6 +37,7 @@
     - name: Set fact for THP, RHEL 9.2 and later
       ansible.builtin.set_fact:
         __sap_hana_preconfigure_fact_thp: 'madvise'
+        __sap_hana_preconfigure_fact_thp_boot_command_line_arg: "transparent_hugepage=madvise"
       when:
         - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
         - ansible_distribution_major_version | int >= 10 or
@@ -47,28 +49,35 @@
     - name: Set fact for THP if 'sap_hana_preconfigure_thp' is defined
       ansible.builtin.set_fact:
         __sap_hana_preconfigure_fact_thp: "{{ sap_hana_preconfigure_thp }}"
+        __sap_hana_preconfigure_fact_thp_boot_command_line_arg: "transparent_hugepage={{ sap_hana_preconfigure_thp }}"
       when:
         - sap_hana_preconfigure_thp is defined
         - sap_hana_preconfigure_thp is string
         - sap_hana_preconfigure_thp | length > 0
 
     - name: Assert that 'transparent_hugepage={{ __sap_hana_preconfigure_fact_thp }}' is in GRUB_CMDLINE_LINUX in /etc/default/grub
+      vars:
+        __sap_hana_preconfigure_fact_thp_boot_command_line_arg: "transparent_hugepage={{ __sap_hana_preconfigure_fact_thp }}"
       ansible.builtin.assert:
-        that: "'transparent_hugepage={{ __sap_hana_preconfigure_fact_thp }}' in __sap_hana_preconfigure_register_default_grub_cmdline_thp_assert.stdout"
+        that: __sap_hana_preconfigure_fact_thp_boot_command_line_arg in __sap_hana_preconfigure_register_default_grub_cmdline_thp_assert.stdout
         fail_msg: "FAIL: 'transparent_hugepage={{ __sap_hana_preconfigure_fact_thp }}' is not in GRUB_CMDLINE_LINUX in /etc/default/grub!"
         success_msg: "PASS: 'transparent_hugepage={{ __sap_hana_preconfigure_fact_thp }}' is in GRUB_CMDLINE_LINUX in /etc/default/grub."
       ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
     - name: Assert that 'transparent_hugepage={{ __sap_hana_preconfigure_fact_thp }}' is in /proc/cmdline
+      vars:
+        __sap_hana_preconfigure_fact_thp_boot_command_line_arg: "transparent_hugepage={{ __sap_hana_preconfigure_fact_thp }}"
       ansible.builtin.assert:
-        that: "'transparent_hugepage={{ __sap_hana_preconfigure_fact_thp }}' in __sap_hana_preconfigure_register_proc_cmdline_thp_assert.stdout"
+        that: __sap_hana_preconfigure_fact_thp_boot_command_line_arg in __sap_hana_preconfigure_register_proc_cmdline_thp_assert.stdout
         fail_msg: "FAIL: 'transparent_hugepage={{ __sap_hana_preconfigure_fact_thp }}' is not in /proc/cmdline!"
         success_msg: "PASS: 'transparent_hugepage={{ __sap_hana_preconfigure_fact_thp }}' is in /proc/cmdline."
       ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
     - name: Assert that THP currently has the correct status
+      vars:
+        __sap_hana_preconfigure_fact_thp_status: "{{ __sap_hana_preconfigure_register_sys_kernel_thp_assert.stdout.split('[')[1].split(']')[0] }}"
       ansible.builtin.assert:
-        that: __sap_hana_preconfigure_register_sys_kernel_thp_assert.stdout.split('[')[1].split(']')[0] == '{{ __sap_hana_preconfigure_fact_thp }}'
+        that: __sap_hana_preconfigure_fact_thp_status == __sap_hana_preconfigure_fact_thp
         fail_msg: "FAIL: THP is currently configured with the status of '{{ __sap_hana_preconfigure_register_sys_kernel_thp_assert.stdout.split('[')[1].split(']')[0] }}' but it needs to be '{{ __sap_hana_preconfigure_fact_thp }}'!"
         success_msg: "PASS: THP is currently configured with the correct status of '{{ __sap_hana_preconfigure_fact_thp }}'!"
       ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
