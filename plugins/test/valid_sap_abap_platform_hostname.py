@@ -7,10 +7,11 @@ DOCUMENTATION = """
     name: valid_sap_abap_platform_hostname
     short_description: Test if a string is a valid SAP hostname
     description:
-        - Tests if a string meets hostname validation criteria
+        - Tests if a string meets hostname validation criteria.
+        - Applies to SAP ABAP Platform (SAP note 611361) and SAP JAVA (SAP note 3216549).
         - Checks if it is a string, has 13 characters or less, does not start with a number,
           does not contain any characters other than alpha characters, digits and the hyphen character,
-          and does not contain a dot character
+          and does not contain a dot character.
     options:
         _input:
             description: The string to test

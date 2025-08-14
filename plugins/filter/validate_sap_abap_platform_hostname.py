@@ -7,9 +7,11 @@ DOCUMENTATION = """
     name: validate_sap_abap_platform_hostname
     short_description: Validate hostname and return detailed results
     description:
-        - Returns detailed validation results for SAP ABAP Platform hostname criteria
+        - Returns detailed validation results for SAP ABAP Platform hostname criteria.
+        - Applies to SAP ABAP Platform (SAP note 611361) and SAP JAVA (SAP note 3216549).
         - Checks if it is a string, has 13 characters or less, does not start with a number,
-          only contains alpha characters, digits and the hyphen character, and does not contain a dot character
+          does not contain any characters other than alpha characters, digits and the hyphen character,
+          and does not contain a dot character.
     options:
         _input:
             description: The value to validate
