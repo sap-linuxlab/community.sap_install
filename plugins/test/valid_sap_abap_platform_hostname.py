@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
@@ -7,7 +9,8 @@ DOCUMENTATION = """
     description:
         - Tests if a string meets hostname validation criteria
         - Checks if it is a string, has 13 characters or less, does not start with a number,
-          only contains alpha characters, digits and the hyphen character, and does not contain a dot character
+          does not contain any characters other than alpha characters, digits and the hyphen character,
+          and does not contain a dot character
     options:
         _input:
             description: The string to test
@@ -41,8 +44,8 @@ def valid_sap_abap_platform_hostname(value):
     1. Must be a string
     2. Must be 13 characters or less
     3. Must not start with a number
-    4. Must not contain a dot
-    5. Only contains alpha characters, digits and hyphen characters
+    4. Does not contain any characters other than alpha characters, digits and the hyphen character,
+    5. Must not contain a dot
 
     Returns True if valid, False if invalid
     """

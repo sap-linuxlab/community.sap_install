@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
@@ -82,15 +84,15 @@ def validate_sap_abap_platform_hostname(value):
         result['valid'] = False
         result['failed_conditions'].append(f"Length must be 13 characters or less, got {len(str_value)}!")
 
-    # String stars with a number
+    # String starts with a number
     if str_value and str_value[0].isdigit():
         result['valid'] = False
         result['failed_conditions'].append(f"Must not start with a number, starts with '{str_value[0]}'!")
 
-    # String contains other characters besides alpha characters, digits and the hyphen character
+    # String contains characters other than alpha characters, digits and the hyphen character
     if str_value and not str_value.replace('-', 'x').isalnum():
         result['valid'] = False
-        result['failed_conditions'].append("Must not contain any other character than alpha characters, digits, or hyphens!")
+        result['failed_conditions'].append("Must not contain any characters other than alpha characters, digits, or hyphens!")
 
     # String contains a dot character
     if str_value and str_value.find('.') != -1:
