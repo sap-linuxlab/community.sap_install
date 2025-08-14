@@ -20,8 +20,8 @@
     -sr_enable --name="{{ item.hana_site }}"
   become: true
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
-  register: enablesr
-  changed_when: "'successfully enabled system as system replication source site' in enablesr.stdout"
+  register: __sap_ha_install_hana_hsr_enablesr
+  changed_when: "'successfully enabled system as system replication source site' in __sap_ha_install_hana_hsr_enablesr.stdout"
   when:
     - __sap_ha_install_hana_hsr_node_name == item.node_name.split('.')[0]
     - item.node_role is defined and item.node_role == 'primary'
@@ -43,7 +43,7 @@
     --online
   become: true
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
-  register: registersr
+  register: __sap_ha_install_hana_hsr_registersr
   when:
     - __sap_ha_install_hana_hsr_node_name == item.node_name.split('.')[0]
     - item.node_role is not defined or item.node_role == 'secondary'
@@ -60,8 +60,8 @@
     -nr {{ sap_ha_install_hana_hsr_instance_number }} -function StartSystem
   become: true
   become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
-  register: startinstance
-  changed_when: "'StartSystem' in startinstance.stdout"
+  register: __sap_ha_install_hana_hsr_startinstance
+  changed_when: "'StartSystem' in __sap_ha_install_hana_hsr_startinstance.stdout"
   when:
     - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
     - __sap_ha_install_hana_hsr_node_name not in __sap_ha_install_hana_hsr_srstate.stdout
