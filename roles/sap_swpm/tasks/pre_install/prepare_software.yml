@@ -10,8 +10,12 @@
 - name: SAP SWPM Pre Install - Check availability of software path - {{ sap_swpm_software_path }}
   ansible.builtin.stat:
     path: "{{ sap_swpm_software_path }}"
-  register: sap_swpm_software_path_stat
-  failed_when: not sap_swpm_software_path_stat.stat.exists
+  register: __sap_swpm_register_software_path
+
+- name: SAP SWPM Pre Install - Fail if the software path does not exist
+  ansible.builtin.fail:
+    msg: "The software path at '{{ sap_swpm_software_path }}' does not exist!"
+  when: not __sap_swpm_register_software_path.stat.exists
 
 - name: SAP SWPM Pre Install - Set directory and file permissions
   when: sap_swpm_set_file_permissions

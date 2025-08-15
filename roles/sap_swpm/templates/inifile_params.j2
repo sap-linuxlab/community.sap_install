@@ -4,11 +4,7 @@
 ###################################################################
 # BEGIN section swpm_installation_media                           #
 #                                                                 #
-{% if sap_swpm_software_path | length > 0 %}
 archives.downloadBasket = {{ sap_swpm_software_path }}
-{% else %}
-archives.downloadBasket = FAIL: Variable 'sap_swpm_software_path' is defined with an empty string!
-{% endif %}
 
 # installation_export.archivesFolder = {{ sap_swpm_cd_export_path }}
 
@@ -26,7 +22,7 @@ archives.downloadBasket = FAIL: Variable 'sap_swpm_software_path' is defined wit
 {% if sap_swpm_software_use_media is boolean %}
 HDB_Software_Dialogs.useMediaCD = {{ sap_swpm_software_use_media }}
 {% else %}
-HDB_Software_Dialogs.useMediaCD = FAIL: Variable 'sap_swpm_software_use_media' is not defined as a boolean!
+FAIL: Variable 'sap_swpm_software_use_media' is defined as '{{ sap_swpm_software_use_media }}', which is not a boolean!
 {% endif %}
 #                                                                 #
 #  END  section swpm_installation_media_swpm2_hana                #
@@ -155,7 +151,11 @@ SAPINST.CD.PACKAGE.RDBMS-ADA = {{ sap_swpm_cd_sapmaxdb_path }}
 # BEGIN section maintenance_plan_stack_tms_config                 #
 #                                                                 #
 NW_ABAP_TMSConfig.configureTMS = {{ sap_swpm_configure_tms | lower }}
+{% if sap_swpm_tmsadm_password | string | trim | length > 0 %}
 NW_ABAP_TMSConfig.transportPassword = {{ sap_swpm_tmsadm_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_tmsadm_password' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section maintenance_plan_stack_tms_config                 #
 ###################################################################
@@ -195,7 +195,11 @@ NW_ABAP_Prepare_SUM.prepareSUM = {{ sap_swpm_sum_prepare | lower }}
 NW_ABAP_Prepare_SUM.startSUM = {{ sap_swpm_sum_start | lower }}
 
 # Password for SUM must be for '<sapsid>adm' user
+{% if sap_swpm_sap_sidadm_password | string | trim | length > 0 %}
 NW_ABAP_Prepare_SUM.Password = {{ sap_swpm_sap_sidadm_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_sap_sidadm_password' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section maintenance_plan_stack_sum_config
 ###################################################################
@@ -217,12 +221,28 @@ NW_ABAP_Prepare_SUM.SUMBatchFile = {{ sap_swpm_sum_batch_file }}
 # BEGIN section credentials                                       #
 #                                                                 #
 # Master password:
+{% if sap_swpm_master_password | string | trim | length > 0 %}
 NW_GetMasterPassword.masterPwd = {{ sap_swpm_master_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_master_password' is defined with an empty string or with only spaces!
+{% endif %}
 # '<sapsid>adm' user:
+{% if sap_swpm_sap_sidadm_password | string | trim | length > 0 %}
 nwUsers.sidadmPassword = {{ sap_swpm_sap_sidadm_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_sap_sidadm_password' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_diagnostics_agent_password | string | trim | length > 0 %}
 DiagnosticsAgent.dasidAdmPassword = {{ sap_swpm_diagnostics_agent_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_diagnostics_agent_password' is defined with an empty string or with only spaces!
+{% endif %}
 # 'sapadm' user of the SAP Host Agent:
+{% if sap_swpm_sapadm_password | string | trim | length > 0 %}
 hostAgent.sapAdmPassword = {{ sap_swpm_sapadm_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_sapadm_password' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section credentials                                       #
 ###################################################################
@@ -232,8 +252,16 @@ hostAgent.sapAdmPassword = {{ sap_swpm_sapadm_password }}
 ###################################################################
 # BEGIN section credentials_hana                                  #
 #                                                                 #
+{% if sap_swpm_db_schema_password | string | trim | length > 0 %}
 HDB_Schema_Check_Dialogs.schemaPassword = {{ sap_swpm_db_schema_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_schema_password' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_system_password | string | trim | length > 0 %}
 storageBasedCopy.hdb.systemPassword = {{ sap_swpm_db_system_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_system_password' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section credentials_hana                                  #
 ###################################################################
@@ -243,7 +271,11 @@ storageBasedCopy.hdb.systemPassword = {{ sap_swpm_db_system_password }}
 ###################################################################
 # BEGIN section credentials_anydb_ibmdb2                          #
 #                                                                 #
+{% if sap_swpm_sap_sidadm_password | string | trim | length > 0 %}
 nwUsers.db6.db2sidPassword = {{ sap_swpm_sap_sidadm_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_sap_sidadm_password' is defined with an empty string or with only spaces!
+{% endif %}
 # nwUsers.db6.db2sidUid =
 #                                                                 #
 #  END  section credentials_anydb_ibmdb2                          #
@@ -255,13 +287,29 @@ nwUsers.db6.db2sidPassword = {{ sap_swpm_sap_sidadm_password }}
 # BEGIN section credentials_anydb_oracledb                        #
 #                                                                 #
 # Oracle database software owner
+{% if sap_swpm_sap_sidadm_password | string | trim | length > 0 %}
 ora.oraclePassword = {{ sap_swpm_sap_sidadm_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_sap_sidadm_password' is defined with an empty string or with only spaces!
+{% endif %}
 # 'ora<dbsid>' user
+{% if sap_swpm_sap_sidadm_password | string | trim | length > 0 %}
 ora.orasidPassword = {{ sap_swpm_sap_sidadm_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_sap_sidadm_password' is defined with an empty string or with only spaces!
+{% endif %}
 # Oracle 'SYS' password
+{% if sap_swpm_db_system_password | string | trim | length > 0 %}
 ora.SysPassword = {{ sap_swpm_db_system_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_system_password' is defined with an empty string or with only spaces!
+{% endif %}
 # Oracle 'SYSTEM' password
+{% if sap_swpm_db_system_password | string | trim | length > 0 %}
 ora.SystemPassword = {{ sap_swpm_db_system_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_system_password' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section credentials_anydb_oracledb                        #
 ###################################################################
@@ -271,11 +319,31 @@ ora.SystemPassword = {{ sap_swpm_db_system_password }}
 ###################################################################
 # BEGIN section credentials_anydb_sapase                          #
 #                                                                 #
+{% if sap_swpm_sap_sidadm_password | string | trim | length > 0 %}
 nwUsers.syb.sybsidPassword = {{ sap_swpm_sap_sidadm_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_sap_sidadm_password' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_master_password | string | trim | length > 0 %}
 SYB.NW_DB.sa_pass = {{ sap_swpm_master_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_master_password' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_master_password | string | trim | length > 0 %}
 SYB.NW_DB.sapsa_pass = {{ sap_swpm_master_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_master_password' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_master_password | string | trim | length > 0 %}
 SYB.NW_DB.sapsr3_pass = {{ sap_swpm_master_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_master_password' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_system_password | string | trim | length > 0 %}
 SYB.NW_DB.sapsr3db_pass = {{ sap_swpm_db_system_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_system_password' is defined with an empty string or with only spaces!
+{% endif %}
 # SYB.NW_DB.encryptionMasterKeyPassword =
 # SYB.NW_DB.sapsso_pass =
 # SYB.NW_DB.sslPassword =
@@ -289,10 +357,26 @@ SYB.NW_DB.sapsr3db_pass = {{ sap_swpm_db_system_password }}
 # BEGIN section credentials_anydb_sapmaxdb                        #
 #                                                                 #
 # Note: The password of user DBUser may only consist of alphanumeric characters and the special characters #, $, @ and _
+{% if sap_swpm_sap_sidadm_password | string | trim | length > 0 %}
 nwUsers.ada.sqdsidPassword = {{ sap_swpm_sap_sidadm_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_sap_sidadm_password' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_system_password | string | trim | length > 0 %}
 Sdb_DBUser.dbaPassword = {{ sap_swpm_db_system_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_system_password' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_system_password | string | trim | length > 0 %}
 Sdb_DBUser.dbmPassword = {{ sap_swpm_db_system_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_system_password' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_schema_password | string | trim | length > 0 %}
 Sdb_Schema_Dialogs.dbSchemaPassword = {{ sap_swpm_db_schema_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_schema_password' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section credentials_anydb_sapmaxdb                        #
 ###################################################################
@@ -330,7 +414,11 @@ HDB_Userstore.useABAPSSFS = false
 #                                                                 #
 # Are the passwords for the DDIC users different from the default value?
 NW_DDIC_Password.needDDICPasswords = true
+{% if sap_swpm_ddic_000_password | string | trim | length > 0 %}
 NW_DDIC_Password.ddic000Password = {{ sap_swpm_ddic_000_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_ddic_000_password' is defined with an empty string or with only spaces!
+{% endif %}
 #NW_DDIC_Password.ddic001Password =
 #                                                                 #
 #  END  section credentials_syscopy                               #
@@ -341,7 +429,11 @@ NW_DDIC_Password.ddic000Password = {{ sap_swpm_ddic_000_password }}
 ###################################################################
 # BEGIN section db_config_hana                                    #
 #                                                                 #
+{% if sap_swpm_db_instance_nr | string | trim | length > 0 %}
 storageBasedCopy.hdb.instanceNumber = {{ sap_swpm_db_instance_nr }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
 HDB_Schema_Check_Dialogs.schemaName = {{ sap_swpm_db_schema }}
 ######################################################################
 # BEGIN subsection nw_config_additional_application_server_instance  #
@@ -377,8 +469,16 @@ NW_ABAP_Import_Dialog.dbCodepage = 4103
 #                                                                 #
 NW_ABAP_Import_Dialog.migmonJobNum = 3
 NW_ABAP_Import_Dialog.migmonLoadArgs = -stop_on_error -loadprocedure fast LOAD:COMPRESS_ALL:DEF_CRT
+{% if sap_swpm_db_host | string | trim | length > 0 %}
 NW_getDBInfoGeneric.dbhost = {{ sap_swpm_db_host }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_host' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_sid | string | trim | length > 0 %}
 NW_getDBInfoGeneric.dbsid = {{ sap_swpm_db_sid }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_sid' is defined with an empty string or with only spaces!
+{% endif %}
 NW_getUnicode.isUnicode = true
 # db6.useMcod = true
 # db6.useBluSettings = false
@@ -409,10 +509,18 @@ storageBasedCopy.db6.PortRangeStart = 5914
 #                                                                 #
 NW_ABAP_Import_Dialog.migmonJobNum = 3
 NW_ABAP_Import_Dialog.migmonLoadArgs = -stop_on_error -loadprocedure fast
+{% if sap_swpm_db_sid | string | trim | length > 0 %}
 NW_getDBInfoGeneric.dbsid = {{ sap_swpm_db_sid }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_sid' is defined with an empty string or with only spaces!
+{% endif %}
 storageBasedCopy.ora.listenerName = SAPORALISTENER
 # storageBasedCopy.ora.listenerPort =
+{% if sap_swpm_db_schema_abap | string | trim | length > 0 %}
 storageBasedCopy.ora.ABAPSchema = {{ sap_swpm_db_schema_abap }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_schema_abap' is defined with an empty string or with only spaces!
+{% endif %}
 # storageBasedCopy.ora.JavaSchema = {{ sap_swpm_db_schema_java }}
 # storageBasedCopy.ora.swowner = oracle
 ora.createStatisticsCodeABAP = SKIP
@@ -439,7 +547,11 @@ ora.multitenant.installMT = FALSE
 # BEGIN section db_config_anydb_oracledb_121                      #
 #                                                                 #
 # Use path to Oracle Home - Runtime (i.e. $OHRDBMS env var)
+{% if sap_swpm_db_sid | string | trim | length > 0 %}
 ora.dbhome = /oracle/{{ sap_swpm_db_sid }}/121
+{% else %}
+FAIL: Variable 'sap_swpm_db_sid' is defined with an empty string or with only spaces!
+{% endif %}
 storageBasedCopy.ora.clientVersion = 121
 storageBasedCopy.ora.serverVersion = 121
 #                                                                 #
@@ -452,7 +564,11 @@ storageBasedCopy.ora.serverVersion = 121
 # BEGIN section db_config_anydb_oracledb_122                      #
 #                                                                 #
 # Use path to Oracle Home - Runtime (i.e. $OHRDBMS env var)
+{% if sap_swpm_db_sid | string | trim | length > 0 %}
 ora.dbhome = /oracle/{{ sap_swpm_db_sid }}/122
+{% else %}
+FAIL: Variable 'sap_swpm_db_sid' is defined with an empty string or with only spaces!
+{% endif %}
 storageBasedCopy.ora.clientVersion = 122
 storageBasedCopy.ora.serverVersion = 122
 #                                                                 #
@@ -465,7 +581,11 @@ storageBasedCopy.ora.serverVersion = 122
 # BEGIN section db_config_anydb_oracledb_19                       #
 #                                                                 #
 # Use path to Oracle Home - Runtime (i.e. $OHRDBMS env var)
+{% if sap_swpm_db_sid | string | trim | length > 0 %}
 ora.dbhome = /oracle/{{ sap_swpm_db_sid }}/19
+{% else %}
+FAIL: Variable 'sap_swpm_db_sid' is defined with an empty string or with only spaces!
+{% endif %}
 storageBasedCopy.ora.clientVersion = 19
 storageBasedCopy.ora.serverVersion = 19
 #                                                                 #
@@ -497,10 +617,18 @@ SYB.NW_DB.maxIndexParallelDegree = 10
 SYB.NW_DB.maxQueryParallelDegree = 10
 SYB.NW_DB.numberWorkerProcesses = 50
 SYB.NW_DB.sqlServerConnections = 200
+{% if sap_swpm_db_host | string | trim | length > 0 %}
 SYB.NW_DB.sqlServerHostname = {{ sap_swpm_db_host }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_host' is defined with an empty string or with only spaces!
+{% endif %}
 SYB.NW_DB.sybmgmtdbDataDeviceFolder = /sybase/{{ sap_swpm_sid | upper }}/sybsystem
 SYB.NW_DB.sybmgmtdbLogDeviceFolder = /sybase/{{ sap_swpm_sid | upper }}/sybsystem
+{% if sap_swpm_ascs_instance_hostname | string | trim | length > 0 %}
 SYB.NW_DB.userstore_hostname = {{ sap_swpm_ascs_instance_hostname }}
+{% else %}
+FAIL: Variable 'sap_swpm_ascs_instance_hostname' is defined with an empty string or with only spaces!
+{% endif %}
 
 # To avoid conflicts, leave all Ports blank and SAP SWPM will auto-assign
 # Ports by default are in order 4901, 4902, 4903, 4904. For each new ASE DB Server instance on the host, each port number is incremented by 4
@@ -519,7 +647,11 @@ SYB.NW_DB.portXPServer =
 #                                                                 #
 NW_ABAP_Import_Dialog.migmonJobNum = 90
 NW_ABAP_Import_Dialog.migmonLoadArgs = -para_cnt 90
+{% if sap_swpm_db_sid | string | trim | length > 0 %}
 NW_ADA_getDBInfo.dbsid = {{ sap_swpm_db_sid }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_sid' is defined with an empty string or with only spaces!
+{% endif %}
 SdbInstanceDialogs.DB_sessions = 100
 SdbInstanceDialogs.minlogsize = 4000
 SdbInstanceDialogs.sapdataFolder = sapdata
@@ -533,21 +665,76 @@ SdbInstanceDialogs.saplogFolder = saplog
 ###################################################################
 # BEGIN section db_connection_nw_hana                             #
 #                                                                 #
+{% if sap_swpm_db_host | string | trim | length > 0 %}
 NW_HDB_getDBInfo.dbhost = {{ sap_swpm_db_host }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_host' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_sid | string | trim | length > 0 %}
 NW_HDB_getDBInfo.dbsid = {{ sap_swpm_db_sid }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_sid' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_instance_nr | string | trim | length > 0 %}
 NW_HDB_getDBInfo.instanceNumber = {{ sap_swpm_db_instance_nr }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_sid | string | trim | length > 0 %}
 NW_HDB_getDBInfo.systemid = {{ sap_swpm_db_sid }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_sid' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_system_password | string | trim | length > 0 %}
 NW_HDB_getDBInfo.systemPassword = {{ sap_swpm_db_system_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_system_password' is defined with an empty string or with only spaces!
+{% endif %}
 # NW_HDB_getDBInfo.systemDbSid = SystemDB
+{% if sap_swpm_db_systemdb_password | string | trim | length > 0 %}
 NW_HDB_getDBInfo.systemDbPassword = {{ sap_swpm_db_systemdb_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_systemdb_password' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_schema_abap | string | trim | length > 0 %}
 NW_HDB_DB.abapSchemaName = {{ sap_swpm_db_schema_abap }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_schema_abap' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_schema_abap_password | string | trim | length > 0 %}
 NW_HDB_DB.abapSchemaPassword = {{ sap_swpm_db_schema_abap_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_schema_abap_password' is defined with an empty string or with only spaces!
+{% endif %}
 NW_HDB_DB.javaSchemaName = {{ sap_swpm_db_schema_java }}
+{% if sap_swpm_db_schema_java_password | string | trim | length > 0 %}
 NW_HDB_DB.javaSchemaPassword = {{ sap_swpm_db_schema_java_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_schema_java_password' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_sid | string | trim | length > 0 %}
+{% if sap_swpm_db_instance_nr | string | trim | length > 0 %}
 NW_Recovery_Install_HDB.extractLocation = /usr/sap/{{ sap_swpm_db_sid }}/HDB{{ sap_swpm_db_instance_nr }}/backup/data/DB_HDB
+{% else %}
+FAIL: Variable 'sap_swpm_db_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
+{% else %}
+{% if sap_swpm_db_instance_nr | string | trim | length == 0 %}
+FAIL: Variable 'sap_swpm_db_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
+FAIL: Variable 'sap_swpm_db_sid' is defined with an empty string or with only spaces!
+{% endif %}
 NW_Recovery_Install_HDB.extractParallelJobs = {{ sap_swpm_parallel_jobs_nr }}
+{% if sap_swpm_db_sid | string | trim | length > 0 %}
 NW_Recovery_Install_HDB.sidAdmName = {{ sap_swpm_db_sid | lower }}adm
+{% else %}
+FAIL: Variable 'sap_swpm_db_sid' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_sidadm_password | string | trim | length > 0 %}
 NW_Recovery_Install_HDB.sidAdmPassword = {{ sap_swpm_db_sidadm_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_sidadm_password' is defined with an empty string or with only spaces!
+{% endif %}
 # NW_HDB_getDBInfo.dbadmin = SYSTEM
 # NW_HDB_getDBInfo.tenantOsGroup = {{ sap_swpm_db_sid | lower }}grp
 # NW_HDB_getDBInfo.tenantOsUser = {{ sap_swpm_db_sid | lower }}usr
@@ -562,7 +749,11 @@ NW_Recovery_Install_HDB.sidAdmPassword = {{ sap_swpm_db_sidadm_password }}
 # BEGIN section db_connection_nw_anydb_ibmdb2                     #
 #                                                                 #
 # db6.UseDb2SSLClientServerComm = false
+{% if sap_swpm_sapadm_password | string | trim | length > 0 %}
 nwUsers.db6.sapsidPassword = {{ sap_swpm_sapadm_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_sapadm_password' is defined with an empty string or with only spaces!
+{% endif %}
 # nwUsers.db6.sapsidUid =
 
 # nwUsers.db6.sapsiddbPassword =
@@ -582,8 +773,16 @@ NW_DB6_DB.db6.abap.schema = sap{{ sap_swpm_sid | lower }}
 ###################################################################
 # BEGIN section db_connection_nw_anydb_oracledb                    #
 #                                                                 #
+{% if sap_swpm_db_schema_abap_password | string | trim | length > 0 %}
 storageBasedCopy.abapSchemaPassword = {{ sap_swpm_db_schema_abap_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_schema_abap_password' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_schema_java_password | string | trim | length > 0 %}
 storageBasedCopy.javaSchemaPassword = {{ sap_swpm_db_schema_java_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_schema_java_password' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section db_connection_nw_anydb_oracledb                    #
 ###################################################################
@@ -600,12 +799,31 @@ storageBasedCopy.javaSchemaPassword = {{ sap_swpm_db_schema_java_password }}
 ###################################################################
 # BEGIN section db_restore_hana                                   #
 #                                                                 #
+{% if sap_swpm_backup_system_password | string | trim | length > 0 %}
 NW_HDB_getDBInfo.systemPasswordBackup = {{ sap_swpm_backup_system_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_backup_system_password' is defined with an empty string or with only spaces!
+{% endif %}
 HDB_Recovery_Dialogs.backupLocation = {{ sap_swpm_backup_location }}
 HDB_Recovery_Dialogs.backupName = {{ sap_swpm_backup_prefix }}
+{% if sap_swpm_db_host | string | trim | length > 0 %}
+{% if sap_swpm_db_instance_nr | string | trim | length > 0 %}
 HDB_Recovery_Dialogs.sapControlWsdlUrl = http://{{ sap_swpm_db_host }}:5{{ sap_swpm_db_instance_nr }}13/SAPControl?wsdl
+{% else %}
+FAIL: Variable 'sap_swpm_db_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
+{% else %}
+{% if sap_swpm_db_instance_nr | string | trim | length == 0 %}
+FAIL: Variable 'sap_swpm_db_instance_nr' is defined with an empty string!
+{% endif %}
+FAIL: Variable 'sap_swpm_db_host' is defined with an empty string or with only spaces!
+{% endif %}
 HDB_Recovery_Dialogs.sidAdmName = {{ sap_swpm_db_sid | lower }}adm
+{% if sap_swpm_db_sidadm_password | string | trim | length > 0 %}
 HDB_Recovery_Dialogs.sidAdmPassword = {{ sap_swpm_db_sidadm_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_sidadm_password' is defined with an empty string or with only spaces!
+{% endif %}
 # HDB_Recovery_Dialogs.backupDestinationType = File
 # HDB_Recovery_Dialogs.licenseFile =
 # HDB_Recovery_Dialogs.skipExistenceCheck = false
@@ -666,10 +884,22 @@ NW_getLoadType.loadType = {{ sap_swpm_load_type }}
 # Central Services (ASCS) contains the Message server (MS) and Enqueue work processes (EN) for the ABAP Dispatcher.
 # Formerly the processes were contained in the Central Instance (CI).
 ###################################################################
+{% if sap_swpm_ascs_instance_hostname | string | trim | length > 0 %}
 NW_CI_Instance.ascsVirtualHostname = {{ sap_swpm_ascs_instance_hostname }}
+{% else %}
+FAIL: Variable 'sap_swpm_ascs_instance_hostname' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_ascs_instance_nr | string | trim | length > 0 %}
 NW_CI_Instance.ascsInstanceNumber = {{ sap_swpm_ascs_instance_nr }}
+{% else %}
+FAIL: Variable 'sap_swpm_ascs_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
 # NW_SCS_Instance.ascsVirtualHostname = {{ sap_swpm_ascs_instance_hostname }}
+{% if sap_swpm_ascs_instance_nr | string | trim | length > 0 %}
 NW_SCS_Instance.ascsInstanceNumber = {{ sap_swpm_ascs_instance_nr }}
+{% else %}
+FAIL: Variable 'sap_swpm_ascs_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section nw_config_central_services_abap                   #
 ###################################################################
@@ -685,12 +915,32 @@ NW_SCS_Instance.ascsInstanceNumber = {{ sap_swpm_ascs_instance_nr }}
 # - Java Gateway (GW) and
 # - Java Internal Web Dispatcher (WD).
 ###################################################################
+{% if sap_swpm_java_scs_instance_hostname | string | trim | length > 0 %}
 NW_CI_Instance.scsVirtualHostname = {{ sap_swpm_java_scs_instance_hostname }}
+{% else %}
+FAIL: Variable 'sap_swpm_java_scs_instance_hostname' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_java_scs_instance_nr | string | trim | length > 0 %}
 NW_CI_Instance.scsInstanceNumber = {{ sap_swpm_java_scs_instance_nr }}
+{% else %}
+FAIL: Variable 'sap_swpm_java_scs_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_java_scs_instance_hostname | string | trim | length > 0 %}
 NW_SCS_Instance.scsVirtualHostname = {{ sap_swpm_java_scs_instance_hostname }}
+{% else %}
+FAIL: Variable 'sap_swpm_java_scs_instance_hostname' is defined with an empty string or with only spaces!
+{% endif %}
 # NW_SCS_Instance.scsInstanceNumber =
+{% if sap_swpm_java_scs_instance_nr | string | trim | length > 0 %}
 NW_SCS_Instance.instanceNumber = {{ sap_swpm_java_scs_instance_nr }}
+{% else %}
+FAIL: Variable 'sap_swpm_java_scs_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_master_password | string | trim | length > 0 %}
 NW_JAVA_Export.keyPhrase = {{ sap_swpm_master_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_master_password' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section nw_config_central_services_java                   #
 ###################################################################
@@ -705,8 +955,16 @@ NW_JAVA_Export.keyPhrase = {{ sap_swpm_master_password }}
 # - Gateway (GW) and
 # - ABAP Dispatcher (DI/WP) work processes.
 # Formerly called the Central Instance (CI).
+{% if sap_swpm_pas_instance_hostname | string | trim | length > 0 %}
 NW_CI_Instance.ciVirtualHostname = {{ sap_swpm_pas_instance_hostname }}
+{% else %}
+FAIL: Variable 'sap_swpm_pas_instance_hostname' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_pas_instance_nr | string | trim | length > 0 %}
 NW_CI_Instance.ciInstanceNumber = {{ sap_swpm_pas_instance_nr }}
+{% else %}
+FAIL: Variable 'sap_swpm_pas_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
 # NW_CI_Instance.nodesNum = 
 # NW_CI_Instance.nodesNumber = defNodes
 # NW_WPConfiguration.ciBtcWPNumber = 6
@@ -724,7 +982,11 @@ NW_CI_Instance.ciInstanceNumber = {{ sap_swpm_pas_instance_nr }}
 # - ABAP Dispatcher (DI/WP) work processes.
 # Formerly called the Dialog Instance (DI).
 # Instance number of SAP NetWeaver Application Server. Leave empty for default.
+{% if sap_swpm_aas_instance_nr | string | trim | length > 0 %}
 NW_AS.instanceNumber = {{ sap_swpm_aas_instance_nr }}
+{% else %}
+FAIL: Variable 'sap_swpm_aas_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
 
 # Do not skip unpacking archives if adding the SAP NetWeaver Application Server to another operating system / host. Default is 'false'.
 # NW_AS.skipUnpacking = false
@@ -743,8 +1005,16 @@ NW_DI_Instance.virtualHostname = {{ sap_swpm_aas_instance_hostname }}
 ###################################################################
 # BEGIN section nw_config_ers                                     #
 #                                                                 #
+{% if sap_swpm_ers_instance_hostname | string | trim | length > 0 %}
 nw_instance_ers.ersVirtualHostname = {{ sap_swpm_ers_instance_hostname }}
+{% else %}
+FAIL: Variable 'sap_swpm_ers_instance_hostname' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_ers_instance_nr | string | trim | length > 0 %}
 nw_instance_ers.ersInstanceNumber = {{ sap_swpm_ers_instance_nr }}
+{% else %}
+FAIL: Variable 'sap_swpm_ers_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
 
 # Disable 'Automatic Instance and Service Restart' for SAP SWPM Unattended Mode,
 # otherwise by default SAP SWPM will use sapcontrol -queryuser -function Stop and will cause error
@@ -759,8 +1029,16 @@ nw_instance_ers.restartSCS = false
 ###################################################################
 # BEGIN section nw_config_ports                                   #
 #                                                                 #
+{% if sap_swpm_ascs_instance_nr | string | trim | length > 0 %}
 NW_CI_Instance.ciMSPort = 36{{ sap_swpm_ascs_instance_nr }}
+{% else %}
+FAIL: Variable 'sap_swpm_ascs_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_ascs_instance_nr | string | trim | length > 0 %}
 NW_checkMsgServer.abapMSPort = 36{{ sap_swpm_ascs_instance_nr }}
+{% else %}
+FAIL: Variable 'sap_swpm_ascs_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
 # NW_CI_Instance.ciMSPortInternal = 
 # NW_CI_Instance.createGlobalProxyInfoFile = false
 # NW_CI_Instance.createGlobalRegInfoFile = false
@@ -778,12 +1056,28 @@ NW_checkMsgServer.abapMSPort = 36{{ sap_swpm_ascs_instance_nr }}
 # BEGIN section nw_config_java_ume                                #
 #                                                                 #
 UmeConfiguration.adminName = J2EE_ADM_{{ sap_swpm_sid }}
+{% if sap_swpm_ume_j2ee_admin_password | string | trim | length > 0 %}
 UmeConfiguration.adminPassword = {{ sap_swpm_ume_j2ee_admin_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_ume_j2ee_admin_password' is defined with an empty string or with only spaces!
+{% endif %}
 UmeConfiguration.guestName = J2EE_GST_{{ sap_swpm_sid }}
+{% if sap_swpm_ume_sapjsf_password | string | trim | length > 0 %}
 UmeConfiguration.sapjsfPassword = {{ sap_swpm_ume_sapjsf_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_ume_sapjsf_password' is defined with an empty string or with only spaces!
+{% endif %}
 UmeConfiguration.umeClient = {{ sap_swpm_ume_client_nr }}
+{% if sap_swpm_pas_instance_hostname | string | trim | length > 0 %}
 UmeConfiguration.umeHost = {{ sap_swpm_pas_instance_hostname }}
+{% else %}
+FAIL: Variable 'sap_swpm_pas_instance_hostname' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_ume_instance_nr | string | trim | length > 0 %}
 UmeConfiguration.umeInstance = {{ sap_swpm_ume_instance_nr }}
+{% else %}
+FAIL: Variable 'sap_swpm_ume_instance_nr' is defined with an empty string or with only spaces!
+{% endif %}
 UmeConfiguration.umeType = {{ sap_swpm_ume_type }}
 # UmeConfiguration.sapjsfName = SAPJSF
 #                                                                 #
@@ -836,7 +1130,11 @@ NW_webdispatcher_Instance.rfcHost = {{ sap_swpm_wd_backend_rfc_host }}
 NW_webdispatcher_Instance.rfcInstance = {{ sap_swpm_wd_backend_rfc_instance_nr }}
 NW_webdispatcher_Instance.rfcClient = {{ sap_swpm_wd_backend_rfc_client_nr }}
 NW_webdispatcher_Instance.rfcUser = {{ sap_swpm_wd_backend_rfc_user }}
+{% if sap_swpm_wd_backend_rfc_user_password | string | trim | length > 0 %}
 NW_webdispatcher_Instance.rfcPassword = {{ sap_swpm_wd_backend_rfc_user_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_wd_backend_rfc_user_password' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section nw_config_webdisp_generic                         #
 ###################################################################
@@ -861,7 +1159,11 @@ NW_CI_Instance.ascsInstallGateway = {{ sap_swpm_ascs_install_gateway | lower }}
 ###################################################################
 # BEGIN section nw_config_host_agent                              #
 #                                                                 #
-NW_System.installSAPHostAgent = {{ sap_swpm_install_saphostagent | lower }}
+{% if sap_swpm_install_saphostagent is boolean %}
+NW_System.installSAPHostAgent = {{ sap_swpm_install_saphostagent }}
+{% else %}
+FAIL: Variable 'sap_swpm_install_saphostagent' is defined as '{{ sap_swpm_install_saphostagent }}', which is not a boolean!
+{% endif %}
 #                                                                 #
 #  END  section nw_config_host_agent                              #
 ###################################################################
@@ -959,9 +1261,21 @@ NW_Language_Inst_Dialogs.languages = AR,BG,CA,CS,DA,EL,ES,ET,FI,FR,HE,HI,HR,HU,I
 ###################################################################
 # BEGIN section sap_os_linux_user                                 #
 #                                                                 #
+{% if sap_swpm_sapadm_uid | string | trim | length > 0 %}
 nwUsers.sapadmUID = {{ sap_swpm_sapadm_uid }}
+{% else %}
+FAIL: Variable 'sap_swpm_sapadm_uid' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_sapsys_gid | string | trim | length > 0 %}
 nwUsers.sapsysGID = {{ sap_swpm_sapsys_gid }}
+{% else %}
+FAIL: Variable 'sap_swpm_sapsys_gid' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_sidadm_uid | string | trim | length > 0 %}
 nwUsers.sidAdmUID = {{ sap_swpm_sidadm_uid }}
+{% else %}
+FAIL: Variable 'sap_swpm_sidadm_uid' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section sap_os_linux_user                                 #
 ###################################################################
@@ -990,7 +1304,11 @@ nwUsers.sidAdmUID = {{ sap_swpm_sidadm_uid }}
 ###################################################################
 # BEGIN section nw_config_java_icm_credentials                    #
 #                                                                 #
+{% if sap_swpm_ume_j2ee_admin_password | string | trim | length > 0 %}
 NW_IcmAuth.webadmPassword = {{ sap_swpm_ume_j2ee_admin_password }}
+{% else %}
+FAIL: Variable 'sap_swpm_ume_j2ee_admin_password' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section nw_config_java_icm_credentials                    #
 ###################################################################
@@ -1012,7 +1330,11 @@ InitDeclusteringForImport.decluster = false
 # BEGIN section solman_daa_swpm1                                  #
 # Note: This section is not in use by sap_swpm Ansible Role       #
 #                                                                 #
+#{% if sap_swpm_diagnostics_agent_password | string | trim | length > 0 %}
 # DiagnosticsAgent.dasidAdmPassword = {{ sap_swpm_diagnostics_agent_password }}
+#{% else %}
+#FAIL: Variable 'sap_swpm_diagnostics_agent_password' is defined with an empty string or with only spaces!
+#{% endif %}
 # DiagnosticsAgent.installSAPHostAgent
 # DiagnosticsAgent.InstanceNumber
 # DiagnosticsAgent.LogicalHostName
@@ -1137,8 +1459,16 @@ NW_getLoadType.importManuallyExecuted = false
 db6.allowUnsignedDatabaseSoftware = true
 db6.cluster.ClusterType = HADR (High Availability Disaster Recovery)
 db6.usingSystemCopyBRforHADR = true
+{% if sap_swpm_db_host | string | trim | length > 0 %}
 NW_getDBInfoGeneric.dbhost = {{ sap_swpm_db_host }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_host' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_db_sid | string | trim | length > 0 %}
 NW_getDBInfoGeneric.dbsid = {{ sap_swpm_db_sid }}
+{% else %}
+FAIL: Variable 'sap_swpm_db_sid' is defined with an empty string or with only spaces!
+{% endif %}
 NW_getLoadType.loadType = {{ sap_swpm_load_type }}
 NW_getLoadType.importManuallyExecuted = false
 NW_getUnicode.isUnicode = true
