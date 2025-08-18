@@ -370,14 +370,15 @@
     # If SWPM is running a normal install Ansible Variable sap_swpm_swpm_command_virtual_hostname is blank
     # IF SWPM is running a HA installation, Ansible Variable sap_swpm_swpm_command_virtual_hostname is set and contains "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }} IS_HOST_LOCAL_USING_STRING_COMPARE=true"
     # If SWPM is running a MP Stack XML installation, Ansible Variable sap_swpm_swpm_command_mp_stack is set and contains "SAPINST_STACK_XML={{ sap_swpm_mp_stack_path }} + '/' (if needed) + {{ sap_swpm_mp_stack_file_name }}"
-    sap_swpm_swpm_command_extra_args: "SAPINST_SKIP_DIALOGS=true {{ sap_swpm_swpm_command_guiserver }} {{ sap_swpm_swpm_command_observer }} {{ sap_swpm_swpm_command_virtual_hostname }} {{ sap_swpm_swpm_command_mp_stack }}"
+    sap_swpm_swpm_command_extra_args: "SAPINST_SKIP_DIALOGS=true {{ sap_swpm_swpm_command_guiserver }} {{ sap_swpm_swpm_command_observer }} {{ sap_swpm_swpm_command_virtual_hostname | d('') }} {{ sap_swpm_swpm_command_mp_stack | d('') }}"
   tags: sap_swpm_sapinst_commandline
 
 - name: Set fact for the sapinst command line
   ansible.builtin.set_fact:
-    __sap_swpm_sapinst_command: "umask {{ sap_swpm_umask | d('022') }} ; ./sapinst {{ sap_swpm_swpm_command_inifile }}
-    {{ sap_swpm_swpm_command_product_id }}
-    {{ sap_swpm_swpm_command_extra_args }}"
+    __sap_swpm_sapinst_command: >-
+      umask {{ sap_swpm_umask | d('022') }} ; ./sapinst {{ sap_swpm_swpm_command_inifile }}
+      {{ sap_swpm_swpm_command_product_id }}
+      {{ sap_swpm_swpm_command_extra_args }}
   tags: sap_swpm_sapinst_commandline
 
 - name: Display the sapinst command line
