@@ -22,7 +22,7 @@ archives.downloadBasket = {{ sap_swpm_software_path }}
 {% if sap_swpm_software_use_media is boolean %}
 HDB_Software_Dialogs.useMediaCD = {{ sap_swpm_software_use_media | lower }}
 {% else %}
-FAIL: Variable 'sap_swpm_software_use_media' is defined as '{{ sap_swpm_software_use_media }}', which is not a boolean!
+FAIL: Variable 'sap_swpm_software_use_media' is defined as '{{ sap_swpm_software_use_media }}', type '{{ sap_swpm_software_use_media | type_debug }}', must be defined as a boolean!
 {% endif %}
 #                                                                 #
 #  END  section swpm_installation_media_swpm2_hana                #
@@ -33,9 +33,21 @@ FAIL: Variable 'sap_swpm_software_use_media' is defined as '{{ sap_swpm_software
 ###################################################################
 # BEGIN section swpm_installation_media_swpm1                     #
 #                                                                 #
+{% if sap_swpm_cd_language_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.LANGUAGE = {{ sap_swpm_cd_language_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_language_path' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_cd_java_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.JAVA = {{ sap_swpm_cd_java_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_java_path' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_cd_rdbms_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.RDBMS = {{ sap_swpm_cd_rdbms_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_rdbms_path' is defined with an empty string or with only spaces!
+{% endif %}
 # SAPINST.CD.PACKAGE.KERNEL =
 # SAPINST.CD.PACKAGE.KERNEL2 =
 # SAPINST.CD.PACKAGE.KERNEL3 =
@@ -54,10 +66,22 @@ SAPINST.CD.PACKAGE.RDBMS = {{ sap_swpm_cd_rdbms_path }}
 ###################################################################
 # BEGIN section swpm_installation_media_swpm1_exportfiles         #
 #                                                                 #
+{% if sap_swpm_cd_export_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.EXPORT = {{ sap_swpm_cd_export_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_export_path' is defined with an empty string or with only spaces!
+{% endif %}
 # SAPINST.CD.PACKAGE.LOAD =
+{% if sap_swpm_cd_export_pt1_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.LOAD1 = {{ sap_swpm_cd_export_pt1_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_export_pt1_path' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_cd_export_pt2_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.LOAD2 = {{ sap_swpm_cd_export_pt2_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_export_pt2_path' is defined with an empty string or with only spaces!
+{% endif %}
 # SAPINST.CD.PACKAGE.JMIG =
 #                                                                 #
 #  END  section swpm_installation_media_swpm1_exportfiles         #
@@ -69,13 +93,25 @@ SAPINST.CD.PACKAGE.LOAD2 = {{ sap_swpm_cd_export_pt2_path }}
 # BEGIN section swpm_installation_media_swpm1_ibmdb2              #
 #                                                                 #
 # Requested package : RDBMS-DB6
+{% if sap_swpm_cd_ibmdb2_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.DB2 = {{ sap_swpm_cd_ibmdb2_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_ibmdb2_path' is defined with an empty string or with only spaces!
+{% endif %}
 
 # Requested package : RDBMS-DB6 CLIENT
+{% if sap_swpm_cd_ibmdb2_client_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.DB2CLIENT = {{ sap_swpm_cd_ibmdb2_client_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_ibmdb2_client_path' is defined with an empty string or with only spaces!
+{% endif %}
 
 # IBM DB2 software unpack path e.g. /db2/db2x01/db2_software
+{% if sap_swpm_ibmdb2_unpack_path | string | trim | length > 0 %}
 db6.DB2SoftwarePath = {{ sap_swpm_ibmdb2_unpack_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_ibmdb2_unpack_path' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section swpm_installation_media_swpm1_ibmdb2              #
 ###################################################################
@@ -86,10 +122,18 @@ db6.DB2SoftwarePath = {{ sap_swpm_ibmdb2_unpack_path }}
 # BEGIN section swpm_installation_media_swpm1_oracledb_121        #
 #                                                                 #
 # Requested package : RDBMS-ORA
+{% if sap_swpm_cd_oracle_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.RDBMS-ORA121 = {{ sap_swpm_cd_oracle_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_oracle_path' is defined with an empty string or with only spaces!
+{% endif %}
 
 # Requested package : RDBMS-ORA CLIENT
+{% if sap_swpm_cd_oracle_client_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.ORACLI121 = {{ sap_swpm_cd_oracle_client_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_oracle_client_path' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section swpm_installation_media_swpm1_oracledb_121        #
 ###################################################################
@@ -100,10 +144,18 @@ SAPINST.CD.PACKAGE.ORACLI121 = {{ sap_swpm_cd_oracle_client_path }}
 # BEGIN section swpm_installation_media_swpm1_oracledb_122        #
 #                                                                 #
 # Requested package : RDBMS-ORA
+{% if sap_swpm_cd_oracle_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.RDBMS-ORA122 = {{ sap_swpm_cd_oracle_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_oracle_path' is defined with an empty string or with only spaces!
+{% endif %}
 
 # Requested package : RDBMS-ORA CLIENT
+{% if sap_swpm_cd_oracle_client_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.ORACLI122 = {{ sap_swpm_cd_oracle_client_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_oracle_client_path' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section swpm_installation_media_swpm1_oracledb_122        #
 ###################################################################
@@ -114,10 +166,18 @@ SAPINST.CD.PACKAGE.ORACLI122 = {{ sap_swpm_cd_oracle_client_path }}
 ###################################################################
 # BEGIN section swpm_installation_media_swpm1_oracledb_19         #
 #                                                                 #
+{% if sap_swpm_cd_oracle_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.RDBMS-ORA19 = {{ sap_swpm_cd_oracle_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_oracle_path' is defined with an empty string or with only spaces!
+{% endif %}
 
 # Requested package : RDBMS-ORA CLIENT
+{% if sap_swpm_cd_oracle_client_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.ORACLI19 = {{ sap_swpm_cd_oracle_client_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_oracle_client_path' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section swpm_installation_media_swpm1_oracledb_19         #
 ###################################################################
@@ -128,8 +188,16 @@ SAPINST.CD.PACKAGE.ORACLI19 = {{ sap_swpm_cd_oracle_client_path }}
 # BEGIN section swpm_installation_media_swpm1_sapase              #
 #                                                                 #
 # Requested package : RDBMS-SYB
+{% if sap_swpm_cd_sapase_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.RDBMS-SYB = {{ sap_swpm_cd_sapase_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_sapase_path' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_cd_sapase_client_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.RDBMS-SYB-CLIENT = {{ sap_swpm_cd_sapase_client_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_sapase_client_path' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section swpm_installation_media_swpm1_sapase              #
 ###################################################################
@@ -140,7 +208,11 @@ SAPINST.CD.PACKAGE.RDBMS-SYB-CLIENT = {{ sap_swpm_cd_sapase_client_path }}
 # BEGIN section swpm_installation_media_swpm1_sapmaxdb            #
 #                                                                 #
 # Requested package : RDBMS-ADA
+{% if sap_swpm_cd_sapmaxdb_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.RDBMS-ADA = {{ sap_swpm_cd_sapmaxdb_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_cd_sapmaxdb_path' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section swpm_installation_media_swpm1_sapmaxdb            #
 ###################################################################
@@ -150,7 +222,11 @@ SAPINST.CD.PACKAGE.RDBMS-ADA = {{ sap_swpm_cd_sapmaxdb_path }}
 ###################################################################
 # BEGIN section maintenance_plan_stack_tms_config                 #
 #                                                                 #
+{% if sap_swpm_configure_tms is boolean %}
 NW_ABAP_TMSConfig.configureTMS = {{ sap_swpm_configure_tms | lower }}
+{% else %}
+FAIL: Variable 'sap_swpm_configure_tms' is defined as '{{ sap_swpm_configure_tms }}', type '{{ sap_swpm_configure_tms | type_debug }}', must be defined as a boolean!
+{% endif %}
 {% if sap_swpm_tmsadm_password | string | trim | length > 0 %}
 NW_ABAP_TMSConfig.transportPassword = {{ sap_swpm_tmsadm_password }}
 {% else %}
@@ -166,7 +242,11 @@ FAIL: Variable 'sap_swpm_tmsadm_password' is defined with an empty string or wit
 # BEGIN section maintenance_plan_stack_tms_transports             #
 #                                                                 #
 NW_ABAP_Include_Corrections.includeTransports = true
+{% if sap_swpm_tms_tr_files_path | string | trim | length > 0 %}
 NW_ABAP_Include_Corrections.transportFilesLocations = {{ sap_swpm_tms_tr_files_path }}
+{% else %}
+FAIL: Variable 'sap_swpm_tms_tr_files_path' is defined with an empty string or with only spaces!
+{% endif %}
 #                                                                 #
 #  END  section maintenance_plan_stack_tms_transports             #
 ###################################################################
@@ -176,7 +256,11 @@ NW_ABAP_Include_Corrections.transportFilesLocations = {{ sap_swpm_tms_tr_files_p
 ###################################################################
 # BEGIN section maintenance_plan_stack_spam_config                #
 #                                                                 #
+{% if sap_swpm_spam_update | string | trim | length > 0 %}
 NW_ABAP_SPAM_Update.SPAMUpdateDecision = {{ sap_swpm_spam_update | lower }}
+{% else %}
+FAIL: Variable 'sap_swpm_spam_update' is defined with an empty string or with only spaces!
+{% endif %}
 {% if sap_swpm_spam_update %}
 NW_ABAP_SPAM_Update.SPAMUpdateArchive = {{ sap_swpm_spam_update_sar }}
 {% else %}
@@ -760,8 +844,16 @@ FAIL: Variable 'sap_swpm_sapadm_password' is defined with an empty string or wit
 # nwUsers.db6.sapsiddbUid =
 
 # Database Schema and Database Connect User for ABAP (default is sap<sapsid> and not sap<anydbsid>)
+{% if sap_swpm_sid | string | trim | length > 0 %}
 NW_DB6_DB.db6.abap.connect.user = sap{{ sap_swpm_sid | lower }}
+{% else %}
+FAIL: Variable 'sap_swpm_sid' is defined with an empty string or with only spaces!
+{% endif %}
+{% if sap_swpm_sid | string | trim | length > 0 %}
 NW_DB6_DB.db6.abap.schema = sap{{ sap_swpm_sid | lower }}
+{% else %}
+FAIL: Variable 'sap_swpm_sid' is defined with an empty string or with only spaces!
+{% endif %}
 # NW_DB6_DB.db6.java.connect.user =
 # NW_DB6_DB.db6.java.schema =
 #                                                                 #
@@ -804,8 +896,17 @@ NW_HDB_getDBInfo.systemPasswordBackup = {{ sap_swpm_backup_system_password }}
 {% else %}
 FAIL: Variable 'sap_swpm_backup_system_password' is defined with an empty string or with only spaces!
 {% endif %}
+{% if sap_swpm_backup_location | string | trim | length > 0 %}
 HDB_Recovery_Dialogs.backupLocation = {{ sap_swpm_backup_location }}
+{% else %}
+FAIL: Variable 'sap_swpm_backup_location' is defined with an empty string or with only spaces!
+{% endif %}
 HDB_Recovery_Dialogs.backupName = {{ sap_swpm_backup_prefix }}
+{% if sap_swpm_backup_prefix | string | trim | length > 0 %}
+HDB_Recovery_Dialogs.backupName = {{ sap_swpm_backup_prefix }}
+{% else %}
+FAIL: Variable 'sap_swpm_backup_prefix' is defined with an empty string or with only spaces!
+{% endif %}
 {% if sap_swpm_db_host | string | trim | length > 0 %}
 {% if sap_swpm_db_instance_nr | string | trim | length > 0 %}
 HDB_Recovery_Dialogs.sapControlWsdlUrl = http://{{ sap_swpm_db_host }}:5{{ sap_swpm_db_instance_nr }}13/SAPControl?wsdl
@@ -818,7 +919,11 @@ FAIL: Variable 'sap_swpm_db_instance_nr' is defined with an empty string!
 {% endif %}
 FAIL: Variable 'sap_swpm_db_host' is defined with an empty string or with only spaces!
 {% endif %}
+{% if sap_swpm_db_sid | string | trim | length > 0 %}
 HDB_Recovery_Dialogs.sidAdmName = {{ sap_swpm_db_sid | lower }}adm
+{% else %}
+FAIL: Variable 'sap_swpm_db_sid' is defined with an empty string or with only spaces!
+{% endif %}
 {% if sap_swpm_db_sidadm_password | string | trim | length > 0 %}
 HDB_Recovery_Dialogs.sidAdmPassword = {{ sap_swpm_db_sidadm_password }}
 {% else %}
@@ -1147,7 +1252,11 @@ FAIL: Variable 'sap_swpm_wd_backend_rfc_user_password' is defined with an empty 
 # It is recommended to install gateway as part of ASCS
 # It is NOT recommended to install webdispatcher as part of ASCS. A separate Web Dispatcher instance should be installed (SAP Note 908097)
 ###################################################################
+{% if sap_swpm_ascs_install_gateway is boolean %}
 NW_CI_Instance.ascsInstallGateway = {{ sap_swpm_ascs_install_gateway | lower }}
+{% else %}
+FAIL: Variable 'sap_swpm_ascs_install_gateway' is defined as '{{ sap_swpm_ascs_install_gateway }}', type '{{ sap_swpm_ascs_install_gateway | type_debug }}', must be defined as a boolean!
+{% endif %}
 # NW_SCS_Instance.ascsInstallGateway = {{ sap_swpm_ascs_install_gateway | lower }}
 
 # Embedded SAP Web Dispatcher
@@ -1162,7 +1271,7 @@ NW_CI_Instance.ascsInstallGateway = {{ sap_swpm_ascs_install_gateway | lower }}
 {% if sap_swpm_install_saphostagent is boolean %}
 NW_System.installSAPHostAgent = {{ sap_swpm_install_saphostagent | lower }}
 {% else %}
-FAIL: Variable 'sap_swpm_install_saphostagent' is defined as '{{ sap_swpm_install_saphostagent }}', which is not a boolean!
+FAIL: Variable 'sap_swpm_install_saphostagent' is defined as '{{ sap_swpm_install_saphostagent }}', type '{{ sap_swpm_install_saphostagent | type_debug }}', must be defined as a boolean!
 {% endif %}
 #                                                                 #
 #  END  section nw_config_host_agent                              #
