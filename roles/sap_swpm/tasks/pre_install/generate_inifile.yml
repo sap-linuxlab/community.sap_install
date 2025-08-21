@@ -75,12 +75,14 @@
         sap_swpm_db_schema: "{{ sap_swpm_db_schema_abap }}"
         sap_swpm_db_schema_password: "{{ sap_swpm_db_schema_abap_password }}"
       when: "'ABAP' in sap_swpm_product_catalog_id | string"
+      no_log: true
 
     - name: SAP SWPM Pre Install - Set password facts when Java
       ansible.builtin.set_fact:
         sap_swpm_db_schema: "{{ sap_swpm_db_schema_java }}"
         sap_swpm_db_schema_password: "{{ sap_swpm_db_schema_java_password }}"
       when: "'Java' in sap_swpm_product_catalog_id | string"
+      no_log: true
 
 # If the individual passwords are set to a non empty string, use those:
     - name: SAP SWPM Pre Install - Set other user passwords using master password
@@ -94,6 +96,7 @@
         sap_swpm_diagnostics_agent_password: "{{ sap_swpm_master_password
           if sap_swpm_master_password | d('') and not sap_swpm_diagnostics_agent_password | d('')
           else sap_swpm_diagnostics_agent_password | d('') }}"
+      no_log: true
 
 # Generate inifile.params, step 1: Process SWPM Configfile template locally for creating inifile.params
     - name: SAP SWPM Pre Install, create inifile - Process SWPM inifile template for creating 'inifile.params'
