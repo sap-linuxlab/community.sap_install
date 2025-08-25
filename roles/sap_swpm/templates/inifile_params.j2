@@ -280,10 +280,11 @@ ERROR:      Inifile Parameter: 'NW_ABAP_Include_Corrections.transportFilesLocati
 ###################################################################
 # BEGIN section maintenance_plan_stack_spam_config                #
 #                                                                 #
-{% if sap_swpm_spam_update | string | trim | length > 0 %}
+{% if sap_swpm_spam_update is boolean %}
 NW_ABAP_SPAM_Update.SPAMUpdateDecision = {{ sap_swpm_spam_update | lower }}
 {% else %}
-ERROR:FAIL: Variable 'sap_swpm_spam_update' is empty!
+ERROR:FAIL: Variable 'sap_swpm_spam_update' is defined as '{{ sap_swpm_spam_update }}', type '{{ sap_swpm_spam_update | type_debug }}', must be defined as a boolean!!XXX      Inifile Section: 'maintenance_plan_stack_spam_config'
+ERROR:      Inifile parameter: 'NW_ABAP_SPAM_Update.SPAMUpdateDecision'
 {% endif %}
 {% if sap_swpm_spam_update %}
 NW_ABAP_SPAM_Update.SPAMUpdateArchive = {{ sap_swpm_spam_update_sar }}
@@ -299,8 +300,19 @@ NW_ABAP_SPAM_Update.SPAMUpdateArchive = {{ sap_swpm_spam_update_sar }}
 ###################################################################
 # BEGIN section maintenance_plan_stack_sum_config
 #                                                                 #
+
+{% if sap_swpm_sum_prepare is boolean %}
 NW_ABAP_Prepare_SUM.prepareSUM = {{ sap_swpm_sum_prepare | lower }}
+{% else %}
+ERROR:FAIL: Variable 'sap_swpm_sum_prepare' is defined as '{{ sap_swpm_sum_prepare }}', type '{{ sap_swpm_sum_prepare | type_debug }}', must be defined as a boolean!XXX      Inifile Section: 'maintenance_plan_stack_sum_config'
+ERROR:      Inifile parameter: 'NW_ABAP_Prepare_SUM.prepareSUM'
+{% endif %}
+{% if sap_swpm_sum_start is boolean %}
 NW_ABAP_Prepare_SUM.startSUM = {{ sap_swpm_sum_start | lower }}
+{% else %}
+ERROR:FAIL: Variable 'sap_swpm_sum_start' is defined as '{{ sap_swpm_sum_start }}', type '{{ sap_swpm_sum_start | type_debug }}', must be defined as a boolean!XXX      Inifile Section: 'maintenance_plan_stack_sum_config'
+ERROR:      Inifile parameter: 'NW_ABAP_Prepare_SUM.startSUM'
+{% endif %}
 
 # Password for SUM must be for '<sapsid>adm' user
 {% if sap_swpm_sap_sidadm_password | string | trim | length > 0 %}
