@@ -236,7 +236,7 @@
       ansible.builtin.set_fact:
         __sap_swpm_fact_inifile_vars_validation_failures: |
          {{ (__sap_swpm_register_inifile_vars_validation_test_result.content | b64decode).splitlines()
-            | select('match', '^(?!#).*FAIL.*')
+            | select('match', '^(?!#).*ERROR:.*')
             | unique
             | d([])
          }}
@@ -245,7 +245,7 @@
       ansible.builtin.fail:
         msg: |
           {% for __sap_swpm_inifile_vars_validation_failure in __sap_swpm_fact_inifile_vars_validation_failures %}
-          {{ __sap_swpm_inifile_vars_validation_failure }}
+          {{ __sap_swpm_inifile_vars_validation_failure | regex_replace('ERROR:', '') | regex_replace('XXX', '\n') }}
           {% endfor %}
       when: __sap_swpm_fact_inifile_vars_validation_failures | length > 0
 
