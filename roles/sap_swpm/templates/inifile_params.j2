@@ -33,24 +33,9 @@ ERROR:FAIL: Variable 'sap_swpm_software_use_media' is defined as '{{ sap_swpm_so
 ###################################################################
 # BEGIN section swpm_installation_media_swpm1                     #
 #                                                                 #
-{% if sap_swpm_cd_language_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.LANGUAGE = {{ sap_swpm_cd_language_path }}
-{% else %}
-ERROR:FAIL: Variable 'sap_swpm_cd_language_path' is empty!XXX      Inifile Section: 'swpm_installation_media_swpm1'
-ERROR:      Inifile Parameter: 'SAPINST.CD.PACKAGE.LANGUAGE'
-{% endif %}
-{% if sap_swpm_cd_java_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.JAVA = {{ sap_swpm_cd_java_path }}
-{% else %}
-ERROR:FAIL: Variable 'sap_swpm_cd_java_path' is empty!XXX      Inifile Section: 'swpm_installation_media_swpm1'
-ERROR:      Inifile Parameter: 'SAPINST.CD.PACKAGE.JAVA'
-{% endif %}
-{% if sap_swpm_cd_rdbms_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.RDBMS = {{ sap_swpm_cd_rdbms_path }}
-{% else %}
-ERROR:FAIL: Variable 'sap_swpm_cd_rdbms_path' is empty!XXX      Inifile Section: 'swpm_installation_media_swpm1'
-ERROR:      Inifile Parameter: 'SAPINST.CD.PACKAGE.RDBMS'
-{% endif %}
 # SAPINST.CD.PACKAGE.KERNEL =
 # SAPINST.CD.PACKAGE.KERNEL2 =
 # SAPINST.CD.PACKAGE.KERNEL3 =
@@ -76,18 +61,8 @@ ERROR:FAIL: Variable 'sap_swpm_cd_export_path' is empty!XXX      Inifile Section
 ERROR:      Inifile Parameter: 'SAPINST.CD.PACKAGE.EXPORT'
 {% endif %}
 # SAPINST.CD.PACKAGE.LOAD =
-{% if sap_swpm_cd_export_pt1_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.LOAD1 = {{ sap_swpm_cd_export_pt1_path }}
-{% else %}
-ERROR:FAIL: Variable 'sap_swpm_cd_export_pt1_path' is empty!XXX      Inifile Section: 'swpm_installation_media_swpm1_exportfiles'
-ERROR:      Inifile Parameter: 'SAPINST.CD.PACKAGE.LOAD1'
-{% endif %}
-{% if sap_swpm_cd_export_pt2_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.LOAD2 = {{ sap_swpm_cd_export_pt2_path }}
-{% else %}
-ERROR:FAIL: Variable 'sap_swpm_cd_export_pt2_path' is empty!XXX      Inifile Section: 'swpm_installation_media_swpm1_exportfiles'
-ERROR:      Inifile Parameter: 'SAPINST.CD.PACKAGE.LOAD2'
-{% endif %}
 # SAPINST.CD.PACKAGE.JMIG =
 #                                                                 #
 #  END  section swpm_installation_media_swpm1_exportfiles         #
@@ -225,12 +200,7 @@ ERROR:      Inifile Parameter: 'SAPINST.CD.PACKAGE.RDBMS-SYB-CLIENT'
 # BEGIN section swpm_installation_media_swpm1_sapmaxdb            #
 #                                                                 #
 # Requested package : RDBMS-ADA
-{% if sap_swpm_cd_sapmaxdb_path | string | trim | length > 0 %}
 SAPINST.CD.PACKAGE.RDBMS-ADA = {{ sap_swpm_cd_sapmaxdb_path }}
-{% else %}
-ERROR:FAIL: Variable 'sap_swpm_cd_sapmaxdb_path' is empty!XXX      Inifile Section: 'swpm_installation_media_swpm1_sapmaxdb'
-ERROR:      Inifile Parameter: 'SAPINST.CD.PACKAGE.RDBMS-ADA'
-{% endif %}
 #                                                                 #
 #  END  section swpm_installation_media_swpm1_sapmaxdb            #
 ###################################################################
@@ -834,11 +804,7 @@ ERROR:FAIL: Variable 'sap_swpm_db_host' is empty!
 {% endif %}
 SYB.NW_DB.sybmgmtdbDataDeviceFolder = /sybase/{{ sap_swpm_sid | upper }}/sybsystem
 SYB.NW_DB.sybmgmtdbLogDeviceFolder = /sybase/{{ sap_swpm_sid | upper }}/sybsystem
-{% if sap_swpm_ascs_instance_hostname | string | trim | length > 0 %}
-SYB.NW_DB.userstore_hostname = {{ sap_swpm_ascs_instance_hostname }}
-{% else %}
-ERROR:FAIL: Variable 'sap_swpm_ascs_instance_hostname' is empty!
-{% endif %}
+SYB.NW_DB.userstore_hostname = {{ sap_swpm_db_host | d(sap_swpm_ascs_instance_hostname) }}
 
 # To avoid conflicts, leave all Ports blank and SAP SWPM will auto-assign
 # Ports by default are in order 4901, 4902, 4903, 4904. For each new ASE DB Server instance on the host, each port number is incremented by 4
@@ -1164,11 +1130,7 @@ NW_getLoadType.loadType = {{ sap_swpm_load_type }}
 # Central Services (ASCS) contains the Message server (MS) and Enqueue work processes (EN) for the ABAP Dispatcher.
 # Formerly the processes were contained in the Central Instance (CI).
 ###################################################################
-{% if sap_swpm_ascs_instance_hostname | string | trim | length > 0 %}
 NW_CI_Instance.ascsVirtualHostname = {{ sap_swpm_ascs_instance_hostname }}
-{% else %}
-ERROR:FAIL: Variable 'sap_swpm_ascs_instance_hostname' is empty!
-{% endif %}
 {% if sap_swpm_ascs_instance_nr | string | trim | length > 0 %}
 NW_CI_Instance.ascsInstanceNumber = {{ sap_swpm_ascs_instance_nr }}
 {% else %}
@@ -1236,11 +1198,7 @@ ERROR:      Inifile Parameter: 'NW_JAVA_Export.keyPhrase'
 # - Gateway (GW) and
 # - ABAP Dispatcher (DI/WP) work processes.
 # Formerly called the Central Instance (CI).
-{% if sap_swpm_pas_instance_hostname | string | trim | length > 0 %}
 NW_CI_Instance.ciVirtualHostname = {{ sap_swpm_pas_instance_hostname }}
-{% else %}
-ERROR:FAIL: Variable 'sap_swpm_pas_instance_hostname' is empty!
-{% endif %}
 {% if sap_swpm_pas_instance_nr | string | trim | length > 0 %}
 NW_CI_Instance.ciInstanceNumber = {{ sap_swpm_pas_instance_nr }}
 {% else %}
