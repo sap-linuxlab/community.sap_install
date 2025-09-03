@@ -15,7 +15,7 @@
   ansible.builtin.debug:
     msg: |
       There is no existing SWPM inifile at '{{ sap_swpm_inifile_directory }}/inifile.params'.
-      So the role will create an inifile.
+      The role will create a new inifile.
   when: not __sap_swpm_register_stat_sapinst_inifile.stat.exists
   tags:
     - sap_swpm_generate_inifile
@@ -105,6 +105,7 @@
           d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_sections_list']) }}"
       when: sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_list'] is defined or
             sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_sections_list'] is defined
+      no_log: true
 
 # Define sap_swpm_role_parameters_dict from low level member.
     - name: SAP SWPM Pre Install - Define 'sap_swpm_role_parameters_dict' from low level member
@@ -113,10 +114,11 @@
           d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_role_parameters_dict']) }}"
       when: sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_dictionary'] is defined or
             sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_role_parameters_dict'] is defined
+      no_log: true
 
     - name: SAP SWPM Pre Install - Display 'sap_swpm_role_parameters_dict'
       ansible.builtin.debug:
-        msg: "sap_swpm_role_parameters_dict: '{{ sap_swpm_role_parameters_dict }}'"
+        msg: "sap_swpm_role_parameters_dict: '{{ sap_swpm_role_parameters_dict | reject('search', '^(__)?sap_swpm_.*_password$') }}'"
       when:
         - sap_swpm_role_parameters_dict is defined
         - sap_swpm_role_parameters_dict | length > 0
@@ -133,17 +135,7 @@
       when:
         - sap_swpm_role_parameters_dict is defined
         - sap_swpm_role_parameters_dict | length > 0
-
-    - name: SAP SWPM Pre Install - Display all vars and values of 'sap_swpm_role_parameters_dict'
-      ansible.builtin.debug:
-        msg: "{{ __sap_swpm_role_parameters_dict_line_item.key }}: '{{ lookup('vars', __sap_swpm_role_parameters_dict_line_item.key) }}'"
-      loop: "{{ sap_swpm_role_parameters_dict | dict2items if sap_swpm_role_parameters_dict is mapping else [] }}"
-      loop_control:
-        loop_var: __sap_swpm_role_parameters_dict_line_item
-      when:
-        - sap_swpm_role_parameters_dict is defined
-        - sap_swpm_role_parameters_dict | length > 0
-      ignore_errors: true
+      no_log: true
 
 # Define sap_swpm_inifile_parameters_dict from low level member, or use top level variable if defined. Low level definition has precedence.
     - name: SAP SWPM Pre Install - Define 'sap_swpm_inifile_parameters_dict' from low level member
@@ -152,6 +144,7 @@
           d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_parameters_dict']) }}"
       when: sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_custom_values_dictionary'] is defined or
             sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_parameters_dict'] is defined
+      no_log: true
 
 # The following task ensures that the two main inifile creation parameters are defined.
 # This is necessary when creating the file 'inifile.params'.
