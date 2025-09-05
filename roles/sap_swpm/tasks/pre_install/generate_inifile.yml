@@ -1,30 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# The following task is used for checking if an inifile exists on the managed node
-- name: SAP SWPM Pre Install - Ensure the sapinst inifile directory '{{ sap_swpm_inifile_directory }}' exists on the managed node
-  ansible.builtin.file:
-    path: "{{ sap_swpm_inifile_directory }}"
-    state: directory
-    owner: 'root'
-    group: 'root'
-    mode: '0755'
-
-- name: SAP SWPM Pre Install - Check if file '{{ sap_swpm_inifile_directory }}/inifile.params' exists on the managed node
-  ansible.builtin.stat:
-    path: "{{ sap_swpm_inifile_directory }}/inifile.params"
-  check_mode: false
-  register: __sap_swpm_register_stat_sapinst_inifile
-
 - name: SAP SWPM Pre Install - Try using existing SWPM inifile 'inifile.params'
   when: __sap_swpm_register_stat_sapinst_inifile.stat.exists
   block:
 
     - name: SAP SWPM Pre Install, existing inifile - Notify about existing sapinst inifile on the managed node
       ansible.builtin.debug:
-        msg: "INFO: Using existing sapinst inifile '{{ sap_swpm_inifile_directory }}/inifile.params'."
+        msg: "INFO: Using existing SWPM inifile '{{ sap_swpm_inifile_directory }}/inifile.params'."
 
-#    - name: SAP SWPM Pre Install, existing inifile - Copy 'inifile.params' to the control node
     - name: SAP SWPM Pre Install, existing inifile - Copy 'inifile.params' to __sap_swpm_register_tmpdir
       ansible.builtin.copy:
         src: "{{ sap_swpm_inifile_directory }}/inifile.params"
@@ -45,7 +29,7 @@
       ansible.builtin.fail:
         msg:
           - "Inifile '{{ sap_swpm_inifile_directory }}/inifile.params' cannot be reused because it contains des25 encrypted data."
-          - "See also SAP notes 2609804."
+          - "See also SAP note 2609804."
       when: sap_swpm_inifile_count_des25.stdout != '0'
 
     - name: SAP SWPM Pre Install - Detect Variables
@@ -55,18 +39,17 @@
 # At this point, the following variables need to be set:
 # sap_swpm_product_catalog_id, sap_swpm_software_path, sap_swpm_sid, sap_swpm_fqdn
 - name: SAP SWPM Pre Install - Assert that certain variables are set
-  ansible.builtin.assert:
-    that: "{{ __sap_swpm_vars_line_item }} is defined and {{ __sap_swpm_vars_line_item }}"
-    fail_msg: "FAIL: '{{ __sap_swpm_vars_line_item }}' is either undefined or empty!"
-    success_msg: "PASS: '{{ __sap_swpm_vars_line_item }}' is set."
+  ansible.builtin.include_tasks:
+    file: assert_vars_length_loop_block.yml
+    apply:
+      tags: sap_swpm_generate_inifile
   loop:
-    - sap_swpm_product_catalog_id
     - sap_swpm_software_path
+    - sap_swpm_product_catalog_id
     - sap_swpm_sid
     - sap_swpm_fqdn
   loop_control:
-    loop_var: __sap_swpm_vars_line_item
-    label: __sap_swpm_vars_line_item
+    loop_var: __sap_swpm_vars_to_be_asserted_for_length_line_item
   tags: sap_swpm_generate_inifile
 
 - name: SAP SWPM Pre Install - Display these variables
@@ -86,25 +69,20 @@
   tags: sap_swpm_generate_inifile
   block:
 
-#    - name: SAP SWPM Pre Install - Ensure role parameter 'sap_swpm_product_catalog_id' is defined
-#      ansible.builtin.fail:
-#        msg:
-#          - "Role parameter 'sap_swpm_product_catalog_id' is empty or not defined, so certain inifile entries cannot be determined."
-#          - "Remediation: Define the role parameter 'sap_swpm_product_catalog_id' in your playbook or inventory and re-run the playbook."
-#      when: sap_swpm_product_catalog_id is not defined or not sap_swpm_product_catalog_id
-
 # 3 tasks for setting password Facts, required by the template:
     - name: SAP SWPM Pre Install - Set password facts when ABAP
       ansible.builtin.set_fact:
         sap_swpm_db_schema: "{{ sap_swpm_db_schema_abap }}"
         sap_swpm_db_schema_password: "{{ sap_swpm_db_schema_abap_password }}"
       when: "'ABAP' in sap_swpm_product_catalog_id | string"
+      no_log: true
 
     - name: SAP SWPM Pre Install - Set password facts when Java
       ansible.builtin.set_fact:
         sap_swpm_db_schema: "{{ sap_swpm_db_schema_java }}"
         sap_swpm_db_schema_password: "{{ sap_swpm_db_schema_java_password }}"
       when: "'Java' in sap_swpm_product_catalog_id | string"
+      no_log: true
 
 # If the individual passwords are set to a non empty string, use those:
     - name: SAP SWPM Pre Install - Set other user passwords using master password
@@ -118,6 +96,7 @@
         sap_swpm_diagnostics_agent_password: "{{ sap_swpm_master_password
           if sap_swpm_master_password | d('') and not sap_swpm_diagnostics_agent_password | d('')
           else sap_swpm_diagnostics_agent_password | d('') }}"
+      no_log: true
 
 # Generate inifile.params, step 1: Process SWPM Configfile template locally for creating inifile.params
     - name: SAP SWPM Pre Install, create inifile - Process SWPM inifile template for creating 'inifile.params'
