@@ -141,12 +141,9 @@
 # Installation tasks have to be run only for new installations.
 # Configuration tasks have to be run always to ensure idempotency.
 - name: Install SAP HANA
-  when:
-    - not __sap_hana_install_fact_is_installed | d(false)
-    - sap_hana_install_new_system | d(true)
+  when: not __sap_hana_install_fact_is_installed | d(false)
   block:
 
-    # pre_install.yml currently contains no configuration tasks.
     - name: SAP HANA pre-install steps
       ansible.builtin.include_tasks:
         file: pre_install.yml
@@ -155,14 +152,13 @@
     - name: SAP HANA installation steps
       ansible.builtin.include_tasks:
         file: hana_install.yml
+      when: sap_hana_install_new_system | d(true)
 
     # addhosts will be run only on new host, where SAP HANA is not installed
     - name: SAP HANA addhosts steps
       ansible.builtin.include_tasks:
         file: hana_addhosts.yml
-      when:
-        - not sap_hana_install_new_system | d(true)
-
+      when: not sap_hana_install_new_system | d(true)
 
 # post_install is modular task file, that contains both installation and configuration tasks.
 # This is executed for existing and new installations, further driven by '__sap_hana_install_fact_is_installed'.
