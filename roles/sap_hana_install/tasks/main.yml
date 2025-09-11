@@ -156,19 +156,16 @@
       ansible.builtin.include_tasks:
         file: hana_install.yml
 
-
-- name: SAP HANA addhosts steps
-  ansible.builtin.include_tasks:
-    file: hana_addhosts.yml
-  when:
-    - not sap_hana_install_new_system | d(true)
-    - __sap_hana_install_fact_is_installed | d(false)
+    # addhosts will be run only on new host, where SAP HANA is not installed
+    - name: SAP HANA addhosts steps
+      ansible.builtin.include_tasks:
+        file: hana_addhosts.yml
+      when:
+        - not sap_hana_install_new_system | d(true)
 
 
 # post_install is modular task file, that contains both installation and configuration tasks.
-# addhosts should not execute post_install steps, therefore we use sap_hana_install_new_system.
+# This is executed for existing and new installations, further driven by '__sap_hana_install_fact_is_installed'.
 - name: SAP HANA post-install steps
   ansible.builtin.include_tasks:
     file: post_install.yml
-  when:
-    - sap_hana_install_new_system | d(true)
