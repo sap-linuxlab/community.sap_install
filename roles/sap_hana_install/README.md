@@ -231,7 +231,6 @@ in a temporary directory for use by the hdblcm command in the next step.
 - Print a short summary of the result of the installation.
 
 ### Add hosts to an existing SAP HANA Installation
-Executes `hdblcm` to install SAP HANA database on new host, where SAP HANA is not installed yet, and connect it to host where SAP HANA is already installed.
 
 #### Pre-Install
 
@@ -293,12 +292,12 @@ Installs SAP HANA on `host0` and other hosts listed in `sap_hana_install_addhost
 ```
 
 #### Example playbook for adding additional nodes to an existing SAP HANA installation
-Installs SAP HANA on `host1` and `host2`, then connects them to existing `host0` defined in `sap_hana_install_addhosts`.</br>
+Installs SAP HANA on `host1` and `host2`, while running on host `host0` where existing SAP HANA is installed.</br>
 **NOTE:** Requires working SSH communication between hosts.
 ```yaml
 ---
 - name: Ansible Play for SAP HANA installation - Add hosts
-  hosts: host1, host2
+  hosts: host0
   become: true
   tasks:
     - name: Execute Ansible Role sap_hana_install
