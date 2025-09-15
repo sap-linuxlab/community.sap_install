@@ -1,23 +1,33 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: Tasks for new HANA Systems
-  when: sap_hana_install_new_system | d(true)
+# Installation tasks that can be destructive and should never be executed on existing database.
+- name: Block with tasks for new HANA Systems
+  when:
+    - not __sap_hana_install_fact_is_installed | d(false)
   block:
 
     - name: SAP HANA Post Install - Store connection information
-      ansible.builtin.include_tasks: post_install/hdbuserstore.yml
+      ansible.builtin.include_tasks:
+        file: post_install/hdbuserstore.yml
       tags: sap_hana_install_store_connection_information
 
     - name: SAP HANA Post Install - Set log_mode
-      ansible.builtin.include_tasks: post_install/log_mode.yml
+      ansible.builtin.include_tasks:
+        file: post_install/log_mode.yml
       tags: sap_hana_install_set_log_mode
 
     - name: SAP HANA Post Install - Apply license
-      ansible.builtin.include_tasks: post_install/license.yml
+      ansible.builtin.include_tasks:
+        file: post_install/license.yml
       when: sap_hana_install_apply_license
 
-    - name: SAP HANA Post Install - Set '{{ sap_hana_install_sid | lower }}adm' to no expire
+    - name: SAP HANA Post Install - Recreate the initial tenant database
+      ansible.builtin.include_tasks:
+        file: post_install/recreate_tenant_database.yml
+      when: sap_hana_install_recreate_tenant_database | d(true)
+
+    - name: SAP HANA Post Install - Set '{{ sap_hana_install_sid | lower }}adm' to not expire
       ansible.builtin.shell: |
           chage -m 0 -M 99999 -I -1 -E -1 {{ sap_hana_install_sid | lower }}adm
       args:
@@ -25,24 +35,13 @@
       become: true
       register: __sap_hana_install_post_install_register_sidadm_noexpire
       changed_when: __sap_hana_install_post_install_register_sidadm_noexpire.rc == 0
-      when: sap_hana_install_set_sidadm_noexpire | default(true)
+      when: sap_hana_install_set_sidadm_noexpire | d(true)
 
-    - name: SAP HANA Post Install - Recreate the initial tenant database
-      ansible.builtin.include_tasks: post_install/recreate_tenant_database.yml
-      when: sap_hana_install_recreate_tenant_database | d(true)
-
-# Optional Post Install Tasks
-
-# not needed because already done in sap_general_preconfigure
-# - name: SAP HANA Post Install - Update /etc/hosts
-#  ansible.builtin.include_tasks: post_install/update_etchosts.yml
-#  when:
-#    - "sap_hana_install_update_etchosts | bool"
-
-    - name: SAP HANA Post Install - Firewall
-      ansible.builtin.include_tasks: post_install/firewall.yml
-      when: "sap_hana_install_update_firewall | bool"
-      tags: sap_hana_install_configure_firewall
+    - name: SAP HANA Post Install - Perform an hdblcm installation check
+      ansible.builtin.include_tasks:
+        file: post_install/check_installation.yml
+      when: sap_hana_install_check_installation | d(false)
+      tags: sap_hana_install_check_installation
 
     - name: SAP HANA Post Install - Generate Input File for SAP Application Deployment
         '{{ sap_hana_install_nw_input_location }}/{{ sap_hana_install_sid }}.info.nw.install'
@@ -51,101 +50,54 @@
         dest: "{{ sap_hana_install_nw_input_location }}/{{ sap_hana_install_sid }}.info.nw.install"
         mode: '0600'
       become: false
-      delegate_to: 127.0.0.1
+      delegate_to: localhost
       vars:
         ansible_become: false
       tags: sap_hana_install_generate_input_file
 
-################
+    # Cleanup extracted software
+    - name: SAP HANA Post Install - Deleting software extract directory '{{ sap_hana_install_software_extract_directory }}'
+      ansible.builtin.file:
+        path: "{{ sap_hana_install_software_extract_directory }}"
+        state: absent
+      when: sap_hana_install_cleanup_extract_directory
 
-- name: Perform an hdblcm installation check
-  when: sap_hana_install_check_installation | d(false)
-  tags: sap_hana_install_check_installation
-  block:
+    - name: SAP HANA Post Install - Deleting Configfile Directory '{{ sap_hana_install_configfile_directory }}'
+      ansible.builtin.file:
+        path: "{{ sap_hana_install_configfile_directory }}"
+        state: absent
+      when: sap_hana_install_cleanup_configfile_directory
 
-    - name: SAP HANA hdblcm installation check - Create a Jinja2 template from the hdblcm xml configfile template
-      ansible.builtin.shell: |
-        set -o pipefail &&
-        awk '
-          !/^ /&&!/^<!-- /{print}
-          !/^ /&&/^<!-- /{printf ("<!-- Ansible managed -->\n")}
-          /^ /{split ($0, b, "[\*\*\*]"); gsub (">", ""); split ($0, a, "<"); printf ("%s\{\{ sap_hana_install_%s | d(sap_hana_install_master_password) \}\}%s\n", b[1], a[2], b[4])}' {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.cfg.xml > {{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.xml.j2
-      register: __sap_hana_install_create_jinja2_template
-      changed_when: false
 
-    - name: SAP HANA hdblcm installation check - Display the location of the remote Jinja2 template
-      ansible.builtin.debug:
-        msg: |
-          The Jinja2 template for creating the hdblcm configfile xml has been saved to
-          '{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.xml.j2'.
+# Idempotent tasks for new and existing HANA Systems
+- name: SAP HANA Post Install - Firewall
+  ansible.builtin.include_tasks:
+    file: post_install/firewall.yml
+  when: sap_hana_install_update_firewall
+  tags: sap_hana_install_configure_firewall
 
-    - name: SAP HANA hdblcm installation check - Download the Jinja2 template
-      ansible.builtin.fetch:
-        src: "{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.xml.j2"
-        dest: "{{ sap_hana_install_local_configfile_directory }}"
-      register: __sap_hana_install_register_fetch_hdblcm_configfile_xml_jinja2_template
+- name: SAP HANA Post Install - SELinux
+  ansible.builtin.include_role:
+    name: '{{ sap_hana_install_system_roles_collection }}.selinux'
+  vars:
+    selinux_fcontexts:
+      - { target: '/usr/sap(/.*)?', setype: 'usr_t' }
+    selinux_restore_dirs:
+      - /usr/sap
+  when: sap_hana_install_modify_selinux_labels
 
-    - name: SAP HANA hdblcm installation check - Display the location of the local Jinja2 template
-      ansible.builtin.debug:
-        msg: "The Jinja2 template has been downloaded to '{{ __sap_hana_install_register_fetch_hdblcm_configfile_xml_jinja2_template.dest }}'."
-      when: not ansible_check_mode
+- name: SAP HANA Post Install - Fapolicyd
+  ansible.builtin.include_tasks:
+    file: post_install/fapolicyd.yml
+  when:
+    # Ensure fapolicyd is checked only on supported systems.
+    - ansible_os_family == "RedHat"
+    - sap_hana_install_use_fapolicyd
+    - '"fapolicyd" in ansible_facts.packages'
+  tags: sap_hana_install_use_fapolicyd
 
-    - name: SAP HANA hdblcm installation check - Process the Jinja2 template to create the hdblcm xml configfile
-      ansible.builtin.template:
-        src: "{{ __sap_hana_install_register_fetch_hdblcm_configfile_xml_jinja2_template.dest }}"
-        dest: "{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg.xml"
-        mode: '0644'
-      register: __sap_hana_install_register_cftemplate
-      when: not ansible_check_mode
 
-    - name: SAP HANA hdblcm installation check - Construct an hdbcheck command line
-      ansible.builtin.set_fact:
-        __sap_hana_install_fact_installation_check_command: "set -o pipefail && ./hdbcheck -b --read_password_from_stdin=xml
-          --property_file={{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/global/hdb/install/support/hdbcheck.xml
-          --remote_execution=ssh
-          --scope=system
-          -b < {{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg.xml"
-      when: sap_hana_install_use_hdbcheck | d(true)
-
-    - name: SAP HANA hdblcm installation check - Construct an hdblcm command line
-      ansible.builtin.set_fact:
-        __sap_hana_install_fact_installation_check_command: "set -o pipefail && ./hdblcm --action=check_installation
-          --read_password_from_stdin=xml
-          -b < {{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg.xml"
-      when: not sap_hana_install_use_hdbcheck | d(true)
-
-    - name: SAP HANA hdblcm installation check - Display the command line
-      ansible.builtin.debug:
-        var: __sap_hana_install_fact_installation_check_command
-
-# Reason for noqa: The command to be executed contains input redirection
-    - name: SAP HANA hdblcm installation check with hdbcheck - Perform the check # noqa command-instead-of-shell
-      ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
-      args:
-        chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/global/hdb/install/bin"
-      register: __sap_hana_install_register_installation_check
-      changed_when: false
-      when: sap_hana_install_use_hdbcheck | d(true)
-
-    - name: SAP HANA hdblcm installation check with hdbcheck - Display the result
-      ansible.builtin.debug:
-        var: __sap_hana_install_register_installation_check.stdout_lines
-      when: sap_hana_install_use_hdbcheck | d(true)
-
-# Reason for noqa: The command to be executed contains input redirection
-    - name: SAP HANA hdblcm installation check with hdblcm - Perform the check # noqa command-instead-of-shell
-      ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
-      args:
-        chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/hdblcm"
-      register: __sap_hana_install_register_installation_check
-      changed_when: false
-      when: not sap_hana_install_use_hdbcheck | d(true)
-
-    - name: SAP HANA hdblcm installation check with hdblcm - Display the result
-      ansible.builtin.debug:
-        var: __sap_hana_install_register_installation_check.stdout_lines
-      when: not sap_hana_install_use_hdbcheck | d(true)
-
+# Gather details about installed database for finished message
 - name: SAP HANA Install - Run 'hdblcm --list_systems' after the installation
   ansible.builtin.shell: |
       set -o pipefail && ./hdblcm --list_systems | awk '/\/hana\/shared\/{{ sap_hana_install_sid }}/{a=1}
@@ -161,156 +113,30 @@
   changed_when: false
   when: not ansible_check_mode
 
-- name: Configure '/usr/sap' SELinux file contexts
-  ansible.builtin.include_role:
-    name: '{{ sap_hana_install_system_roles_collection }}.selinux'
-  vars:
-    selinux_fcontexts:
-      - { target: '/usr/sap(/.*)?', setype: 'usr_t' }
-    selinux_restore_dirs:
-      - /usr/sap
-  when: sap_hana_install_modify_selinux_labels
-
-- name: Set fact - HANA version
+- name: SAP HANA Post Install - Set facts with HANA version and hosts
   ansible.builtin.set_fact:
     __sap_hana_install_fact_hana_version: "{{ __sap_hana_install_register_install_result.stdout.split(';')[0] }}"
-  when: not ansible_check_mode
-
-- name: SAP HANA Post Install - Deleting software extract directory '{{ sap_hana_install_software_extract_directory }}'
-  ansible.builtin.file:
-    path: "{{ sap_hana_install_software_extract_directory }}"
-    state: absent
-  when: sap_hana_install_cleanup_extract_directory
-
-- name: SAP HANA Post Install - Deleting Configfile Directory '{{ sap_hana_install_configfile_directory }}'
-  ansible.builtin.file:
-    path: "{{ sap_hana_install_configfile_directory }}"
-    state: absent
-  when: sap_hana_install_cleanup_configfile_directory
-
-- name: Set fact - HANA hosts
-  ansible.builtin.set_fact:
     __sap_hana_install_fact_hana_hosts: "{{ __sap_hana_install_register_install_result.stdout.split(';')[1] }}"
   when: not ansible_check_mode
 
-- name: SAP HANA Deployment - Finished
+
+- name: SAP HANA Post Install - Display SAP HANA details and completed post tasks
   ansible.builtin.debug:
-    msg:
-      - '  SAP HANA deployment successfully completed:'
-      - ' '
-      - '  HANA Version     -       {{ __sap_hana_install_fact_hana_version }}'
-      - '  Hosts            -       {{ __sap_hana_install_fact_hana_hosts }}'
-      - '  SID              -       {{ sap_hana_install_sid }}'
-      - '  NR               -       {{ sap_hana_install_number }}'
-#      - '  Master Password  -       {{ sap_hana_install_master_password }}'
-#      - '  IP               -       {{ ansible_default_ipv4.address | default(ansible_all_ipv4_addresses[0]) }}'
-#      - '  Host             -       {{ ansible_hostname }}'
-#      - '  FQDN             -       {{ ansible_fqdn }}'
-  when: not ansible_check_mode
+    msg: |
+      SAP HANA database is installed and running:
+      HANA Version     -       {{ __sap_hana_install_fact_hana_version }}
+      Hosts            -       {{ __sap_hana_install_fact_hana_hosts }}
+      SID              -       {{ sap_hana_install_sid }}
+      NR               -       {{ sap_hana_install_number }}
 
-- name: SAP HANA Post Install, fapolicyd - Update config for desired integrity level and revert if validation fails
+      {% if sap_hana_install_update_firewall %}
+      Firewall is enabled and SAP HANA ports are open.
+      {% endif %}
+      {% if sap_hana_install_modify_selinux_labels %}
+      SELinux file contexts are configured for SAP folders '{{ sap_hana_install_root_path }}' and '/usr/sap'.
+      {% endif %}
+      {% if ansible_os_family == "RedHat" and sap_hana_install_use_fapolicyd and "fapolicyd" in ansible_facts.packages %}
+      Fapolicyd is configured for SAP folders '{{ sap_hana_install_root_path }}' and '/usr/sap'.
+      {% endif %}
   when:
-    # Ensure fapolicyd is checked only on supported systems.
-    - ansible_os_family == "RedHat"
-    - sap_hana_install_use_fapolicyd
-    - '"fapolicyd" in ansible_facts.packages'
-  tags: sap_hana_install_use_fapolicyd
-  block:
-
-    - name: SAP HANA Post Install, fapolicyd - Ensure Ansible marker for 'integrity' is present in fapolicyd config file
-      ansible.builtin.lineinfile:
-        path: /etc/fapolicyd/fapolicyd.conf
-        regexp: '# "integrity" managed by Ansible'
-        insertbefore: '^integrity\s*=.*'
-        line: '# "integrity" managed by Ansible'
-
-    - name: SAP HANA Post Install, fapolicyd - Ensure integrity level '{{ sap_hana_install_fapolicyd_integrity }}' is configured"
-      ansible.builtin.lineinfile:
-        path: /etc/fapolicyd/fapolicyd.conf
-        regexp: '^(integrity\s*=.*)'
-        insertafter: '# "integrity" managed by Ansible'
-        line: 'integrity = {{ sap_hana_install_fapolicyd_integrity }}'
-        backup: true
-      register: __sap_hana_install_fapolicyd_conf_updated
-
-    - name: SAP HANA Post Install, fapolicyd - Validate the new version of the fapolicyd config file
-      ansible.builtin.command: fapolicyd-cli --check-config
-      changed_when: false
-
-  rescue:
-
-    - name: SAP HANA Post Install, fapolicyd - Restore fapolicyd config file from backup if validation fails
-      ansible.builtin.copy:
-        remote_src: true
-        dest: /etc/fapolicyd/fapolicyd.conf
-        src: "{{ __sap_hana_install_fapolicyd_conf_updated['backup'] }}"
-        owner: root
-        group: fapolicyd
-        mode: '0644'
-
-    - name: SAP HANA Post Install, fapolicyd - Notify about failed validation
-      ansible.builtin.fail:
-        msg: >-
-          "The update of the fapolicyd config file failed, likely because an unsupported value has been used for
-           the parameter 'sap_hana_install_fapolicyd_integrity'. The previous version has been successfully restored."
-
-- name: SAP HANA Post Install, fapolicyd - Create rule and trust files, enable fapolicyd
-  when:
-    - sap_hana_install_use_fapolicyd
-    - '"fapolicyd" in ansible_facts.packages'
-  tags: sap_hana_install_use_fapolicyd
-  block:
-
-    - name: SAP HANA Post Install, fapolicyd - Process template for creating rule file '{{ sap_hana_install_fapolicyd_rule_file }}'
-      ansible.builtin.template:
-        src: fapolicyd-rules.j2
-        dest: "/etc/fapolicyd/rules.d/{{ sap_hana_install_fapolicyd_rule_file }}.rules"
-        owner: root
-        group: fapolicyd
-        mode: '0644'
-
-# Reason for noqa: The return code of the command is always 0 no matter if there was a change or not
-    - name: SAP HANA Post Install, fapolicyd - Merge rule files # noqa no-changed-when
-      ansible.builtin.command: fagenrules --load
-      register: sap_hana_install_register_fagenrules_load
-
-    - name: SAP HANA Post Install, fapolicyd - Display the output of the command 'fagenrules --load'
-      ansible.builtin.debug:
-        msg: "{{ sap_hana_install_register_fagenrules_load.stdout_lines }}"
-
-# We want to add files which have the execute mode bit set AND which are reported as executables
-# by fapolicyd-cli -t, one for each directory of sap_hana_install_fapolicyd_trusted_directories.
-# The fapolicy trust file name will be created from the directory names by replacing '/' by '_' and
-# omitting the first '_'.
-    - name: SAP HANA Post Install, fapolicyd - Put all executable files from 'sap_hana_install_fapolicyd_trusted_directories' into fapolicyd trust files
-      ansible.builtin.shell: |
-        set -o pipefail &&
-        find {{ __sap_hana_install_item }} -type f -executable -exec fapolicyd-cli -t {} \; -print |
-        awk '/\/x-/{a=1; b=NR}
-          {
-            if(a==1 && b==(NR-1)){
-              system("fapolicyd-cli --file add "$0" --trust-file \
-                {{ __sap_hana_install_item | regex_replace('//*', '_') | regex_replace("^_", "") }}"); a=0; b=0
-            }
-          }'
-      loop: "{{ sap_hana_install_fapolicyd_trusted_directories }}"
-      loop_control:
-        loop_var: __sap_hana_install_item
-        label: >-
-          "{{ __sap_hana_install_item }} ->
-          /etc/fapolicyd/trust.d/{{ __sap_hana_install_item |
-          regex_replace('//*', '_') |
-          regex_replace('^_', '') }}"
-      changed_when: true
-
-    - name: SAP HANA Post Install, fapolicyd - Enable fapolicyd
-      ansible.builtin.service:
-        name: fapolicyd
-        enabled: true
-        state: started
-
-    - name: SAP HANA Post Install, fapolicyd - Restart fapolicyd
-      ansible.builtin.service:
-        name: fapolicyd
-        enabled: true
-        state: restarted
+    - not ansible_check_mode

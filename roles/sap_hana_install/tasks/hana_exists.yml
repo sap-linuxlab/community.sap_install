@@ -34,7 +34,7 @@
         loop_var: __sap_hana_install_loop_instance
         label: "{{ __sap_hana_install_loop_instance.split('-')[0] | trim }}"
 
-    - name: SAP HANA Checks - Trying to install HANA with other SID and existing instance number
+    - name: SAP HANA Checks - Fail if existing HANA was detected with same instance number but different SID
       ansible.builtin.fail:
         msg: "The instance number {{ sap_hana_install_number }} is already used by
               HANA system {{ __sap_hana_install_loop_instance.split('-')[0] | trim }}!"
@@ -46,7 +46,7 @@
         loop_var: __sap_hana_install_loop_instance
         label: "{{ __sap_hana_install_loop_instance.split('-')[0] | trim }}"
 
-    - name: SAP HANA Checks - Trying to install HANA with existing SID and other instance number
+    - name: SAP HANA Checks - Fail if existing HANA was detected with same SID but different instance number
       ansible.builtin.fail:
         msg: "HANA system {{ sap_hana_install_sid }} already exists with different instance number
               {{ __sap_hana_install_loop_instance.split('-')[1] | trim }}!"
@@ -58,7 +58,6 @@
         loop_var: __sap_hana_install_loop_instance
         label: "{{ __sap_hana_install_loop_instance.split('-')[0] | trim }}"
 
-## If saphostcontrol is not installed
 
 - name: SAP HANA Checks - Check directories if no saphostctrl is found
   when: not __sap_hana_install_register_stat_saphostctrl.stat.exists

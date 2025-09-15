@@ -257,7 +257,7 @@ in a temporary directory for use by the hdblcm command in the next step.
 ```yaml
 ---
 - name: Ansible Play for SAP HANA installation - One host
-  hosts: all
+  hosts: host0
   become: true
   tasks:
     - name: Execute Ansible Role sap_hana_install
@@ -265,16 +265,18 @@ in a temporary directory for use by the hdblcm command in the next step.
         name: community.sap_install.sap_hana_install
       vars:
         sap_hana_install_software_directory: /software/hana
-        sap_hana_install_common_master_password: 'NewPass$321'
+        sap_hana_install_common_master_password: 'My SAP HANA Master Password'
         sap_hana_install_sid: 'H01'
         sap_hana_install_instance_nr: '00'
 ```
 
 #### Example playbook for installing a new scale-out SAP HANA system
+Installs SAP HANA on `host0` and other hosts listed in `sap_hana_install_addhosts`: `host1` and `host2`.</br>
+**NOTE:** Requires working SSH communication between hosts.
 ```yaml
 ---
 - name: Ansible Play for SAP HANA installation - Scale-out
-  hosts: all
+  hosts: host0
   become: true
   tasks:
     - name: Execute Ansible Role sap_hana_install
@@ -282,18 +284,20 @@ in a temporary directory for use by the hdblcm command in the next step.
         name: community.sap_install.sap_hana_install
       vars:
         sap_hana_install_software_directory: /software/hana
-        sap_hana_install_common_master_password: 'NewPass$321'
-        sap_hana_install_root_password: 'NewPass$321'
-        sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02'
+        sap_hana_install_common_master_password: 'My SAP HANA Master Password'
+        sap_hana_install_root_password: 'My root password'
+        sap_hana_install_addhosts: 'host0:role=worker,host1:role=worker:group=g02,host2:role=standby:group=g02'
         sap_hana_install_sid: 'H01'
         sap_hana_install_instance_nr: '00'
 ```
 
 #### Example playbook for adding additional nodes to an existing SAP HANA installation
+Installs SAP HANA on `host1` and `host2`, while running on host `host0` where existing SAP HANA is installed.</br>
+**NOTE:** Requires working SSH communication between hosts.
 ```yaml
 ---
-- name: Ansible Play for SAP HANA installation - Add host
-  hosts: all
+- name: Ansible Play for SAP HANA installation - Add hosts
+  hosts: host0
   become: true
   tasks:
     - name: Execute Ansible Role sap_hana_install
@@ -301,10 +305,10 @@ in a temporary directory for use by the hdblcm command in the next step.
         name: community.sap_install.sap_hana_install
       vars:
         sap_hana_install_software_directory: /software/hana
-        sap_hana_install_new_system: no
-        sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02'
-        sap_hana_install_common_master_password: 'NewPass$321'
-        sap_hana_install_root_password: 'NewPass$321'
+        sap_hana_install_new_system: false
+        sap_hana_install_addhosts: 'host0:role=worker,host1:role=worker:group=g02,host2:role=standby:group=g02'
+        sap_hana_install_common_master_password: 'My SAP HANA Master Password'
+        sap_hana_install_root_password: 'My root password'
         sap_hana_install_sid: 'H01'
         sap_hana_install_instance_nr: '00'
 ```

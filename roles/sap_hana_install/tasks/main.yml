@@ -110,7 +110,8 @@
 
 
 - name: SAP HANA existence checking
-  ansible.builtin.import_tasks: hana_exists.yml
+  ansible.builtin.include_tasks:
+    file: hana_exists.yml
   when:
     - sap_hana_install_new_system | d(true)
     - not sap_hana_install_force | d(false)
@@ -118,21 +119,49 @@
     - sap_hana_install_check_hana_exists
     - sap_hana_install_preinstall
 
+# SAP HANA has to be started when:
+# 1. Existing SAP HANA was detected and '__sap_hana_install_fact_is_installed' is true.
+# 2. Addhosts is executed when 'not sap_hana_install_new_system'
+- name: Ensure SAP HANA is running for existing systems or addhosts operations
+  ansible.builtin.include_tasks:
+    file: hana_start.yml
+  when:
+    - __sap_hana_install_fact_is_installed | d(false)
+      or not sap_hana_install_new_system | d(true)
+
+# SELinux is not currently supported by SAP using SLES4SAP
+# This can still be overwritten by extra variables.
+- name: SAP HANA Pre Install - Ensure SELinux does not execute for SLES
+  ansible.builtin.set_fact:
+    sap_hana_install_modify_selinux_labels: false
+  when: ansible_os_family == "Suse"
+
+
+# This role consists of installation and configuration tasks.
+# Installation tasks have to be run only for new installations.
+# Configuration tasks have to be run always to ensure idempotency.
 - name: Install SAP HANA
   when: not __sap_hana_install_fact_is_installed | d(false)
   block:
 
     - name: SAP HANA pre-install steps
-      ansible.builtin.import_tasks: pre_install.yml
+      ansible.builtin.include_tasks:
+        file: pre_install.yml
       tags: sap_hana_install_preinstall
 
     - name: SAP HANA installation steps
-      ansible.builtin.import_tasks: hana_install.yml
+      ansible.builtin.include_tasks:
+        file: hana_install.yml
       when: sap_hana_install_new_system | d(true)
 
+    # addhosts will be run only on new host, where SAP HANA is not installed
     - name: SAP HANA addhosts steps
-      ansible.builtin.import_tasks: hana_addhosts.yml
+      ansible.builtin.include_tasks:
+        file: hana_addhosts.yml
       when: not sap_hana_install_new_system | d(true)
 
-    - name: SAP HANA post-install steps
-      ansible.builtin.import_tasks: post_install.yml
+# post_install is modular task file, that contains both installation and configuration tasks.
+# This is executed for existing and new installations, further driven by '__sap_hana_install_fact_is_installed'.
+- name: SAP HANA post-install steps
+  ansible.builtin.include_tasks:
+    file: post_install.yml

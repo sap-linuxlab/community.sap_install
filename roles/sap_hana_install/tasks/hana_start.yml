@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Ensure SAP HANA is running - Set path to sapcontrol
+  ansible.builtin.set_fact:
+    __sap_hana_install_sapcontrol_path:
+      "/usr/sap/{{ sap_hana_install_sid | upper }}/HDB{{ sap_hana_install_number }}/exe/sapcontrol"
+
+- name: Ensure SAP HANA is running - Check for sapcontrol executable
+  ansible.builtin.stat:
+    path: "{{ __sap_hana_install_sapcontrol_path }}"
+  register: __sap_hana_install_stat_sapcontrol
+
+- name: Block to Ensure SAP HANA is running
+  when: __sap_hana_install_stat_sapcontrol.stat.exists
+  block:
+
+    - name: Ensure SAP HANA is running - Start instance
+      ansible.builtin.command:
+        cmd: "{{ __sap_hana_install_sapcontrol_path }} -nr {{ sap_hana_install_number }} -function StartSystem"
+      become: true
+      become_user: "{{ sap_hana_install_sid | lower }}adm"
+      register: __sap_hana_install_register_start_hana
+      changed_when: "'StartSystem OK' in __sap_hana_install_register_start_hana.stdout"
+
+    - name: Ensure SAP HANA is running - Wait for instance to be fully started
+      ansible.builtin.command:
+        cmd: "{{ __sap_hana_install_sapcontrol_path }} -nr {{ sap_hana_install_number }} -function GetProcessList"
+      become: true
+      become_user: "{{ sap_hana_install_sid | lower }}adm"
+      register: __sap_hana_install_register_sapcontrol_getprocesslist
+      # sapcontrol GetProcessList returns codes:
+      # 0 if some processes are starting or stopping (YELLOW)
+      # 3 if all processes are running (GREEN).
+      # 4 if all processes are stopped (GRAY).
+      until: __sap_hana_install_register_sapcontrol_getprocesslist.rc == 3
+      retries: 60  # wait for 10 minutes
+      delay: 10
+      changed_when: false
+      failed_when: false  # command module will fail with non-zero return code
