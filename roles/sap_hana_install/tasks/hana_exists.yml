@@ -1,7 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-## Try to use saphostctrl to figure out if HANA or other SID is installed
+# Required to reset status if the role is used multiple times in one playbook.
+- name: SAP HANA Checks - Reset the status variable if defined from previous run
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_is_installed: false
+  when: __sap_hana_install_fact_is_installed is defined
+
 - name: SAP HANA Checks - Check if saphostctrl is installed
   ansible.builtin.stat:
     path: /usr/sap/hostctrl/exe/saphostctrl
@@ -9,12 +14,16 @@
   register: __sap_hana_install_register_stat_saphostctrl
   failed_when: false
 
+
+# Check 1: Use found sapcontrol to get list of SAP instances.
+# Only valid combination of SID and Instance Number will pass.
 - name: SAP HANA Checks - Check if SAP instances are installed with saphostctrl
   when: __sap_hana_install_register_stat_saphostctrl.stat.exists
   block:
 
     - name: SAP HANA Checks - Get list of installed SAP instances
-      ansible.builtin.shell: set -o pipefail && /usr/sap/hostctrl/exe/saphostctrl -function ListInstances | cut -d":" -f2-
+      ansible.builtin.shell:
+        cmd: set -o pipefail && /usr/sap/hostctrl/exe/saphostctrl -function ListInstances | cut -d":" -f2-
       register: __sap_hana_install_register_instancelist
       changed_when: false
 
@@ -23,7 +32,7 @@
         var: __sap_hana_install_register_instancelist.stdout_lines
         verbosity: 1
 
-    - name: SAP HANA Checks - Desired HANA is installed and running
+    - name: SAP HANA Checks - Desired SAP HANA is installed and running
       ansible.builtin.set_fact:
         __sap_hana_install_fact_is_installed: true
       when:
@@ -34,10 +43,11 @@
         loop_var: __sap_hana_install_loop_instance
         label: "{{ __sap_hana_install_loop_instance.split('-')[0] | trim }}"
 
-    - name: SAP HANA Checks - Fail if existing HANA was detected with same instance number but different SID
+    - name: SAP HANA Checks - Fail if existing SAP HANA was detected with same instance number but different SID
       ansible.builtin.fail:
-        msg: "The instance number {{ sap_hana_install_number }} is already used by
-              HANA system {{ __sap_hana_install_loop_instance.split('-')[0] | trim }}!"
+        msg: >-
+          The instance number {{ sap_hana_install_number }} is already used by
+          SAP HANA system {{ __sap_hana_install_loop_instance.split('-')[0] | trim }}!
       when:
         - __sap_hana_install_loop_instance.split('-')[0] | trim != sap_hana_install_sid
         - __sap_hana_install_loop_instance.split('-')[1] | trim == sap_hana_install_number
@@ -46,10 +56,11 @@
         loop_var: __sap_hana_install_loop_instance
         label: "{{ __sap_hana_install_loop_instance.split('-')[0] | trim }}"
 
-    - name: SAP HANA Checks - Fail if existing HANA was detected with same SID but different instance number
+    - name: SAP HANA Checks - Fail if existing SAP HANA was detected with same SID but different instance number
       ansible.builtin.fail:
-        msg: "HANA system {{ sap_hana_install_sid }} already exists with different instance number
-              {{ __sap_hana_install_loop_instance.split('-')[1] | trim }}!"
+        msg: >-
+          The SAP HANA system {{ sap_hana_install_sid }} already exists with different instance number
+            {{ __sap_hana_install_loop_instance.split('-')[1] | trim }}!"
       when:
         - __sap_hana_install_loop_instance.split('-')[0] | trim  == sap_hana_install_sid
         - __sap_hana_install_loop_instance.split('-')[1] | trim != sap_hana_install_number
@@ -59,6 +70,8 @@
         label: "{{ __sap_hana_install_loop_instance.split('-')[0] | trim }}"
 
 
+# Check 2: Check presence of directories if saphostctrl was not found.
+# These checks do not set '__sap_hana_install_fact_is_installed' as they pass only if directories are empty.
 - name: SAP HANA Checks - Check directories if no saphostctrl is found
   when: not __sap_hana_install_register_stat_saphostctrl.stat.exists
   block:
@@ -74,12 +87,13 @@
       ansible.builtin.find:
         paths: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}"
         patterns: '*'
+        file_type: 'any'  # New install does not have files and default 'file' will ignore directories.
       register: __sap_hana_install_register_files_in_hana_shared_sid_assert
       when: __sap_hana_install_register_stat_hana_shared_sid_assert.stat.exists
 
-    - name: SAP HANA Checks - Fail if directory '{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}' exists and is not empty
+    - name: SAP HANA Checks - Fail if the path '{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}' exists and is not empty
       ansible.builtin.fail:
-        msg: "FAIL: Directory '{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}' exists and is not empty!"
+        msg: "FAIL: The path '{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}' exists and is not empty!"
       when:
         - __sap_hana_install_register_stat_hana_shared_sid_assert.stat.exists
         - __sap_hana_install_register_files_in_hana_shared_sid_assert.matched | int != 0
@@ -95,61 +109,81 @@
       ansible.builtin.find:
         paths: "/usr/sap/{{ sap_hana_install_sid }}"
         patterns: '*'
+        file_type: 'any'  # New install does not have files and default 'file' will ignore directories.
       register: __sap_hana_install_register_files_in_usr_sap_sid_assert
       when: __sap_hana_install_register_stat_usr_sap_sid_assert.stat.exists
 
-    - name: SAP HANA Checks - Fail if directory '/usr/sap/{{ sap_hana_install_sid }}' exists and is not empty
+    - name: SAP HANA Checks - Fail if the path '/usr/sap/{{ sap_hana_install_sid }}' exists and is not empty
       ansible.builtin.fail:
-        msg: "FAIL: Directory '/usr/sap/{{ sap_hana_install_sid }}' exists and is not empty!"
+        msg: "FAIL: The path '/usr/sap/{{ sap_hana_install_sid }}' exists and is not empty!"
       when:
         - __sap_hana_install_register_stat_usr_sap_sid_assert.stat.exists
         - __sap_hana_install_register_files_in_usr_sap_sid_assert.matched | int != 0
 
-- name: SAP HANA Checks - HANA admin user check
-  when:
-    - sap_hana_install_check_sidadm_user | d(true)
-    - not __sap_hana_install_fact_is_installed | d(false)
-  block:
 
-    - name: SAP HANA Checks - Get info about '{{ sap_hana_install_sid | lower }}adm' user
-      ansible.builtin.command: getent passwd {{ sap_hana_install_sid | lower }}adm
-      check_mode: false
-      register: __sap_hana_install_register_getent_passwd_sidadm
-      changed_when: false
-      failed_when: false
-
-    - name: SAP HANA Checks - Fail if the user '{{ sap_hana_install_sid | lower }}adm' exists
-      ansible.builtin.fail:
-        msg: "FAIL: User '{{ sap_hana_install_sid | lower }}adm' exists!"
-      when: __sap_hana_install_register_getent_passwd_sidadm.rc == 0
-
+# Check 3: Check if the group 'sapsys' exists with correct ID.
 # The role supports specifying the SAP HANA group id in variable `sap_hana_install_groupid`, which is the id of the sapsys group.
 # The SAP HANA installation will fail if there is already a group named sapsys but with a different ID. Let's better fail before.
-- name: SAP HANA Checks - Check HANA admin group
+- name: SAP HANA Checks - Check SAP HANA admin group
   when:
     - sap_hana_install_groupid is defined
-    - sap_hana_install_groupid | string != "None"
-    - sap_hana_install_groupid | string | length > 0
+    - sap_hana_install_groupid is string
+    - sap_hana_install_groupid | trim | length > 0
     - not __sap_hana_install_fact_is_installed | d(false)
   block:
 
-    - name: SAP HANA Checks - Get info about the ID of the 'sapsys' group
-      ansible.builtin.command: getent group sapsys
-      check_mode: false
-      register: __sap_hana_install_register_getent_group_sapsys
-      changed_when: false
+    # getent_groups will be populated, with fields:
+    # [0] - 'X' if the password is set.
+    # [1] - Group ID.
+    # [2] - Group members.
+    - name: SAP HANA Checks - Get details of the 'sapsys' group
+      ansible.builtin.getent:
+        database: group
+        key: sapsys
       failed_when: false
-
-    - name: SAP HANA Checks - Define new variable for the assertion
-      ansible.builtin.set_fact:
-        __sap_hana_install_existing_sapsys_gid: "{{ __sap_hana_install_register_getent_group_sapsys.stdout.split(':')[2] }}"
-      when: __sap_hana_install_register_getent_group_sapsys.rc == 0
 
     - name: SAP HANA Checks - In case there is a group 'sapsys', assert that its group ID is identical to 'sap_hana_install_groupid'
       ansible.builtin.assert:
-        that: (__sap_hana_install_existing_sapsys_gid | int) == (sap_hana_install_groupid | int)
+        that:
+          - getent_group['sapsys'][1] | int == sap_hana_install_groupid | int
         success_msg: "PASS: The group ID of 'sapsys' is identical to the value of variable
                       sap_hana_install_groupid, which is '{{ sap_hana_install_groupid }}'"
-        fail_msg: "FAIL: Group 'sapsys' exists but with a different group ID than '{{ sap_hana_install_groupid }}'
-                   (specified in variable sap_hana_install_groupid)!"
-      when: __sap_hana_install_register_getent_group_sapsys.rc == 0
+        fail_msg: >-
+          FAIL: Group 'sapsys' exists but with a different group ID than '{{ sap_hana_install_groupid }}'
+            defined in the variable 'sap_hana_install_groupid'!
+      when:
+        - getent_group is defined
+        - "'sapsys' in getent_group"
+
+
+# Check 4: Check if the user 'sidadm' exists.
+- name: SAP HANA Checks - SAP HANA admin user check
+  when:
+    - sap_hana_install_check_sidadm_user | d(true)
+    - not __sap_hana_install_fact_is_installed | d(false)
+  vars:
+    __sap_hana_install_sidadm: "{{ sap_hana_install_sid | lower }}adm"
+  block:
+
+    - name: SAP HANA Checks - Get info about user '{{ __sap_hana_install_sidadm }}'
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ __sap_hana_install_sidadm }}"
+      failed_when: false
+
+    - name: SAP HANA Checks - Fail if the user '{{ __sap_hana_install_sidadm }}' exists
+      ansible.builtin.fail:
+        msg: "FAIL: The user '{{ __sap_hana_install_sidadm }}' already exists!"
+      when:
+        - getent_passwd is defined
+        - __sap_hana_install_sidadm in getent_passwd
+
+
+- name: SAP HANA Checks - Fail if SAP HANA is not found when addhosts is used
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The existing SAP HANA System was not detected when adding new hosts!
+      This is required when the variable 'sap_hana_install_new_system' is set to false.
+  when:
+    - not sap_hana_install_new_system
+    - not __sap_hana_install_fact_is_installed | d(false)

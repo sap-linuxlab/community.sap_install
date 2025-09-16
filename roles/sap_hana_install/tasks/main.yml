@@ -4,6 +4,7 @@
 # Load variables while maintaining backwards compatibility when variable is empty string.
 # Check if variable is defined and non-empty before using it, otherwise fall back to backwards
 # compatible variable or default empty string that will fail asserts afterwards.
+# NOTE: This is not __var assignment so it will not override user specified vars due to precedence!
 - name: Rename some variables used by hdblcm configfile
   ansible.builtin.set_fact:
     sap_hana_install_sid:
@@ -38,96 +39,15 @@
     - sap_hana_install_set_log_mode
     - sap_hana_install_configure_firewall
 
-
-- name: Validate SAP HANA System ID - 'sap_hana_install_sid' is defined as String consisting of 3 characters
-  ansible.builtin.assert:
-    that:
-      - sap_hana_install_sid is defined
-      - sap_hana_install_sid is string
-      - sap_hana_install_sid | length == 3
-    success_msg: |
-      PASS: The length of the SAP HANA System ID '{{ sap_hana_install_sid }}' is 3 characters.
-    fail_msg: |
-      {% if sap_hana_install_sid is not string %}
-        FAIL: The variable 'sap_hana_install_sid' is not String. Value: {{ sap_hana_install_sid }}
-      {% elif sap_hana_install_sid | length == 0 %}
-        FAIL: The variable 'sap_hana_install_sid' is empty.
-      {% else %}
-        FAIL: The length of the SAP HANA System ID '{{ sap_hana_install_sid }}' is not 3 characters!
-      {% endif %}
-  tags:
-    - sap_hana_install_check_hana_exists
-    - sap_hana_install_preinstall
-
-- name: Validate SAP HANA System ID - 'sap_hana_install_sid' is not in the list of reserved SAP SIDs
-  ansible.builtin.assert:
-    that: sap_hana_install_sid not in __sap_hana_install_sid_prohibited
-    success_msg: |
-      PASS: The SAP HANA System ID '{{ sap_hana_install_sid }}' is not in the list of reserved SAP SIDs in SAP note 1979280 v.20.
-    fail_msg: |
-      FAIL: The SAP HANA System ID '{{ sap_hana_install_sid }}' is in the list of reserved SAP SIDs in SAP note 1979280 v.20!
-  tags:
-    - sap_hana_install_check_hana_exists
-    - sap_hana_install_preinstall
-
-- name: Validate SAP HANA Instance Number - 'sap_hana_install_number' is defined as String consisting of 2 characters
-  ansible.builtin.assert:
-    that:
-      - sap_hana_install_number is defined
-      - sap_hana_install_number is string
-      - sap_hana_install_number | length == 2
-    success_msg: |
-      PASS: The length of the SAP HANA Instance Number '{{ sap_hana_install_number }}' is 2 characters.
-    fail_msg: |
-      {% if sap_hana_install_number is not string %}
-        FAIL: The variable 'sap_hana_install_number' is not String. Value: {{ sap_hana_install_number }}
-      {% elif sap_hana_install_number | length == 0 %}
-        FAIL: The variable 'sap_hana_install_number' is empty.
-      {% else %}
-        FAIL: The length of the SAP HANA Instance Number '{{ sap_hana_install_number }}' is not 2 characters!
-      {% endif %}
-  tags:
-    - sap_hana_install_check_hana_exists
-    - sap_hana_install_preinstall
-
-- name: Validate SAP HANA Master Password - 'sap_hana_install_master_password' is defined as String and not empty
-  ansible.builtin.assert:
-    that:
-      - sap_hana_install_master_password is defined
-      - sap_hana_install_master_password is string
-      - sap_hana_install_master_password | length > 0
-    fail_msg: |
-      {% if sap_hana_install_master_password is not defined %}
-        FAIL: The variable 'sap_hana_install_master_password' is not defined.
-      {% elif sap_hana_install_master_password is not string %}
-        FAIL: The variable 'sap_hana_install_master_password' is not String.
-      {% else %}
-        FAIL: The variable 'sap_hana_install_master_password' is empty.
-      {% endif %}
-  tags:
-    - sap_hana_install_check_hana_exists
-    - sap_hana_install_preinstall
-
-
-- name: SAP HANA existence checking
+- name: Validate the role variables
   ansible.builtin.include_tasks:
-    file: hana_exists.yml
-  when:
-    - sap_hana_install_new_system | d(true)
-    - not sap_hana_install_force | d(false)
+    file: assert_variables.yml
   tags:
     - sap_hana_install_check_hana_exists
+    - sap_hana_install_check_installation
     - sap_hana_install_preinstall
-
-# SAP HANA has to be started when:
-# 1. Existing SAP HANA was detected and '__sap_hana_install_fact_is_installed' is true.
-# 2. Addhosts is executed when 'not sap_hana_install_new_system'
-- name: Ensure SAP HANA is running for existing systems or addhosts operations
-  ansible.builtin.include_tasks:
-    file: hana_start.yml
-  when:
-    - __sap_hana_install_fact_is_installed | d(false)
-      or not sap_hana_install_new_system | d(true)
+    - sap_hana_install_set_log_mode
+    - sap_hana_install_configure_firewall
 
 # SELinux is not currently supported by SAP using SLES4SAP
 # This can still be overwritten by extra variables.
@@ -137,31 +57,57 @@
   when: ansible_os_family == "Suse"
 
 
-# This role consists of installation and configuration tasks.
-# Installation tasks have to be run only for new installations.
-# Configuration tasks have to be run always to ensure idempotency.
-- name: Install SAP HANA
-  when: not __sap_hana_install_fact_is_installed | d(false)
-  block:
+# SAP HANA presence has to be validated for both new system and adding new hosts.
+- name: Validate presence of existing SAP HANA database
+  ansible.builtin.include_tasks:
+    file: hana_exists.yml
+  when:
+    - (sap_hana_install_new_system and not sap_hana_install_force)
+      or not sap_hana_install_new_system
+  tags:
+    - sap_hana_install_check_hana_exists
+    - sap_hana_install_preinstall
 
-    - name: SAP HANA pre-install steps
-      ansible.builtin.include_tasks:
-        file: pre_install.yml
-      tags: sap_hana_install_preinstall
 
-    - name: SAP HANA installation steps
-      ansible.builtin.include_tasks:
-        file: hana_install.yml
-      when: sap_hana_install_new_system | d(true)
+- name: Ensure SAP HANA is running for existing systems or addhosts operations
+  ansible.builtin.include_tasks:
+    file: hana_start.yml
+  when: __sap_hana_install_fact_is_installed | d(false)
 
-    # addhosts will be run only on new host, where SAP HANA is not installed
-    - name: SAP HANA addhosts steps
-      ansible.builtin.include_tasks:
-        file: hana_addhosts.yml
-      when: not sap_hana_install_new_system | d(true)
 
-# post_install is modular task file, that contains both installation and configuration tasks.
-# This is executed for existing and new installations, further driven by '__sap_hana_install_fact_is_installed'.
+# Instructions for separating tasks to achieve idempotency:
+# - Installation - Run once for new installations, never repeated.
+# - Configuration - Run always to ensure idempotent outcome.
+
+# Pre-installation currently does not contain configuration tasks, which would require idempotency.
+# Executed for new installations and addhosts, because addhosts configfile creation is included.
+- name: SAP HANA pre-install steps
+  ansible.builtin.include_tasks:
+    file: pre_install.yml
+  tags: sap_hana_install_preinstall
+  when:
+    - (sap_hana_install_new_system and not __sap_hana_install_fact_is_installed | d(false))
+      or not sap_hana_install_new_system
+
+# Installation currently does not contain configuration tasks, which would require idempotency.
+# Executed only for new installations.
+- name: SAP HANA installation steps
+  ansible.builtin.include_tasks:
+    file: hana_install.yml
+  when:
+    - not __sap_hana_install_fact_is_installed | d(false)
+    - sap_hana_install_new_system
+
+# Executed only for addhosts.
+- name: SAP HANA addhosts steps
+  ansible.builtin.include_tasks:
+    file: hana_addhosts.yml
+  when:
+    - __sap_hana_install_fact_is_installed | d(false)
+    - not sap_hana_install_new_system
+
+# Post-installation contains both installation and configuration tasks.
+# Executed new or existing installations and addhosts.
 - name: SAP HANA post-install steps
   ansible.builtin.include_tasks:
     file: post_install.yml

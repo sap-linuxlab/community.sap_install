@@ -265,7 +265,7 @@ in a temporary directory for use by the hdblcm command in the next step.
         name: community.sap_install.sap_hana_install
       vars:
         sap_hana_install_software_directory: /software/hana
-        sap_hana_install_common_master_password: 'My SAP HANA Master Password'
+        sap_hana_install_master_password: 'My SAP HANA Master Password'
         sap_hana_install_sid: 'H01'
         sap_hana_install_instance_nr: '00'
 ```
@@ -284,7 +284,7 @@ Installs SAP HANA on `host0` and other hosts listed in `sap_hana_install_addhost
         name: community.sap_install.sap_hana_install
       vars:
         sap_hana_install_software_directory: /software/hana
-        sap_hana_install_common_master_password: 'My SAP HANA Master Password'
+        sap_hana_install_master_password: 'My SAP HANA Master Password'
         sap_hana_install_root_password: 'My root password'
         sap_hana_install_addhosts: 'host0:role=worker,host1:role=worker:group=g02,host2:role=standby:group=g02'
         sap_hana_install_sid: 'H01'
@@ -307,7 +307,7 @@ Installs SAP HANA on `host1` and `host2`, while running on host `host0` where ex
         sap_hana_install_software_directory: /software/hana
         sap_hana_install_new_system: false
         sap_hana_install_addhosts: 'host0:role=worker,host1:role=worker:group=g02,host2:role=standby:group=g02'
-        sap_hana_install_common_master_password: 'My SAP HANA Master Password'
+        sap_hana_install_master_password: 'My SAP HANA Master Password'
         sap_hana_install_root_password: 'My root password'
         sap_hana_install_sid: 'H01'
         sap_hana_install_instance_nr: '00'
