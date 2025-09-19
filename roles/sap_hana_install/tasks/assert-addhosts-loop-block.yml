@@ -8,16 +8,16 @@
 
 - name: SAP HANA Add Hosts - Show the path name of the instance profile
   ansible.builtin.debug:
-    msg: "Instance profile: '{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/profile/\
-          {{ sap_hana_install_sid }}_HDB{{ sap_hana_install_number }}_{{ line_item }}'"
+    msg: >-
+      Instance profile: '{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/profile/
+        {{ sap_hana_install_sid }}_HDB{{ sap_hana_install_number }}_{{ line_item }}'
 
 - name: SAP HANA Add Hosts - Assert that there is no instance profile for the additional hosts
   ansible.builtin.assert:
     that: not __sap_hana_install_register_instance_profile_addhost.stat.exists
-    fail_msg:
-      - "FAIL: There is already an instance profile for host '{{ line_item }}', at location:"
-      - "  '{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/profile/{{ sap_hana_install_sid }}_HDB{{ sap_hana_install_number }}_{'{ line_item }}."
-      - "Because of this, the addhost operation will not be performed."
+    fail_msg: >-
+      FAIL: Addhost operation will not be performed because there is already an instance profile for host {{ line_item }} at
+      {{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/profile/{{ sap_hana_install_sid }}_HDB{{ sap_hana_install_number }}_{{ line_item }}
     success_msg: "PASS: No instance profile was found for host '{{ line_item }}'."
 
 - name: SAP HANA Add Hosts - Check for SAP HANA instance directory in '/usr/sap'
@@ -32,8 +32,7 @@
 - name: SAP HANA Add Hosts - Assert that there is no SAP HANA instance directory in '/usr/sap' for the additional hosts
   ansible.builtin.assert:
     that: not __sap_hana_install_register_usr_sap_instance_directory.stat.exists
-    fail_msg:
-      - "FAIL: There is already an instance directory for host '{{ sap_hana_install_addhosts.split(':')[0] }}', at location:"
-      - "  '/usr/sap/{{ sap_hana_install_sid }}/HDB{{ sap_hana_install_number }}/{{ line_item }}' ."
-      - "Because of this, the addhost operation will not be performed."
+    fail_msg: >-
+      FAIL: Addhost operation will not be performed because there is already an instance directory for host {{ line_item }} at location
+      /usr/sap/{{ sap_hana_install_sid }}/HDB{{ sap_hana_install_number }}/{{ line_item }}
     success_msg: "PASS: No instance directory was found for host '{{ line_item }}' in /usr/sap."
