@@ -1,84 +1,40 @@
 ---
-
-# Worflow for ansible-test sanity tests
-
-name: ansible-test sanity of the collection
+name: ansible-test sanity
 
 on:
+  schedule:
+    # This is 01:05 UTC, which is 3:05 AM in Prague/CEST
+    - cron: '5 3 * * 1'
+
   pull_request:
     branches:
       - main
       - dev
+
   workflow_dispatch:
 
 jobs:
   sanity:
     runs-on: ubuntu-latest
+    name: Sanity (Ⓐ${{ matrix.ansible }})
+    strategy:
+      fail-fast: false  # Disabled so we can see all failed combinations.
+      matrix:
+        ansible:
+          - 'stable-2.14'
+          - 'stable-2.15'
+          - 'stable-2.16'
+          - 'stable-2.17'
+          - 'stable-2.18'
+          - 'stable-2.19'
+          - 'devel'  # Currently 2.20
 
     steps:
-      - name: Check out the code
+      - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3
-        uses: actions/setup-python@v5
+      - name: Perform sanity testing
+        uses: ansible-community/ansible-test-gh-action@release/v1
         with:
-          python-version: '3.12'
-
-      - name: Install test dependencies
-        run: |
-          pip3 install ansible ansible-lint==6.8.6
-          pip3 install ansible-compat==3.0.2
-
-#      - name: Install collection dependencies
-#        run: ansible-galaxy collection install community.general
-
-#      - name: List directory /home/runner/work/
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/work/
-
-#      - name: List directory /home/runner/work/_actions
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/work/_actions
-
-      - name: List directory /home/runner/work/_actions/actions
-        working-directory: /home/runner/
-        run: ls -al /home/runner/work/_actions/actions
-
-#      - name: List directory /home/runner/work/community.sap_install
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/work/community.sap_install
-
-#      - name: List directory /home/runner/work/community.sap_install/community.sap_install
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/work/community.sap_install/community.sap_install
-
-      - name: Move the collection to the correct location - Create new directory
-        run: mkdir -p /home/runner/.ansible/collections/ansible_collections/community
-
-      - name: Move the collection to the correct location - Move the collection
-        working-directory: /home/runner/
-        run: mv /home/runner/work/community.sap_install/community.sap_install /home/runner/.ansible/collections/ansible_collections/community
-
-#      - name: List directory /home/runner/.ansible/collections/ansible_collections/community
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/.ansible/collections/ansible_collections/community
-
-      - name: Move the collection to the correct location - Rename the directory
-        working-directory: /home/runner/
-        run: mv /home/runner/.ansible/collections/ansible_collections/community/community.sap_install /home/runner/.ansible/collections/ansible_collections/community/sap_install
-
-#      - name: List directory /home/runner/.ansible/collections/ansible_collections/community
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/.ansible/collections/ansible_collections/community
-
-#      - name: List directory /home/runner/.ansible/collections/ansible_collections/community/sap_install
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/.ansible/collections/ansible_collections/community/sap_install
-
-      - name: Run sanity tests
-        working-directory: /home/runner/.ansible/collections/ansible_collections/community/sap_install
-        run: ansible-test sanity
-
-      - name: Move the collection to its previous location
-        working-directory: /home/runner/
-        run: mv /home/runner/.ansible/collections/ansible_collections/community/sap_install /home/runner/work/community.sap_install/community.sap_install
+          ansible-core-version: ${{ matrix.ansible }}
+          testing-type: sanity
