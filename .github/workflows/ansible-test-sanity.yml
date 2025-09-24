@@ -1,5 +1,5 @@
 ---
-name: ansible-test sanity
+name: Ansible Test - Sanity
 
 on:
   schedule:
@@ -19,6 +19,8 @@ jobs:
     name: Sanity (Ⓐ${{ matrix.ansible }})
     strategy:
       fail-fast: false  # Disabled so we can see all failed combinations.
+      # Define a build matrix to test compatibility across multiple Ansible versions.
+      # Each version listed below will spawn a separate job that runs in parallel.
       matrix:
         ansible:
           - 'stable-2.14'
@@ -27,13 +29,12 @@ jobs:
           - 'stable-2.17'
           - 'stable-2.18'
           - 'stable-2.19'
-          - 'devel'  # Currently 2.20
+          - 'devel'  # Test against the upcoming development version
 
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: Perform sanity testing
+      - name: ansible-test - sanity
         uses: ansible-community/ansible-test-gh-action@release/v1
         with:
           ansible-core-version: ${{ matrix.ansible }}
