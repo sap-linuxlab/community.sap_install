@@ -39,24 +39,24 @@
 
 - name: Set filename prefix to empty string if role is run in normal mode
   ansible.builtin.set_fact:
-    assert_prefix: ""
+    __sap_netweaver_preconfigure_fact_assert_filename_prefix: ""
   when: not sap_netweaver_preconfigure_assert | d(false)
 
 - name: Prepend filename with assert string if role is run in assert mode
   ansible.builtin.set_fact:
-    assert_prefix: "assert-"
+    __sap_netweaver_preconfigure_fact_assert_filename_prefix: "assert-"
   when: sap_netweaver_preconfigure_assert | d(false)
 
 
 - name: Include tasks from 'installation.yml'
-  ansible.builtin.include_tasks: '{{ item }}/{{ assert_prefix }}installation.yml'
+  ansible.builtin.include_tasks: '{{ item }}/{{ __sap_netweaver_preconfigure_fact_assert_filename_prefix }}installation.yml'
   when: sap_netweaver_preconfigure_config_all|d(true) or sap_netweaver_preconfigure_installation|d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'
     - '{{ ansible_distribution }}'
 
 - name: Include tasks from 'configuration.yml'
-  ansible.builtin.include_tasks: '{{ item }}/{{ assert_prefix }}configuration.yml'
+  ansible.builtin.include_tasks: '{{ item }}/{{ __sap_netweaver_preconfigure_fact_assert_filename_prefix }}configuration.yml'
   when: sap_netweaver_preconfigure_config_all|d(true) or sap_netweaver_preconfigure_configuration|d(false)
   with_first_found:
     - '{{ ansible_distribution.split("_")[0] }}'
