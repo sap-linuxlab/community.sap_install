@@ -1,4 +1,7 @@
 ---
+# Always check ansible-core support matrix before configuring units matrix.
+# https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix
+
 name: Ansible Test - Sanity
 
 on:
@@ -14,23 +17,46 @@ on:
   workflow_dispatch:
 
 jobs:
-  sanity:
+  sanity-supported:
     runs-on: ubuntu-latest
-    name: Sanity (Ⓐ${{ matrix.ansible }})
+    name: Sanity (Supported Ⓐ${{ matrix.ansible }})
     strategy:
       fail-fast: false  # Disabled so we can see all failed combinations.
       # Define a build matrix to test compatibility across multiple Ansible versions.
       # Each version listed below will spawn a separate job that runs in parallel.
       matrix:
         ansible:
-          - 'stable-2.14'
-          - 'stable-2.15'
-          - 'stable-2.16'
-          - 'stable-2.17'
-          - 'stable-2.18'
-          - 'stable-2.19'
-          - 'devel'  # Test against the upcoming development version
+          # Supported versions (must pass)
+          - 'stable-2.18'  # Python 3.11 - 3.13
+          - 'stable-2.19'  # Python 3.11 - 3.13
+          - 'devel'  # Test against the upcoming development version.
+    steps:
+      - uses: actions/checkout@v5
 
+      - name: ansible-test - sanity
+        uses: ansible-community/ansible-test-gh-action@release/v1
+        with:
+          ansible-core-version: ${{ matrix.ansible }}
+          testing-type: sanity
+
+  sanity-eol:
+    runs-on: ubuntu-latest
+    # This job only runs if the supported tests pass
+    needs: sanity-supported
+    name: Sanity (EOL Ⓐ${{ matrix.ansible }})
+    continue-on-error: true  # This entire job is allowed to fail
+    strategy:
+      fail-fast: false  # Disabled so we can see all failed combinations.
+      # Define a build matrix to test compatibility across multiple Ansible versions.
+      # Each version listed below will spawn a separate job that runs in parallel.
+      matrix:
+        ansible:
+          # EOL versions (allowed to fail)
+          # NOTE: Ensure that meta/runtime.yml `requires_ansible` version is aligned with tested versions.
+          - 'stable-2.14'  # Python 3.9 - 3.11
+          - 'stable-2.15'  # Python 3.9 - 3.11
+          - 'stable-2.16'  # Python 3.10 - 3.12
+          - 'stable-2.17'  # Python 3.10 - 3.12
     steps:
       - uses: actions/checkout@v5
 
