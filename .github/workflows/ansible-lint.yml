@@ -1,12 +1,10 @@
 ---
-
-# Workflow for ansible-lint of the collection
-
-name: ansible-lint of the collection
+name: Ansible Lint - Collection
 
 on:
   schedule:
-    - cron: '31 13 * * 1'
+    # This is 03:05 UTC, which is 5:05 AM in Prague/CEST.
+    - cron: '5 3 * * 1'
 
   workflow_dispatch:
 
@@ -15,39 +13,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out the code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: Set up Python 3
-        uses: actions/setup-python@v5
+        # Use @v25 to automatically track the latest release from the year 2025.
+        # ansible-lint uses Calendar Versioning (e.g., v25.9.0 -> YYYY.MM.PATCH).
+        # Avoid using @main, which can introduce breaking changes unexpectedly.
+      - uses: ansible/ansible-lint@v25
         with:
-          python-version: '3.12'
-
-      - name: Install test dependencies
-        run: |
-          pip3 install ansible==9.1.0
-          pip3 install ansible-compat==4.1.10
-          pip3 install ansible-core==2.16.2
-          pip3 install ansible-lint==6.22.1
-
-#      - name: Install collection dependencies
-#        run: ansible-galaxy collection install community.general
-
-      - name: Move the collection to the correct location - Create new directory
-        run: mkdir -p /home/runner/.ansible/collections/ansible_collections/community
-
-      - name: Move the collection to the correct location - Move the collection
-        working-directory: /home/runner/
-        run: mv /home/runner/work/community.sap_install/community.sap_install /home/runner/.ansible/collections/ansible_collections/community
-
-      - name: Move the collection to the correct location - Rename the directory
-        working-directory: /home/runner/
-        run: mv /home/runner/.ansible/collections/ansible_collections/community/community.sap_install /home/runner/.ansible/collections/ansible_collections/community/sap_install
-
-      - name: Run ansible-lint
-        working-directory: /home/runner/.ansible/collections/ansible_collections/community/sap_install
-        run: ansible-lint
-
-      - name: Move the collection to its previous location
-        working-directory: /home/runner/
-        run: mv /home/runner/.ansible/collections/ansible_collections/community/sap_install /home/runner/work/community.sap_install/community.sap_install
+          # Use the shared requirements file from the collection root for dependency context.
+          requirements_file: ./requirements.yml

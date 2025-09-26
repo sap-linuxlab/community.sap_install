@@ -1,8 +1,5 @@
 ---
-
-# Workflow for ansible-lint of a role, using reusable workflow
-
-name: ansible-lint of the role sap_ha_pacemaker_cluster
+name: Ansible Lint - sap_ha_pacemaker_cluster
 
 on:
   push:
@@ -17,15 +14,23 @@ on:
       - dev
     paths:
       - 'roles/sap_ha_pacemaker_cluster/**'
+
   workflow_dispatch:
-    branches:
-      - main
-      - dev
-    paths:
-      - 'roles/sap_ha_pacemaker_cluster/**'
 
 jobs:
-  ansible-lint-exec:
-    uses: sap-linuxlab/community.sap_install/.github/workflows/ansible-lint-sap_reusable_workflow.yml@main
-    with:
-      role: sap_ha_pacemaker_cluster
+  ansible-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+        # Use @v25 to automatically track the latest release from the year 2025.
+        # ansible-lint uses Calendar Versioning (e.g., v25.9.0 -> YYYY.MM.PATCH).
+        # Avoid using @main, which can introduce breaking changes unexpectedly.
+      - uses: ansible/ansible-lint@v25
+        with:
+          # v25.7.0 no longer uses 'working_directory' and role path is set in 'args'.
+          # Role specific .ansible-lint can be added with argument '-c'.
+          args: roles/sap_ha_pacemaker_cluster
+          # Use the shared requirements file from the collection root for dependency context.
+          requirements_file: ./requirements.yml
