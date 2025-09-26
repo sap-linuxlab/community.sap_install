@@ -17,14 +17,14 @@
   ansible.builtin.command: >-
     {{ sap_hostagent_agent_tmp_directory }}/{{ sap_hostagent_sapcar_file_name }} \
     -xvf {{ sap_hostagent_agent_tmp_directory }}/{{ sap_hostagent_sar_file_name }} -manifest SIGNATURE.SMF
-  register: extractagent
+  register: __sap_hostagent_register_extract_saphostagent_sar
   args:
     chdir: "{{ sap_hostagent_agent_tmp_directory }}"
-  changed_when: "'SAPCAR: processing archive' in extractagent.stdout"
+  changed_when: "'SAPCAR: processing archive' in __sap_hostagent_register_extract_saphostagent_sar.stdout"
 
 - name: Install SAPHOSTAGENT
   ansible.builtin.command: "{{ sap_hostagent_agent_tmp_directory }}/saphostexec -install"
-  register: installagent
+  register: __sap_hostagent_register_install_saphostagent_sar
   args:
     chdir: "{{ sap_hostagent_agent_tmp_directory }}"
-  changed_when: "'Install service' in installagent.stdout"
+  changed_when: "'Install service' in __sap_hostagent_register_install_saphostagent_sar.stdout"
