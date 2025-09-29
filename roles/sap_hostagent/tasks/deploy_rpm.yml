@@ -8,16 +8,18 @@
     mode: '0755'
   when: sap_hostagent_rpm_local_path is defined
 
+# disable_gpg_check is not package parameter,
+# but it is recognized by underlying package manager
 - name: Ensure RPM file is installed
-  ansible.builtin.yum:
+  ansible.builtin.package:
     name: "{{ sap_hostagent_agent_tmp_directory }}/{{ sap_hostagent_rpm_file_name }}"
     state: present
-    disable_gpg_check: yes
+    disable_gpg_check: true
   when: sap_hostagent_rpm_local_path is defined
 
 - name: Ensure RPM file is installed
-  ansible.builtin.yum:
+  ansible.builtin.package:
     name: "{{ sap_hostagent_rpm_remote_path }}/{{ sap_hostagent_rpm_file_name }}"
     state: present
-    disable_gpg_check: yes
+    disable_gpg_check: true
   when: sap_hostagent_rpm_remote_path is defined
