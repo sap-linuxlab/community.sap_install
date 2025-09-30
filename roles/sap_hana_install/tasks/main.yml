@@ -5,7 +5,7 @@
 # Check if variable is defined and non-empty before using it, otherwise fall back to backwards
 # compatible variable or default empty string that will fail asserts afterwards.
 # NOTE: This is not __var assignment so it will not override user specified vars due to precedence!
-- name: Rename some variables used by hdblcm configfile
+- name: Set mandatory variables used by hdblcm configfile
   ansible.builtin.set_fact:
     sap_hana_install_sid:
       "{{ sap_hana_sid | d('')
@@ -25,7 +25,7 @@
     - sap_hana_install_configure_firewall
 
 # Separate task for password with no_log
-- name: Rename some variables used by hdblcm configfile - passwords
+- name: Set mandatory variables used by hdblcm configfile - passwords
   ansible.builtin.set_fact:
     sap_hana_install_master_password:
       "{{ sap_hana_install_common_master_password | d('')
@@ -41,7 +41,7 @@
 
 - name: Validate the role variables
   ansible.builtin.include_tasks:
-    file: assert_variables.yml
+    file: pre_tasks/assert_variables.yml
   tags:
     - sap_hana_install_check_hana_exists
     - sap_hana_install_check_installation
@@ -60,7 +60,7 @@
 # SAP HANA presence has to be validated for both new system and adding new hosts.
 - name: Validate presence of existing SAP HANA database
   ansible.builtin.include_tasks:
-    file: hana_exists.yml
+    file: pre_tasks/hana_exists.yml
   when:
     - (sap_hana_install_new_system and not sap_hana_install_force)
       or not sap_hana_install_new_system
@@ -71,43 +71,70 @@
 
 - name: Ensure SAP HANA is running for existing systems or addhosts operations
   ansible.builtin.include_tasks:
-    file: hana_start.yml
+    file: pre_tasks/hana_start.yml
   when: __sap_hana_install_fact_is_installed | d(false)
+
+
+- name: Validate connection to provided addhosts
+  ansible.builtin.include_tasks:
+    file: pre_tasks/check_addhosts.yml
+  when:
+    - sap_hana_install_addhosts is defined
+    - sap_hana_install_addhosts is string
+    - sap_hana_install_addhosts | trim | length > 0
+
+# The list is used for all configuration tasks.
+# Ensures that current managed node is included for all configuration tasks.
+- name: Set fact with list of all hostnames
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_all_hosts:
+      "{{ __sap_hana_install_fact_addhosts_hosts | d([]) + [inventory_hostname_short | d('')] | unique }}"
 
 
 # Instructions for separating tasks to achieve idempotency:
 # - Installation - Run once for new installations, never repeated.
 # - Configuration - Run always to ensure idempotent outcome.
 
-# Pre-installation currently does not contain configuration tasks, which would require idempotency.
-# Executed for new installations and addhosts, because addhosts configfile creation is included.
-- name: SAP HANA pre-install steps
-  ansible.builtin.include_tasks:
-    file: pre_install.yml
-  tags: sap_hana_install_preinstall
-  when:
-    - (sap_hana_install_new_system and not __sap_hana_install_fact_is_installed | d(false))
-      or not sap_hana_install_new_system
+- name: Block for Installation tasks
+  when: sap_hana_install_new_system
+  block:
+    - name: SAP HANA - Install - Pre-Tasks
+      ansible.builtin.include_tasks:
+        file: pre_install.yml
+      tags: sap_hana_install_preinstall
+      when: not __sap_hana_install_fact_is_installed | d(false)
 
-# Installation currently does not contain configuration tasks, which would require idempotency.
-# Executed only for new installations.
-- name: SAP HANA installation steps
-  ansible.builtin.include_tasks:
-    file: hana_install.yml
-  when:
-    - not __sap_hana_install_fact_is_installed | d(false)
-    - sap_hana_install_new_system
+    - name: SAP HANA - Install
+      ansible.builtin.include_tasks:
+        file: hana_install.yml
+      when:
+        - not __sap_hana_install_fact_is_installed | d(false)
 
-# Executed only for addhosts.
-- name: SAP HANA addhosts steps
-  ansible.builtin.include_tasks:
-    file: hana_addhosts.yml
+    - name: SAP HANA - Install - Post-tasks
+      ansible.builtin.include_tasks:
+        file: post_install.yml
+
+
+# hana_exists already fails if HANA is not detected.
+- name: Block for Addhosts tasks
   when:
-    - __sap_hana_install_fact_is_installed | d(false)
     - not sap_hana_install_new_system
+    - __sap_hana_install_fact_is_installed | d(false)
+  block:
+    # Execute only if new hosts are to be added.
+    - name: SAP HANA - Addhosts - Pre-Tasks
+      ansible.builtin.include_tasks:
+        file: pre_addhosts.yml
+      when: __sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0
+      tags: sap_hana_install_preinstall
 
-# Post-installation contains both installation and configuration tasks.
-# Executed for new or existing installations and addhosts.
-- name: SAP HANA post-install steps
-  ansible.builtin.include_tasks:
-    file: post_install.yml
+    - name: SAP HANA - Addhosts
+      ansible.builtin.include_tasks:
+        file: hana_addhosts.yml
+      when: __sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0
+
+    - name: SAP HANA - Addhosts - Post-tasks
+      ansible.builtin.include_tasks:
+        file: post_addhosts.yml
+
+# TODO: Check hosts in post_install and compare against addhosts string, then debug explanation!

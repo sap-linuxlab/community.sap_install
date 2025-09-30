@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP HANA hdblcm installation check - Create a Jinja2 template from the hdblcm xml configfile template
+- name: SAP HANA - Post-Tasks - Create a Jinja2 template from the hdblcm xml configfile template
   ansible.builtin.shell: |
     set -o pipefail &&
     awk '
@@ -11,24 +11,24 @@
   register: __sap_hana_install_create_jinja2_template
   changed_when: false
 
-- name: SAP HANA hdblcm installation check - Display the location of the remote Jinja2 template
+- name: SAP HANA - Post-Tasks - Display the location of the remote Jinja2 template
   ansible.builtin.debug:
     msg: |
       The Jinja2 template for creating the hdblcm configfile xml has been saved to
       '{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.xml.j2'.
 
-- name: SAP HANA hdblcm installation check - Download the Jinja2 template
+- name: SAP HANA - Post-Tasks - Download the Jinja2 template
   ansible.builtin.fetch:
     src: "{{ sap_hana_install_configfile_directory }}/{{ sap_hana_install_configfile_template_prefix }}.xml.j2"
     dest: "{{ sap_hana_install_local_configfile_directory }}"
   register: __sap_hana_install_register_fetch_hdblcm_configfile_xml_jinja2_template
 
-- name: SAP HANA hdblcm installation check - Display the location of the local Jinja2 template
+- name: SAP HANA - Post-Tasks - Display the location of the local Jinja2 template
   ansible.builtin.debug:
     msg: "The Jinja2 template has been downloaded to '{{ __sap_hana_install_register_fetch_hdblcm_configfile_xml_jinja2_template.dest }}'."
   when: not ansible_check_mode
 
-- name: SAP HANA hdblcm installation check - Process the Jinja2 template to create the hdblcm xml configfile
+- name: SAP HANA - Post-Tasks - Process the Jinja2 template to create the hdblcm xml configfile
   ansible.builtin.template:
     src: "{{ __sap_hana_install_register_fetch_hdblcm_configfile_xml_jinja2_template.dest }}"
     dest: "{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg.xml"
@@ -36,7 +36,7 @@
   register: __sap_hana_install_register_cftemplate
   when: not ansible_check_mode
 
-- name: SAP HANA hdblcm installation check - Construct an hdbcheck command line
+- name: SAP HANA - Post-Tasks - Construct an hdbcheck command line
   ansible.builtin.set_fact:
     __sap_hana_install_fact_installation_check_command: "set -o pipefail && ./hdbcheck -b --read_password_from_stdin=xml
       --property_file={{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/global/hdb/install/support/hdbcheck.xml
@@ -45,19 +45,20 @@
       -b < {{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg.xml"
   when: sap_hana_install_use_hdbcheck | d(true)
 
-- name: SAP HANA hdblcm installation check - Construct an hdblcm command line
+- name: SAP HANA - Post-Tasks - Construct an hdblcm command line
   ansible.builtin.set_fact:
     __sap_hana_install_fact_installation_check_command: "set -o pipefail && ./hdblcm --action=check_installation
       --read_password_from_stdin=xml
       -b < {{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg.xml"
   when: not sap_hana_install_use_hdbcheck | d(true)
 
-- name: SAP HANA hdblcm installation check - Display the command line
+- name: SAP HANA - Post-Tasks - Display the command line
   ansible.builtin.debug:
-    var: __sap_hana_install_fact_installation_check_command
+    msg: "{{ __sap_hana_install_fact_installation_check_command }}"
+  when: __sap_hana_install_fact_installation_check_command is defined
 
 # Reason for noqa: The command to be executed contains input redirection
-- name: SAP HANA hdblcm installation check with hdbcheck - Perform the check # noqa command-instead-of-shell
+- name: SAP HANA - Post-Tasks - hdbcheck - Perform the check # noqa command-instead-of-shell
   ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
   args:
     chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/global/hdb/install/bin"
@@ -65,13 +66,15 @@
   changed_when: false
   when: sap_hana_install_use_hdbcheck | d(true)
 
-- name: SAP HANA hdblcm installation check with hdbcheck - Display the result
+- name: SAP HANA - Post-Tasks - hdbcheck - Display the result
   ansible.builtin.debug:
-    var: __sap_hana_install_register_installation_check.stdout_lines
-  when: sap_hana_install_use_hdbcheck | d(true)
+    msg: "{{ __sap_hana_install_register_installation_check.stdout_lines }}"
+  when:
+    - sap_hana_install_use_hdbcheck | d(true)
+    - __sap_hana_install_register_installation_check.stdout_lines is defined
 
 # Reason for noqa: The command to be executed contains input redirection
-- name: SAP HANA hdblcm installation check with hdblcm - Perform the check # noqa command-instead-of-shell
+- name: SAP HANA - Post-Tasks - hdblcm - Perform the check # noqa command-instead-of-shell
   ansible.builtin.shell: "{{ __sap_hana_install_fact_installation_check_command }}"
   args:
     chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/hdblcm"
@@ -79,7 +82,9 @@
   changed_when: false
   when: not sap_hana_install_use_hdbcheck | d(true)
 
-- name: SAP HANA hdblcm installation check with hdblcm - Display the result
+- name: SAP HANA - Post-Tasks - hdblcm - Display the result
   ansible.builtin.debug:
-    var: __sap_hana_install_register_installation_check.stdout_lines
-  when: not sap_hana_install_use_hdbcheck | d(true)
+    msg: "{{ __sap_hana_install_register_installation_check.stdout_lines }}"
+  when:
+    - not sap_hana_install_use_hdbcheck | d(true)
+    - __sap_hana_install_register_installation_check.stdout_lines is defined

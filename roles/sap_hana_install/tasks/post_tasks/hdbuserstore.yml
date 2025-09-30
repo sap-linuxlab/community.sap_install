@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP HANA Post Install - Create and Store Connection Info in hdbuserstore
+- name: SAP HANA - Post-Tasks - Create and Store Connection Info in hdbuserstore
   ansible.builtin.shell: |
       /usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbuserstore \
       SET {{ sap_hana_install_hdbuserstore_key }} \
@@ -16,7 +16,8 @@
   register: __sap_hana_install_store_connection_information
   tags: sap_hana_install_store_connection_information
 
-- name: SAP HANA Post Install - Display the output of hdbuserstore
+- name: SAP HANA - Post-Tasks - Display the output of hdbuserstore
   ansible.builtin.debug:
-    var: __sap_hana_install_store_connection_information.stdout_lines
+    msg: "{{ __sap_hana_install_store_connection_information.stdout_lines }}"
   tags: sap_hana_install_store_connection_information
+  when: __sap_hana_install_store_connection_information.stdout_lines is defined

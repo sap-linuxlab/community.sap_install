@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+### Addhosts variables:
+# __sap_hana_install_fact_addhosts_hosts
+# - The list of all valid hostnames in addhosts string.
+# - Used only for setting '__sap_hana_install_fact_addhosts_hosts_new' and '__sap_hana_install_fact_all_hosts'.
+
+# __sap_hana_install_fact_addhosts_hosts_new
+# - The list of all valid hostnames in addhosts string without host with existing profiles or directories.
+# - Used for replacing addhosts string in hdblcm configfile.
+
+# __sap_hana_install_fact_all_hosts
+# - The list of all valid hostnames in addhosts string including Managed node.
+# - Used for running all configuration tasks for idempotency.
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Set fact with list of additional hostnames
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_addhosts_hosts:
+      "{{ sap_hana_install_addhosts.split(',') | map('trim') | reject('equalto', '') | map('regex_replace', ':.*$', '') | list }}"
+    __sap_hana_install_fact_addhosts_hosts_new: []
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Assert that the variable 'sap_hana_install_addhosts' is valid addhosts string
+  ansible.builtin.assert:
+    that:
+      - __sap_hana_install_fact_addhosts_hosts | length > 0
+    success_msg: |
+      PASS: The variable 'sap_hana_install_addhosts' contains valid addhosts string.
+      Additional hosts: {{ __sap_hana_install_fact_addhosts_hosts | join(', ') }}
+    fail_msg: |
+      FAIL: The variable 'sap_hana_install_addhosts' is not valid addhosts string.
+      Examples:
+      sap_hana_install_addhosts: "hanaworker1,hanaworker2"
+      sap_hana_install_addhosts: "hanaworker1:role=worker,hanaworker2:role=worker"
+
+
+# Check for existing addhosts profiles and folders before removing them from list.
+- name: SAP HANA - Addhosts - Pre-Tasks - Find existing instance profiles for all hosts
+  ansible.builtin.find:
+    paths: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/profile/"
+    patterns: "{{ sap_hana_install_sid }}_HDB{{ sap_hana_install_number }}_*"
+    file_type: file
+  register: __sap_hana_install_register_existing_profiles
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Set fact with list of existing hosts with instance profiles
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_existing_hosts_profile:
+      "{{ __sap_hana_install_register_existing_profiles.files | map(attribute='path') | map('basename')
+        | map('regex_replace', '^' + sap_hana_install_sid + '_HDB' + sap_hana_install_number + '_', '') | list }}"
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Find existing instance directories for all hosts
+  ansible.builtin.find:
+    paths: "/usr/sap/{{ sap_hana_install_sid }}/HDB{{ sap_hana_install_number }}/"
+    patterns: "*"
+    file_type: directory
+  register: __sap_hana_install_register_existing_dirs
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Set fact with list of existing hosts with instance directories
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_existing_hosts_dirs:
+      "{{ __sap_hana_install_register_existing_dirs.files | map(attribute='path') | map('basename') | list }}"
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Set fact with list of new hosts without existing profiles or directories
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_addhosts_hosts_new: >-
+      {{
+        __sap_hana_install_fact_addhosts_hosts |
+        difference(
+          __sap_hana_install_fact_existing_hosts_profile | union(__sap_hana_install_fact_existing_hosts_dirs)
+        )
+      }}
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Show lists of hosts to be added
+  ansible.builtin.debug:
+    msg: "New hosts will be added: {{ __sap_hana_install_fact_addhosts_hosts_new | join(', ') }}"
+  when: __sap_hana_install_fact_addhosts_hosts_new | length > 0
+
+
+# Test SSH connection from managed node to addhosts hosts is not implemented because
+# all configuration tasks must come from Control node, not pass through Managed node to addhosts.
+- name: SAP HANA - Addhosts - Pre-Tasks - Verify SSH connectivity from control node to each additional host
+  ansible.builtin.wait_for_connection:
+    timeout: 30
+  loop: "{{ __sap_hana_install_fact_addhosts_hosts_new }}"
+  delegate_to: "{{ item }}"
+  run_once: true
+  when: __sap_hana_install_fact_addhosts_hosts_new | length > 0

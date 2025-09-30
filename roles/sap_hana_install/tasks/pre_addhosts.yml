@@ -1,0 +1,138 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Delegate tasks are not executed on existing Addhosts to avoid
+# potential issues with existing SAP HANA installations.
+
+
+# Get details of user 'sapadm' and group 'sapsys' on current node.
+- name: SAP HANA - Addhosts - Pre-Tasks - Get details of the 'sapsys' group
+  ansible.builtin.getent:
+    database: group
+    key: sapsys
+  failed_when: false
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Get info about user 'sapadm'
+  ansible.builtin.getent:
+    database: passwd
+    key: sapadm
+  failed_when: false
+
+# hana_exists already found existing database, this is additional check.
+# getent_group['sapsys'][1] and getent_passwd['sapadm'][2] are Group ID.
+- name: SAP HANA - Addhosts - Pre-Tasks - Assert that user 'sapadm' is present with group 'sapsys'
+  ansible.builtin.assert:
+    that:
+      - "'sapsys' in getent_group"
+      - "'sapadm' in getent_passwd"
+      # Ensure sapadm user is assigned to sapsys group
+      - getent_group['sapsys'][1] == getent_passwd['sapadm'][2]
+    fail_msg: >-
+      FAIL: User 'sapadm' with group 'sapsys' does not exist!
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Generate password hash for 'sap_hana_install_sapadm_password'
+  ansible.builtin.shell:
+    cmd: "set -o pipefail && echo '{{ sap_hana_install_sapadm_password | d(sap_hana_install_master_password) }}' | openssl passwd -6 -stdin"
+  register: __sap_hana_install_register_sapadm_password_hash
+  no_log: true
+  changed_when: false
+  check_mode: false
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Create user 'sapadm' with group 'sapsys' on new hosts
+  ansible.builtin.include_tasks:
+    file: pre_tasks/create_users_groups.yml
+  loop: "{{ __sap_hana_install_fact_addhosts_hosts_new }}"
+  loop_control:
+    loop_var: target_host
+
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Install and disable fapolicyd
+  ansible.builtin.include_tasks:
+    file: pre_tasks/fapolicyd.yml
+  loop: "{{ __sap_hana_install_fact_addhosts_hosts_new }}"
+  loop_control:
+    loop_var: target_host
+  when:
+    # Ensure fapolicyd is checked only on supported systems.
+    - ansible_os_family == "RedHat"
+  tags: sap_hana_install_use_fapolicyd
+
+
+# Update HANA directory permissions
+- name: SAP HANA - Addhosts - Pre-Tasks - Change ownership of HANA directories
+  ansible.builtin.include_tasks:
+    file: pre_tasks/hana_directory_permissions.yml
+  loop: "{{ __sap_hana_install_fact_addhosts_hosts_new }}"
+  loop_control:
+    loop_var: target_host
+  tags: sap_hana_install_chown_hana_directories
+
+
+# Configure SElinux
+- name: SAP HANA - Addhosts - Pre-Tasks - Configure SELinux file contexts for {{ sap_hana_install_root_path }}
+  ansible.builtin.include_tasks:
+    file: pre_tasks/selinux.yml
+  loop: "{{ __sap_hana_install_fact_addhosts_hosts_new }}"
+  loop_control:
+    loop_var: target_host
+  when: sap_hana_install_modify_selinux_labels
+
+
+# Validate and prepare software directory
+# For an addhosts operation, we first use the hdblcm command for creating a new configfile template, which
+# we then process with the templating engine. The actual addhosts installation is done via the resident hdblcm.
+# Non-resident hdblcm is used to avoid issues when attempting to generate configfile with resident hdblcm.
+
+# 'sap_hana_install_software_extract_directory' is required for configfile creation.
+- name: SAP HANA - Addhosts - Pre-Tasks - Get status of the directory '{{ sap_hana_install_software_extract_directory }}'
+  ansible.builtin.stat:
+    path: "{{ sap_hana_install_software_extract_directory }}"
+  check_mode: false
+  register: __sap_hana_install_register_stat_extract_directory
+  failed_when: false
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Fail if '{{ sap_hana_install_software_extract_directory }}' does not exist
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The directory {{ sap_hana_install_software_extract_directory }} does not exist.
+      Path must be defined in the variable 'sap_hana_install_software_extract_directory'.
+  when: not __sap_hana_install_register_stat_extract_directory.stat.exists
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Find directory 'SAP_HANA_DATABASE' in '{{ sap_hana_install_software_extract_directory }}'
+  ansible.builtin.find:
+    paths: "{{ sap_hana_install_software_extract_directory }}"
+    recurse: true
+    file_type: directory
+    patterns: 'SAP_HANA_DATABASE'
+  register: __sap_hana_install_register_find_directory_sap_hana_database_addhosts
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Fail if directory 'SAP_HANA_DATABASE' does not exist in '{{ sap_hana_install_software_extract_directory }}'
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The directory {{ sap_hana_install_software_extract_directory }} does not contain directory 'SAP_HANA_DATABASE'.
+  when: __sap_hana_install_register_find_directory_sap_hana_database_addhosts.files | length == 0
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Set fact for 'hdblcm' installer directory, addhosts
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_hdblcm_path: "{{ __sap_hana_install_register_find_directory_sap_hana_database_addhosts.files[0].path }}"
+
+
+# Create temporary directory and hdblcm configuration file.
+- name: SAP HANA - Addhosts - Pre-Tasks - Create temporary directory to store various files
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: hanaconfig
+  register: __sap_hana_install_register_tmpdir
+  tags:
+    - sap_hana_install_hdblcm_commandline
+    - sap_hana_install_check_installation
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Fill variable __sap_hana_install_register_tmpdir for check mode only
+  ansible.builtin.set_fact:
+    __sap_hana_install_register_tmpdir:
+      path: '/tmp'
+  when: ansible_check_mode
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Process the hdblcm configfile
+  ansible.builtin.include_tasks:
+    file: pre_tasks/hdblcm_configfile.yml

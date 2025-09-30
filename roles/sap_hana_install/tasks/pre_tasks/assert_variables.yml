@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: Assert that the variable 'sap_hana_install_sid' is defined as String consisting of 3 characters
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_sid' is defined as String consisting of 3 characters
   ansible.builtin.assert:
     that:
       - sap_hana_install_sid is defined
@@ -18,7 +18,7 @@
         FAIL: The length of SAP HANA System ID '{{ sap_hana_install_sid }}' is not 3 characters!
       {% endif %}
 
-- name: Assert that the variable 'sap_hana_install_sid' is not in the list of reserved SAP SIDs
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_sid' is not in the list of reserved SAP SIDs
   ansible.builtin.assert:
     that: sap_hana_install_sid not in __sap_hana_install_sid_prohibited
     success_msg: |
@@ -44,7 +44,7 @@
         FAIL: The SAP HANA Instance Number '{{ sap_hana_install_number }}' is not 2 digits!
       {% endif %}
 
-- name: Assert that the variable 'sap_hana_install_master_password' is defined as String and not empty
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_master_password' is defined as String and not empty
   ansible.builtin.assert:
     that:
       - sap_hana_install_master_password is defined
@@ -62,7 +62,7 @@
       {% endif %}
 
 
-- name: Assert that the variable 'sap_hana_install_addhosts' is defined as String and not empty
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_addhosts' is defined as String and not empty
   ansible.builtin.assert:
     that:
       - sap_hana_install_addhosts is defined
@@ -78,5 +78,6 @@
       {% else %}
         FAIL: The variable 'sap_hana_install_addhosts' is empty.
       {% endif %}
+        This variable is required when 'sap_hana_install_new_system' is set to false.
   when:
     - not sap_hana_install_new_system

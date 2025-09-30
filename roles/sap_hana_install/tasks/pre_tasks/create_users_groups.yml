@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# This task is required only for addhosts operation, because it requires
+# user 'sapadm' to be present on addhosts with correct password.
+# Addhosts operation does not use root SSH, but sapadm SSH instead.
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Create 'sapsys' group on new host
+  ansible.builtin.group:
+    name: sapsys
+    gid: "{{ getent_group['sapsys'][1] }}"
+    state: present
+  delegate_to: "{{ target_host }}"
+  become: true
+
+# User 'sidadm' is not required for addhosts, only sapadm user.
+- name: SAP HANA - Addhosts - Pre-Tasks - Create 'sapadm' user on new host
+  ansible.builtin.user:
+    name: sapadm
+    uid: "{{ getent_passwd['sapadm'][1] }}"
+    home: "{{ getent_passwd['sapadm'][4] }}"
+    shell: "{{ getent_passwd['sapadm'][5] }}"
+    groups: sapsys
+    append: true
+    state: present
+    password: "{{ __sap_hana_install_register_sapadm_password_hash.stdout }}"
+  delegate_to: "{{ target_host }}"
+  become: true

@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP HANA - Pre-Tasks - Change ownership of HANA directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - '{{ sap_hana_install_root_path }}'
+    - '{{ sap_hana_install_shared_path }}'
+    - '{{ sap_hana_install_root_path }}/log'
+    - '{{ sap_hana_install_root_path }}/data'
+  delegate_to: "{{ target_host }}"

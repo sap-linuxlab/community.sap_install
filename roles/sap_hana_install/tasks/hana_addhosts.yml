@@ -1,31 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP HANA Add Hosts - Fill new variable __sap_hana_install_addhosts_hosts
-  ansible.builtin.set_fact:
-    __sap_hana_install_addhosts_hosts: "{{ __sap_hana_install_addhosts_hosts | d([]) + [item.split(':')[0]] }}"
-  with_items: "{{ sap_hana_install_addhosts.split(',') }}"
-
-- name: SAP HANA Add Hosts - Show the contents of __sap_hana_install_addhosts_hosts
-  ansible.builtin.debug:
-    var: __sap_hana_install_addhosts_hosts
-
-- name: SAP HANA Add Hosts - Show the additional hosts to be added
-  ansible.builtin.debug:
-    msg: "Additional hosts: '{{ __sap_hana_install_addhosts_hosts }}'"
-
-- name: SAP HANA Add Hosts - Make sure the additional hosts are not yet part of the exiting SAP HANA system - file checks
-  ansible.builtin.include_tasks: assert-addhosts-loop-block.yml
-  loop: "{{ __sap_hana_install_addhosts_hosts }}"
-  loop_control:
-    loop_var: line_item
-
-- name: SAP HANA Add Hosts - Make sure the additional hosts are not yet part of the exiting SAP HANA system - hdblcm checks
+- name: SAP HANA - Addhosts - Make sure the additional hosts are not yet part of the exiting SAP HANA system - hdblcm checks
   when: not ansible_check_mode
   block:
 
 # Reason for noqa: We can safely fail at the last command in the pipeline.
-    - name: SAP HANA Add Hosts - Run 'hdblcm --list_systems' # noqa risky-shell-pipe
+    - name: SAP HANA - Addhosts - Run 'hdblcm --list_systems' # noqa risky-shell-pipe
       ansible.builtin.shell: |
         ./hdblcm --list_systems | awk '/\/hana\/shared\/{{ sap_hana_install_sid }}/{a=1}
           /hosts:/{if (a==1){
@@ -36,22 +17,22 @@
       register: __sap_hana_install_register_hdblcm_list_systems
       changed_when: false
 
-    - name: SAP HANA Add Hosts - Show the output of hdblcm --list_systems
+    - name: SAP HANA - Addhosts - Show the output of hdblcm --list_systems
       ansible.builtin.debug:
-        var: __sap_hana_install_register_hdblcm_list_systems
+        msg: "{{ __sap_hana_install_register_hdblcm_list_systems.stdout_lines }}"
 
-    - name: SAP HANA Add Hosts - Assert that the additional hosts are not shown in hdblcm --list_systems
+    - name: SAP HANA - Addhosts - Assert that the additional hosts are not shown in hdblcm --list_systems
       ansible.builtin.assert:
         that: line_item not in __sap_hana_install_register_hdblcm_list_systems.stdout
         fail_msg: >-
           FAIL: The host '{{ line_item }}' is already part of system '{{ sap_hana_install_sid }}'
           and addhosts operation will not be performed.
         success_msg: "PASS: Host '{{ line_item }}' is not yet part of system '{{ sap_hana_install_sid }}'."
-      loop: "{{ __sap_hana_install_addhosts_hosts }}"
+      loop: "{{ __sap_hana_install_fact_addhosts_hosts }}"
       loop_control:
         loop_var: line_item
 
-- name: SAP HANA Add Hosts - Set fact for hdblcm command line
+- name: SAP HANA - Addhosts - Set fact for hdblcm command line
   ansible.builtin.set_fact:
     __sap_hana_install_hdblcm_command: "./hdblcm {{ sap_hana_install_hdblcm_extraargs | d('') }}
             --action=add_hosts
@@ -60,12 +41,12 @@
             -b"
   tags: sap_hana_install_hdblcm_commandline
 
-- name: SAP HANA Add Hosts - Show the hdblcm addhosts command line
+- name: SAP HANA - Addhosts - Show the hdblcm addhosts command line
   ansible.builtin.debug:
     msg: "SAP HANA addhosts command: '{{ __sap_hana_install_hdblcm_command }}'"
   tags: sap_hana_install_hdblcm_commandline
 
-- name: SAP HANA Add Hosts - Add hosts to the existing SAP HANA installation
+- name: SAP HANA - Addhosts - Add hosts to the existing SAP HANA installation
   ansible.builtin.command: "{{ __sap_hana_install_hdblcm_command }}"
   register: __sap_hana_install_register_hdblcm_add_hosts
   args:
@@ -73,12 +54,14 @@
   changed_when: "'SAP HANA Lifecycle Management' in __sap_hana_install_register_hdblcm_add_hosts.stdout"
   when: not ansible_check_mode
 
-- name: SAP HANA Add Hosts - Show the result of hdblcm add_hosts
+- name: SAP HANA - Addhosts - Show the result of hdblcm add_hosts
   ansible.builtin.debug:
-    var: __sap_hana_install_register_hdblcm_add_hosts.stdout
-  when: not ansible_check_mode
+    msg: "{{ __sap_hana_install_register_hdblcm_add_hosts.stdout }}"
+  when:
+    - not ansible_check_mode
+    - __sap_hana_install_register_hdblcm_add_hosts.stdout is defined
 
-- name: SAP HANA Add Hosts - Run 'hdblcm --list_systems' after the installation
+- name: SAP HANA - Addhosts - Run 'hdblcm --list_systems' after the installation
   ansible.builtin.shell: |
       set -o pipefail && ./hdblcm --list_systems | awk '/\/hana\/shared\/{{ sap_hana_install_sid }}/{a=1}
       /version:/{if (a==1){
@@ -93,7 +76,7 @@
   changed_when: false
   when: not ansible_check_mode
 
-- name: SAP HANA Add Hosts - Show the HANA version and hosts
+- name: SAP HANA - Addhosts - Show the HANA version and hosts
   ansible.builtin.debug:
     msg: "HANA system '{{ sap_hana_install_sid }}': {{ __sap_hana_install_register_addhosts_result.stdout }}"
   when: not ansible_check_mode

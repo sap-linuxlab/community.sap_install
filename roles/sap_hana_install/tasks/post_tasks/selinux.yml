@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# This configuration includes also Pre-Tasks content to ensure they are all set same.
+- name: SAP HANA - Post-Tasks - Configure 'sap_hana_install_root_path' SELinux file contexts
+  ansible.builtin.include_role:
+    name: '{{ sap_hana_install_system_roles_collection }}.selinux'
+  vars:
+    selinux_booleans:
+      - { name: 'selinuxuser_execmod', state: 'on' }
+    selinux_fcontexts:
+      - { target: '{{ sap_hana_install_root_path }}(/.*)?', setype: 'usr_t' }
+      - { target: '/usr/sap(/.*)?', setype: 'usr_t' }
+    selinux_restore_dirs:
+      - '{{ sap_hana_install_root_path }}'
+      - /usr/sap
+  delegate_to: "{{ target_host }}"
