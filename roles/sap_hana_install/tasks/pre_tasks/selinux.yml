@@ -1,14 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP HANA - Pre-Tasks - Configure 'sap_hana_install_root_path' SELinux file contexts
-  ansible.builtin.include_role:
-    name: '{{ sap_hana_install_system_roles_collection }}.selinux'
-  vars:
-    selinux_booleans:
-      - { name: 'selinuxuser_execmod', state: 'on' }
-    selinux_fcontexts:
-      - { target: '{{ sap_hana_install_root_path }}(/.*)?', setype: 'usr_t' }
-    selinux_restore_dirs:
-      - '{{ sap_hana_install_root_path }}'
+- name: Block for delegation
   delegate_to: "{{ target_host }}"
+  block:
+    - name: SAP HANA - Pre-Tasks - Configure 'sap_hana_install_root_path' SELinux file contexts
+      ansible.builtin.include_role:
+        name: '{{ sap_hana_install_system_roles_collection }}.selinux'
+      vars:
+        selinux_booleans:
+          - { name: 'selinuxuser_execmod', state: 'on' }
+        selinux_fcontexts:
+          - { target: '{{ sap_hana_install_root_path }}(/.*)?', setype: 'usr_t' }
+        selinux_restore_dirs:
+          - '{{ sap_hana_install_root_path }}'
