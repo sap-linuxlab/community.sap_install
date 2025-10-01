@@ -2,6 +2,16 @@
 ---
 
 # Execute only on new addhosts, if present.
+- name: SAP HANA - Addhosts - Post-Tasks - Store connection information
+  ansible.builtin.include_tasks:
+    file: post_tasks/hdbuserstore.yml
+  loop: "{{ __sap_hana_install_fact_addhosts_hosts_new }}"
+  loop_control:
+    loop_var: target_host
+  when:
+    - __sap_hana_install_fact_addhosts_hosts_new | length > 0
+  tags: sap_hana_install_store_connection_information
+
 - name: SAP HANA - Addhosts - Post-Tasks - Set user expiration
   ansible.builtin.include_tasks:
     file: post_tasks/user_expiration.yml

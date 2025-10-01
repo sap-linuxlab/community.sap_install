@@ -1,23 +1,26 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP HANA - Post-Tasks - Create and Store Connection Info in hdbuserstore
-  ansible.builtin.shell: |
-      /usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbuserstore \
-      SET {{ sap_hana_install_hdbuserstore_key }} \
-      {{ ansible_hostname }}:3{{ sap_hana_install_number }}13 \
-      SYSTEM '{{ sap_hana_install_db_system_password | d(sap_hana_install_master_password) }}'
-  args:
-    executable: /bin/bash
-  become: true
-  become_user: "{{ sap_hana_install_sid | lower }}adm"
-  when: not ansible_check_mode
-  changed_when: false
-  register: __sap_hana_install_store_connection_information
-  tags: sap_hana_install_store_connection_information
+- name: Block to delegate_to all tasks
+  delegate_to: "{{ target_host }}"
+  block:
+    - name: SAP HANA - Post-Tasks - Create and Store Connection Info in hdbuserstore
+      ansible.builtin.shell: |
+          /usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbuserstore \
+          SET {{ sap_hana_install_hdbuserstore_key }} \
+          {{ ansible_hostname }}:3{{ sap_hana_install_number }}13 \
+          SYSTEM '{{ sap_hana_install_db_system_password | d(sap_hana_install_master_password) }}'
+      args:
+        executable: /bin/bash
+      become: true
+      become_user: "{{ sap_hana_install_sid | lower }}adm"
+      when: not ansible_check_mode
+      changed_when: false
+      register: __sap_hana_install_store_connection_information
+      tags: sap_hana_install_store_connection_information
 
-- name: SAP HANA - Post-Tasks - Display the output of hdbuserstore
-  ansible.builtin.debug:
-    msg: "{{ __sap_hana_install_store_connection_information.stdout_lines }}"
-  tags: sap_hana_install_store_connection_information
-  when: __sap_hana_install_store_connection_information.stdout_lines is defined
+    - name: SAP HANA - Post-Tasks - Display the output of hdbuserstore
+      ansible.builtin.debug:
+        msg: "{{ __sap_hana_install_store_connection_information.stdout_lines }}"
+      tags: sap_hana_install_store_connection_information
+      when: __sap_hana_install_store_connection_information.stdout_lines is defined

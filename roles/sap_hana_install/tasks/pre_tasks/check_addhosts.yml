@@ -1,24 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-### Addhosts variables:
-# __sap_hana_install_fact_addhosts_hosts
-# - The list of all valid hostnames in addhosts string.
-# - Used only for setting '__sap_hana_install_fact_addhosts_hosts_new' and '__sap_hana_install_fact_all_hosts'.
-
-# __sap_hana_install_fact_addhosts_hosts_new
-# - The list of all valid hostnames in addhosts string without host with existing profiles or directories.
-# - Used for replacing addhosts string in hdblcm configfile.
-
-# __sap_hana_install_fact_all_hosts
-# - The list of all valid hostnames in addhosts string including Managed node.
-# - Used for running all configuration tasks for idempotency.
-
 - name: SAP HANA - Addhosts - Pre-Tasks - Set fact with list of additional hostnames
   ansible.builtin.set_fact:
     __sap_hana_install_fact_addhosts_hosts:
       "{{ sap_hana_install_addhosts.split(',') | map('trim') | reject('equalto', '') | map('regex_replace', ':.*$', '') | list }}"
-    __sap_hana_install_fact_addhosts_hosts_new: []
 
 - name: SAP HANA - Addhosts - Pre-Tasks - Assert that the variable 'sap_hana_install_addhosts' is valid addhosts string
   ansible.builtin.assert:

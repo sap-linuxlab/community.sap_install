@@ -1,12 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# Required to reset status if the role is used multiple times in one playbook.
-- name: SAP HANA - Pre-Tasks - Reset the status variable if defined from previous run
-  ansible.builtin.set_fact:
-    __sap_hana_install_fact_is_installed: false
-  when: __sap_hana_install_fact_is_installed is defined
-
 - name: SAP HANA - Pre-Tasks - Check if saphostctrl is installed
   ansible.builtin.stat:
     path: /usr/sap/hostctrl/exe/saphostctrl
@@ -130,7 +124,7 @@
     - sap_hana_install_groupid is defined
     - sap_hana_install_groupid is string
     - sap_hana_install_groupid | trim | length > 0
-    - not __sap_hana_install_fact_is_installed | d(false)
+    - not __sap_hana_install_fact_is_installed
   block:
 
     # getent_groups will be populated, with fields:
@@ -161,7 +155,7 @@
 - name: SAP HANA - Pre-Tasks - SAP HANA admin user check
   when:
     - sap_hana_install_check_sidadm_user | d(true)
-    - not __sap_hana_install_fact_is_installed | d(false)
+    - not __sap_hana_install_fact_is_installed
   vars:
     __sap_hana_install_sidadm: "{{ sap_hana_install_sid | lower }}adm"
   block:
@@ -187,7 +181,7 @@
       This is required when the variable 'sap_hana_install_new_system' is set to false.
   when:
     - not sap_hana_install_new_system
-    - not __sap_hana_install_fact_is_installed | d(false)
+    - not __sap_hana_install_fact_is_installed
 
 - name: SAP HANA - Pre-Tasks - Run 'hdblcm --list_systems' for existing database
   ansible.builtin.shell: |

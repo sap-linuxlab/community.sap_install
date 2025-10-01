@@ -4,12 +4,15 @@
 # Installation tasks that can be destructive and should never be executed on existing database.
 - name: Block with tasks for new HANA Systems
   when:
-    - not __sap_hana_install_fact_is_installed | d(false)
+    - not __sap_hana_install_fact_is_installed
   block:
 
     - name: SAP HANA - Install - Post-Tasks - Store connection information
       ansible.builtin.include_tasks:
         file: post_tasks/hdbuserstore.yml
+      loop: "{{ __sap_hana_install_fact_all_hosts }}"
+      loop_control:
+        loop_var: target_host
       tags: sap_hana_install_store_connection_information
 
     - name: SAP HANA - Install - Post-Tasks - Set log_mode
@@ -70,7 +73,7 @@
 - name: SAP HANA - Install - Post-Tasks - Firewall
   ansible.builtin.include_tasks:
     file: post_tasks/firewall.yml
-  loop: "{{ __sap_hana_install_fact_all_hosts }}"
+  loop: "{{ __sap_hana_install_fact_all_hosts if not __sap_hana_install_fact_is_installed else [inventory_hostname_short] }}"
   loop_control:
     loop_var: target_host
   when: sap_hana_install_update_firewall

@@ -72,7 +72,7 @@
 - name: Ensure SAP HANA is running for existing systems or addhosts operations
   ansible.builtin.include_tasks:
     file: pre_tasks/hana_start.yml
-  when: __sap_hana_install_fact_is_installed | d(false)
+  when: __sap_hana_install_fact_is_installed
 
 
 - name: Validate connection to provided addhosts
@@ -102,13 +102,13 @@
       ansible.builtin.include_tasks:
         file: pre_install.yml
       tags: sap_hana_install_preinstall
-      when: not __sap_hana_install_fact_is_installed | d(false)
+      when: not __sap_hana_install_fact_is_installed
 
     - name: SAP HANA - Install
       ansible.builtin.include_tasks:
         file: hana_install.yml
       when:
-        - not __sap_hana_install_fact_is_installed | d(false)
+        - not __sap_hana_install_fact_is_installed
 
     - name: SAP HANA - Install - Post-tasks
       ansible.builtin.include_tasks:
@@ -119,7 +119,7 @@
 - name: Block for Addhosts tasks
   when:
     - not sap_hana_install_new_system
-    - __sap_hana_install_fact_is_installed | d(false)
+    - __sap_hana_install_fact_is_installed
   block:
     # Execute only if new hosts are to be added.
     - name: SAP HANA - Addhosts - Pre-Tasks
