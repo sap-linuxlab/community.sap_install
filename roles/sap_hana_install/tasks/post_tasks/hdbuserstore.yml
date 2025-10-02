@@ -1,26 +1,101 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: Block to delegate_to all tasks
-  delegate_to: "{{ target_host }}"
+# Executed only for new installations to avoid overwriting existing configuration.
+- name: SAP HANA - Post-Tasks - hdbuserstore - Add key {{ sap_hana_install_hdbuserstore_key }}
+  ansible.builtin.shell: |
+      /usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbuserstore \
+      SET {{ sap_hana_install_hdbuserstore_key }} \
+      {{ ansible_hostname }}:3{{ sap_hana_install_number }}13 \
+      SYSTEM '{{ sap_hana_install_db_system_password | d(sap_hana_install_master_password) }}'
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ sap_hana_install_sid | lower }}adm"
+  changed_when: true
+  when:
+    - not ansible_check_mode
+    - not __sap_hana_install_fact_is_installed
+
+- name: SAP HANA - Post-Tasks - hdbuserstore - Execute 'hdbuserstore list' command
+  ansible.builtin.shell:
+    cmd: "/usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbuserstore list"
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ sap_hana_install_sid | lower }}adm"
+  register: __sap_hana_install_register_hdbuserstore_list
+  changed_when: false
+  failed_when: false
+
+- name: SAP HANA - Post-Tasks - hdbuserstore - Inform if command 'hdbuserstore list' failed for existing installation
+  ansible.builtin.debug:
+    msg: |
+      Command '/usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbuserstore list' was not successful! Proceeding with remaining tasks.
+      {{ __sap_hana_install_register_hdbuserstore_list.stdout_lines }}
+  when:
+    - __sap_hana_install_register_hdbuserstore_list.rc != 0
+    - __sap_hana_install_fact_is_installed
+    - __sap_hana_install_fact_addhosts_hosts | length == 0
+
+- name: SAP HANA - Post-Tasks - hdbuserstore - Fail if command 'hdbuserstore list' failed for new installation or addhosts
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Command '/usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbuserstore list' was not successful!
+      {% if __sap_hana_install_fact_addhosts_hosts | length > 0 %}
+      Synchronization to all hosts will not be performed until issues are resolved.
+      {% endif %}
+      {{ __sap_hana_install_register_hdbuserstore_list.stdout_lines }}
+  when:
+    - __sap_hana_install_register_hdbuserstore_list.rc != 0
+    - (__sap_hana_install_fact_addhosts_hosts | length > 0 or not __sap_hana_install_fact_is_installed)
+
+
+# Following steps are required only when adding hosts.
+# We will use 'KEY FILE' and 'DATA FILE' from 'hdbuserstore list' to get real path of files without assuming.
+- name: Block to get content of files
+  when:
+    - __sap_hana_install_register_hdbuserstore_list.rc == 0
+    - __sap_hana_install_fact_addhosts_hosts | length > 0
   block:
-    - name: SAP HANA - Post-Tasks - Create and Store Connection Info in hdbuserstore
-      ansible.builtin.shell: |
-          /usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbuserstore \
-          SET {{ sap_hana_install_hdbuserstore_key }} \
-          {{ ansible_hostname }}:3{{ sap_hana_install_number }}13 \
-          SYSTEM '{{ sap_hana_install_db_system_password | d(sap_hana_install_master_password) }}'
-      args:
-        executable: /bin/bash
+    - name: SAP HANA - Post-Tasks - hdbuserstore - Parse command 'hdbuserstore list' output to find file paths
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_hdbuserstore_key_path:
+          "{{ (__sap_hana_install_register_hdbuserstore_list.stdout_lines | select('search', '^KEY FILE') | first).split(':')[1] | trim }}"
+        __sap_hana_install_fact_hdbuserstore_data_path:
+          "{{ (__sap_hana_install_register_hdbuserstore_list.stdout_lines | select('search', '^DATA FILE') | first).split(':')[1] | trim }}"
+
+    - name: SAP HANA - Post-Tasks - hdbuserstore - Fail if file paths were not parsed
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Command 'hdbuserstore list' did not contain 'KEY FILE' or 'DATA FILE' paths.
+          Synchronization to all hosts will not be performed until issues are resolved.
+      when:
+        - __sap_hana_install_fact_hdbuserstore_key_path is not defined
+          or __sap_hana_install_fact_hdbuserstore_key_path | length == 0
+          or __sap_hana_install_fact_hdbuserstore_data_path is not defined
+          or __sap_hana_install_fact_hdbuserstore_data_path | length == 0
+
+    - name: SAP HANA - Post-Tasks - hdbuserstore - Slurp contents of 'KEY FILE'
+      ansible.builtin.slurp:
+        src: "{{ __sap_hana_install_fact_hdbuserstore_key_path }}"
+      register: __sap_hana_install_register_hdbuserstore_key_slurp
       become: true
       become_user: "{{ sap_hana_install_sid | lower }}adm"
-      when: not ansible_check_mode
-      changed_when: false
-      register: __sap_hana_install_store_connection_information
-      tags: sap_hana_install_store_connection_information
+      no_log: true
 
-    - name: SAP HANA - Post-Tasks - Display the output of hdbuserstore
-      ansible.builtin.debug:
-        msg: "{{ __sap_hana_install_store_connection_information.stdout_lines }}"
-      tags: sap_hana_install_store_connection_information
-      when: __sap_hana_install_store_connection_information.stdout_lines is defined
+    - name: SAP HANA - Post-Tasks - hdbuserstore - Slurp contents of 'DATA FILE'
+      ansible.builtin.slurp:
+        src: "{{ __sap_hana_install_fact_hdbuserstore_data_path }}"
+      register: __sap_hana_install_register_hdbuserstore_data_slurp
+      become: true
+      become_user: "{{ sap_hana_install_sid | lower }}adm"
+      no_log: true
+
+
+    - name: SAP HANA - Post-Tasks - hdbuserstore - Start sync of hdbuserstore to hosts
+      ansible.builtin.include_tasks:
+        file: hdbuserstore_sync.yml
+      loop: "{{ __sap_hana_install_fact_addhosts_hosts }}"
+      loop_control:
+        loop_var: target_host

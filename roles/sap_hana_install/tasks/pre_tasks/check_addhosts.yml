@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+# Difference ensures that our addhosts list does not contain Managed node.
 - name: SAP HANA - Addhosts - Pre-Tasks - Set fact with list of additional hostnames
   ansible.builtin.set_fact:
     __sap_hana_install_fact_addhosts_hosts:
-      "{{ sap_hana_install_addhosts.split(',') | map('trim') | reject('equalto', '') | map('regex_replace', ':.*$', '') | list }}"
+      "{{ sap_hana_install_addhosts.split(',') | map('trim') | reject('equalto', '') | map('regex_replace', ':.*$', '') | list | difference([inventory_hostname_short]) }}"
 
 - name: SAP HANA - Addhosts - Pre-Tasks - Assert that the variable 'sap_hana_install_addhosts' is valid addhosts string
   ansible.builtin.assert:
@@ -56,10 +57,23 @@
         )
       }}
 
+# We need to reset hosts list and remove new, if HANA is installed and 'sap_hana_install_new_system' is 'true'.
+# This ensures that post-tasks are idempotent for those hosts that already exist, not new.
+- name: SAP HANA - Addhosts - Pre-Tasks - Reset fact with list of new hosts if Add
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_addhosts_hosts:
+      "{{ __sap_hana_install_fact_addhosts_hosts | difference(__sap_hana_install_fact_addhosts_hosts_new) }}"
+  when:
+    - sap_hana_install_new_system
+    - __sap_hana_install_fact_is_installed
+    - __sap_hana_install_fact_addhosts_hosts_new | length > 0
+
 - name: SAP HANA - Addhosts - Pre-Tasks - Show lists of hosts to be added
   ansible.builtin.debug:
     msg: "New hosts will be added: {{ __sap_hana_install_fact_addhosts_hosts_new | join(', ') }}"
-  when: __sap_hana_install_fact_addhosts_hosts_new | length > 0
+  when:
+    - __sap_hana_install_fact_addhosts_hosts_new | length > 0
+    - not (sap_hana_install_new_system and __sap_hana_install_fact_is_installed)
 
 
 # Test SSH connection from managed node to addhosts hosts is not implemented because

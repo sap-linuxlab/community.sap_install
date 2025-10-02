@@ -2,16 +2,6 @@
 ---
 
 # Execute only on new addhosts, if present.
-- name: SAP HANA - Addhosts - Post-Tasks - Store connection information
-  ansible.builtin.include_tasks:
-    file: post_tasks/hdbuserstore.yml
-  loop: "{{ __sap_hana_install_fact_addhosts_hosts_new }}"
-  loop_control:
-    loop_var: target_host
-  when:
-    - __sap_hana_install_fact_addhosts_hosts_new | length > 0
-  tags: sap_hana_install_store_connection_information
-
 - name: SAP HANA - Addhosts - Post-Tasks - Set user expiration
   ansible.builtin.include_tasks:
     file: post_tasks/user_expiration.yml
@@ -24,6 +14,11 @@
 
 
 # Execute on all hosts in play to achieve idempotency.
+- name: SAP HANA - Addhosts - Post-Tasks - Update hdbuserstore connection details
+  ansible.builtin.include_tasks:
+    file: post_tasks/hdbuserstore.yml
+  tags: sap_hana_install_store_connection_information
+
 - name: SAP HANA - Addhosts - Post-Tasks - Firewall
   ansible.builtin.include_tasks:
     file: post_tasks/firewall.yml
@@ -52,48 +47,3 @@
     - ansible_os_family == "RedHat"
     - sap_hana_install_use_fapolicyd
   tags: sap_hana_install_use_fapolicyd
-
-
-# Gather details about installed database for finished message
-- name: SAP HANA - Addhosts - Post-Tasks - Run 'hdblcm --list_systems' after the installation
-  ansible.builtin.shell: |
-      set -o pipefail && ./hdblcm --list_systems | awk '/\/hana\/shared\/{{ sap_hana_install_sid }}/{a=1}
-      /version:/{if (a==1){
-        gsub ("^\\s*version: ", "");printf ("%s;", $NF)}
-      }
-      /hosts?:/{if (a==1){
-        gsub ("^\\s*hosts?: ", ""); gsub (", ", ","); print; a=0}
-      }'
-  args:
-    chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/hdblcm"
-  register: __sap_hana_install_register_install_result
-  changed_when: false
-  when: not ansible_check_mode
-
-- name: SAP HANA - Addhosts - Post-Tasks - Set facts with HANA version and hosts
-  ansible.builtin.set_fact:
-    __sap_hana_install_fact_hana_version: "{{ __sap_hana_install_register_install_result.stdout.split(';')[0] }}"
-    __sap_hana_install_fact_hana_hosts: "{{ __sap_hana_install_register_install_result.stdout.split(';')[1] }}"
-  when: not ansible_check_mode
-
-
-- name: SAP HANA - Addhosts - Post-Tasks - Display SAP HANA details and completed post tasks
-  ansible.builtin.debug:
-    msg: |
-      SAP HANA database is installed and running:
-      HANA Version     -       {{ __sap_hana_install_fact_hana_version }}
-      Hosts            -       {{ __sap_hana_install_fact_hana_hosts }}
-      SID              -       {{ sap_hana_install_sid }}
-      NR               -       {{ sap_hana_install_number }}
-
-      {% if sap_hana_install_update_firewall %}
-      Firewall is enabled and SAP HANA ports are open.
-      {% endif %}
-      {% if sap_hana_install_modify_selinux_labels %}
-      SELinux file contexts are configured for SAP folders '{{ sap_hana_install_root_path }}' and '/usr/sap'.
-      {% endif %}
-      {% if ansible_os_family == "RedHat" and sap_hana_install_use_fapolicyd %}
-      Fapolicyd is configured for SAP folders '{{ sap_hana_install_root_path }}' and '/usr/sap'.
-      {% endif %}
-  when:
-    - not ansible_check_mode

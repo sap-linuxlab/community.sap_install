@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# This file will synchronize hdbuserstore files from the managed node.
+- name: Block to delegate_to all tasks
+  delegate_to: "{{ target_host }}"
+  become: true
+  vars:
+    __sap_hana_install_fact_hdbuserstore_key_path_target:
+      "{{ __sap_hana_install_fact_hdbuserstore_key_path | replace(ansible_hostname, target_host) }}"
+    __sap_hana_install_fact_hdbuserstore_data_path_target:
+      "{{ __sap_hana_install_fact_hdbuserstore_data_path | replace(ansible_hostname, target_host) }}"
+  block:
+    - name: SAP HANA - Post-Tasks - hdbuserstore - Check for if KEY file exists
+      ansible.builtin.stat:
+        path: "{{ __sap_hana_install_fact_hdbuserstore_key_path_target }}"
+      register: __sap_hana_install_register_hdbuserstore_key_stat_target
+
+    - name: SAP HANA - Post-Tasks - hdbuserstore - Check for if DATA file exists
+      ansible.builtin.stat:
+        path: "{{ __sap_hana_install_fact_hdbuserstore_data_path_target }}"
+      register: __sap_hana_install_register_hdbuserstore_data_stat_target
+
+    # We need to ensure that copy is started only if both files are absent.
+    - name: Block to copy files if they do not exist
+      when:
+        - not __sap_hana_install_register_hdbuserstore_key_stat_target.stat.exists
+        - not __sap_hana_install_register_hdbuserstore_data_stat_target.stat.exists
+      block:
+        - name: SAP HANA - Post-Tasks - hdbuserstore - Create directory for hdbuserstore files
+          ansible.builtin.file:
+            path: "{{ __sap_hana_install_fact_hdbuserstore_key_path_target | dirname }}"
+            state: directory
+            owner: "{{ sap_hana_install_sid | lower }}adm"
+            group: "sapsys"
+            mode: '0700'
+
+        - name: SAP HANA - Post-Tasks - hdbuserstore - Create KEY file
+          ansible.builtin.copy:
+            content: "{{ __sap_hana_install_register_hdbuserstore_key_slurp.content | b64decode }}"
+            dest: "{{ __sap_hana_install_fact_hdbuserstore_key_path_target }}"
+            owner: "{{ sap_hana_install_sid | lower }}adm"
+            group: "sapsys"
+            mode: '0600'
+
+        - name: SAP HANA - Post-Tasks - hdbuserstore - Create DATA file
+          ansible.builtin.copy:
+            content: "{{ __sap_hana_install_register_hdbuserstore_data_slurp.content | b64decode }}"
+            dest: "{{ __sap_hana_install_fact_hdbuserstore_data_path_target }}"
+            owner: "{{ sap_hana_install_sid | lower }}adm"
+            group: "sapsys"
+            mode: '0600'
+
+    - name: SAP HANA - Post-Tasks - hdbuserstore - Inform that existing hdbuserstore key files were found
+      ansible.builtin.debug:
+        msg: |
+          Existing KEY or DATA files were found and synchronization was skipped.
+      when:
+        - __sap_hana_install_register_hdbuserstore_key_stat_target.stat.exists
+          or __sap_hana_install_register_hdbuserstore_data_stat_target.stat.exists
