@@ -1,0 +1,17 @@
+# Managed by Ansible
+# Role: {{ ansible_role_name }}
+#
+# Description:
+#  The following are sudo entries which are required for the pacemaker cluster
+#  to update the SAP HANA cluster resource status.
+
+# RHEL 9 and later by default prohibit sudo commands to be run from scripts without a real tty.
+# For the HANA HA solution it is required to allow this functionality.
+# This setting allows it for all {{ __sap_ha_pacemaker_cluster_hana_sid | lower }}adm user sudo commands.
+Defaults:{{ __sap_ha_pacemaker_cluster_hana_sid | lower }}adm !requiretty
+
+# Required: Allow the user to set and update cluster attributes for HANA resources.
+{{ __sap_ha_pacemaker_cluster_hana_sid | lower }}adm ALL=(ALL) NOPASSWD: /usr/sbin/crm_attribute -n hana_*
+
+# Optional: Allow the user to execute the SAPHanaSR-hookHelper script for optional functionality of the HANA HA tools.
+{{ __sap_ha_pacemaker_cluster_hana_sid | lower }}adm ALL=(ALL) NOPASSWD: /usr/bin/SAPHanaSR-hookHelper

@@ -46,7 +46,7 @@
     path: "{{ __sap_ha_pacemaker_cluster_hana_global_ini_path }}"
     marker: ""
     block: |
-      [ha_dr_provider_{{ srhook_item.provider }}]
+      [ha_dr_provider_{{ __hook_classname }}]
       provider = {{ srhook_item.provider }}
       path = {{ srhook_item.path }}
       {% for option in srhook_item.options | d([]) -%}
@@ -56,8 +56,13 @@
   loop_control:
     loop_var: srhook_item
     label: "{{ srhook_item.provider }}"
-  when: "('[ha_dr_provider_' + srhook_item.provider + ']') | lower
+  when: "('[ha_dr_provider_' + __hook_classname + ']') | lower
     not in __sap_ha_pacemaker_cluster_global_ini_contents.stdout | lower"
+  vars:
+    __hook_classname:
+      "{{ srhook_item.provider | lower
+        if ansible_os_family == 'RedHat'
+        else srhook_item.provider }}"
 
 # Separate task to create [trace] block so hooks can be appended to it
 - name: "SAP HA Pacemaker srHook - Add [trace] block in global.ini"
@@ -74,14 +79,19 @@
   ansible.builtin.lineinfile:
     path: "{{ __sap_ha_pacemaker_cluster_hana_global_ini_path }}"
     insertafter: "^\\[trace\\]"
-    line: "ha_dr_{{ srhook_item.provider }} = info"
+    line: "ha_dr_{{ __hook_classname }} = info"
   loop: "{{ __sap_ha_pacemaker_cluster_hana_hooks }}"
   loop_control:
     loop_var: srhook_item
     label: "{{ srhook_item.provider }}"
   when:
-    - "('ha_dr_' + srhook_item.provider + ' = info') | lower
+    - "('ha_dr_' + __hook_classname + ' = info') | lower
       not in __sap_ha_pacemaker_cluster_global_ini_contents.stdout | lower"
+  vars:
+    __hook_classname:
+      "{{ srhook_item.provider | lower
+        if ansible_os_family == 'RedHat'
+        else srhook_item.provider }}"
 
 # jinja2 template contains logic to add extra entries if:
 # TkOver hook is present or SAPHanaSR-angi is used.
@@ -92,5 +102,9 @@
     mode: "0440"
     owner: root
     group: root
-    src: templates/sudofile_20-saphana.j2
+    src: templates/sudofile_20-saphana_{{ __sudofile_suffix }}.j2
     validate: visudo -cf %s
+  vars:
+    __sudofile_suffix:
+      "{{ 'angi_' if __sap_ha_pacemaker_cluster_saphanasr_angi_available
+        else '' }}{{ ansible_os_family }}"
