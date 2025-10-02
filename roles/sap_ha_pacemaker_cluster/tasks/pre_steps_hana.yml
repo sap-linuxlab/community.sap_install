@@ -1,0 +1,101 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+# Preconfiguration tasks for HANA servers.
+# These tasks are run before the cluster setup.
+
+# BLOCK:
+# - Scale-out only: remove alternative nameserver master nodes
+- name: "SAP HA Pacemaker - Block to handle the nameserver configuration update"
+  when:
+    - sap_ha_pacemaker_cluster_host_type is defined
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleout') | length > 0
+  become: true
+  become_user: "{{ sap_ha_pacemaker_cluster_hana_sid | lower }}adm"
+  block:
+
+    - name: "SAP HA Pacemaker - Stop the HANA instances"
+      ansible.builtin.command:
+        argv:
+          - /usr/sap/hostctrl/exe/sapcontrol
+          - -nr
+          - "{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
+          - -function
+          - StopSystem
+          #- HDB
+      register: __sap_ha_pacemaker_cluster_register_hana_stop
+      # Retry with short delay to allow for the hdbdaemon to be running first
+      retries: "{{ 1 if ansible_check_mode else 60 }}"
+      delay: "{{ 1 if ansible_check_mode else 5 }}"
+      until: __sap_ha_pacemaker_cluster_register_hana_stop.rc == 0
+      changed_when: true
+      ignore_errors: "{{ ansible_check_mode }}"
+
+    - name: "SAP HA Pacemaker - Wait until the local HANA instance is reported as stopped"
+      ansible.builtin.command:
+        argv:
+          - /usr/sap/hostctrl/exe/sapcontrol
+          - -nr
+          - "{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
+          - -function
+          - WaitforStopped
+          - "{{ 1 if ansible_check_mode else 600 }}"
+          - "{{ 1 if ansible_check_mode else 10 }}"
+      register: __sap_ha_pacemaker_cluster_register_hana_stop_wait
+      # Retry with short delay to allow for the hdbdaemon to be running first
+      retries: "{{ 1 if ansible_check_mode else 60 }}"
+      delay: "{{ 1 if ansible_check_mode else 5 }}"
+      until: __sap_ha_pacemaker_cluster_register_hana_stop_wait.rc == 0
+      changed_when: false
+      check_mode: false
+      ignore_errors: "{{ ansible_check_mode }}"
+
+    - name: "SAP HA Pacemaker - Remove alternative coordinator nameserver entries"
+      ansible.builtin.replace:
+        backup: true
+        path: "{{ __sap_ha_pacemaker_cluster_hana_nameserver_ini_path }}"
+        after: '[landscape]'
+        regexp: '^(master\s*=\s*\w*:\d*).*$'
+        replace: '\1'
+      # Throttle to run on one host at a time and retry loop to prevent NFS write lockups
+      throttle: 1
+      retries: "{{ 1 if ansible_check_mode else 30 }}"
+      delay: "{{ 1 if ansible_check_mode else 10 }}"
+      ignore_errors: "{{ ansible_check_mode }}"
+
+    - name: "SAP HA Pacemaker - Start the HANA instances"
+      ansible.builtin.command:
+        argv:
+          - /usr/sap/hostctrl/exe/sapcontrol
+          - -nr
+          - "{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
+          - -function
+          - StartSystem
+          #- HDB
+      register: __sap_ha_pacemaker_cluster_register_hana_start
+      # Retry with short delay to allow for the hdbdaemon to be running first
+      retries: "{{ 1 if ansible_check_mode else 60 }}"
+      delay: "{{ 1 if ansible_check_mode else 5 }}"
+      until: __sap_ha_pacemaker_cluster_register_hana_start.rc == 0
+      changed_when: true
+      ignore_errors: "{{ ansible_check_mode }}"
+
+    - name: "SAP HA Pacemaker - Wait until the local HANA instance is reported as running"
+      ansible.builtin.command:
+        argv:
+          - /usr/sap/hostctrl/exe/sapcontrol
+          - -nr
+          - "{{ sap_ha_pacemaker_cluster_hana_instance_nr }}"
+          - -function
+          - WaitforStarted
+          - "{{ 1 if ansible_check_mode else 600 }}"
+          - "{{ 1 if ansible_check_mode else 10 }}"
+      register: __sap_ha_pacemaker_cluster_register_hana_start_wait
+      # Retry with short delay to allow for the hdbdaemon to be running first
+      retries: "{{ 1 if ansible_check_mode else 60 }}"
+      delay: "{{ 1 if ansible_check_mode else 5 }}"
+      until: __sap_ha_pacemaker_cluster_register_hana_start_wait.rc == 0
+      changed_when: false
+      check_mode: false
+      ignore_errors: "{{ ansible_check_mode }}"
+
+### END of BLOCK for nameserver setup.
