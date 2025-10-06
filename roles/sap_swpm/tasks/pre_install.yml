@@ -325,16 +325,23 @@
 
 - name: SAP SWPM - Display Software
   ansible.builtin.debug:
-    msg:
-      - " SAPEXEDB   -   {{ sap_swpm_kernel_dependent_path }}/{{ sap_swpm_kernel_dependent_file_name }} "
-      - " SAPEXE     -   {{ sap_swpm_kernel_independent_path }}/{{ sap_swpm_kernel_independent_file_name }} "
-      - " IGS Helper -   {{ sap_swpm_igs_helper_path }}/{{ sap_swpm_igs_helper_file_name }} "
-      - " IGS        -   {{ sap_swpm_igs_path }}/{{ sap_swpm_igs_file_name }} "
-      - " WEBDISP    -   {{ sap_swpm_web_dispatcher_path }}/{{ sap_swpm_web_dispatcher_file_name }} "
-      - " SAPCAR     -   {{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }} "
-      - " SWPM       -   {{ sap_swpm_swpm_path }}/{{ sap_swpm_swpm_sar_file_name }} "
-      - " MP Stack   -   {{ (sap_swpm_mp_stack_path | d('', true) + '/' + sap_swpm_mp_stack_file_name | d('', true)) | regex_replace('//*', '/') }}"
-      - " Backup     -   {{ sap_swpm_backup_location }} "
+    msg: |
+      SAPCAR:     {{ sap_swpm_sapcar_path }}: {{ __sap_swpm_fact_sapcar_file_name }}
+      SWPM:       {{ sap_swpm_swpm_path }}: {{ __sap_swpm_fact_swpm_sar_file_name }}
+      SAPEXEDB:   {{ sap_swpm_software_path }}: {{ __sap_swpm_register_sapexedb_files.files | map(attribute='path') | map('basename') | join(', ') | d('') }}
+      SAPEXE:     {{ sap_swpm_software_path }}: {{ __sap_swpm_register_sapexe_files.files | map(attribute='path') | map('basename') | join(', ') | d('') }}
+      IGS:        {{ sap_swpm_software_path }}: {{ __sap_swpm_register_igs_exe_files.files | map(attribute='path') | map('basename') | join(', ') | d('') }}
+      IGS Helper: {{ sap_swpm_software_path }}: {{ __sap_swpm_register_igs_helper_files.files | map(attribute='path') | map('basename') | join(', ') | d('') }}
+      {% if 'Webdispatcher' in sap_swpm_product_catalog_id | string %}
+      WEBDISP:    {{ sap_swpm_software_path }}: {{ __sap_swpm_register_sapwebdisp_files.files | map(attribute='path') | map('basename') | join(', ') | d('') }}
+      {% endif %}
+      {% if sap_swpm_swpm_installation_type in ['maint_plan_stack','ha_maint_plan_stack'] %}
+      MP Stack:   {{ (sap_swpm_mp_stack_path | d('', true) + '/' + sap_swpm_mp_stack_file_name | d('', true)) | regex_replace('//*', '/') }}"
+      {% endif %}
+      {% if sap_swpm_backup_location is defined and sap_swpm_backup_location | string | trim | length > 0 %}
+      Backup:     {{ sap_swpm_backup_location }}
+      {% endif %}
+
 
 - name: SAP SWPM - Installation Process
   ansible.builtin.debug:

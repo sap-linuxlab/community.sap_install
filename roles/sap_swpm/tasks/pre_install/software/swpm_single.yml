@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# This is task file executed in block to loop over list of found SWPM files.
+# We need to create directories to avoid 'sapinst' replacing itself because of same name.
+
+- name: SAP SWPM Pre Install - SWPM auto-detection - Create temporary directory
+  ansible.builtin.file:
+    path: "{{ __sap_swpm_register_swpm_file_tmp_path }}"
+    state: directory
+    mode: '0755'
+
+- name: SAP SWPM Pre Install - SWPM auto-detection - Extract sapinst into temporary directory
+  ansible.builtin.command:
+    cmd: "{{ sap_swpm_sapcar_path }}/{{ __sap_swpm_fact_sapcar_file_name }} -xf {{ item.path }} sapinst"
+  args:
+    chdir: "{{ __sap_swpm_register_swpm_file_tmp_path }}"
+  changed_when: false  # We are temporarily extracting for validation, then removing.
+  failed_when: false  # Windows packages do not contain sapinst
