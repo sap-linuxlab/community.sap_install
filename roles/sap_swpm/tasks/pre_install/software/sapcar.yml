@@ -12,16 +12,23 @@
   register: sap_swpm_sapcar_path_stat
   failed_when: not sap_swpm_sapcar_path_stat.stat.exists
 
+- name: SAP SWPM Pre Install - Find all SAPCAR EXE files in {{ sap_swpm_swpm_path }}
+  ansible.builtin.find:
+    paths: "{{ sap_swpm_sapcar_path }}"
+    patterns: 'SAPCAR*.EXE'
+  register: __sap_swpm_register_sapcar_files
+
 - name: SAP SWPM Pre Install - Change ownership of SAPCAR path - {{ sap_swpm_sapcar_path }}
   ansible.builtin.file:
-    path: "{{ sap_swpm_sapcar_path }}"
-    state: directory
-    recurse: no
-    mode: "{{ sap_swpm_software_directory_mode }}"
-    owner: "{{ sap_swpm_software_directory_owner }}"
-    group: "{{ sap_swpm_software_directory_group }}"
+    path: "{{ __sap_swpm_line_item.path }}"
+    recurse: false
+    mode: "{{ sap_swpm_files_sapcar_mode }}"
+    owner: "{{ sap_swpm_files_sapcar_owner }}"
+    group: "{{ sap_swpm_files_sapcar_group }}"
+  loop: "{{ __sap_swpm_register_sapcar_files.files }}"
+  loop_control:
+    loop_var: __sap_swpm_line_item
   when:
-    - sap_swpm_sapcar_path != sap_swpm_software_path
     - sap_swpm_set_file_permissions
 
 
@@ -47,6 +54,16 @@
       ansible.builtin.set_fact:
         __sap_swpm_fact_sapcar_file_name: "{{ sap_swpm_sapcar_file_name }}"
       when: __sap_swpm_register_sapcar_stat.stat.exists
+
+    - name: SAP SWPM Pre Install - SAPCAR defined - Change ownership of defined SAPCAR file
+      ansible.builtin.file:
+        path: "{{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }}"
+        recurse: false
+        mode: "{{ sap_swpm_files_sapcar_mode }}"
+        owner: "{{ sap_swpm_files_sapcar_owner }}"
+        group: "{{ sap_swpm_files_sapcar_group }}"
+      when:
+        - sap_swpm_set_file_permissions
 
 
 # Undefined check is enough because only valid combination would be done in block above.
@@ -101,20 +118,28 @@
           {%- endif -%}
           {{- matching_files -}}
 
-    - name: SAP SWPM Pre Install - SAPCAR auto-detection - Fail if no matching SAPCAR executable could be found
-      ansible.builtin.fail:
-        msg: "FAIL: No SAPCAR file for architecture '{{ ansible_architecture }}' was found in
-              {{ sap_swpm_sapcar_path }}!"
-      when: __sap_swpm_fact_sapcar_matching_arch | length == 0
+    - name: SAP SWPM Pre Install - SAPCAR auto-detection - Assert that compatible SAPCAR was be found
+      ansible.builtin.assert:
+        that:
+          - __sap_swpm_fact_sapcar_matching_arch | length > 0
+          - __sap_swpm_fact_sapcar_matching_arch not in ['none', 'None']
+        success_msg: |
+          SUCCESS: Compatible SAPCAR files were found for architecture '{{ ansible_architecture }}'.
+          Files: {{ __sap_swpm_fact_sapcar_matching_arch | join(', ') }}
+        fail_msg: |
+          FAIL: No SAPCAR file for architecture '{{ ansible_architecture }}' was found in {{ sap_swpm_sapcar_path }}!
+
 
     # For each file in directory, we run it with option
     # --version and then identify the most recent one, which is then copied to directory sapcar.
     - name: SAP SWPM Pre Install - SAPCAR auto-detection - Get version of all SAPCAR executable files
       ansible.builtin.command:
-        cmd: "./{{ item }} --version"
+        cmd: "./{{ __sap_swpm_line_item }} --version"
       args:
         chdir: "{{ sap_swpm_sapcar_path }}"
       loop: "{{ __sap_swpm_fact_sapcar_matching_arch }}"
+      loop_control:
+        loop_var: __sap_swpm_line_item
       register: __sap_swpm_register_sapcar_versions
       ignore_errors: true
       changed_when: false
@@ -132,7 +157,7 @@
               {%- set patch = result.stdout | regex_search('patch number\s+(\d+)', '\\1') | first | default(0) | int -%}
 
               {# Append the structured data to our list #}
-              {%- set _ = files_with_versions.append({'kernel': kernel, 'patch': patch, 'filename': result.item}) -%}
+              {%- set _ = files_with_versions.append({'kernel': kernel, 'patch': patch, 'filename': result.__sap_swpm_line_item}) -%}
             {%- endif -%}
           {%- endfor -%}
 
@@ -147,13 +172,3 @@
     - name: SAP SWPM Pre Install - SAPCAR auto-detection - Set fact for SAPCAR executable from auto-detection
       ansible.builtin.set_fact:
         __sap_swpm_fact_sapcar_file_name: "{{ __sap_swpm_fact_latest_sapcar_file | trim }}"
-
-
-- name: SAP SWPM Pre Install - Ensure correct permissions and ownership of the SAPCAR file
-  ansible.builtin.file:
-    path: "{{ sap_swpm_sapcar_path }}/{{ __sap_swpm_fact_sapcar_file_name }}"
-    recurse: no
-    mode: "{{ sap_swpm_files_sapcar_mode }}"
-    owner: "{{ sap_swpm_files_sapcar_owner }}"
-    group: "{{ sap_swpm_files_sapcar_group }}"
-  when: sap_swpm_set_file_permissions

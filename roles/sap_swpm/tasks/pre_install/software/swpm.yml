@@ -14,16 +14,23 @@
   register: sap_swpm_swpm_path_stat
   failed_when: not sap_swpm_swpm_path_stat.stat.exists
 
+- name: SAP SWPM Pre Install - Find all SWPM files in {{ sap_swpm_swpm_path }}
+  ansible.builtin.find:
+    paths: "{{ sap_swpm_swpm_path }}"
+    patterns: 'SWPM*.SAR'
+  register: __sap_swpm_register_swpm_files
+
 - name: SAP SWPM Pre Install - Change ownership of SWPM path - {{ sap_swpm_swpm_path }}
   ansible.builtin.file:
-    path: "{{ sap_swpm_swpm_path }}"
-    state: directory
-    recurse: no
-    mode: "{{ sap_swpm_software_directory_mode }}"
-    owner: "{{ sap_swpm_software_directory_owner }}"
-    group: "{{ sap_swpm_software_directory_group }}"
+    path: "{{ __sap_swpm_line_item.path }}"
+    recurse: false
+    mode: "{{ sap_swpm_files_non_sapcar_mode }}"
+    owner: "{{ sap_swpm_files_non_sapcar_owner }}"
+    group: "{{ sap_swpm_files_non_sapcar_group }}"
+  loop: "{{ __sap_swpm_register_swpm_files.files }}"
+  loop_control:
+    loop_var: __sap_swpm_line_item
   when:
-    - sap_swpm_swpm_path != sap_swpm_software_path
     - sap_swpm_set_file_permissions
 
 
@@ -50,6 +57,14 @@
         __sap_swpm_fact_swpm_sar_file_name: "{{ sap_swpm_swpm_sar_file_name }}"
       when: __sap_swpm_register_swpm_stat.stat.exists
 
+    - name: SAP SWPM Pre Install - Change ownership of defined SWPM file
+      ansible.builtin.file:
+        path: "{{ sap_swpm_swpm_path }}/{{ sap_swpm_swpm_sar_file_name }}"
+        recurse: false
+        mode: "{{ sap_swpm_files_non_sapcar_mode }}"
+        owner: "{{ sap_swpm_files_non_sapcar_owner }}"
+        group: "{{ sap_swpm_files_non_sapcar_group }}"
+
 
 # Undefined check is enough because only valid combination would be done in block above.
 - name: Block when 'sap_swpm_swpm_sar_file_name' is undefined, invalid or does not exist
@@ -68,12 +83,6 @@
         suffix: _swpm_detection
       register: __sap_swpm_register_tmpdir_swpm
 
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Find all SWPM files in {{ sap_swpm_swpm_path }}
-      ansible.builtin.find:
-        paths: "{{ sap_swpm_swpm_path }}"
-        patterns: 'SWPM*.SAR'
-      register: __sap_swpm_register_swpm_files
-
     - name: SAP SWPM Pre Install - SWPM auto-detection - Assert that SWPM files were found
       ansible.builtin.assert:
         that:
@@ -89,10 +98,11 @@
         file: swpm_single.yml
       loop: "{{ __sap_swpm_register_swpm_files.files }}"
       loop_control:
-        label: "{{ item.path | basename }}"
+        label: "{{ __sap_swpm_line_item.path | basename }}"
+        loop_var: __sap_swpm_line_item  
       vars:
         __sap_swpm_register_swpm_file_tmp_path:
-          "{{ __sap_swpm_register_tmpdir_swpm.path }}/{{ item.path | basename }}"
+          "{{ __sap_swpm_register_tmpdir_swpm.path }}/{{ __sap_swpm_line_item.path | basename }}"
 
 
     # In the first step, we execute the file command for each of the SWPM sapinst file. It displays the
@@ -136,10 +146,11 @@
           {%- endif -%}
           {{- matching_files -}}
 
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Fail if no matching sapinst executable could be found
+    - name: SAP SWPM Pre Install - SWPM auto-detection - Assert that compatible SWPM was be found
       ansible.builtin.assert:
         that:
           - __sap_swpm_fact_swpm_matching_arch | length > 0
+          - __sap_swpm_fact_swpm_matching_arch not in ['none', 'None']
         success_msg: |
           SUCCESS: Compatible SWPM files were found for architecture '{{ ansible_architecture }}'.
           Files: {{ __sap_swpm_fact_swpm_matching_arch | join(', ') }}
@@ -155,10 +166,12 @@
       ansible.builtin.set_fact:
         __sap_swpm_fact_parsed_swpm_list: "{{ __sap_swpm_fact_parsed_swpm_list | d([]) + [item_details] }}"
       loop: "{{ __sap_swpm_fact_swpm_matching_arch }}"
+      loop_control:
+        loop_var: __sap_swpm_line_item
       vars:
-        version_parts: "{{ item | regex_search('SWPM(\\d+)SP(\\d+)_(\\d+)', '\\1', '\\2', '\\3') }}"
+        version_parts: "{{ __sap_swpm_line_item | regex_search('SWPM(\\d+)SP(\\d+)_(\\d+)', '\\1', '\\2', '\\3') }}"
         item_details:
-          filename: "{{ item }}"
+          filename: "{{ __sap_swpm_line_item }}"
           swpm_ver: "{{ version_parts[0] | int }}"
           sp_ver: "{{ version_parts[1] | int }}"
           patch_ver: "{{ version_parts[2] | int }}"
@@ -213,16 +226,3 @@
       ansible.builtin.file:
         path: "{{ __sap_swpm_register_tmpdir_swpm.path }}"
         state: absent
-
-
-# Note: We use the permissions and ownership settings for non-SWPM EXE files:
-- name: SAP SWPM Pre Install - Ensure correct permissions and ownership of the SWPM SAR file
-  ansible.builtin.file:
-    path: "{{ sap_swpm_swpm_path }}/{{ __sap_swpm_fact_swpm_sar_file_name }}"
-    recurse: no
-    mode: "{{ sap_swpm_files_non_sapcar_mode }}"
-    owner: "{{ sap_swpm_files_non_sapcar_owner }}"
-    group: "{{ sap_swpm_files_non_sapcar_group }}"
-  when:
-    - sap_swpm_swpm_path != sap_swpm_software_path
-    - sap_swpm_set_file_permissions
