@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Auto-detection checks:
+# 1. Check if there is one or more files present.
+# NOTE: This is SAR file and it could be extracted to check for 'ansible_architecture',
+# but it is not mandatory and it will be handled by 'sapinst'.
+
+- name: SAP SWPM Pre Install - Find all SAPEXEDB files in {{ sap_swpm_software_path }}
+  ansible.builtin.find:
+    paths: "{{ sap_swpm_software_path }}"
+    patterns: 'SAPEXEDB_*.SAR'
+  register: __sap_swpm_register_sapexedb_files
+
+- name: SAP SWPM Pre Install - Assert that SAPEXEDB files were found
+  ansible.builtin.assert:
+    that:
+      - __sap_swpm_register_sapexedb_files.files | length > 0
+    success_msg: |
+      SUCCESS: SAPEXEDB files were found in '{{ sap_swpm_software_path }}'.
+      Files: {{ __sap_swpm_register_sapexedb_files.files | map(attribute='path') | map('basename') | join(', ') }}
+      They are not validated for compatibility with OS architecture '{{ ansible_architecture }}'.
+    fail_msg: |
+      FAIL: No SAPEXEDB files were found in '{{ sap_swpm_software_path }}'!

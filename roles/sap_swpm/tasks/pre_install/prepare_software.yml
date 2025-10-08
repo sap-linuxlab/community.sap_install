@@ -34,7 +34,7 @@
     - name: SAP SWPM Pre Install - Ensure correct permissions and ownership of all directories
       ansible.builtin.file:
         path: "{{ line_item }}"
-        recurse: no
+        recurse: false
         mode: "{{ sap_swpm_software_directory_mode }}"
         owner: "{{ sap_swpm_software_directory_owner }}"
         group: "{{ sap_swpm_software_directory_group }}"
@@ -76,219 +76,41 @@
         - __sap_swpm_register_find_result_files_non_sapcar is defined
 
 
-# SAPCAR Path
-
-- name: SAP SWPM Pre Install - Check availability of SAPCAR path - {{ sap_swpm_sapcar_path }}
-  ansible.builtin.stat:
-    path: "{{ sap_swpm_sapcar_path | d(sap_swpm_software_path) }}"
-  register: sap_swpm_sapcar_path_stat
-  failed_when: not sap_swpm_sapcar_path_stat.stat.exists
-
-- name: SAP SWPM Pre Install - Change ownership of SAPCAR path - {{ sap_swpm_sapcar_path }}
-  ansible.builtin.file:
-    path: "{{ sap_swpm_sapcar_path }}"
-    state: directory
-    recurse: no
-    mode: "{{ sap_swpm_software_directory_mode }}"
-    owner: "{{ sap_swpm_software_directory_owner }}"
-    group: "{{ sap_swpm_software_directory_group }}"
-  when: sap_swpm_set_file_permissions
-
-# SWPM Path
-
-- name: SAP SWPM Pre Install - Check availability of SWPM path - {{ sap_swpm_swpm_path }}
-  ansible.builtin.stat:
-    path: "{{ sap_swpm_swpm_path | d(sap_swpm_software_path) }}"
-  register: sap_swpm_swpm_path_stat
-  failed_when: not sap_swpm_swpm_path_stat.stat.exists
-
-- name: SAP SWPM Pre Install - Change ownership of SWPM path - {{ sap_swpm_swpm_path }}
-  ansible.builtin.file:
-    path: "{{ sap_swpm_swpm_path }}"
-    state: directory
-    recurse: no
-    mode: "{{ sap_swpm_software_directory_mode }}"
-    owner: "{{ sap_swpm_software_directory_owner }}"
-    group: "{{ sap_swpm_software_directory_group }}"
-  when:
-    - sap_swpm_swpm_path != sap_swpm_software_path
-    - sap_swpm_set_file_permissions
-
-
 ################
 # Get software files from software paths
 ################
 
-# 1. SAPCAR
+- name: SAP SWPM Pre Install - Prepare SAPCAR files
+  ansible.builtin.include_tasks:
+    file: software/sapcar.yml
 
-- name: SAP SWPM Pre Install - Get SAPCAR from {{ sap_swpm_sapcar_path }}
-  ansible.builtin.shell: |
-    ls SAPCAR*.EXE
-  args:
-    chdir: "{{ sap_swpm_sapcar_path }}"
-  register: sap_swpm_sapcar_file_name_get
-  changed_when: false
+- name: SAP SWPM Pre Install - Prepare SWPM files
+  ansible.builtin.include_tasks:
+    file: software/swpm.yml
 
-- name: SAP SWPM Pre Install - Set fact for SAPCAR
-  ansible.builtin.set_fact:
-    sap_swpm_sapcar_file_name: "{{ sap_swpm_sapcar_file_name_get.stdout }}"
-
-- name: SAP SWPM Pre Install - Check availability of SAPCAR - {{ sap_swpm_sapcar_path + '/' + sap_swpm_sapcar_file_name }}
-  ansible.builtin.stat:
-    path: "{{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }}"
-  register: sap_swpm_sapcar_file_name_stat
-  failed_when: not sap_swpm_sapcar_file_name_stat.stat.exists
-
-- name: SAP SWPM Pre Install - Ensure correct permissions and ownership of the SAPCAR*EXE file
-  ansible.builtin.file:
-    path: "{{ sap_swpm_sapcar_path }}/{{ sap_swpm_sapcar_file_name }}"
-    recurse: no
-    mode: "{{ sap_swpm_files_sapcar_mode }}"
-    owner: "{{ sap_swpm_files_sapcar_owner }}"
-    group: "{{ sap_swpm_files_sapcar_group }}"
-  when: sap_swpm_set_file_permissions
-
-# 2. SWPM
-
-- name: SAP SWPM Pre Install - Get SWPM from {{ sap_swpm_swpm_path }}
-  ansible.builtin.shell: |
-    ls SWPM*.SAR
-  args:
-    chdir: "{{ sap_swpm_swpm_path }}"
-  register: sap_swpm_swpm_sar_file_name_get
-  changed_when: false
-
-- name: SAP SWPM Pre Install - Set fact for SWPM
-  ansible.builtin.set_fact:
-    sap_swpm_swpm_sar_file_name: "{{ sap_swpm_swpm_sar_file_name_get.stdout }}"
-
-- name: SAP SWPM Pre Install - Check availability of SWPM - {{ sap_swpm_swpm_path + '/' + sap_swpm_swpm_sar_file_name }}
-  ansible.builtin.stat:
-    path: "{{ sap_swpm_swpm_path }}/{{ sap_swpm_swpm_sar_file_name }}"
-  register: sap_swpm_swpm_sar_file_name_stat
-  failed_when: not sap_swpm_swpm_sar_file_name_stat.stat.exists
-
-# Note: We use the permissions and ownership settings for non-SAPCAR*EXE files:
-- name: SAP SWPM Pre Install - Ensure correct permissions and ownership of the SWPM*SAR file
-  ansible.builtin.file:
-    path: "{{ sap_swpm_swpm_path }}/{{ sap_swpm_swpm_sar_file_name }}"
-    recurse: no
-    mode: "{{ sap_swpm_files_non_sapcar_mode }}"
-    owner: "{{ sap_swpm_files_non_sapcar_owner }}"
-    group: "{{ sap_swpm_files_non_sapcar_group }}"
-  when:
-    - sap_swpm_swpm_path != sap_swpm_software_path
-    - sap_swpm_set_file_permissions
 
 - name: SAP SWPM Pre Install - Full SAP System
   when: not sap_swpm_generic
   block:
 
-  # 3. IGS
+    - name: SAP SWPM Pre Install - Check IGS files
+      ansible.builtin.include_tasks:
+        file: software/igsexe.yml
 
-    - name: SAP SWPM Pre Install - Get IGS from software path
-      ansible.builtin.shell: |
-        ls igsexe*.sar
-      args:
-        chdir: "{{ sap_swpm_software_path }}"
-      register: sap_swpm_igs_file_name_get
-      changed_when: false
+    - name: SAP SWPM Pre Install - Check IGS Helper files
+      ansible.builtin.include_tasks:
+        file: software/igshelper.yml
 
-    - name: SAP SWPM Pre Install - Set fact for IGS
-      ansible.builtin.set_fact:
-        sap_swpm_igs_path: "{{ sap_swpm_software_path }}"
-        sap_swpm_igs_file_name: "{{ sap_swpm_igs_file_name_get.stdout }}"
+    - name: SAP SWPM Pre Install - Check SAPEXEDB files
+      ansible.builtin.include_tasks:
+        file: software/sapexedb.yml
 
-    - name: SAP SWPM Pre Install - Check availability of IGS - {{ sap_swpm_igs_path + '/' + sap_swpm_igs_file_name }}
-      ansible.builtin.stat:
-        path: "{{ sap_swpm_igs_path }}/{{ sap_swpm_igs_file_name }}"
-      register: sap_swpm_igs_file_name_stat
-      failed_when: not sap_swpm_igs_file_name_stat.stat.exists
+    - name: SAP SWPM Pre Install - Check SAPEXE files
+      ansible.builtin.include_tasks:
+        file: software/sapexe.yml
 
-  # 4. IGS Helper
 
-    - name: SAP SWPM Pre Install - Get IGS Helper from software path
-      ansible.builtin.shell: |
-        ls igshelper*.sar
-      args:
-        chdir: "{{ sap_swpm_software_path }}"
-      register: sap_swpm_igs_helper_file_name_get
-      changed_when: false
-
-    - name: SAP SWPM Pre Install - Set fact for IGS
-      ansible.builtin.set_fact:
-        sap_swpm_igs_helper_path: "{{ sap_swpm_software_path }}"
-        sap_swpm_igs_helper_file_name: "{{ sap_swpm_igs_helper_file_name_get.stdout }}"
-
-    - name: SAP SWPM Pre Install - Check availability of IGS Helper - {{ sap_swpm_igs_helper_path + '/' + sap_swpm_igs_helper_file_name }}
-      ansible.builtin.stat:
-        path: "{{ sap_swpm_igs_helper_path }}/{{ sap_swpm_igs_helper_file_name }}"
-      register: sap_swpm_igs_helper_file_name_stat
-      failed_when: not sap_swpm_igs_helper_file_name_stat.stat.exists
-
-  # 5. SAPEXEDB
-
-    - name: SAP SWPM Pre Install - Get SAPEXEDB from software path
-      ansible.builtin.shell: |
-        ls SAPEXEDB_*.SAR
-      args:
-        chdir: "{{ sap_swpm_software_path }}"
-      register: sap_swpm_kernel_dependent_file_name_get
-      changed_when: false
-
-    - name: SAP SWPM Pre Install - Set fact for SAPEXEDB
-      ansible.builtin.set_fact:
-        sap_swpm_kernel_dependent_path: "{{ sap_swpm_software_path }}"
-        sap_swpm_kernel_dependent_file_name: "{{ sap_swpm_kernel_dependent_file_name_get.stdout }}"
-
-    - name: SAP SWPM Pre Install - Check availability of SAPEXEDB - {{ sap_swpm_kernel_dependent_path + '/' + sap_swpm_kernel_dependent_file_name }}
-      ansible.builtin.stat:
-        path: "{{ sap_swpm_kernel_dependent_path }}/{{ sap_swpm_kernel_dependent_file_name }}"
-      register: sap_swpm_kernel_dependent_file_name_stat
-      failed_when: not sap_swpm_kernel_dependent_file_name_stat.stat.exists
-
-  # 6. SAPEXE
-
-    - name: SAP SWPM Pre Install - Get SAPEXE from software path
-      ansible.builtin.shell: |
-        ls SAPEXE_*.SAR
-      args:
-        chdir: "{{ sap_swpm_software_path }}"
-      register: sap_swpm_kernel_independent_file_name_get
-      changed_when: false
-
-    - name: SAP SWPM Pre Install - Set fact for SAPEXE
-      ansible.builtin.set_fact:
-        sap_swpm_kernel_independent_path: "{{ sap_swpm_software_path }}"
-        sap_swpm_kernel_independent_file_name: "{{ sap_swpm_kernel_independent_file_name_get.stdout }}"
-
-    - name: SAP SWPM Pre Install - Check availability of SAPEXE - {{ sap_swpm_kernel_independent_path + '/' + sap_swpm_kernel_independent_file_name }}
-      ansible.builtin.stat:
-        path: "{{ sap_swpm_kernel_independent_path }}/{{ sap_swpm_kernel_independent_file_name }}"
-      register: sap_swpm_kernel_independent_file_name_stat
-      failed_when: not sap_swpm_kernel_independent_file_name_stat.stat.exists
-
-- name: SAP SWPM Pre Install - Webdispatcher
+- name: SAP SWPM Pre Install - Check Webdispatcher files
+  ansible.builtin.include_tasks:
+    file: software/sapwebdisp.yml
   when: "'Webdispatcher' in sap_swpm_product_catalog_id | string"
-  block:
-
-  # 7. Web Dispatcher
-
-    - name: SAP SWPM Pre Install - Get WEBDISP from software path
-      ansible.builtin.shell: |
-        ls SAPWEBDISP_*.SAR
-      args:
-        chdir: "{{ sap_swpm_software_path }}"
-      register: sap_swpm_web_dispatcher_file_name_get
-      changed_when: false
-
-    - name: SAP SWPM Pre Install - Set fact for WEBDISP
-      ansible.builtin.set_fact:
-        sap_swpm_web_dispatcher_path: "{{ sap_swpm_software_path }}"
-        sap_swpm_web_dispatcher_file_name: "{{ sap_swpm_web_dispatcher_file_name_get.stdout }}"
-
-    - name: SAP SWPM Pre Install - Check availability of WEBDISP - {{ sap_swpm_web_dispatcher_path + '/' + sap_swpm_web_dispatcher_file_name }}
-      ansible.builtin.stat:
-        path: "{{ sap_swpm_web_dispatcher_path }}/{{ sap_swpm_web_dispatcher_file_name }}"
-      register: sap_swpm_web_dispatcher_file_name_stat
-      failed_when: not sap_swpm_web_dispatcher_file_name_stat.stat.exists
