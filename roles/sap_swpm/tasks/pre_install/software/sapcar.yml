@@ -18,7 +18,7 @@
     patterns: 'SAPCAR*.EXE'
   register: __sap_swpm_register_sapcar_files
 
-- name: SAP SWPM Pre Install - Change ownership of SAPCAR path - {{ sap_swpm_sapcar_path }}
+- name: SAP SWPM Pre Install - Change owner and permissions of SAPCAR EXE file(s) - {{ sap_swpm_sapcar_path }}
   ansible.builtin.file:
     path: "{{ __sap_swpm_line_item.path }}"
     recurse: false
@@ -27,6 +27,7 @@
     group: "{{ sap_swpm_files_sapcar_group }}"
   loop: "{{ __sap_swpm_register_sapcar_files.files }}"
   loop_control:
+    label: "{{ __sap_swpm_line_item.path | basename }}"
     loop_var: __sap_swpm_line_item
   when:
     - sap_swpm_set_file_permissions
