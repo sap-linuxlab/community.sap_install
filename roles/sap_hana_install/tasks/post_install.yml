@@ -4,46 +4,32 @@
 # Installation tasks that can be destructive and should never be executed on existing database.
 - name: Block with tasks for new HANA Systems
   when:
-    - not __sap_hana_install_fact_is_installed | d(false)
+    - not __sap_hana_install_fact_is_installed
+    - __sap_hana_install_fact_is_main_host
   block:
 
-    - name: SAP HANA Post Install - Store connection information
+    - name: SAP HANA - Install - Post-Tasks - Set log_mode
       ansible.builtin.include_tasks:
-        file: post_install/hdbuserstore.yml
-      tags: sap_hana_install_store_connection_information
-
-    - name: SAP HANA Post Install - Set log_mode
-      ansible.builtin.include_tasks:
-        file: post_install/log_mode.yml
+        file: post_tasks/log_mode.yml
       tags: sap_hana_install_set_log_mode
 
-    - name: SAP HANA Post Install - Apply license
+    - name: SAP HANA - Install - Post-Tasks - Apply license
       ansible.builtin.include_tasks:
-        file: post_install/license.yml
+        file: post_tasks/license.yml
       when: sap_hana_install_apply_license
 
-    - name: SAP HANA Post Install - Recreate the initial tenant database
+    - name: SAP HANA - Install - Post-Tasks - Recreate the initial tenant database
       ansible.builtin.include_tasks:
-        file: post_install/recreate_tenant_database.yml
+        file: post_tasks/recreate_tenant_database.yml
       when: sap_hana_install_recreate_tenant_database | d(true)
 
-    - name: SAP HANA Post Install - Set '{{ sap_hana_install_sid | lower }}adm' to not expire
-      ansible.builtin.shell: |
-          chage -m 0 -M 99999 -I -1 -E -1 {{ sap_hana_install_sid | lower }}adm
-      args:
-        executable: /bin/bash
-      become: true
-      register: __sap_hana_install_post_install_register_sidadm_noexpire
-      changed_when: __sap_hana_install_post_install_register_sidadm_noexpire.rc == 0
-      when: sap_hana_install_set_sidadm_noexpire | d(true)
-
-    - name: SAP HANA Post Install - Perform an hdblcm installation check
+    - name: SAP HANA - Install - Post-Tasks - Perform an hdblcm installation check
       ansible.builtin.include_tasks:
-        file: post_install/check_installation.yml
+        file: post_tasks/check_installation.yml
       when: sap_hana_install_check_installation | d(false)
       tags: sap_hana_install_check_installation
 
-    - name: SAP HANA Post Install - Generate Input File for SAP Application Deployment
+    - name: SAP HANA - Install - Post-Tasks - Generate Input File for SAP Application Deployment
         '{{ sap_hana_install_nw_input_location }}/{{ sap_hana_install_sid }}.info.nw.install'
       ansible.builtin.template:
         src: "{{ role_path }}/templates/sap-nw-input.j2"
@@ -56,87 +42,47 @@
       tags: sap_hana_install_generate_input_file
 
     # Cleanup extracted software
-    - name: SAP HANA Post Install - Deleting software extract directory '{{ sap_hana_install_software_extract_directory }}'
+    - name: SAP HANA - Install - Post-Tasks - Deleting software extract directory '{{ sap_hana_install_software_extract_directory }}'
       ansible.builtin.file:
         path: "{{ sap_hana_install_software_extract_directory }}"
         state: absent
       when: sap_hana_install_cleanup_extract_directory
 
-    - name: SAP HANA Post Install - Deleting Configfile Directory '{{ sap_hana_install_configfile_directory }}'
+    - name: SAP HANA - Install - Post-Tasks - Deleting Configfile Directory '{{ sap_hana_install_configfile_directory }}'
       ansible.builtin.file:
         path: "{{ sap_hana_install_configfile_directory }}"
         state: absent
       when: sap_hana_install_cleanup_configfile_directory
 
 
-# Idempotent tasks for new and existing HANA Systems
-- name: SAP HANA Post Install - Firewall
+# Execute on all hosts in play to achieve idempotency.
+- name: SAP HANA - Addhosts - Post-Tasks - Set user expiration
   ansible.builtin.include_tasks:
-    file: post_install/firewall.yml
+    file: post_tasks/user_expiration.yml
+  when:
+    - sap_hana_install_set_sidadm_noexpire | d(true)
+
+- name: SAP HANA - Install - Post-Tasks - Update hdbuserstore connection details
+  ansible.builtin.include_tasks:
+    file: post_tasks/hdbuserstore.yml
+  tags: sap_hana_install_store_connection_information
+
+- name: SAP HANA - Install - Post-Tasks - Firewall
+  ansible.builtin.include_tasks:
+    file: post_tasks/firewall.yml
   when: sap_hana_install_update_firewall
   tags: sap_hana_install_configure_firewall
 
-- name: SAP HANA Post Install - SELinux
-  ansible.builtin.include_role:
-    name: '{{ sap_hana_install_system_roles_collection }}.selinux'
-  vars:
-    selinux_fcontexts:
-      - { target: '/usr/sap(/.*)?', setype: 'usr_t' }
-    selinux_restore_dirs:
-      - /usr/sap
+- name: SAP HANA - Install - Post-Tasks - SELinux
+  ansible.builtin.include_tasks:
+    file: post_tasks/selinux.yml
   when: sap_hana_install_modify_selinux_labels
 
-- name: SAP HANA Post Install - Fapolicyd
+- name: SAP HANA - Install - Post-Tasks - Fapolicyd
   ansible.builtin.include_tasks:
-    file: post_install/fapolicyd.yml
+    file: post_tasks/fapolicyd.yml
   when:
     # Ensure fapolicyd is checked only on supported systems.
     - ansible_os_family == "RedHat"
     - sap_hana_install_use_fapolicyd
-    - '"fapolicyd" in ansible_facts.packages'
   tags: sap_hana_install_use_fapolicyd
-
-
-# Gather details about installed database for finished message
-- name: SAP HANA Install - Run 'hdblcm --list_systems' after the installation
-  ansible.builtin.shell: |
-      set -o pipefail && ./hdblcm --list_systems | awk '/\/hana\/shared\/{{ sap_hana_install_sid }}/{a=1}
-      /version:/{if (a==1){
-        gsub ("^\\s*version: ", "");printf ("%s;", $NF)}
-      }
-      /hosts?:/{if (a==1){
-        gsub ("^\\s*hosts?: ", ""); gsub (", ", ","); print; a=0}
-      }'
-  args:
-    chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/hdblcm"
-  register: __sap_hana_install_register_install_result
-  changed_when: false
-  when: not ansible_check_mode
-
-- name: SAP HANA Post Install - Set facts with HANA version and hosts
-  ansible.builtin.set_fact:
-    __sap_hana_install_fact_hana_version: "{{ __sap_hana_install_register_install_result.stdout.split(';')[0] }}"
-    __sap_hana_install_fact_hana_hosts: "{{ __sap_hana_install_register_install_result.stdout.split(';')[1] }}"
-  when: not ansible_check_mode
-
-
-- name: SAP HANA Post Install - Display SAP HANA details and completed post tasks
-  ansible.builtin.debug:
-    msg: |
-      SAP HANA database is installed and running:
-      HANA Version     -       {{ __sap_hana_install_fact_hana_version }}
-      Hosts            -       {{ __sap_hana_install_fact_hana_hosts }}
-      SID              -       {{ sap_hana_install_sid }}
-      NR               -       {{ sap_hana_install_number }}
-
-      {% if sap_hana_install_update_firewall %}
-      Firewall is enabled and SAP HANA ports are open.
-      {% endif %}
-      {% if sap_hana_install_modify_selinux_labels %}
-      SELinux file contexts are configured for SAP folders '{{ sap_hana_install_root_path }}' and '/usr/sap'.
-      {% endif %}
-      {% if ansible_os_family == "RedHat" and sap_hana_install_use_fapolicyd and "fapolicyd" in ansible_facts.packages %}
-      Fapolicyd is configured for SAP folders '{{ sap_hana_install_root_path }}' and '/usr/sap'.
-      {% endif %}
-  when:
-    - not ansible_check_mode
