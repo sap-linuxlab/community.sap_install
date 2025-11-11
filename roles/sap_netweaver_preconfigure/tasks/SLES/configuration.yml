@@ -59,6 +59,8 @@
     - name: Display error if saptune verify failed
       ansible.builtin.fail:
         msg: |
+          FAIL: saptune solution {{ sap_netweaver_preconfigure_saptune_solution }} verification failed after applying the solution.
+          Please check the output below:
           {{ __sap_netweaver_preconfigure_register_solution_verify_after.stdout_lines }}
           {{ __sap_netweaver_preconfigure_register_solution_verify_after.stderr_lines }}
       when: __sap_netweaver_preconfigure_register_solution_verify_after.rc != 0
@@ -70,7 +72,7 @@
 
 - name: Warn if not enough swap space is configured
   ansible.builtin.fail:
-    msg: "The system has only {{ ansible_swaptotal_mb }} MB of swap space configured,
+    msg: "WARN: The system has only {{ ansible_swaptotal_mb }} MB of swap space configured,
       which is less than the minimum required amount of {{ sap_netweaver_preconfigure_min_swap_space_mb
        }} MB for SAP NetWeaver!"
   ignore_errors: true
@@ -80,7 +82,7 @@
 
 - name: Fail if not enough swap space is configured
   ansible.builtin.fail:
-    msg: "The system has only {{ ansible_swaptotal_mb }} MB of swap space configured,
+    msg: "FAIL: The system has only {{ ansible_swaptotal_mb }} MB of swap space configured,
       which is less than the minimum required amount of {{ sap_netweaver_preconfigure_min_swap_space_mb
        }} MB for SAP NetWeaver!"
   when:

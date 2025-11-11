@@ -29,24 +29,52 @@
   when: "'packagekit.service' in ansible_facts.services"
 
 
+# This workflow is designed to remove dependency on zypper module.
 # Pattern installation will run only if pattern is not installed
 # This ensures that command module shows correct changed status
 - name: Query installed zypper patterns
   ansible.builtin.command:
     cmd: zypper patterns --installed-only
-  register: __sap_general_preconfigure_register_patterns
+  register: __sap_general_preconfigure_register_installed_patterns
   changed_when: false
   ignore_errors: true
 
+# Get only lines starting with "i " or "i+ " and split them into list of installed patterns.
+- name: Parse installed pattern names from stdout into list
+  ansible.builtin.set_fact:
+    __sap_general_preconfigure_fact_installed_patterns: >
+      {{
+        __sap_general_preconfigure_fact_installed_patterns | default([]) +
+        [ (pattern_item.split('|')[1]).strip() ]
+      }}
+  loop: "{{ __sap_general_preconfigure_register_installed_patterns.stdout_lines | default([]) | select('match', '^\\s*i\\+?\\s') | list }}"
+  loop_control:
+    label: "{{ (pattern_item.split('|')[1]).strip() }}"
+    loop_var: pattern_item
+
+# If this '__sap_general_preconfigure_fact_installed_patterns' is empty,
+# the check falls back to searching the raw stdout of the zypper command which is less accurate.
 - name: Ensure that the required zypper patterns are installed
   ansible.builtin.command:
-    cmd: zypper install -y -t pattern {{ item }}
+    cmd: zypper install -y -t pattern {{ pattern_item }}
   loop: "{{ sap_general_preconfigure_patterns }}"
+  loop_control:
+    loop_var: pattern_item
   # Retry added to handle post scripts problems like RC 107
   retries: 2
   delay: 10
-  when: item not in __sap_general_preconfigure_register_patterns.stdout
-  changed_when: item not in __sap_general_preconfigure_register_patterns.stdout
+  when: >
+    (__sap_general_preconfigure_fact_installed_patterns | length > 0
+      and pattern_item not in __sap_general_preconfigure_fact_installed_patterns)
+    or (__sap_general_preconfigure_fact_installed_patterns | length == 0
+      and __sap_general_preconfigure_register_installed_patterns.stdout is defined
+      and pattern_item not in __sap_general_preconfigure_register_installed_patterns.stdout)
+  changed_when: >
+    (__sap_general_preconfigure_fact_installed_patterns | length > 0
+      and pattern_item not in __sap_general_preconfigure_fact_installed_patterns)
+    or (__sap_general_preconfigure_fact_installed_patterns | length == 0
+      and __sap_general_preconfigure_register_installed_patterns.stdout is defined
+      and pattern_item not in __sap_general_preconfigure_register_installed_patterns.stdout)
 
 - name: Ensure that the required packages are installed
   ansible.builtin.package:
@@ -57,11 +85,11 @@
 
 - name: Install minimum packages if required
   ansible.builtin.package:
-    name: '{{ line_item[0] }}>={{ line_item[1] }}'
+    name: '{{ package_item[0] }}>={{ package_item[1] }}'
     state: present
   loop: "{{ __sap_general_preconfigure_min_pkgs }}"
   loop_control:
-    loop_var: line_item
+    loop_var: package_item
   when:
     - sap_general_preconfigure_min_package_check|bool
     - __sap_general_preconfigure_min_pkgs | d([])
@@ -97,7 +125,7 @@
 
 - name: Display the output of the reboot requirement check
   ansible.builtin.debug:
-    var: __sap_general_preconfigure_register_needs_restarting
+    msg: "{{ __sap_general_preconfigure_register_needs_restarting.stdout }}"
 
 
 # sap_general_preconfigure_fact_reboot_required is used by follow up role: sap_hana_preconfigure
@@ -111,10 +139,6 @@
   when:
     - __sap_general_preconfigure_register_needs_restarting is failed
       or __sap_general_preconfigure_register_update_latest.changed
-
-- name: For needs-restarting - Display the content of sap_general_preconfigure_fact_reboot_required
-  ansible.builtin.debug:
-    var: sap_general_preconfigure_fact_reboot_required
 
 
 - name: Call Reboot handler if necessary

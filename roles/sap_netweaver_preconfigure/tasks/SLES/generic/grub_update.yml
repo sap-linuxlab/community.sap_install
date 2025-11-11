@@ -6,11 +6,13 @@
 - name: Update existing GRUB entries
   ansible.builtin.lineinfile:
     path: /etc/default/grub
-    regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=".*?)(\b{{ item.split("=")[0] }}=[^ ]*\b)(.*")'
-    line: '\1{{ item }}\3'
+    regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=".*?)(\b{{ grub_line_item.split("=")[0] }}=[^ ]*\b)(.*")'
+    line: '\1{{ grub_line_item }}\3'
     backrefs: true
   register: __sap_netweaver_preconfigure_grub_update
   loop: "{{ __sap_netweaver_preconfigure_grub_cmdline }}"
+  loop_control:
+    loop_var: grub_line_item
 
 
 - name: Get current of GRUB
@@ -23,11 +25,13 @@
   ansible.builtin.lineinfile:
     path: /etc/default/grub
     regexp: '^GRUB_CMDLINE_LINUX_DEFAULT="(.*?)"'
-    line: 'GRUB_CMDLINE_LINUX_DEFAULT="\1 {{ item }}"'
+    line: 'GRUB_CMDLINE_LINUX_DEFAULT="\1 {{ grub_line_item }}"'
     backrefs: true
   register: __sap_netweaver_preconfigure_grub_add
   loop: "{{ __sap_netweaver_preconfigure_grub_cmdline }}"
-  when: item not in (__sap_netweaver_preconfigure_grub_contents.content | b64decode)
+  loop_control:
+    loop_var: grub_line_item
+  when: grub_line_item not in (__sap_netweaver_preconfigure_grub_contents.content | b64decode)
 
 
 - name: Trigger grub update if necessary # noqa no-changed-when
