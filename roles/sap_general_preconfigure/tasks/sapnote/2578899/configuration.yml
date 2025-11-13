@@ -3,10 +3,12 @@
 
 - name: Ensure that the services are enabled and started
   ansible.builtin.systemd:
-    name: "{{ item }}"
+    name: "{{ service_item }}"
     state: started
     enabled: true
   loop: "{{ __sap_general_preconfigure_services_2578899 }}"
+  loop_control:
+    loop_var: service_item
 
 
 - name: Execute task to update GRUB entries
@@ -23,7 +25,7 @@
     cmd: saptune note verify 2578899
   register: __sap_general_preconfigure_verify_2578899_before
   changed_when: false
-  ignore_errors: true
+  failed_when: false
   when: __sap_general_preconfigure_use_saptune | d(true)
 
 - name: Apply SAP note 2578899 using saptune
@@ -46,11 +48,13 @@
         cmd: saptune note verify --show-non-compliant 2578899
       register: __sap_general_preconfigure_verify_2578899_after
       changed_when: false
-      ignore_errors: true
+      failed_when: false
 
     - name: Display error if saptune verify failed
-      ansible.builtin.debug:
+      ansible.builtin.fail:
         msg: |
+          FAIL: SAP Note 2578899 verification failed after applying the note.
+          Please check the output below:
           {{ __sap_general_preconfigure_verify_2578899_after.stdout_lines }}
           {{ __sap_general_preconfigure_verify_2578899_after.stderr_lines }}
       when:

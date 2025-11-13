@@ -15,7 +15,7 @@
     cmd: saptune note verify 2684254
   register: __sap_hana_preconfigure_verify_2684254_before
   changed_when: false
-  ignore_errors: true
+  failed_when: false
   when: __sap_hana_preconfigure_use_saptune | d(true)
 
 - name: Apply SAP note 2684254 using saptune
@@ -38,11 +38,13 @@
         cmd: saptune note verify --show-non-compliant 2684254
       register: __sap_hana_preconfigure_verify_2684254_after
       changed_when: false
-      ignore_errors: true
+      failed_when: false
 
     - name: Display error if saptune verify failed
-      ansible.builtin.debug:
+      ansible.builtin.fail:
         msg: |
+          FAIL: SAP Note 2684254 verification failed after applying the note.
+          Please check the output below:
           {{ __sap_hana_preconfigure_verify_2684254_after.stdout_lines }}
           {{ __sap_hana_preconfigure_verify_2684254_after.stderr_lines }}
       when:

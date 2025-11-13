@@ -14,10 +14,11 @@
 
     - name: Assert that SAP note 2684254 is verified by saptune
       ansible.builtin.assert:
-        that: "{{ __sap_hana_preconfigure_saptune_verify_2684254.rc == 0 }}"
+        that: __sap_hana_preconfigure_saptune_verify_2684254.rc == 0
         success_msg: "PASS: SAP note 2684254 is verified by saptune."
         fail_msg: |
-          "FAIL: SAP note 2684254 is not verified by saptune! See details below:"
+          FAIL: SAP Note 2684254 verification failed.
+          Please check the output below:
           {{ __sap_hana_preconfigure_saptune_verify_2684254.stdout_lines }}
           {{ __sap_hana_preconfigure_saptune_verify_2684254.stderr_lines }}
       ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
@@ -35,9 +36,11 @@
     - name: Assert that GRUB cmdline parameters are set
       ansible.builtin.assert:
         that:
-          - "'{{ item }}' in __sap_hana_preconfigure_grub_contents.content | b64decode | string"
-        fail_msg: "FAIL: GRUB cmdline parameter {{ item }} is not set!"
-        success_msg: "PASS: GRUB cmdline parameter {{ item }} is set."
+          - "'{{ grub_line_item }}' in __sap_hana_preconfigure_grub_contents.content | b64decode | string"
+        fail_msg: "FAIL: GRUB cmdline parameter {{ grub_line_item }} is not set!"
+        success_msg: "PASS: GRUB cmdline parameter {{ grub_line_item }} is set."
       loop: "{{ __sap_hana_preconfigure_grub_cmdline_2684254 }}"
+      loop_control:
+        loop_var: grub_line_item
       when: __sap_hana_preconfigure_grub_cmdline_2684254 | length > 0
       ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"

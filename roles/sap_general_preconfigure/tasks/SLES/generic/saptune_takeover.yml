@@ -23,7 +23,7 @@
         cmd: rpm -q sapconf
       register: __sap_general_preconfigure_register_sapconf
       changed_when: false
-      ignore_errors: true
+      failed_when: false  # avoid failure in logs if sapconf is not installed
 
     - name: Ensure sapconf is stopped and disabled
       ansible.builtin.systemd:
@@ -44,7 +44,7 @@
         cmd: systemctl is-failed sapconf.service
       register: __sap_general_preconfigure_register_sapconf_failed
       changed_when: false
-      ignore_errors: true
+      failed_when: false  # avoid failure in logs
       when: __sap_general_preconfigure_register_sapconf.rc == 0
 
     - name: Execute systemctl reset-failed sapconf.service  # noqa command-instead-of-module
