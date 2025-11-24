@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP HANA - Pre-Tasks - Ensure the presence of fapolicyd
+  ansible.builtin.package:
+    name: fapolicyd
+    state: present
+  when: sap_hana_install_use_fapolicyd
+
+# We must ensure fapolicyd is disabled before installing SAP HANA in all cases.
+# Otherwise, the installation of SAP HANA will fail.
+
+- name: SAP HANA - Pre-Tasks - Disable fapolicyd if it exists
+  ansible.builtin.shell:  # noqa command-instead-of-module
+    # This command only runs the second part if the first part succeeds
+    cmd: "rpm -q fapolicyd && systemctl disable --now fapolicyd"
+  register: __sap_hana_install_register_disable_fapolicy
+  changed_when: >-
+    "Removed" in __sap_hana_install_register_disable_fapolicy.stderr or
+    "Stopping" in __sap_hana_install_register_disable_fapolicy.stdout
+  failed_when: >-
+    __sap_hana_install_register_disable_fapolicy.rc != 0 and
+    "package fapolicyd is not installed" not in __sap_hana_install_register_disable_fapolicy.stdout

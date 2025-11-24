@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Execute only on new addhosts, if present.
+- name: SAP HANA - Addhosts - Post-Tasks - Set user expiration
+  ansible.builtin.include_tasks:
+    file: post_tasks/user_expiration.yml
+  when:
+    - __sap_hana_install_fact_is_new_addhost_host
+    - sap_hana_install_set_sidadm_noexpire | d(true)
+
+
+# Execute on all hosts in play to achieve idempotency.
+- name: SAP HANA - Addhosts - Post-Tasks - Update hdbuserstore connection details
+  ansible.builtin.include_tasks:
+    file: post_tasks/hdbuserstore.yml
+  tags: sap_hana_install_store_connection_information
+
+- name: SAP HANA - Addhosts - Post-Tasks - Firewall
+  ansible.builtin.include_tasks:
+    file: post_tasks/firewall.yml
+  when: sap_hana_install_update_firewall
+  tags: sap_hana_install_configure_firewall
+
+- name: SAP HANA - Addhosts - Post-Tasks - SELinux
+  ansible.builtin.include_tasks:
+    file: post_tasks/selinux.yml
+  when: sap_hana_install_modify_selinux_labels
+
+- name: SAP HANA - Addhosts - Post-Tasks - Fapolicyd
+  ansible.builtin.include_tasks:
+    file: post_tasks/fapolicyd.yml
+  when:
+    # Ensure fapolicyd is checked only on supported systems.
+    - ansible_os_family == "RedHat"
+    - sap_hana_install_use_fapolicyd
+  tags: sap_hana_install_use_fapolicyd

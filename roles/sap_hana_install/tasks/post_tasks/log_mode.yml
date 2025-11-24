@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP HANA Post Install - Set log_mode to overwrite, no initial tenant
+- name: SAP HANA - Post-Tasks - Set log_mode to overwrite, no initial tenant
   ansible.builtin.shell: |
       LD_LIBRARY_PATH=/usr/sap/{{ sap_hana_install_sid }}/HDB{{ sap_hana_install_number }}/exe \
       /usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbsql \
@@ -26,16 +26,17 @@
   register: __sap_hana_install_register_hdbsql_logmode_no_initial_tenant
   tags: sap_hana_install_set_log_mode
 
-- name: SAP HANA Post Install - Display the output of hdbsql, no initial tenant
+- name: SAP HANA - Post-Tasks - Display the output of hdbsql, no initial tenant
   ansible.builtin.debug:
-    var: __sap_hana_install_register_hdbsql_logmode_no_initial_tenant.stdout_lines
+    msg: "{{ __sap_hana_install_register_hdbsql_logmode_no_initial_tenant.stdout_lines }}"
   tags: sap_hana_install_set_log_mode
   when:
     - not ansible_check_mode
     - sap_hana_install_create_initial_tenant == 'n'
     - sap_hana_install_log_mode | d('') == 'overwrite'
+    - __sap_hana_install_register_hdbsql_logmode_no_initial_tenant.stdout_lines is defined
 
-- name: SAP HANA Post Install - Set log_mode to overwrite, with initial tenant
+- name: SAP HANA - Post-Tasks - Set log_mode to overwrite, with initial tenant
   ansible.builtin.shell: |
       LD_LIBRARY_PATH=/usr/sap/{{ sap_hana_install_sid }}/HDB{{ sap_hana_install_number }}/exe \
       /usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbsql \
@@ -61,11 +62,12 @@
   register: __sap_hana_install_register_hdbsql_logmode_with_initial_tenant
   tags: sap_hana_install_set_log_mode
 
-- name: SAP HANA Post Install - Display the output of hdbsql, with initial tenant
+- name: SAP HANA - Post-Tasks - Display the output of hdbsql, with initial tenant
   ansible.builtin.debug:
-    var: __sap_hana_install_register_hdbsql_logmode_with_initial_tenant.stdout_lines
+    msg: "{{ __sap_hana_install_register_hdbsql_logmode_with_initial_tenant.stdout_lines }}"
   tags: sap_hana_install_set_log_mode
   when:
     - not ansible_check_mode
     - sap_hana_install_create_initial_tenant == 'y'
     - sap_hana_install_log_mode | d('') == 'overwrite'
+    - __sap_hana_install_register_hdbsql_logmode_with_initial_tenant.stdout_lines is defined

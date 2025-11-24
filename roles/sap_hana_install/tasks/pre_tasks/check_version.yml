@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Check if existing installation has expected version.
+# manifest file is located at SAP_HANA_DATABASE/server/manifest
+- name: SAP HANA - Pre-Tasks - Check availability of manifest file
+  ansible.builtin.stat:
+    path: "{{ __sap_hana_install_fact_hdblcm_path }}/server/manifest"
+  register: __sap_hana_install_register_stat_manifest
+
+# Execute version checks only if manifest file is present.
+- name: Block for manifest file
+  when: __sap_hana_install_register_stat_manifest.stat.exists
+  block:
+    - name: SAP HANA - Pre-Tasks - Get contents of manifest file
+      ansible.builtin.slurp:
+        src: "{{ __sap_hana_install_fact_hdblcm_path }}/server/manifest"
+      register: __sap_hana_install_register_slurp_manifest
+
+    - name: SAP HANA - Pre-Tasks - Parse manifest file into facts
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_manifest_revision: "{{ __revision.split(':')[1] | trim | int }}"
+        __sap_hana_install_fact_manifest_version: "{{ (__version.split(' ')[1]).split('.')[:4] | join('.') }}"
+      vars:
+        __manifest_lines: "{{ __sap_hana_install_register_slurp_manifest['content'] | b64decode | split('\n') }}"
+        __revision: "{{ __manifest_lines | select('match', '^rev-number:') | first | default('') }}"
+        __version: "{{ __manifest_lines | select('match', '^fullversion:') | first | default('') }}"
+
+    - name: SAP HANA - Pre-Tasks - Assert that existing installation has correct version
+      ansible.builtin.assert:
+        that:
+          - __sap_hana_install_fact_manifest_version == __existing_version
+        success_msg: |
+          PASS: Existing installation has expected version.
+          Expected version: {{ __sap_hana_install_fact_manifest_version }}.
+        fail_msg: |
+          FAIL: Existing installation does not have expected version!
+          Existing version: {{ __existing_version }}
+          Expected version: {{ __sap_hana_install_fact_manifest_version }}
+      vars:
+        __existing_version: "{{ __sap_hana_install_fact_existing_hana_version.split('.')[:4] | join('.') }}"
+      when: __sap_hana_install_fact_is_installed
+
+    # Revision number follows SPS, where first digit designates SPS.
+    - name: SAP HANA - Pre-Tasks - Set fact if LSS is required for SAP HANA 2.0 SPS08 or higher
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_is_lss_required: true
+      when:
+        - __sap_hana_install_fact_manifest_revision is defined
+        - __sap_hana_install_fact_manifest_revision | int >= 80
