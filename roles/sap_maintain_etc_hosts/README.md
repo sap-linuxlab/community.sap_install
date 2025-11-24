@@ -38,9 +38,9 @@ Example playbook will update `/etc/hosts`:
   hosts: all
   become: true
   tasks:
-    - name: Execute Ansible Role sap_sap_maintain_etc_hosts
+    - name: Execute Ansible Role sap_maintain_etc_hosts
       ansible.builtin.include_role:
-        name: community.sap_install.sap_sap_maintain_etc_hosts
+        name: community.sap_install.sap_maintain_etc_hosts
       vars:
         sap_maintain_etc_hosts_list:
         - node_ip: 10.10.10.10
@@ -62,9 +62,9 @@ Example playbook when executed together with [sap_ha_pacemaker_cluster](https://
   hosts: all
   become: true
   tasks:
-    - name: Execute Ansible Role sap_sap_maintain_etc_hosts
+    - name: Execute Ansible Role sap_maintain_etc_hosts
       ansible.builtin.include_role:
-        name: community.sap_install.sap_sap_maintain_etc_hosts
+        name: community.sap_install.sap_maintain_etc_hosts
       vars:
         sap_maintain_etc_hosts_list: "{{ sap_ha_pacemaker_cluster_cluster_nodes }}"
 ```
