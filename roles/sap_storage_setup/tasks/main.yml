@@ -44,7 +44,7 @@
     # Calculating with 1000 instead of 1024, because existing swaptotal is likely to be
     # reported at a slightly reduced size due to volume/filesystem metadata.
   ansible.builtin.set_fact:
-    sap_storage_setup_new_mounts_fact: "{{ sap_storage_setup_new_mounts_fact | default([]) + [new_mounts_item] }}"
+    __sap_storage_setup_fact_new_mounts: "{{ __sap_storage_setup_fact_new_mounts | default([]) + [new_mounts_item] }}"
   loop: "{{ sap_storage_setup_definition }}"
   loop_control:
     loop_var: new_mounts_item
@@ -67,13 +67,13 @@
 - name: SAP Storage Setup - Configure multipathing and map disks to target filesystems
   when:
     - sap_storage_setup_multipath_enable_and_detect
-    - sap_storage_setup_new_mounts_fact is defined
+    - __sap_storage_setup_fact_new_mounts is defined
   ansible.builtin.include_tasks:
     file: "{{ sap_storage_setup_cloud_type }}_tasks/configure_multipathing.yml"
 
 - name: SAP Storage Setup - Combine single disks and complete mapping definition
   when:
-    - sap_storage_setup_new_mounts_fact is defined
+    - __sap_storage_setup_fact_new_mounts is defined
   ansible.builtin.include_tasks:
     file: "{{ sap_storage_setup_cloud_type }}_tasks/map_single_disks_to_filesystems.yml"
 
@@ -83,8 +83,8 @@
 
 - name: SAP Storage Setup - Configure Volume Groups and Logical Volumes
   when:
-    - volume_map is defined
-    - volume_map | length > 0
+    - __sap_storage_setup_fact_volume_map is defined
+    - __sap_storage_setup_fact_volume_map | length > 0
   ansible.builtin.include_tasks:
     file: "{{ sap_storage_setup_cloud_type }}_tasks/configure_local_filesystems.yml"
 
@@ -96,8 +96,8 @@
   ansible.builtin.include_tasks:
     file: "{{ sap_storage_setup_cloud_type }}_tasks/configure_swap.yml"
   when:
-    - sap_storage_setup_new_mounts_fact is defined
-    - '"swap" in sap_storage_setup_new_mounts_fact
+    - __sap_storage_setup_fact_new_mounts is defined
+    - '"swap" in __sap_storage_setup_fact_new_mounts
       | map(attribute="filesystem_type", default=sap_storage_setup_local_filesystem_type)'
 
 - name: SAP Storage Setup - Configure NFS filesystems

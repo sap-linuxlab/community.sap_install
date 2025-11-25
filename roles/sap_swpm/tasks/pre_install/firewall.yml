@@ -29,7 +29,7 @@
 
         - name: SAP SWPM Pre Install - Generate SAP HANA Ports Based on NR - {{ sap_swpm_db_instance_nr }}
           ansible.builtin.set_fact:
-            sap_hana_firewall_ports:
+            __sap_swpm_fact_sap_hana_firewall_ports:
               - "1128"
               - "1129"
               - "43{{ sap_swpm_db_instance_nr }}"
@@ -58,7 +58,7 @@
 
         - name: SAP SWPM Pre Install - Add Ports Based on NR - {{ sap_swpm_db_instance_nr }}
           ansible.builtin.include_tasks: update_firewall.yml
-          loop: "{{ sap_hana_firewall_ports }}"
+          loop: "{{ __sap_swpm_fact_sap_hana_firewall_ports }}"
           loop_control:
             loop_var: passed_port
           when:

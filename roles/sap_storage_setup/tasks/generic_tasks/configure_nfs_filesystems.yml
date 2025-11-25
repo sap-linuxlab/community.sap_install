@@ -16,17 +16,17 @@
 # Make sure paths and mountpoints are stripped from trailing '/'.
 # The '/' is added explicitly to the constructed paths.
 
-# Parameter: sap_storage_setup_related_directories
+# Parameter: __sap_storage_setup_fact_related_directories
 # Param Type: list of dictionaries
 #
 # Debug sample for a node of host type 'nwas_abap_ascs':
 #
-# sap_storage_setup_related_directories:
+# __sap_storage_setup_fact_related_directories:
 #		- dir_only: /DB1
 #			mount_src: /my_dir/sapmnt
 #			mountpoint: /sapmnt
 #
-# sap_storage_setup_related_directories:
+# __sap_storage_setup_fact_related_directories:
 #   - mount_src: /my_dir/usr/sap/DB1/SYS
 #     mountpoint: /usr/sap/DB1/SYS
 #   - mount_src: /my_dir/usr/sap/DB1/ASCS00
@@ -34,7 +34,7 @@
 
 - name: SAP Storage Setup - ({{ nfs_item.name }}) Set fact for directories
   ansible.builtin.set_fact:
-    sap_storage_setup_related_directories: |
+    __sap_storage_setup_fact_related_directories: |
       {% set mount_list = [] %}
 
       {%- if nfs_item.mountpoint | regex_replace('/$', '') == '/sapmnt' -%}
@@ -136,7 +136,7 @@
       ansible.builtin.stat:
         path: "{{ sap_storage_setup_tmpnfs_register.path }}{{ stat_item.mountpoint }}{{ stat_item.dir_only | default('') }}"
       register: sap_storage_setup_nfs_dir_register
-      loop: "{{ sap_storage_setup_related_directories }}"
+      loop: "{{ __sap_storage_setup_fact_related_directories }}"
       loop_control:
         loop_var: stat_item
         label: "{{ stat_item.mountpoint }}{{ stat_item.dir_only | default('') }}"
@@ -193,7 +193,7 @@
     fstype: "{{ nfs_item.nfs_filesystem_type | default(sap_storage_setup_nfs_filesystem_type) }}"
     opts: "{{ nfs_item.nfs_mount_options | default(sap_storage_setup_nfs_mount_options) }}"
     state: mounted
-  loop: "{{ sap_storage_setup_related_directories }}"
+  loop: "{{ __sap_storage_setup_fact_related_directories }}"
   loop_control:
     loop_var: mount_item
     label: "{{ mount_item.mountpoint }}"
