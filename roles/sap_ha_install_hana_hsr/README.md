@@ -67,8 +67,8 @@ It is recommended to execute this role together with other roles in this collect
         sap_ha_install_hana_hsr_sid: H01
         sap_ha_install_hana_hsr_instance_number: "01"
         sap_ha_install_hana_hsr_hdbuserstore_system_backup_user: "HDB_SYSTEMDB"
-        sap_ha_install_hana_hsr_db_system_password: "Password"
-        sap_ha_install_hana_hsr_fqdn: example.com
+        sap_ha_install_hana_hsr_db_system_password: "My_HANA_Password"
+        sap_ha_install_hana_hsr_domain: example.com
 ```
 <!-- END Execution Example -->
 
@@ -88,94 +88,114 @@ Apache 2.0
 ## Maintainers
 <!-- BEGIN Maintainers -->
 - [Janine Fuchs](https://github.com/ja9fuchs)
+- [Marcel Mamula](https://github.com/marcelmamula)
 <!-- END Maintainers -->
 
 ## Role Variables
 <!-- BEGIN Role Variables -->
-### sap_ha_install_hana_hsr_sid
-
+### sap_ha_install_hana_hsr_state
 - _Type:_ `string`
-- _Default:_ `{{ sap_hana_sid }}`
+- _Default:_ `present`
 
-Enter SID of SAP HANA database.
+Set the desired state of the HSR configuration.</br>
+`present` - Creates and enables the HSR configuration.</br>
+`absent`  - Removes the HSR configuration.</br>
+
+### sap_ha_install_hana_hsr_sid
+- _Type:_ `string`
+
+SAP HANA Database System ID (SID) in capital letters.</br>
+This can be inherited from the variable `sap_hana_sid`.
 
 ### sap_ha_install_hana_hsr_instance_number
-
 - _Type:_ `string`
-- _Default:_ `{{ sap_hana_instance_number }}`
 
-Enter string value of SAP HANA SID.
+SAP HANA Database Instance Number.</br>
+This can be inherited from the variable `sap_hana_instance_number`.
 
 ### sap_ha_install_hana_hsr_cluster_nodes
+- _Type:_ `list` of `dictionary` type
 
-- _Type:_ `list`
-- _Default:_ `{{ sap_hana_cluster_nodes }}`
+List of dictionaries defining the nodes in the HSR setup.<br>
+This can be inherited from the variable `sap_hana_cluster_nodes`.
 
-List of cluster nodes and associated attributes to describe the target SAP HA environment.<br>
-This is required for the HANA System Replication configuration.<br>
-
-- **hana_site**<br>
-    Site of the cluster and/or SAP HANA System Replication node (for example 'DC01').<br>Mandatory for HANA clusters (sudo config for system replication).
-- **node_ip**<br>
-    IP address of the node used for HANA System Replication.<br>_Optional. Currently not needed/used in cluster configuration._
 - **node_name**<br>
-    Name of the cluster node, should match the remote systems' hostnames.<br>_Optional. Currently not needed/used in cluster configuration._
+    Short hostname of the node (String).<br>
+- **node_ip**<br>
+    IP address of the node (String).<br>
 - **node_role**<br>
-    Role of the defined `node_name` in the SAP HANA cluster setup.<br>There must be only **one** primary, but there can be multiple secondary nodes.<br>_Optional. Currently not needed/used in cluster configuration._
+    Role of the node in the HSR setup (String).<br>
+    Available options: `primary`, `secondary`.<br>
+- **hana_site**<br>
+    A unique logical site name (e.g., DC01, EU-WEST) (String).<br>
 
 Example:
 
 ```yaml
 sap_ha_install_hana_hsr_cluster_nodes:
-  - node_name: node1
-    node_ip: 192.168.1.11
-    node_role: primary
-    hana_site: DC01
+  - node_name: 'node01'
+    node_ip: '192.168.1.11'
+    node_role: 'primary'
+    hana_site: 'DC01'
 
-  - node_name: node2
-    node_ip: 192.168.1.12
-    node_role: secondary
-    hana_site: DC02
+  - node_name: 'node02'
+    node_ip: '192.168.1.12'
+    node_role: 'secondary'
+    hana_site: 'DC02'
 ```
 
 ### sap_ha_install_hana_hsr_hdbuserstore_system_backup_user
-
 - _Type:_ `string`
 - _Default:_ `HDB_SYSTEMDB`
 
-Enter name of SYSTEM user for backup execution.
+The hdbuserstore key used for connecting to the SYSTEMDB for administrative tasks like backups.
 
 ### sap_ha_install_hana_hsr_db_system_password
-
 - _Type:_ `string`
-- _Default:_ `{{ sap_hana_install_master_password }}`
 
-Enter password of SYSTEM user for backup execution.
+Password for the HANA `SYSTEM` user.</br>
+This can be inherited from the variable `sap_hana_install_master_password`.
 
-### sap_ha_install_hana_hsr_fqdn
-
+### sap_ha_install_hana_hsr_domain
 - _Type:_ `string`
-- _Default:_ {{ sap_domain }}
 
-Enter domain of SAP system, for example `example.com`.
+The DNS domain name for the HANA nodes.</br>
+This is not required if 'node_name' in `sap_ha_install_hana_hsr_cluster_nodes` is a Fully Qualified Domain Name (FQDN).</br>
+Originally called as `sap_ha_install_hana_hsr_fqdn`.</br>
+If not set, the role attempts to use the value of `sap_domain` or `ansible_facts['domain']`.
 
 ### sap_ha_install_hana_hsr_rep_mode
-
 - _Type:_ `string`
 - _Default:_ `sync`
 
-Enter SAP HANA System Replication mode.
+HSR Replication mode.</br>
+Available values: `sync`, `syncmem`, `async`
 
 ### sap_ha_install_hana_hsr_oper_mode
-
 - _Type:_ `string`
 - _Default:_ `logreplay`
 
-Enter SAP HANA System Replication operation mode.
+HSR Operation mode.</br>
+Available values: `delta_datashipping`, `logreplay`, `logreplay_readaccess`
 
 ### sap_ha_install_hana_hsr_update_etchosts
 - _Type:_ `bool`
 - _Default:_ `True`
 
-Enable to update /etc/hosts file.
+Set to true to update `/etc/hosts` on all nodes with the IP addresses and hostnames of all other nodes in the cluster.
+
+### sap_ha_install_hana_hsr_home_path
+- _Type:_ `string`
+
+(Optional) SAP HANA HOME directory path</br>
+If not set, it defaults to `/usr/sap/<SID>/home`.
+
+### sap_ha_install_hana_hsr_backup_path
+- _Type:_ `string`
+
+(Optional) Directory path for the safety backup created before HSR is configured.</br>
+If not specified, the default HANA backup location is used.</br>
+Required sub-directories (`SYSTEMDB` and `DB_<SID>`) will be created automatically within this path</br>
+The backup created will have a file prefix of `<SID>_PRE_HSR_<TIMESTAMP>`.</br>
+
 <!-- END Role Variables -->

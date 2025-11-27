@@ -1,0 +1,139 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Secondary nodes fetch PKI files from the primary node.
+# Setting up temporary direct connection if not yet present
+# in order to avoid temporary data storage on the Ansible
+# control node.
+
+- name: Block for PKI sync
+  become: true
+  become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+  block:
+
+    - name: SAP HSR - Create .ssh if missing
+      ansible.builtin.file:
+        path: ~/.ssh
+        mode: "0700"
+        state: directory
+      register: __sap_ha_install_hana_hsr_register_create_ssh
+
+    - name: SAP HSR - Create a temporary ssh-key
+      ansible.builtin.shell:
+        cmd: |
+          [ -f ~/.ssh/hsr_temp ] && [ -f ~/.ssh/hsr_temp.pub ] && \
+            cat ~/.ssh/hsr_temp.pub || \
+            (ssh-keygen -t rsa -f ~/.ssh/hsr_temp -N "" -q && \
+            cat ~/.ssh/hsr_temp.pub)
+      register: __sap_ha_install_hana_hsr_register_pubkey
+      changed_when: true
+
+    - name: SAP HSR - Create .ssh on primary node if missing
+      ansible.builtin.file:
+        path: ~/.ssh
+        state: directory
+        mode: "0700"
+      register: __sap_ha_install_hana_hsr_register_create_ssh_prim
+      delegate_to: "{{ __sap_ha_install_hana_hsr_fact_primary_fqdn }}"
+      run_once: true
+
+    - name: SAP HSR - Authorize pub key on primary node
+      ansible.builtin.lineinfile:
+        backup: true
+        create: true
+        line: "{{ __sap_ha_install_hana_hsr_register_pubkey.stdout }}"
+        mode: "0600"
+        path: ~/.ssh/authorized_keys
+      register: __sap_ha_install_hana_hsr_register_addauth
+      delegate_to: "{{ __sap_ha_install_hana_hsr_fact_primary_fqdn }}"
+      throttle: 1
+
+    # ansible-lint:
+    # The synchronize module is not part of ansible-core collections.
+    - name: SAP HSR - Copy PKI files from primary node  # noqa command-instead-of-module
+      ansible.builtin.command:
+        cmd: >-
+          rsync --checksum -vv
+          {{ __sap_ha_install_hana_hsr_fact_primary_fqdn }}:{{ file_item }} {{ file_item }}
+          -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/hsr_temp"
+      loop:
+        - "{{ __sap_ha_install_hana_hsr_secpath }}/data/SSFS_{{ __sap_ha_install_hana_hsr_sid }}.DAT"
+        - "{{ __sap_ha_install_hana_hsr_secpath }}/key/SSFS_{{ __sap_ha_install_hana_hsr_sid }}.KEY"
+      loop_control:
+        loop_var: file_item
+      register: __sap_ha_install_hana_hsr_fetch_pki
+      changed_when:
+        - '"is uptodate" not in __sap_ha_install_hana_hsr_fetch_pki.stdout'
+
+    - name: SAP HSR - Update PKI files permissions
+      ansible.builtin.file:
+        path: "{{ file_item.path }}{{ file_item.file }}"
+        owner: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+        group: sapsys
+        mode: "{{ file_item.mode }}"
+      loop:
+        - path: "{{ __sap_ha_install_hana_hsr_secpath }}/data/"
+          file: "SSFS_{{ __sap_ha_install_hana_hsr_sid }}.DAT"
+          mode: "0600"
+        - path: "{{ __sap_ha_install_hana_hsr_secpath }}/key/"
+          file: "SSFS_{{ __sap_ha_install_hana_hsr_sid }}.KEY"
+          mode: "0640"
+      loop_control:
+        label: "{{ file_item.path }}{{ file_item.file }}"
+        loop_var: file_item
+
+  # Make sure that we always revert temporary changes, if any were made
+  always:
+
+    - name: SAP HSR - Remove '~/.ssh/hsr_temp*' if it was created
+      ansible.builtin.file:
+        path: "{{ file_item }}"
+        state: absent
+      loop:
+        - ~/.ssh/hsr_temp
+        - ~/.ssh/hsr_temp.pub
+      loop_control:
+        loop_var: file_item
+      when:
+        - __sap_ha_install_hana_hsr_register_pubkey.changed is defined
+        - __sap_ha_install_hana_hsr_register_pubkey.changed
+
+    - name: SAP HSR - Remove .ssh if it was created
+      ansible.builtin.file:
+        path: ~/.ssh
+        state: absent
+      when:
+        - __sap_ha_install_hana_hsr_register_create_ssh.changed is defined
+        - __sap_ha_install_hana_hsr_register_create_ssh.changed
+
+    - name: SAP HSR - Primary - Remove authorized_keys file if created
+      ansible.builtin.file:
+        path: ~/.ssh/authorized_keys
+        state: absent
+      delegate_to: "{{ __sap_ha_install_hana_hsr_fact_primary_fqdn }}"
+      when:
+        - __sap_ha_install_hana_hsr_register_addauth.backup is defined
+        - __sap_ha_install_hana_hsr_register_addauth.backup | length == 0
+      throttle: 1
+
+    - name: SAP HSR - Primary - Restore authorized_keys from backup
+      ansible.builtin.copy:
+        dest: ~/.ssh/authorized_keys
+        remote_src: true
+        src: "{{ __sap_ha_install_hana_hsr_register_addauth.backup }}"
+        mode: "0600"
+      delegate_to: "{{ __sap_ha_install_hana_hsr_fact_primary_fqdn }}"
+      when:
+        - __sap_ha_install_hana_hsr_register_addauth.backup is defined
+        - __sap_ha_install_hana_hsr_register_addauth.backup | length > 0
+      run_once: true
+
+    - name: SAP HSR - Primary - Remove .ssh if it was created
+      ansible.builtin.file:
+        path: ~/.ssh
+        state: absent
+      when:
+        - __sap_ha_install_hana_hsr_register_create_ssh_prim.changed is defined
+        - __sap_ha_install_hana_hsr_register_create_ssh_prim.changed
+      delegate_to: "{{ __sap_ha_install_hana_hsr_fact_primary_fqdn }}"
+      run_once: true

@@ -1,168 +1,122 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# CHECK: we need to define variables, when the Hana Replication interface != ansible_hostname
-# for now I set the default to ansible_hostname, so I can update the rest of the role with that variable
-#  __sap_ha_install_hana_hsr_node_name
-#  __sap_ha_install_hana_hsr_node_domain
-- name: "SAP HSR - Pick up interface node name from definition"
-  ansible.builtin.set_fact:
-    __sap_ha_install_hana_hsr_node_name: "{{ ansible_hostname }}"
-  tags: always
-
-## The following variables can be used to simplify the role
-
-- name: "SAP - HSR create information on HSR connection interface"
-  ansible.builtin.set_fact:
-    __sap_ha_install_hana_hsr_connection:
-      node_name: "{{ item.node_name.split('.')[0] }}"
-      node_domain: "{{ item.node_name.split('.')[1:] | join('.') or sap_ha_install_hana_hsr_fqdn }}"
-      node_ip: "{{ item.node_ip }}"
-      node_role: "{{ item.node_role | default('secondary') }}"
-      hana_site: "{{ item.hana_site }}"
-  loop: "{{ sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_name', 'contains', ansible_hostname) }}"
-  loop_control:
-    label: "{{ item.node_name }}"
-  when:
-    - item.node_ip in ansible_all_ipv4_addresses
-  tags: always
-
-- name: SAP HSR - Verify provided node roles
-  ansible.builtin.assert:
-    that:
-      - sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary') | length == 1
-      - sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'secondary') | length >= 1
-    fail_msg: "Node roles are not valid. There must be 1 primary and at least 1 node defined with the secondary role."
-
-- name: SAP HSR - Check that hsr interface is configured on host
-  ansible.builtin.assert:
-    that:
-      - __sap_ha_install_hana_hsr_connection.node_ip is defined
-      - __sap_ha_install_hana_hsr_connection.node_ip != ""
-      - __sap_ha_install_hana_hsr_connection.node_ip in ansible_all_ipv4_addresses
-    fail_msg: "The IP address configured for HSR does not exist on this host"
-    success_msg: "The IP address for HSR is configured on this host"
-  tags: always
-
-- name: "SAP HSR - Pick up primary node name from definition"
-  ansible.builtin.set_fact:
-    __sap_ha_install_hana_hsr_primary_node: "{{ (sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary'))[0].node_name }}"
-    __sap_ha_install_hana_hsr_primary_node_name: "{{ (sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary'))[0].node_name.split('.')[0] }}"
-    __sap_ha_install_hana_hsr_primary_node_domain: "{{ (sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary'))[0].node_name.split('.')[1:] | join('.') }}"
-    __sap_ha_install_hana_hsr_primary_node_ip: "{{ (sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary'))[0].node_ip }}"
-  tags: always
-
-- name: "SAP HSR - Verify that Ansible can connect to the defined primary node by name"
-  ansible.builtin.command: |
-    hostname -s
-  delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node_name }}"
-  register: __sap_ha_install_hana_hsr_primary_node_name_check
-  when:
-    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
-  ignore_unreachable: true
-  ignore_errors: true
-  failed_when: false
-  changed_when: false
-  become: false
-  tags:
-    - hsr_pki
-
-# BEGIN of primary node connectivity test block
-- name: "SAP HSR - Check block to verify Ansible access to primary node"
-  when:
-    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
-    - __sap_ha_install_hana_hsr_primary_node_name_check.unreachable is defined
-    - __sap_ha_install_hana_hsr_primary_node_name_check.unreachable
-  become: false
-  tags:
-    - hsr_pki
-  block:
-    - name: "SAP HSR - Verify that Ansible can connect to the defined primary node by IP"
-      ansible.builtin.command: |
-        hostname -s
-      delegate_to: "{{ __sap_ha_install_hana_hsr_primary_node_ip }}"
-      register: __sap_ha_install_hana_hsr_primary_node_ip_check
-      ignore_unreachable: true
-      ignore_errors: true
-      failed_when: false
-      changed_when: false
-
-    - name: "SAP HSR - Use IP for tasks that must run on the primary node"
-      ansible.builtin.set_fact:
-        __sap_ha_install_hana_hsr_primary_node: "{{ __sap_ha_install_hana_hsr_primary_node_ip }}"
-      when:
-        - __sap_ha_install_hana_hsr_primary_node_ip_check.stdout == __sap_ha_install_hana_hsr_primary_node_name
-
-    - name: "SAP HSR - Fail if the primary node cannot be connected to"
-      ansible.builtin.fail:
-        msg: |
-          Aborting due to issues identifying and connecting to the primary node.
-          It can either not be reached by host name or the connected IP returns
-          an unmatching hostname.
-
-      when:
-        - __sap_ha_install_hana_hsr_primary_node_ip_check.unreachable is defined or
-          __sap_ha_install_hana_hsr_primary_node_ip_check.stdout != __sap_ha_install_hana_hsr_primary_node_name
-
-# END of primary node connectivity test block
-
-- name: "SAP HSR - Update /etc/hosts"
+- name: SAP HSR - Prepare and validate variables
   ansible.builtin.include_tasks:
-    file: update_etchosts.yml
+    file: pre_tasks/prepare_variables.yml
     apply:
-      tags: hsr_etchosts
-  when:
-    - (sap_hana_update_etchosts is defined and sap_hana_update_etchosts) or
-      sap_ha_install_hana_hsr_update_etchosts
-  tags:
-    - hsr_etchosts
+      tags: always
+  tags: always
 
-- name: "SAP HSR - hdbuserstore"
+- name: SAP HSR - Get current state of replication
   ansible.builtin.include_tasks:
-    file: hdbuserstore.yml
+    file: pre_tasks/get_replication_status.yml
     apply:
-      tags: hsr_hdbuserstore
-  tags:
-    - hsr_hdbuserstore
+      tags: always
+  tags: always
 
-- name: "SAP HSR - Log Mode"
+- name: SAP HSR - Test connection to primary node
   ansible.builtin.include_tasks:
-    file: log_mode.yml
-    apply:
-      tags: hsr_logmode
-  tags:
-    - hsr_logmode
-
-# Steps only running on secondary nodes
-- name: "SAP HSR - PKI Files"
-  ansible.builtin.include_tasks:
-    file: pki_files.yml
+    file: pre_tasks/get_replication_status.yml
     apply:
       tags: hsr_pki
-      vars:
-        __sap_ha_install_hana_hsr_secpath: "/usr/sap/{{ sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs"
   when:
-    - __sap_ha_install_hana_hsr_node_name != __sap_ha_install_hana_hsr_primary_node_name
-  tags:
-    - hsr_pki
+    - not __sap_ha_install_hana_hsr_fact_replication_enabled
+    - __sap_ha_install_hana_hsr_fact_is_secondary
+  tags: hsr_pki
 
-# Steps only executed on a primary node
-- name: "SAP HSR - Run Backup"
-  ansible.builtin.include_tasks:
-    file: run_backup.yml
-    apply:
-      become: true
-      become_user: "{{ sap_ha_install_hana_hsr_sid | lower }}adm"
-      tags: hsr_backup
+
+- name: Block for pre-tasks for enabling HSR
   when:
-    - __sap_ha_install_hana_hsr_node_name == __sap_ha_install_hana_hsr_primary_node_name
-  tags:
-    - hsr_backup
+    - sap_ha_install_hana_hsr_state | d('present') == 'present'
+    - not __sap_ha_install_hana_hsr_fact_replication_enabled
+  block:
 
-- name: "SAP HSR - Configure HSR"
-  ansible.builtin.include_tasks:
-    file: configure_hsr.yml
-    apply:
-      tags: hsr_register
+    - name: SAP HSR - Update /etc/hosts
+      ansible.builtin.include_tasks:
+        file: pre_tasks/update_etchosts.yml
+        apply:
+          tags: hsr_etchosts
+      when:
+        - sap_ha_install_hana_hsr_update_etchosts or
+          (sap_hana_update_etchosts is defined and sap_hana_update_etchosts)
+      tags:
+        - hsr_etchosts
+
+    # TODO: Add steps to open firewall ports 3XX00 - 3XX99 using LSR Firewall role.
+    # This will be added in sap_ha_pacemaker_cluster role as well so there could be overlap.
+
+    - name: SAP HSR - Configure hdbuserstore
+      ansible.builtin.include_tasks:
+        file: pre_tasks/configure_hdbuserstore.yml
+        apply:
+          tags: hsr_hdbuserstore
+      tags:
+        - hsr_hdbuserstore
+
+    - name: SAP HSR - Set default log mode
+      ansible.builtin.include_tasks:
+        file: pre_tasks/set_log_mode.yml
+        apply:
+          tags: hsr_logmode
+      tags:
+        - hsr_logmode
+
+    - name: SAP HSR - Prepare and sync PKI Files
+      ansible.builtin.include_tasks:
+        file: pre_tasks/sync_pki_files.yml
+        apply:
+          tags: hsr_pki
+          vars:
+            __sap_ha_install_hana_hsr_secpath: "/usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs"
+      when: __sap_ha_install_hana_hsr_fact_is_secondary
+      tags:
+        - hsr_pki
+
+    - name: SAP HSR - Run Backup before configuring replication
+      ansible.builtin.include_tasks:
+        file: pre_tasks/create_backup.yml
+        apply:
+          become: true
+          become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+          tags: hsr_backup
+      when:
+        - __sap_ha_install_hana_hsr_fact_is_primary
+        - sap_ha_install_hana_hsr_create_backup | bool
+      tags:
+        - hsr_backup
+
+- name: Block to manage replication
   tags:
     - hsr_register
+  block:
+    - name: SAP HSR - Ensure HSR is configured
+      ansible.builtin.include_tasks:
+        file: enable_hsr.yml
+        apply:
+          tags: hsr_register
+      when:
+        - sap_ha_install_hana_hsr_state | d('present') == 'present'
+        - not __sap_ha_install_hana_hsr_fact_replication_enabled
+
+    - name: SAP HSR - Ensure HSR is removed
+      ansible.builtin.include_tasks:
+        file: disable_hsr.yml
+        apply:
+          tags: hsr_register
+      when:
+        - sap_ha_install_hana_hsr_state | d('present') == 'absent'
+        - __sap_ha_install_hana_hsr_fact_replication_enabled
+
+
+- name: SAP HSR - Show final message and current replication status
+  ansible.builtin.debug:
+    msg: |
+      {% if sap_ha_install_hana_hsr_state | d('present') == 'present' %}
+      HANA System Replication is enabled on this node.
+      {% else %}
+      HANA System Replication is disabled on this node.
+      {% endif %}
+
+      Current System Replication status:
+      {{ __sap_ha_install_hana_hsr_register_srstate_after.stdout | d(__sap_ha_install_hana_hsr_register_srstate.stdout) }}

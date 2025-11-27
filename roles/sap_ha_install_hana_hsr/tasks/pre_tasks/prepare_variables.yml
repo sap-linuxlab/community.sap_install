@@ -1,0 +1,310 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# This task file contains steps to:
+# 1. Set internal variables if backwards compatibility is required
+# 2. Assert that variables are correctly defined.
+
+# Replication state
+- name: SAP HSR - Assert that the variable 'sap_ha_install_hana_hsr_state' is defined with valid value
+  ansible.builtin.assert:
+    that:
+      - sap_ha_install_hana_hsr_state is string
+      - sap_ha_install_hana_hsr_state | trim | length > 0
+      - sap_ha_install_hana_hsr_state in ['present', 'absent']
+    success_msg: |
+      PASS: The variable 'sap_ha_install_hana_hsr_state' is defined with valid value.
+    fail_msg: |
+      {% if sap_ha_install_hana_hsr_state is not string %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_state' is not String.
+      {% elif sap_ha_install_hana_hsr_state | length == 0 %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_state' is empty.
+      {% else %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_state' is not one of valid values.
+        Available values: present, absent
+      {% endif %}
+
+
+# SID
+- name: SAP HSR - Prepare the variable 'sap_ha_install_hana_hsr_sid'
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_sid:
+      "{{ sap_hana_sid | d('') | upper
+        if sap_ha_install_hana_hsr_sid | string | length == 0
+        else sap_ha_install_hana_hsr_sid | upper }}"
+
+- name: SAP HSR - Assert that the variable 'sap_ha_install_hana_hsr_sid' is defined as String consisting of 3 characters
+  ansible.builtin.assert:
+    that:
+      - __sap_ha_install_hana_hsr_sid is string
+      - __sap_ha_install_hana_hsr_sid | trim | length == 3
+    success_msg: |
+      PASS: The length of SAP HANA System ID '{{ __sap_ha_install_hana_hsr_sid }}' is 3 characters.
+    fail_msg: |
+      {% if __sap_ha_install_hana_hsr_sid is not string %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_sid' is not String.
+      {% elif __sap_ha_install_hana_hsr_sid | length == 0 %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_sid' is empty.
+      {% else %}
+        FAIL: The length of SAP HANA System ID '{{ __sap_ha_install_hana_hsr_sid }}' is not 3 characters!
+      {% endif %}
+
+
+# Instance Number
+- name: SAP HSR - Prepare the variable 'sap_ha_install_hana_hsr_instance_number'
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_instance_number:
+      "{{ sap_hana_instance_number | d('') | upper
+        if sap_ha_install_hana_hsr_instance_number | string | length == 0
+        else sap_ha_install_hana_hsr_instance_number | upper }}"
+
+- name: SAP HSR - Assert that the variable 'sap_ha_install_hana_hsr_instance_number' is defined as String consisting of 2 digits
+  ansible.builtin.assert:
+    that:
+      - __sap_ha_install_hana_hsr_instance_number is string
+      - __sap_ha_install_hana_hsr_instance_number | trim | length == 2
+      - __sap_ha_install_hana_hsr_instance_number is match('^[0-9]{2}$')
+    success_msg: |
+      PASS: The SAP HANA Instance Number '{{ __sap_ha_install_hana_hsr_instance_number }}' is defined as String consisting of 2 digits.
+    fail_msg: |
+      {% if __sap_ha_install_hana_hsr_instance_number is not string %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_instance_number' is not String.
+      {% elif __sap_ha_install_hana_hsr_instance_number | length == 0 %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_instance_number' is empty.
+      {% else %}
+        FAIL: The SAP HANA Instance Number '{{ __sap_ha_install_hana_hsr_instance_number }}' is not 2 digits!
+      {% endif %}
+
+
+# Database password
+- name: SAP HSR - Prepare the variable 'sap_ha_install_hana_hsr_db_system_password'
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_db_system_password:
+      "{{ sap_hana_install_master_password | d('')
+        if sap_ha_install_hana_hsr_db_system_password | string | length == 0
+        else sap_ha_install_hana_hsr_db_system_password }}"
+  no_log: true
+
+- name: SAP HSR - Assert that the variable 'sap_ha_install_hana_hsr_db_system_password' is defined as String and not empty
+  ansible.builtin.assert:
+    that:
+      - __sap_ha_install_hana_hsr_db_system_password is defined
+      - __sap_ha_install_hana_hsr_db_system_password is string
+      - __sap_ha_install_hana_hsr_db_system_password | trim | length > 0
+    success_msg: |
+      PASS: The variable 'sap_ha_install_hana_hsr_db_system_password' is defined as String and not empty.
+    fail_msg: |
+      {% if __sap_ha_install_hana_hsr_db_system_password is not defined %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_db_system_password' is not defined.
+      {% elif __sap_ha_install_hana_hsr_db_system_password is not string %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_db_system_password' is not String.
+      {% else %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_db_system_password' is empty.
+      {% endif %}
+
+
+# Domain
+# Original name 'sap_ha_install_hana_hsr_fqdn' was incorrectly mixing FQDN and Domain together.
+- name: SAP HSR - Prepare the variable 'sap_ha_install_hana_hsr_domain'
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_domain:
+      "{{ sap_ha_install_hana_hsr_fqdn | d(sap_domain) | d(ansible_facts['domain']) | d('')
+        if sap_ha_install_hana_hsr_domain | string | length == 0
+        else sap_ha_install_hana_hsr_domain }}"
+
+- name: SAP HSR - Assert that the variable 'sap_ha_install_hana_hsr_domain' is defined as non empty String
+  ansible.builtin.assert:
+    that:
+      - __sap_ha_install_hana_hsr_domain is string
+      - __sap_ha_install_hana_hsr_domain | trim | length > 0
+    success_msg: |
+      PASS: The variable 'sap_ha_install_hana_hsr_domain' is defined as non empty String.
+    fail_msg: |
+      {% if __sap_ha_install_hana_hsr_domain is not string %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_domain' is not String.
+      {% else %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_domain' is empty.
+      {% endif %}
+
+
+# Replication mode
+- name: SAP HSR - Assert that the variable 'sap_ha_install_hana_hsr_rep_mode' is defined with valid value
+  ansible.builtin.assert:
+    that:
+      - sap_ha_install_hana_hsr_rep_mode is string
+      - sap_ha_install_hana_hsr_rep_mode | trim | length > 0
+      - sap_ha_install_hana_hsr_rep_mode in ['sync', 'syncmem', 'async']
+    success_msg: |
+      PASS: The variable 'sap_ha_install_hana_hsr_rep_mode' is defined with valid value.
+    fail_msg: |
+      {% if sap_ha_install_hana_hsr_rep_mode is not string %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_rep_mode' is not String.
+      {% elif sap_ha_install_hana_hsr_rep_mode | length == 0 %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_rep_mode' is empty.
+      {% else %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_rep_mode' is not one of valid values.
+        Available values: sync, syncmem, async
+      {% endif %}
+
+
+# Operation mode
+- name: SAP HSR - Assert that the variable 'sap_ha_install_hana_hsr_oper_mode' is defined with valid value
+  ansible.builtin.assert:
+    that:
+      - sap_ha_install_hana_hsr_oper_mode is string
+      - sap_ha_install_hana_hsr_oper_mode | trim | length > 0
+      - sap_ha_install_hana_hsr_oper_mode in ['delta_datashipping', 'logreplay', 'logreplay_readaccess']
+    success_msg: |
+      PASS: The variable 'sap_ha_install_hana_hsr_oper_mode' is defined with valid value.
+    fail_msg: |
+      {% if sap_ha_install_hana_hsr_oper_mode is not string %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_oper_mode' is not String.
+      {% elif sap_ha_install_hana_hsr_oper_mode | length == 0 %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_oper_mode' is empty.
+      {% else %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_oper_mode' is not one of valid values.
+        Available values: delta_datashipping, logreplay, logreplay_readaccess
+      {% endif %}
+
+
+# Backup user
+- name: SAP HSR - Assert that the variable 'sap_ha_install_hana_hsr_hdbuserstore_system_backup_user' is defined as non empty String
+  ansible.builtin.assert:
+    that:
+      - sap_ha_install_hana_hsr_hdbuserstore_system_backup_user is string
+      - sap_ha_install_hana_hsr_hdbuserstore_system_backup_user | trim | length > 0
+    success_msg: |
+      PASS: The variable 'sap_ha_install_hana_hsr_hdbuserstore_system_backup_user' is defined as non empty String.
+    fail_msg: |
+      {% if sap_ha_install_hana_hsr_hdbuserstore_system_backup_user is not string %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_hdbuserstore_system_backup_user' is not String.
+      {% else %}
+        FAIL: The variable 'sap_ha_install_hana_hsr_hdbuserstore_system_backup_user' is empty.
+      {% endif %}
+
+
+# $HOME path
+- name: SAP HSR - Prepare the variable 'sap_ha_install_hana_hsr_home_path'
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_home_path:
+      "{{ '/usr/sap/' ~ __sap_ha_install_hana_hsr_sid ~ '/home'
+        if sap_ha_install_hana_hsr_home_path | d('') | string | length == 0
+        else sap_ha_install_hana_hsr_home_path }}"
+
+
+# Cluster nodes configuration
+- name: SAP HSR - Prepare the variable 'sap_ha_install_hana_hsr_cluster_nodes'
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_cluster_nodes:
+      "{{ sap_hana_cluster_nodes | d([])
+        if sap_ha_install_hana_hsr_cluster_nodes | length == 0
+        else sap_ha_install_hana_hsr_cluster_nodes }}"
+
+- name: SAP HSR - Assert that the variable 'sap_ha_install_hana_hsr_cluster_nodes' is a valid list
+  ansible.builtin.assert:
+    that:
+      - __sap_ha_install_hana_hsr_cluster_nodes | type_debug == 'list'
+      - __sap_ha_install_hana_hsr_cluster_nodes | length > 1
+      - __sap_ha_install_hana_hsr_cluster_nodes | map(attribute='node_name') | unique | length == __sap_ha_install_hana_hsr_cluster_nodes | length
+    success_msg: |
+      PASS: The variable 'sap_ha_install_hana_hsr_cluster_nodes' is a valid list of dictionaries with unique node names.
+    fail_msg: |
+      {% if __sap_ha_install_hana_hsr_cluster_nodes | type_debug != 'list' %}
+      FAIL: The variable 'sap_ha_install_hana_hsr_cluster_nodes' is not a list.
+      {% elif __sap_ha_install_hana_hsr_cluster_nodes | length <= 1 %}
+      FAIL: At least two nodes are required for SAP HANA HSR,
+      but 'sap_ha_install_hana_hsr_cluster_nodes' contains only {{ __sap_ha_install_hana_hsr_cluster_nodes | length }} node(s).
+      {% else %}
+      FAIL: Duplicate 'node_name' found in 'sap_ha_install_hana_hsr_cluster_nodes'. Each node must have a unique 'node_name'.
+      {% endif %}
+
+- name: SAP HSR - Assert that each node in 'sap_ha_install_hana_hsr_cluster_nodes' has required attributes
+  ansible.builtin.assert:
+    that:
+      - node_item.node_name is defined and node_item.node_name | string | length > 0
+      - node_item.node_ip is defined and node_item.node_ip | string | length > 0
+      - node_item.node_role is defined and node_item.node_role | string | length > 0
+      - node_item.hana_site is defined and node_item.hana_site | string | length > 0
+    success_msg: |
+      PASS: Node '{{ node_item.node_name }}' has all required attributes.
+    fail_msg: |
+      FAIL: Node '{{ node_item.node_name | default('undefined') }}' is missing required attributes or has empty values.
+      Each node must have 'node_name', 'node_ip', 'node_role', and 'hana_site' defined with non-empty values."
+  loop: "{{ __sap_ha_install_hana_hsr_cluster_nodes }}"
+  loop_control:
+    label: "{{ node_item.node_name | default('N/A') }}"
+    loop_var: node_item
+
+- name: SAP HSR - Assert that nodes in 'sap_ha_install_hana_hsr_cluster_nodes' have required 'node_role' values.
+  ansible.builtin.assert:
+    that:
+      - (__sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary') | list | length) == 1
+      - (__sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'secondary') | list | length) >= 1
+    success_msg: |
+      PASS: Node roles are correctly defined with one primary and at least one secondary.
+    fail_msg: |
+      {% set primary_nodes_count = __sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary') | list | length %}
+      {% set secondary_nodes_count = __sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'secondary') | list | length %}
+      {% if primary_nodes_count != 1 %}
+      FAIL: There must be exactly one 'primary' node, but {{ primary_nodes_count }} were found.
+      {% else %}
+      FAIL: There must be at least one 'secondary' node, but {{ secondary_nodes_count }} were found.
+      {% endif %}
+
+
+# Host specific luster configuration
+- name: SAP HSR - Set host specific connection variable
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_connection:
+      node_fqdn: "{{ node_item.node_name }}"
+      node_name: "{{ node_item.node_name.split('.')[0] }}"
+      node_domain: "{{ node_item.node_name.split('.')[1:] | join('.') or __sap_ha_install_hana_hsr_domain | default('') }}"
+      node_ip: "{{ node_item.node_ip }}"
+      node_role: "{{ node_item.node_role }}"
+      hana_site: "{{ node_item.hana_site }}"
+  loop: "{{ __sap_ha_install_hana_hsr_cluster_nodes }}"
+  loop_control:
+    label: "{{ node_item.node_name }}"
+    loop_var: node_item
+  when:
+    - node_item.node_name.split('.')[0] == ansible_facts['hostname']
+    - node_item.node_ip in ansible_facts['all_ipv4_addresses']
+
+# Sets host specific flags that are used for running tasks on specific hosts.
+- name: SAP HSR - Set fact with boolean flags for each host
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_fact_is_primary: "{{ __sap_ha_install_hana_hsr_connection.node_role | default('') == 'primary' }}"
+    __sap_ha_install_hana_hsr_fact_is_secondary: "{{ __sap_ha_install_hana_hsr_connection.node_role | default('') == 'secondary' }}"
+
+- name: SAP HSR - Check that host is a defined member of the HSR cluster
+  ansible.builtin.assert:
+    that:
+      - __sap_ha_install_hana_hsr_fact_is_primary or __sap_ha_install_hana_hsr_fact_is_secondary
+    success_msg: |
+      PASS: This host is a defined member of the HSR cluster with following details.
+      node_name: {{ __sap_ha_install_hana_hsr_connection.node_name }}
+      node_ip: {{ __sap_ha_install_hana_hsr_connection.node_ip }}
+      node_role: {{ __sap_ha_install_hana_hsr_connection.node_role }}
+      hana_site: {{ __sap_ha_install_hana_hsr_connection.hana_site }}
+    fail_msg: |
+      FAIL: This host ({{ ansible_facts['hostname'] }}) could not be identified as a valid primary or secondary node in the HSR cluster configuration.
+
+      This usually happens if this host is not correctly defined in the 'sap_ha_install_hana_hsr_cluster_nodes' variable.
+
+      Please verify the configuration for this host, checking the following:
+      1. Hostname Match: The 'node_name' must match this host's short hostname ('{{ ansible_facts['hostname'] }}').
+      2. IP Address Match: The 'node_ip' must be an IP address present on this host.
+      3. Valid Role: The 'node_role' must be either 'primary' or 'secondary'.
+
+      If this host is not supposed to be part of the HSR cluster, please remove it from hosts in Ansible Play.
+
+
+# Set details of primary for connection from secondary
+- name: SAP HSR - Set connection variables for primary node
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_fact_primary_fqdn:
+      "{{ (sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary'))[0].node_name }}"
+    __sap_ha_install_hana_hsr_fact_primary_name:
+      "{{ (sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary'))[0].node_name.split('.')[0] }}"
+    __sap_ha_install_hana_hsr_fact_primary_ip:
+      "{{ (sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary'))[0].node_ip }}"

@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP HSR - Verify that secondary nodes can connect to primary node using hostname
+  ansible.builtin.command:
+    cmd: hostname -s
+  delegate_to: "{{ __sap_ha_install_hana_hsr_fact_primary_name }}"
+  register: __sap_ha_install_hana_hsr_register_primary_name_check
+  ignore_unreachable: true
+  ignore_errors: true
+  failed_when: false
+  changed_when: false
+  become: false
+
+- name: Block for connection test using IP
+  when:
+    - __sap_ha_install_hana_hsr_register_primary_name_check.unreachable is defined
+    - __sap_ha_install_hana_hsr_register_primary_name_check.unreachable
+  become: false
+  block:
+    - name: SAP HSR - Verify that secondary nodes can connect to primary node using IP
+      ansible.builtin.command:
+        cmd: hostname -s
+      delegate_to: "{{ __sap_ha_install_hana_hsr_fact_primary_ip }}"
+      register: __sap_ha_install_hana_hsr_register_primary_ip_check
+      ignore_unreachable: true
+      ignore_errors: true
+      failed_when: false
+      changed_when: false
+
+    - name: SAP HSR - Use IP for tasks that must run on the primary node
+      ansible.builtin.set_fact:
+        __sap_ha_install_hana_hsr_fact_primary_fqdn: "{{ __sap_ha_install_hana_hsr_fact_primary_ip }}"
+      when:
+        - __sap_ha_install_hana_hsr_register_primary_ip_check.stdout == __sap_ha_install_hana_hsr_fact_primary_name
+
+    - name: SAP HSR - Fail if the primary node cannot be connected to
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Unable to connect from secondary node to primary with neither connection method:
+          - Using hostname: {{ __sap_ha_install_hana_hsr_fact_primary_name }}
+          - Using IP address: {{ __sap_ha_install_hana_hsr_fact_primary_ip }}
+      when:
+        - __sap_ha_install_hana_hsr_register_primary_ip_check.unreachable is defined or
+          __sap_ha_install_hana_hsr_register_primary_ip_check.stdout != __sap_ha_install_hana_hsr_fact_primary_name
