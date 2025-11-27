@@ -1,16 +1,26 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# This configuration includes also Pre-Tasks content to ensure they are all set same.
-- name: SAP HANA - Post-Tasks - Configure 'sap_hana_install_root_path' SELinux file contexts
+# We do not need to configure sap_hana_install_root_path here because that was already configured in Pre-Tasks.
+- name: SAP HANA - Post-Tasks - Define dict for selinux_fcontexts
+  ansible.builtin.set_fact:
+    __sap_hana_install_fcontexts_list: "{{ __sap_hana_install_fcontexts_list | d([]) + [ __sap_hana_install_target_setype_dict ] }}"
+  loop: "{{ sap_hana_install_directories | reject('equalto', sap_hana_install_root_path) }}"
+  loop_control:
+    loop_var: __sap_hana_install_selinux_fapolicyd_directory_item
+  vars:
+    __sap_hana_install_target_setype_dict:
+      target: "{{ __sap_hana_install_selinux_fapolicyd_directory_item }}(/.*)?"
+      setype: 'usr_t'
+  when: sap_hana_install_modify_selinux_labels
+
+- name: SAP HANA - Post-Tasks - Configure SELinux file contexts for the remaining directories
   ansible.builtin.include_role:
     name: '{{ sap_hana_install_system_roles_collection }}.selinux'
   vars:
     selinux_booleans:
       - { name: 'selinuxuser_execmod', state: 'on' }
     selinux_fcontexts:
-      - { target: '{{ sap_hana_install_root_path }}(/.*)?', setype: 'usr_t' }
-      - { target: '/usr/sap(/.*)?', setype: 'usr_t' }
+      - "{{ __sap_hana_install_fcontexts_list }}"
     selinux_restore_dirs:
-      - '{{ sap_hana_install_root_path }}'
-      - /usr/sap
+      - "{{ sap_hana_install_directories | reject('equalto', sap_hana_install_root_path) }}"

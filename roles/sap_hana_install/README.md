@@ -293,6 +293,7 @@ Steps:
 6. Apply firewall rules if the variable `sap_hana_install_update_firewall` is set to `true`.
 7. Apply SElinux policies if the variable `sap_hana_install_modify_selinux_labels` is set to `true`.
 8. (Red Hat specific) Configure `fapolicyd` if the variable `sap_hana_install_use_fapolicyd` is set to `true`.
+Additionally, if `sap_hana_install_enable_fapolicyd` is set to `true`, also enable and start the `fapolicyd` service.
 9. Output final status of installed system.
 
 
@@ -306,6 +307,7 @@ Steps:
 6. Apply firewall rules if the variable `sap_hana_install_update_firewall` is set to `true`.
 7. Apply SElinux policies if the variable `sap_hana_install_modify_selinux_labels` is set to `true`.
 8. (Red Hat specific) Configure `fapolicyd` if the variable `sap_hana_install_use_fapolicyd` is set to `true`.
+Additionally, if `sap_hana_install_enable_fapolicyd` is set to `true`, also enable and start the `fapolicyd` service.
 9. Output final status of installed system.
 <!-- END Execution Flow -->
 

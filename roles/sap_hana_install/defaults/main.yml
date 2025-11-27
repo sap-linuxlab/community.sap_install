@@ -34,22 +34,26 @@ sap_hana_install_keep_copied_sarfiles: false
 # For installing SAP HANA with fapolicyd support, set the following variable to `true`:
 sap_hana_install_use_fapolicyd: false
 
-# (RedHat specific) fapolicyd package is present on RedHat systems
+# (RedHat specific) desired fapolicyd service status (only if sap_hana_install_use_fapolicyd is 'true')
+# For enabling and starting the fapolicyd service after the installation has finished, set the following variable to `true`:
+sap_hana_install_enable_fapolicyd: false
+
+# (RedHat specific) fapolicyd integrity level
 # When using fapolicyd, you can set the following variable to one of `none`, `size`, `sha256`, or `ima`. Note that before setting
 # to `ima`, it is essential to prepare the system accordingly (e.g. boot with a different kernel parameter). See the
 # RHEL 9 Managing, monitoring, and updating the kernel guide for more information on this topic.
 sap_hana_install_fapolicyd_integrity: 'sha256'
 
-# (RedHat specific) fapolicyd package is present on RedHat systems
+# (RedHat specific) name of fapolicyd rule file for protecting shell sripts
 # When using fapolicyd, the following variable is used to define the fapolicyd rule file in which the rules for
 # protecting shell scripts are stored. The rule file will be created in the directory '/etc/fapolicyd/rules.d'.
 # Note: The mandatory file ending '.rules' will be added in the corresponding task of this role.
 sap_hana_install_fapolicyd_rule_file: '71-sap-shellscripts'
 
-# (RedHat specific) fapolicyd package is present on RedHat systems
-# When using fapolicyd, modify the following variable to change or add the directories which contain SAP HANA executables:
-sap_hana_install_fapolicyd_trusted_directories:
+# Directories which are used for the SAP HANA installation (relevant for SELinux relabeling and for fapolicyd protection)
+sap_hana_install_directories:
   - "{{ sap_hana_install_root_path }}"
+  - '/lss/shared'
   - '/usr/sap'
 
 # File name of SAPCAR*EXE in the software directory. If the variable is not set and there is more than one SAPCAR executable
