@@ -53,7 +53,7 @@
 # This can still be overwritten by extra variables.
 - name: SAP HANA Pre Install - Ensure SELinux does not execute for SLES
   ansible.builtin.set_fact:
-    sap_hana_install_modify_selinux_labels: false
+    sap_hana_install_configure_selinux: false
   when: ansible_os_family == "Suse"
 
 
@@ -169,7 +169,7 @@
       {% if sap_hana_install_update_firewall %}
       Firewall is enabled and SAP HANA ports are open.
       {% endif %}
-      {% if sap_hana_install_modify_selinux_labels %}
+      {% if sap_hana_install_configure_selinux %}
       SELinux file contexts are configured for SAP folders ({{ sap_hana_install_directories | map('quote') | join(', ') }}).
       {% endif %}
       {% if ansible_os_family == "RedHat" and sap_hana_install_configure_fapolicy %}
