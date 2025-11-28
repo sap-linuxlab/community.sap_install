@@ -39,6 +39,18 @@
     - sap_hana_install_set_log_mode
     - sap_hana_install_configure_firewall
 
+# Load selinux and fapolicyd variables while maintaining backwards compatibility
+- name: SAP HANA - Main - Set variables for selinux and fapolicyd
+  ansible.builtin.set_fact:
+    __sap_hana_install_configure_selinux:
+      "{{ sap_hana_install_modify_selinux_labels | d(false)
+        if sap_hana_install_configure_selinux is not defined
+        else sap_hana_install_configure_selinux | bool }}"
+    __sap_hana_install_configure_fapolicyd:
+      "{{ sap_hana_install_use_fapolicyd | d(false)
+        if sap_hana_install_configure_fapolicyd is not defined
+        else sap_hana_install_configure_fapolicyd | bool }}"
+
 - name: SAP HANA - Main - Validate the role variables
   ansible.builtin.include_tasks:
     file: pre_tasks/assert_variables.yml
@@ -53,7 +65,7 @@
 # This can still be overwritten by extra variables.
 - name: SAP HANA Pre Install - Ensure SELinux does not execute for SLES
   ansible.builtin.set_fact:
-    sap_hana_install_configure_selinux: false
+    __sap_hana_install_configure_selinux: false
   when: ansible_os_family == "Suse"
 
 
@@ -169,10 +181,10 @@
       {% if sap_hana_install_update_firewall %}
       Firewall is enabled and SAP HANA ports are open.
       {% endif %}
-      {% if sap_hana_install_configure_selinux %}
+      {% if __sap_hana_install_configure_selinux %}
       SELinux file contexts are configured for SAP folders ({{ sap_hana_install_directories | map('quote') | join(', ') }}).
       {% endif %}
-      {% if ansible_os_family == "RedHat" and sap_hana_install_configure_fapolicy %}
+      {% if ansible_os_family == "RedHat" and __sap_hana_install_configure_fapolicyd %}
       Fapolicyd is configured for SAP folders ({{ sap_hana_install_directories | map('quote') | join(', ') }}).
       {% endif %}
   vars:

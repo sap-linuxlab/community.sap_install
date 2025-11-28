@@ -229,7 +229,7 @@ This part is performed when:
 - Existing SAP HANA was not detected.
 
 Steps:
-1. If the variable `sap_hana_install_configure_fapolicy` is set to `true` and operating system is `RedHat`, install and disable `fapolicyd` on all new hosts.
+1. If the variable `sap_hana_install_configure_fapolicyd` is set to `true` and operating system is `RedHat`, install and disable `fapolicyd` on all new hosts.
 2. Configure permissions for the SAP HANA directories on all new hosts.
 3. If the variable `sap_hana_install_configure_selinux` is set to `true`, configure `SELinux` on all new hosts.
 4. Prepare the directory defined in variable `sap_hana_install_software_directory`.
@@ -253,7 +253,7 @@ Steps:
     - Generate password hash for `sapadm` user using the value of `sap_hana_install_sapadm_password` variable.
 2. Create the user `<sid>adm` on all addhosts.
     - This is not required during installation, because the `root` user is used instead.
-3. If the variable `sap_hana_install_configure_fapolicy` is set to `true` and operating system is `RedHat`, install and disable `fapolicyd` on all new hosts.
+3. If the variable `sap_hana_install_configure_fapolicyd` is set to `true` and operating system is `RedHat`, install and disable `fapolicyd` on all new hosts.
 4. Configure permissions for the SAP HANA directories on all new hosts.
 5. If the variable `sap_hana_install_configure_selinux` is set to `true`, configure `SELinux` on all new hosts.
 6. If the file `configfiles/configfile.cfg` is found in the directory defined in `sap_hana_install_software_directory`, make copy of it and use it for installation.
@@ -292,7 +292,7 @@ Steps:
 5. Set expiration of unix users to `never` if the variable `sap_hana_install_set_sidadm_noexpire` is set to `true`, for new installations.
 6. Apply firewall rules if the variable `sap_hana_install_update_firewall` is set to `true`.
 7. Apply SELinux policies if the variable `sap_hana_install_configure_selinux` is set to `true`.
-8. (Red Hat specific) Configure `fapolicyd` if the variable `sap_hana_install_configure_fapolicy` is set to `true`.
+8. (Red Hat specific) Configure `fapolicyd` if the variable `sap_hana_install_configure_fapolicyd` is set to `true`.
 Additionally, if `sap_hana_install_enable_fapolicyd` is set to `true`, also enable and start the `fapolicyd` service.
 9. Output final status of installed system.
 
@@ -306,7 +306,7 @@ Steps:
 5. Set expiration of unix users to `never` if the variable `sap_hana_install_set_sidadm_noexpire` is set to `true`, for new hosts.
 6. Apply firewall rules if the variable `sap_hana_install_update_firewall` is set to `true`.
 7. Apply SELinux policies if the variable `sap_hana_install_configure_selinux` is set to `true`.
-8. (Red Hat specific) Configure `fapolicyd` if the variable `sap_hana_install_configure_fapolicy` is set to `true`.
+8. (Red Hat specific) Configure `fapolicyd` if the variable `sap_hana_install_configure_fapolicyd` is set to `true`.
 Additionally, if `sap_hana_install_enable_fapolicyd` is set to `true`, also enable and start the `fapolicyd` service.
 9. Output final status of installed system.
 <!-- END Execution Flow -->
