@@ -82,6 +82,30 @@
   when:
     - not sap_hana_install_new_system
 
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_directories' is defined as a list containing at least one directory
+  ansible.builtin.assert:
+    that:
+      - sap_hana_install_directories is defined
+      - sap_hana_install_directories | type_debug == 'list'
+      - sap_hana_install_directories | reject('string') | list | length == 0
+      - sap_hana_install_directories | reject('match', '^/') | list | length == 0
+    success_msg: |
+      PASS: The variable 'sap_hana_install_directories' is defined as list containing at least one directory.
+    fail_msg: |
+      {% if sap_hana_install_directories is not defined %}
+        FAIL: The variable 'sap_hana_install_directories' is not defined.
+      {% elif (sap_hana_install_directories | type_debug) != 'list' %}
+        FAIL: The variable 'sap_hana_install_directories' is not defined as a list.
+      {% elif sap_hana_install_directories | select('string') | list | length == 0 %}
+        FAIL: The variable 'sap_hana_install_directories' does not contain at least one string
+      {% elif sap_hana_install_directories | select('match', '^/') | list | length == 0 %}
+        FAIL: The variable 'sap_hana_install_directories' does not contain at least one directory
+      {% else %}
+        FAIL: The variable 'sap_hana_install_directories' is empty.
+      {% endif %}
+  when:
+    - sap_hana_install_modify_selinux_labels or sap_hana_install_use_fapolicyd
+
 # TODO: Issue#1123 Uncomment and update when fixing issue with use_master_password
 # Master Password cannot be used in combination with other initial passwords
 # Mandatory parameter 'password' (Password) is missing or invalid
