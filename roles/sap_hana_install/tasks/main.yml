@@ -1,73 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# Load variables while maintaining backwards compatibility when variable is empty string.
-# Check if variable is defined and non-empty before using it, otherwise fall back to backwards
-# compatible variable or default empty string that will fail asserts afterwards.
-# NOTE: This is not __var assignment so it will not override user specified vars due to precedence!
-- name: SAP HANA - Main - Set mandatory variables used by hdblcm configfile
-  ansible.builtin.set_fact:
-    sap_hana_install_sid:
-      "{{ sap_hana_sid | d('')
-        if sap_hana_install_sid | string | length == 0
-        else sap_hana_install_sid }}"
-    sap_hana_install_number:
-      "{{ sap_hana_instance_number | d(sap_hana_install_instance_nr) | d(sap_hana_install_instance_number) | d('')
-        if sap_hana_install_number | string | length == 0
-        else sap_hana_install_number }}"
-    sap_hana_install_system_usage: "{{ sap_hana_install_env_type | d(sap_hana_install_system_usage) | d('custom') }}"
-    sap_hana_install_restrict_max_mem: "{{ sap_hana_install_mem_restrict | d(sap_hana_install_restrict_max_mem) | d('n') }}"
-  tags:
-    - sap_hana_install_check_hana_exists
-    - sap_hana_install_check_installation
-    - sap_hana_install_preinstall
-    - sap_hana_install_set_log_mode
-    - sap_hana_install_configure_firewall
-
-# Separate task for password with no_log
-- name: SAP HANA - Main - Set mandatory variables used by hdblcm configfile - passwords
-  ansible.builtin.set_fact:
-    sap_hana_install_master_password:
-      "{{ sap_hana_install_common_master_password | d('')
-        if sap_hana_install_master_password is not defined or sap_hana_install_master_password | string | length == 0
-        else sap_hana_install_master_password }}"
-  no_log: true  # Required for password handling
-  tags:
-    - sap_hana_install_check_hana_exists
-    - sap_hana_install_check_installation
-    - sap_hana_install_preinstall
-    - sap_hana_install_set_log_mode
-    - sap_hana_install_configure_firewall
-
-# Load selinux and fapolicyd variables while maintaining backwards compatibility
-- name: SAP HANA - Main - Set variables for selinux and fapolicyd
-  ansible.builtin.set_fact:
-    __sap_hana_install_configure_selinux:
-      "{{ sap_hana_install_modify_selinux_labels | d(false)
-        if sap_hana_install_configure_selinux is not defined
-        else sap_hana_install_configure_selinux | bool }}"
-    __sap_hana_install_configure_fapolicyd:
-      "{{ sap_hana_install_use_fapolicyd | d(false)
-        if sap_hana_install_configure_fapolicyd is not defined
-        else sap_hana_install_configure_fapolicyd | bool }}"
-
-- name: SAP HANA - Main - Validate the role variables
+# SAP HANA
+- name: SAP HANA - Main - Prepare some variables
   ansible.builtin.include_tasks:
-    file: pre_tasks/assert_variables.yml
+    file: pre_tasks/prepare_variables.yml
   tags:
     - sap_hana_install_check_hana_exists
     - sap_hana_install_check_installation
     - sap_hana_install_preinstall
     - sap_hana_install_set_log_mode
     - sap_hana_install_configure_firewall
-
-# SELinux is not currently supported by SAP using SLES4SAP
-# This can still be overwritten by extra variables.
-- name: SAP HANA Pre Install - Ensure SELinux does not execute for SLES
-  ansible.builtin.set_fact:
-    __sap_hana_install_configure_selinux: false
-  when: ansible_os_family == "Suse"
-
 
 # SAP HANA presence has to be validated for both new system and adding new hosts.
 - name: SAP HANA - Main - Validate presence of existing SAP HANA database
@@ -105,7 +48,6 @@
     - name: SAP HANA - Install - Pre-Tasks
       ansible.builtin.include_tasks:
         file: pre_install.yml
-      tags: sap_hana_install_preinstall
 
     - name: SAP HANA - Install
       ansible.builtin.include_tasks:
