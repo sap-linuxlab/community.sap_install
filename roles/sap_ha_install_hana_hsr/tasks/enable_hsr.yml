@@ -5,7 +5,7 @@
   ansible.builtin.shell:
     cmd: >
       source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
-      {{ sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
+      {{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
       -sr_enable --name="{{ __sap_ha_install_hana_hsr_connection.hana_site }}"
   become: true
   become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
@@ -20,7 +20,7 @@
   ansible.builtin.shell:
     cmd: >-
       source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
-      {{ sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
+      {{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
       -sr_register --name={{ __sap_ha_install_hana_hsr_connection.hana_site }}
       --remoteHost={{ __sap_ha_install_hana_hsr_fact_primary_name }}
       --remoteInstance={{ __sap_ha_install_hana_hsr_instance_number }}
@@ -40,7 +40,7 @@
 - name: SAP HSR - Start HANA instance on secondary  # noqa command-instead-of-shell
   ansible.builtin.shell:
     cmd: >-
-      {{ sap_ha_install_hana_hsr_executable_path }}/sapcontrol
+      {{ __sap_ha_install_hana_hsr_executable_path }}/sapcontrol
       -nr {{ __sap_ha_install_hana_hsr_instance_number }} -function StartSystem
   become: true
   become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
@@ -63,7 +63,7 @@
       ansible.builtin.shell:
         cmd: >-
           source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
-          {{ sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
+          {{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
           -sr_state
       become: true
       become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
@@ -71,12 +71,19 @@
       changed_when: false
       failed_when: false
       delay: 20
-      retries: 3
+      retries: 10
+      # This check will ensure that mapping information is also available in sr_state output
       until: >
-        (__sap_ha_install_hana_hsr_fact_is_primary and 'is source system: true'
-          in __sap_ha_install_hana_hsr_register_srstate_after.stdout) or
-        (__sap_ha_install_hana_hsr_fact_is_secondary and 'is secondary/consumer system: true'
-          in __sap_ha_install_hana_hsr_register_srstate_after.stdout)
+        (
+          (__sap_ha_install_hana_hsr_fact_is_primary and 'is source system: true'
+            in __sap_ha_install_hana_hsr_register_srstate_after.stdout) or
+          (__sap_ha_install_hana_hsr_fact_is_secondary and 'is secondary/consumer system: true'
+            in __sap_ha_install_hana_hsr_register_srstate_after.stdout)
+        ) and (
+          __sap_ha_install_hana_hsr_register_srstate_after.stdout 
+          | regex_search('^Mapping:\s*.*$', multiline=True) 
+          is not none
+        )
 
     - name: SAP HSR - Fail if replication is not enabled on primary
       ansible.builtin.fail:

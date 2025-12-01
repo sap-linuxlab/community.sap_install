@@ -1,6 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+- name: SAP HSR - Check presence of hdbuserstore executable
+  ansible.builtin.stat:
+    path: "/usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbuserstore"
+  register: __sap_ha_install_hana_hsr_register_stat_hdbuserstore
+
+- name: SAP HSR - Assert that hdbuserstore executable exists
+  ansible.builtin.assert:
+    that:
+      - __sap_ha_install_hana_hsr_register_stat_hdbuserstore.stat.exists
+    fail_msg: |
+      FAIL: The hdbuserstore executable does not exist at
+      /usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbuserstore.
+
 # ansible-lint:
 # become_user string is deduced from a variable + suffix with no spaces
 - name: SAP HSR - Check if hdbuserstore exists

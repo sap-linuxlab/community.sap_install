@@ -100,6 +100,7 @@ Apache 2.0
 Set the desired state of the HSR configuration.</br>
 `present` - Creates and enables the HSR configuration.</br>
 `absent`  - Removes the HSR configuration.</br>
+Removal of existing configuration requires correctly configured `sap_ha_install_hana_hsr_cluster_nodes`.
 
 ### sap_ha_install_hana_hsr_sid
 - _Type:_ `string`

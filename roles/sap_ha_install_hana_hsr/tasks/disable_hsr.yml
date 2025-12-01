@@ -4,11 +4,11 @@
 # Example output of '/usr/sap/H02/HDB90/exe/hdbnsutil -sr_unregister':
 # unregistering site ...
 # done.
-- name: SAP HSR - Disable HANA System Replication on secondary node
+- name: SAP HSR - Unregister the secondary node from the HANA system replication
   ansible.builtin.shell:
     cmd: >-
       source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
-      {{ sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
+      {{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
       -sr_unregister
   become: true
   become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
@@ -28,7 +28,7 @@
   ansible.builtin.shell:
     cmd: >-
       source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
-      {{ sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
+      {{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
       -sr_disable
   become: true
   become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
@@ -42,7 +42,7 @@
 - name: SAP HSR - Start HANA instance on former secondary  # noqa command-instead-of-shell
   ansible.builtin.shell:
     cmd: >-
-      {{ sap_ha_install_hana_hsr_executable_path }}/sapcontrol
+      {{ __sap_ha_install_hana_hsr_executable_path }}/sapcontrol
       -nr {{ __sap_ha_install_hana_hsr_instance_number }} -function StartSystem
   become: true
   become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
@@ -60,7 +60,7 @@
       ansible.builtin.shell:
         cmd: >-
           source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
-          {{ sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
+          {{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
           -sr_state
       become: true
       become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"

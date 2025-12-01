@@ -189,7 +189,25 @@
     __sap_ha_install_hana_hsr_home_path:
       "{{ '/usr/sap/' ~ __sap_ha_install_hana_hsr_sid ~ '/home'
         if sap_ha_install_hana_hsr_home_path | d('') | string | length == 0
-        else sap_ha_install_hana_hsr_home_path }}"
+        else sap_ha_install_hana_hsr_home_path | regex_replace('\\/$', '') }}"
+
+- name: SAP HSR - Check presence of path defined in 'sap_ha_install_hana_hsr_home_path'
+  ansible.builtin.stat:
+    path: "{{ __sap_ha_install_hana_hsr_home_path }}/.profile"
+  register: __sap_ha_install_hana_hsr_register_stat_home_profile
+
+- name: SAP HSR - Assert that profile is present in 'sap_ha_install_hana_hsr_home_path'
+  ansible.builtin.assert:
+    that:
+      - __sap_ha_install_hana_hsr_register_stat_home_profile.stat.exists
+    fail_msg: |
+      FAIL: The path '{{ __sap_ha_install_hana_hsr_home_path }}/.profile' does not exist.
+      {% if sap_ha_install_hana_hsr_home_path | d('') | string | length == 0 %}
+      Please verify that SAP HANA is installed and profile is present.
+      {% else %}
+      Please verify that the variable 'sap_ha_install_hana_hsr_home_path' is correctly set.
+      Default path is '/usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/home'.
+      {% endif %}
 
 
 # Cluster nodes configuration
