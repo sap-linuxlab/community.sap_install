@@ -89,27 +89,6 @@
     - __sap_ha_install_hana_hsr_fact_is_secondary
 
 
-# It is possible that hosts in the play are part of different System Replication setups.
-# Therefore, we need to ensure that only one primary node exists across all hosts.
-- name: SAP HSR - Assert that only one primary exists
-  ansible.builtin.assert:
-    that:
-      - __primary_count == 1
-    fail_msg: |
-      FAIL: Difference between existing System Replication setup and 'sap_ha_install_hana_hsr_cluster_nodes' was detected.
-      Ensure that nodes in play are not parts of different System Replication setups.
-  run_once: true
-  vars:
-    __primary_count: >
-      {{
-        ansible_play_hosts_all
-        | map('extract', hostvars, '__sap_ha_install_hana_hsr_fact_is_primary')
-        | select('equalto', true)
-        | list
-        | length
-      }}
-
-
 - name: SAP HSR - Inform if existing System Replication was found
   ansible.builtin.debug:
     msg: |

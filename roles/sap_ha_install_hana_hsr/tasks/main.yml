@@ -8,6 +8,18 @@
       tags: always
   tags: always
 
+# All replication tasks should be executed on running HANA instances.
+# sr_enable - primary must be running.
+# sr_register - secondary can be running because of --online option.
+# sr_unregister - secondary should be running to avoid warnings.
+# sr_disable - primary must be running.
+- name: SAP HSR - Ensure that SAP HANA is started
+  ansible.builtin.include_tasks:
+    file: pre_tasks/start_hana.yml
+    apply:
+      tags: always
+  tags: always
+
 - name: SAP HSR - Get current state of replication
   ansible.builtin.include_tasks:
     file: pre_tasks/get_replication_status.yml
@@ -17,7 +29,7 @@
 
 - name: SAP HSR - Test connection to primary node
   ansible.builtin.include_tasks:
-    file: pre_tasks/get_replication_status.yml
+    file: pre_tasks/test_connection.yml
     apply:
       tags: hsr_pki
   when:
