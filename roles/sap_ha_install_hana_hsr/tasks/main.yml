@@ -52,8 +52,7 @@
       when:
         - sap_ha_install_hana_hsr_update_etchosts or
           (sap_hana_update_etchosts is defined and sap_hana_update_etchosts)
-      tags:
-        - hsr_etchosts
+      tags: hsr_etchosts
 
     # TODO: Add steps to open firewall ports 3XX00 - 3XX99 using LSR Firewall role.
     # This will be added in sap_ha_pacemaker_cluster role as well so there could be overlap.
@@ -63,16 +62,14 @@
         file: pre_tasks/configure_hdbuserstore.yml
         apply:
           tags: hsr_hdbuserstore
-      tags:
-        - hsr_hdbuserstore
+      tags: hsr_hdbuserstore
 
     - name: SAP HSR - Set default log mode
       ansible.builtin.include_tasks:
         file: pre_tasks/set_log_mode.yml
         apply:
           tags: hsr_logmode
-      tags:
-        - hsr_logmode
+      tags: hsr_logmode
 
     - name: SAP HSR - Prepare and sync PKI Files
       ansible.builtin.include_tasks:
@@ -82,8 +79,7 @@
           vars:
             __sap_ha_install_hana_hsr_secpath: "/usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/global/security/rsecssfs"
       when: __sap_ha_install_hana_hsr_fact_is_secondary
-      tags:
-        - hsr_pki
+      tags: hsr_pki
 
     - name: SAP HSR - Run Backup before configuring replication
       ansible.builtin.include_tasks:
@@ -95,8 +91,7 @@
       when:
         - __sap_ha_install_hana_hsr_fact_is_primary
         - sap_ha_install_hana_hsr_create_backup | d(true)| bool
-      tags:
-        - hsr_backup
+      tags: hsr_backup
 
 
 - name: SAP HSR - Ensure HSR is configured
@@ -104,8 +99,7 @@
     file: enable_hsr.yml
     apply:
       tags: hsr_enable
-  tags:
-    - hsr_enable
+  tags: hsr_enable
   when:
     - sap_ha_install_hana_hsr_state | d('present') == 'present'
     - not __sap_ha_install_hana_hsr_fact_replication_enabled
@@ -115,8 +109,7 @@
     file: disable_hsr.yml
     apply:
       tags: hsr_disable
-  tags:
-    - hsr_disable
+  tags: hsr_disable
   when:
     - sap_ha_install_hana_hsr_state | d('present') == 'absent'
     - __sap_ha_install_hana_hsr_fact_replication_enabled
@@ -133,3 +126,4 @@
 
       Current System Replication status:
       {{ __sap_ha_install_hana_hsr_register_srstate_after.stdout | d(__sap_ha_install_hana_hsr_register_srstate.stdout) }}
+  tags: always
