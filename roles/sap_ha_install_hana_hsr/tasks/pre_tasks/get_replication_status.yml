@@ -1,30 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP HSR - Check presence of SAP HANA executables
-  ansible.builtin.stat:
-    path: "{{ executable_item }}"
-  loop:
-    - "{{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil"
-    - "{{ __sap_ha_install_hana_hsr_executable_path }}/sapcontrol"
-  loop_control:
-    loop_var: executable_item
-  register: __sap_ha_install_hana_hsr_register_stat_executable
-
-- name: SAP HSR - Assert that all required SAP executables exist
-  ansible.builtin.assert:
-    that:
-      - executable_item.stat.exists
-    fail_msg: |
-      FAIL: The executable '{{ executable_item.executable_item }}' does not exist.
-      Please check that the SAP HANA installation path is correct and that SAP HANA is installed properly.
-  loop: "{{ __sap_ha_install_hana_hsr_register_stat_executable.results }}"
-  loop_control:
-    loop_var: executable_item
-    label: "{{ executable_item.executable_item }}"
-  when: not executable_item.stat.exists
-
-
 - name: SAP HSR - Check System Replication Status
   ansible.builtin.shell:
     cmd: >-

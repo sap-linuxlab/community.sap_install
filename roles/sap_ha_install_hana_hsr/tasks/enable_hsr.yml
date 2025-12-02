@@ -30,6 +30,9 @@
   become: true
   become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
   register: __sap_ha_install_hana_hsr_register_sr_register
+  # Retry helps with cases where primary is not yet ready to accept registration
+  delay: 10
+  retries: 6
   when:
     - __sap_ha_install_hana_hsr_fact_is_secondary
     - __sap_ha_install_hana_hsr_connection.node_name not in __sap_ha_install_hana_hsr_register_srstate.stdout
@@ -37,15 +40,11 @@
   changed_when: true
   throttle: 1
 
-- name: SAP HSR - Start HANA instance on secondary  # noqa command-instead-of-shell
-  ansible.builtin.shell:
-    cmd: >-
-      {{ __sap_ha_install_hana_hsr_executable_path }}/sapcontrol
-      -nr {{ __sap_ha_install_hana_hsr_instance_number }} -function StartSystem
-  become: true
-  become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
-  register: __sap_ha_install_hana_hsr_register_start_instance
-  changed_when: "'StartSystem' in __sap_ha_install_hana_hsr_register_start_instance.stdout"
+# This start is not needed when --online is used, but it helps to ensure that HANA is running
+# after registration in case it was stopped for some reason.
+- name: SAP HSR - Start HANA instance on secondary
+  ansible.builtin.include_tasks:
+    file: pre_tasks/start_hana.yml
   when:
     - __sap_ha_install_hana_hsr_fact_is_secondary
     - __sap_ha_install_hana_hsr_connection.node_name not in __sap_ha_install_hana_hsr_register_srstate.stdout
