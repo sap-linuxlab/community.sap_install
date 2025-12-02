@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Block to Ensure SAP HANA is running
+  block:
+
+    - name: SAP HSR - Start SAP HANA instance
+      ansible.builtin.command:
+        cmd: >-
+          {{ __sap_ha_install_hana_hsr_executable_path }}/sapcontrol
+          -nr {{ __sap_ha_install_hana_hsr_instance_number }}
+          -function StartSystem
+      become: true
+      become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+      register: __sap_ha_install_hana_hsr_register_start_hana
+      changed_when: "'StartSystem OK' in __sap_ha_install_hana_hsr_register_start_hana.stdout"
+
+    - name: SAP HSR - Wait for instance to be fully started
+      ansible.builtin.command:
+        cmd: >-
+          {{ __sap_ha_install_hana_hsr_executable_path }}/sapcontrol
+          -nr {{ __sap_ha_install_hana_hsr_instance_number }}
+          -function GetProcessList
+      become: true
+      become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+      register: __sap_ha_install_hana_hsr_register_getprocesslist
+      # sapcontrol GetProcessList returns codes:
+      # 0 if some processes are starting or stopping (YELLOW)
+      # 3 if all processes are running (GREEN).
+      # 4 if all processes are stopped (GRAY).
+      until: __sap_ha_install_hana_hsr_register_getprocesslist.rc == 3
+      retries: 60  # wait for 10 minutes
+      delay: 10
+      changed_when: false
+      failed_when: false  # command module will fail with non-zero return code
+
+  rescue:
+    - name: SAP HSR - Fail if SAP HANA Start was not successful
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Start of SAP HANA was not successful!
+          {{ __sap_ha_install_hana_hsr_register_start_hana.stdout | d('') }}
+          {{ __sap_ha_install_hana_hsr_register_getprocesslist.stdout | d('') }}
