@@ -98,27 +98,28 @@
       tags:
         - hsr_backup
 
-- name: Block to manage replication
-  tags:
-    - hsr_register
-  block:
-    - name: SAP HSR - Ensure HSR is configured
-      ansible.builtin.include_tasks:
-        file: enable_hsr.yml
-        apply:
-          tags: hsr_register
-      when:
-        - sap_ha_install_hana_hsr_state | d('present') == 'present'
-        - not __sap_ha_install_hana_hsr_fact_replication_enabled
 
-    - name: SAP HSR - Ensure HSR is removed
-      ansible.builtin.include_tasks:
-        file: disable_hsr.yml
-        apply:
-          tags: hsr_register
-      when:
-        - sap_ha_install_hana_hsr_state | d('present') == 'absent'
-        - __sap_ha_install_hana_hsr_fact_replication_enabled
+- name: SAP HSR - Ensure HSR is configured
+  ansible.builtin.include_tasks:
+    file: enable_hsr.yml
+    apply:
+      tags: hsr_enable
+  tags:
+    - hsr_enable
+  when:
+    - sap_ha_install_hana_hsr_state | d('present') == 'present'
+    - not __sap_ha_install_hana_hsr_fact_replication_enabled
+
+- name: SAP HSR - Ensure HSR is removed
+  ansible.builtin.include_tasks:
+    file: disable_hsr.yml
+    apply:
+      tags: hsr_disable
+  tags:
+    - hsr_disable
+  when:
+    - sap_ha_install_hana_hsr_state | d('present') == 'absent'
+    - __sap_ha_install_hana_hsr_fact_replication_enabled
 
 
 - name: SAP HSR - Show final message and current replication status
