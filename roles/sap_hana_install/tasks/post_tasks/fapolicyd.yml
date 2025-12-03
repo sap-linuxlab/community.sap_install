@@ -69,10 +69,10 @@
         msg: "{{ sap_hana_install_register_fagenrules_load.stdout_lines }}"
 
     # We want to add files which have the execute mode bit set AND which are reported as executables
-    # by fapolicyd-cli -t, one for each directory of sap_hana_install_fapolicyd_trusted_directories.
+    # by fapolicyd-cli -t, one for each directory of sap_hana_install_directories.
     # The fapolicy trust file name will be created from the directory names by replacing '/' by '_' and
     # omitting the first '_'.
-    - name: SAP HANA - Post-Tasks - Put all executable files from 'sap_hana_install_fapolicyd_trusted_directories' into fapolicyd trust files
+    - name: SAP HANA - Post-Tasks - Put all executable files from 'sap_hana_install_directories' into fapolicyd trust files
       ansible.builtin.shell: |
         set -o pipefail &&
         find {{ __sap_hana_install_item }} -type f -executable -exec fapolicyd-cli -t {} \; -print |
@@ -83,7 +83,7 @@
                 {{ __sap_hana_install_item | regex_replace('//*', '_') | regex_replace("^_", "") }}"); a=0; b=0
             }
           }'
-      loop: "{{ sap_hana_install_fapolicyd_trusted_directories }}"
+      loop: "{{ sap_hana_install_directories }}"
       loop_control:
         loop_var: __sap_hana_install_item
         label: >-
@@ -98,9 +98,11 @@
         name: fapolicyd
         enabled: true
         state: started
+      when: sap_hana_install_enable_fapolicyd
 
     - name: SAP HANA - Post-Tasks - Restart fapolicyd
       ansible.builtin.service:
         name: fapolicyd
         enabled: true
         state: restarted
+      when: sap_hana_install_enable_fapolicyd
