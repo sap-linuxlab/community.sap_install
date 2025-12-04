@@ -12,6 +12,7 @@
   check_mode: false
   register: __sap_hana_install_register_stat_extract_directory
   failed_when: false
+  tags: sap_hana_install_create_configfile
 
 - name: SAP HANA - Addhosts - Pre-Tasks - Fail if '{{ sap_hana_install_software_extract_directory }}' does not exist
   ansible.builtin.fail:
@@ -19,6 +20,7 @@
       FAIL: The directory {{ sap_hana_install_software_extract_directory }} does not exist.
       Path must be defined in the variable 'sap_hana_install_software_extract_directory'.
   when: not __sap_hana_install_register_stat_extract_directory.stat.exists
+  tags: sap_hana_install_create_configfile
 
 - name: SAP HANA - Addhosts - Pre-Tasks - Find directory 'SAP_HANA_DATABASE' in '{{ sap_hana_install_software_extract_directory }}'
   ansible.builtin.find:
@@ -27,6 +29,7 @@
     file_type: directory
     patterns: 'SAP_HANA_DATABASE'
   register: __sap_hana_install_register_find_directory_sap_hana_database_addhosts
+  tags: sap_hana_install_create_configfile
 
 - name: SAP HANA - Addhosts - Pre-Tasks - Fail if directory 'SAP_HANA_DATABASE' does not exist in '{{ sap_hana_install_software_extract_directory }}'
   ansible.builtin.fail:
@@ -38,6 +41,7 @@
   ansible.builtin.set_fact:
     __sap_hana_install_fact_hdblcm_path:
       "{{ __sap_hana_install_register_find_directory_sap_hana_database_addhosts.files[0].path }}"
+  tags: sap_hana_install_create_configfile
 
 
 # Create temporary directory and hdblcm configuration file.
@@ -48,10 +52,18 @@
   register: __sap_hana_install_register_tmpdir
   tags:
     - sap_hana_install_hdblcm_commandline
+    - sap_hana_install_create_configfile
     - sap_hana_install_check_installation
 
 - name: SAP HANA - Addhosts - Pre-Tasks - Fill variable __sap_hana_install_register_tmpdir for check mode only
   ansible.builtin.set_fact:
     __sap_hana_install_register_tmpdir:
       path: '/tmp'
-  when: ansible_check_mode
+  when: ansible_check_mode or
+    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags|d([])) or
+    ('sap_hana_install_create_configfile' in ansible_run_tags|d([])) or
+    ('sap_hana_install_check_installation' in ansible_run_tags|d([]))
+  tags:
+    - sap_hana_install_hdblcm_commandline
+    - sap_hana_install_create_configfile
+    - sap_hana_install_check_installation

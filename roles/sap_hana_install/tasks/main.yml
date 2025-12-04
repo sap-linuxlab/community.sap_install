@@ -6,27 +6,28 @@
   ansible.builtin.include_tasks:
     file: pre_tasks/prepare_variables.yml
   tags:
+    - sap_hana_install_hdblcm_commandline
     - sap_hana_install_check_hana_exists
     - sap_hana_install_check_installation
-    - sap_hana_install_preinstall
-    - sap_hana_install_set_log_mode
-    - sap_hana_install_configure_firewall
 
 # SAP HANA presence has to be validated for both new system and adding new hosts.
 - name: SAP HANA - Main - Validate presence of existing SAP HANA database
   ansible.builtin.include_tasks:
     file: pre_tasks/hana_exists.yml
+    apply:
+      tags: sap_hana_install_check_hana_exists
   when:
     - (sap_hana_install_new_system and not sap_hana_install_force)
       or not sap_hana_install_new_system
   tags:
+    - sap_hana_install_hdblcm_commandline
     - sap_hana_install_check_hana_exists
-    - sap_hana_install_preinstall
 
 
 - name: SAP HANA - Main - Identify hosts in play based on addhosts
   ansible.builtin.include_tasks:
     file: pre_tasks/identify_hosts.yml
+  tags: sap_hana_install_hdblcm_commandline
 
 
 - name: SAP HANA - Main - Ensure SAP HANA is running for existing systems or addhosts operations
@@ -42,45 +43,59 @@
 # - Configuration - Run always to ensure idempotent outcome.
 
 - name: Block for Installation tasks
-  when:
-    - sap_hana_install_new_system
+  when: sap_hana_install_new_system
+#    sap_hana_install_new_system or
+#    ('sap_hana_install_create_configfile' in ansible_run_tags|d([])) or
+#    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags|d([]))
   block:
     - name: SAP HANA - Install - Pre-Tasks
       ansible.builtin.include_tasks:
         file: pre_install.yml
+      tags:
+        - sap_hana_install_create_configfile
+        - sap_hana_install_hdblcm_commandline
+        - sap_hana_install_check_installation
 
     - name: SAP HANA - Install
       ansible.builtin.include_tasks:
         file: hana_install.yml
-      when:
-        - not __sap_hana_install_fact_is_installed
-        - __sap_hana_install_fact_is_main_host
+      when: >
+        (not __sap_hana_install_fact_is_installed and __sap_hana_install_fact_is_main_host) or
+        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags|d([]))
+      tags: sap_hana_install_hdblcm_commandline
 
     - name: SAP HANA - Install - Post-tasks
       ansible.builtin.include_tasks:
         file: post_install.yml
+      tags: sap_hana_install_check_installation
 
 
 - name: Block for Addhosts tasks
-  when:
-    - not sap_hana_install_new_system
-    - __sap_hana_install_fact_is_scaleout
-    - __sap_hana_install_fact_is_installed
+  when: >
+    not sap_hana_install_new_system and
+    ((__sap_hana_install_fact_is_scaleout and __sap_hana_install_fact_is_installed) or
+    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags|d([])) or
+    ('sap_hana_install_create_configfile' in ansible_run_tags|d([])))
   block:
     # Execute only if new hosts are to be added.
     - name: SAP HANA - Addhosts - Pre-Tasks
       ansible.builtin.include_tasks:
         file: pre_addhosts.yml
-      when:
-        - __sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0
-      tags: sap_hana_install_preinstall
+      when: >
+        (__sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0) or
+        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags|d([])) or
+        ('sap_hana_install_create_configfile' in ansible_run_tags|d([]))
+      tags:
+        - sap_hana_install_hdblcm_commandline
+        - sap_hana_install_create_configfile
 
     - name: SAP HANA - Addhosts
       ansible.builtin.include_tasks:
         file: hana_addhosts.yml
       when:
-        - __sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0
-        - __sap_hana_install_fact_is_main_host
+        (__sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0 and __sap_hana_install_fact_is_main_host) or
+        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags|d([]))
+      tags: sap_hana_install_hdblcm_commandline
 
     - name: SAP HANA - Addhosts - Post-tasks
       ansible.builtin.include_tasks:

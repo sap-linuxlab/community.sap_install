@@ -9,27 +9,18 @@
   ansible.builtin.file:
     path: "{{ sap_hana_install_software_extract_directory }}"
     state: absent
-  tags:
-    - sap_hana_install_prepare_sapcar
-    - sap_hana_install_prepare_sarfiles
 
 - name: SAP HANA - Pre-Tasks - Create directory '{{ sap_hana_install_software_extract_directory }}'
   ansible.builtin.file:
     path: "{{ sap_hana_install_software_extract_directory }}"
     state: directory
     mode: '0755'
-  tags:
-    - sap_hana_install_prepare_sapcar
-    - sap_hana_install_prepare_sarfiles
 
 - name: SAP HANA - Pre-Tasks - Create SAPCAR directory '{{ sap_hana_install_software_extract_directory }}/sapcar'
   ansible.builtin.file:
     path: "{{ sap_hana_install_software_extract_directory }}/sapcar"
     state: directory
     mode: '0755'
-  tags:
-    - sap_hana_install_prepare_sapcar
-    - sap_hana_install_prepare_sarfiles
 
 - name: SAP HANA - Pre-Tasks - Create status file '{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__'
   ansible.builtin.file:
@@ -42,13 +33,10 @@
   block:
     - name: SAP HANA - Pre-Tasks - Prepare SAPCAR
       ansible.builtin.include_tasks: prepare_sapcar.yml
-      tags:
-        - sap_hana_install_prepare_sapcar
-        - sap_hana_install_prepare_sarfiles
 
     - name: SAP HANA - Pre-Tasks - Prepare SAR files
       ansible.builtin.include_tasks: prepare_sarfiles.yml
-      tags: sap_hana_install_prepare_sarfiles
+
   rescue:
     - name: SAP HANA - Pre-Tasks - Remove status file '{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__'
       ansible.builtin.file:

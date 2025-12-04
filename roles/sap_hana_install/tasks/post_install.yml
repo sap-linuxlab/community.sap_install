@@ -3,15 +3,14 @@
 
 # Installation tasks that can be destructive and should never be executed on existing database.
 - name: Block with tasks for new HANA Systems
-  when:
-    - not __sap_hana_install_fact_is_installed
-    - __sap_hana_install_fact_is_main_host
+  when: >
+    (not __sap_hana_install_fact_is_installed and __sap_hana_install_fact_is_main_host) or
+    ('sap_hana_install_check_installation' in ansible_run_tags|d([]))
   block:
 
     - name: SAP HANA - Install - Post-Tasks - Set log_mode
       ansible.builtin.include_tasks:
         file: post_tasks/log_mode.yml
-      tags: sap_hana_install_set_log_mode
 
     - name: SAP HANA - Install - Post-Tasks - Apply license
       ansible.builtin.include_tasks:
@@ -26,7 +25,9 @@
     - name: SAP HANA - Install - Post-Tasks - Perform an hdblcm installation check
       ansible.builtin.include_tasks:
         file: post_tasks/check_installation.yml
-      when: sap_hana_install_check_installation | d(false)
+        apply:
+          tags: sap_hana_install_check_installation
+      when: sap_hana_install_check_installation or ('sap_hana_install_check_installation' in ansible_run_tags|d([]))
       tags: sap_hana_install_check_installation
 
     - name: SAP HANA - Install - Post-Tasks - Generate Input File for SAP Application Deployment
@@ -39,7 +40,6 @@
       delegate_to: localhost
       vars:
         ansible_become: false
-      tags: sap_hana_install_generate_input_file
 
     # Cleanup extracted software
     - name: SAP HANA - Install - Post-Tasks - Deleting software extract directory '{{ sap_hana_install_software_extract_directory }}'
@@ -65,13 +65,11 @@
 - name: SAP HANA - Install - Post-Tasks - Update hdbuserstore connection details
   ansible.builtin.include_tasks:
     file: post_tasks/hdbuserstore.yml
-  tags: sap_hana_install_store_connection_information
 
 - name: SAP HANA - Install - Post-Tasks - Firewall
   ansible.builtin.include_tasks:
     file: post_tasks/firewall.yml
   when: sap_hana_install_update_firewall
-  tags: sap_hana_install_configure_firewall
 
 - name: SAP HANA - Install - Post-Tasks - SELinux
   ansible.builtin.include_tasks:
@@ -85,4 +83,3 @@
     # Ensure fapolicyd is checked only on supported systems.
     - ansible_os_family == "RedHat"
     - __sap_hana_install_configure_fapolicyd
-  tags: sap_hana_install_configure_fapolicyd
