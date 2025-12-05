@@ -377,6 +377,8 @@ Installs SAP HANA on `host1` and `host2`, while running on host `host0` where ex
 
 <!-- BEGIN Role Tags -->
 ### Role Tags
+Note: This role can only be used with one tag at a time.
+
 With the following tags, the role can be called to perform certain activities only:
 - tag `sap_hana_install_hdblcm_commandline`: Only show the hdblcm command line, without processing
   the hdblcm template. This can be useful for checking the hdblcm command line options, especially

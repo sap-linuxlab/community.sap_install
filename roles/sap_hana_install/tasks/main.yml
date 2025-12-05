@@ -1,6 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+# Fail when more than one tag is used
+- name: SAP HANA - Main - Fail if more than one tag is used
+  ansible.builtin.fail:
+    msg: "This role supports only one tag at a time."
+  when: ansible_run_tags|d([]) | count > 1
+  tags:
+    - always
+
 # SAP HANA
 - name: SAP HANA - Main - Prepare some variables
   ansible.builtin.include_tasks:
@@ -15,13 +23,16 @@
   ansible.builtin.include_tasks:
     file: pre_tasks/hana_exists.yml
     apply:
-      tags: sap_hana_install_check_hana_exists
+      tags:
+        - sap_hana_install_check_hana_exists
+        - sap_hana_install_check_installation
   when:
     - (sap_hana_install_new_system and not sap_hana_install_force)
       or not sap_hana_install_new_system
   tags:
     - sap_hana_install_hdblcm_commandline
     - sap_hana_install_check_hana_exists
+    - sap_hana_install_check_installation
 
 
 - name: SAP HANA - Main - Identify hosts in play based on addhosts
@@ -67,6 +78,7 @@
     - name: SAP HANA - Install - Post-tasks
       ansible.builtin.include_tasks:
         file: post_install.yml
+      when: __sap_hana_install_fact_is_installed
       tags: sap_hana_install_check_installation
 
 
