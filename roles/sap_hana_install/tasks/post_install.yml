@@ -3,9 +3,9 @@
 
 # Installation tasks that can be destructive and should never be executed on existing database.
 - name: Block with tasks for new HANA Systems
-  when: >
-    (not __sap_hana_install_fact_is_installed and __sap_hana_install_fact_is_main_host) or
-    ('sap_hana_install_check_installation' in ansible_run_tags|d([]))
+  when:
+    - not __sap_hana_install_fact_is_installed
+    - __sap_hana_install_fact_is_main_host
   block:
 
     - name: SAP HANA - Install - Post-Tasks - Set log_mode
@@ -25,10 +25,7 @@
     - name: SAP HANA - Install - Post-Tasks - Perform an hdblcm installation check
       ansible.builtin.include_tasks:
         file: post_tasks/check_installation.yml
-        apply:
-          tags: sap_hana_install_check_installation
-      when: sap_hana_install_check_installation or ('sap_hana_install_check_installation' in ansible_run_tags|d([]))
-      tags: sap_hana_install_check_installation
+      when: sap_hana_install_check_installation | d(false)
 
     - name: SAP HANA - Install - Post-Tasks - Generate Input File for SAP Application Deployment
         '{{ sap_hana_install_nw_input_location }}/{{ sap_hana_install_sid }}.info.nw.install'

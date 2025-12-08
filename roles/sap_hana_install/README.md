@@ -386,7 +386,6 @@ With the following tags, the role can be called to perform certain activities on
 - tag `sap_hana_install_create_configfile`: Only generate the hdblcm configfile.
 - tag `sap_hana_install_check_hana_exists`: Only check if there is already HANA installed with the
   desired SID and instance number.
-- tag `sap_hana_install_check_installation`: Only perform a SAP HANA installation check
 
 The following tags have been removed in this release:
 - tag `sap_hana_install_preinstall`
@@ -399,6 +398,7 @@ The following tags have been removed in this release:
 - tag `sap_hana_install_generate_input_file`
 - tag `sap_hana_install_store_connection_information`
 - tag `sap_hana_install_set_log_mode`
+- tag `sap_hana_install_check_installation`
 
 <details>
   <summary><b>How to run sap_hana_install with tags</b></summary>

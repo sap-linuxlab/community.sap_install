@@ -6,17 +6,15 @@
   ansible.builtin.fail:
     msg: "This role supports only one tag at a time."
   when: ansible_run_tags|d([]) | count > 1
-  tags:
-    - always
+  tags: always
 
 # SAP HANA
 - name: SAP HANA - Main - Prepare some variables
   ansible.builtin.include_tasks:
     file: pre_tasks/prepare_variables.yml
-  tags:
-    - sap_hana_install_hdblcm_commandline
-    - sap_hana_install_check_hana_exists
-    - sap_hana_install_check_installation
+    apply:
+      tags: always
+  tags: always
 
 # SAP HANA presence has to be validated for both new system and adding new hosts.
 - name: SAP HANA - Main - Validate presence of existing SAP HANA database
@@ -25,14 +23,12 @@
     apply:
       tags:
         - sap_hana_install_check_hana_exists
-        - sap_hana_install_check_installation
   when:
     - (sap_hana_install_new_system and not sap_hana_install_force)
       or not sap_hana_install_new_system
   tags:
     - sap_hana_install_hdblcm_commandline
     - sap_hana_install_check_hana_exists
-    - sap_hana_install_check_installation
 
 
 - name: SAP HANA - Main - Identify hosts in play based on addhosts
@@ -54,10 +50,9 @@
 # - Configuration - Run always to ensure idempotent outcome.
 
 - name: Block for Installation tasks
-  when: sap_hana_install_new_system
-#    sap_hana_install_new_system or
-#    ('sap_hana_install_create_configfile' in ansible_run_tags|d([])) or
-#    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags|d([]))
+  when: sap_hana_install_new_system or
+    ('sap_hana_install_create_configfile' in ansible_run_tags | d([])) or
+    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([]))
   block:
     - name: SAP HANA - Install - Pre-Tasks
       ansible.builtin.include_tasks:
@@ -65,29 +60,27 @@
       tags:
         - sap_hana_install_create_configfile
         - sap_hana_install_hdblcm_commandline
-        - sap_hana_install_check_installation
 
     - name: SAP HANA - Install
       ansible.builtin.include_tasks:
         file: hana_install.yml
       when: >
         (not __sap_hana_install_fact_is_installed and __sap_hana_install_fact_is_main_host) or
-        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags|d([]))
+        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([]))
       tags: sap_hana_install_hdblcm_commandline
 
     - name: SAP HANA - Install - Post-tasks
       ansible.builtin.include_tasks:
         file: post_install.yml
       when: __sap_hana_install_fact_is_installed
-      tags: sap_hana_install_check_installation
 
 
 - name: Block for Addhosts tasks
   when: >
     not sap_hana_install_new_system and
     ((__sap_hana_install_fact_is_scaleout and __sap_hana_install_fact_is_installed) or
-    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags|d([])) or
-    ('sap_hana_install_create_configfile' in ansible_run_tags|d([])))
+    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([])) or
+    ('sap_hana_install_create_configfile' in ansible_run_tags | d([])))
   block:
     # Execute only if new hosts are to be added.
     - name: SAP HANA - Addhosts - Pre-Tasks
@@ -95,8 +88,8 @@
         file: pre_addhosts.yml
       when: >
         (__sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0) or
-        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags|d([])) or
-        ('sap_hana_install_create_configfile' in ansible_run_tags|d([]))
+        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([])) or
+        ('sap_hana_install_create_configfile' in ansible_run_tags | d([]))
       tags:
         - sap_hana_install_hdblcm_commandline
         - sap_hana_install_create_configfile
@@ -106,8 +99,11 @@
         file: hana_addhosts.yml
       when:
         (__sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0 and __sap_hana_install_fact_is_main_host) or
-        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags|d([]))
-      tags: sap_hana_install_hdblcm_commandline
+        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([])) or
+        ('sap_hana_install_create_configfile' in ansible_run_tags | d([]))
+      tags:
+        - sap_hana_install_hdblcm_commandline
+        - sap_hana_install_create_configfile
 
     - name: SAP HANA - Addhosts - Post-tasks
       ansible.builtin.include_tasks:
