@@ -11,7 +11,6 @@
     - name: SAP HANA - Install - Post-Tasks - Set log_mode
       ansible.builtin.include_tasks:
         file: post_tasks/log_mode.yml
-      tags: sap_hana_install_set_log_mode
 
     - name: SAP HANA - Install - Post-Tasks - Apply license
       ansible.builtin.include_tasks:
@@ -27,7 +26,6 @@
       ansible.builtin.include_tasks:
         file: post_tasks/check_installation.yml
       when: sap_hana_install_check_installation | d(false)
-      tags: sap_hana_install_check_installation
 
     - name: SAP HANA - Install - Post-Tasks - Generate Input File for SAP Application Deployment
         '{{ sap_hana_install_nw_input_location }}/{{ sap_hana_install_sid }}.info.nw.install'
@@ -39,7 +37,6 @@
       delegate_to: localhost
       vars:
         ansible_become: false
-      tags: sap_hana_install_generate_input_file
 
     # Cleanup extracted software
     - name: SAP HANA - Install - Post-Tasks - Deleting software extract directory '{{ sap_hana_install_software_extract_directory }}'
@@ -65,13 +62,11 @@
 - name: SAP HANA - Install - Post-Tasks - Update hdbuserstore connection details
   ansible.builtin.include_tasks:
     file: post_tasks/hdbuserstore.yml
-  tags: sap_hana_install_store_connection_information
 
 - name: SAP HANA - Install - Post-Tasks - Firewall
   ansible.builtin.include_tasks:
     file: post_tasks/firewall.yml
   when: sap_hana_install_update_firewall
-  tags: sap_hana_install_configure_firewall
 
 - name: SAP HANA - Install - Post-Tasks - SELinux
   ansible.builtin.include_tasks:
@@ -85,4 +80,3 @@
     # Ensure fapolicyd is checked only on supported systems.
     - ansible_os_family == "RedHat"
     - __sap_hana_install_configure_fapolicyd
-  tags: sap_hana_install_configure_fapolicyd

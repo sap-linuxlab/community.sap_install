@@ -8,7 +8,6 @@
     # Ensure fapolicyd is checked only on supported systems.
     - ansible_os_family == "RedHat"
     - not __sap_hana_install_fact_is_installed
-  tags: sap_hana_install_configure_fapolicyd
 
 
 - name: SAP HANA - Install - Pre-Tasks - Configure SELinux file contexts for {{ sap_hana_install_root_path }}
@@ -23,7 +22,15 @@
 - name: SAP HANA - Install - Pre-Tasks - Validate and prepare software directory
   ansible.builtin.include_tasks:
     file: pre_tasks/prepare_software_install.yml
-  when: __sap_hana_install_fact_is_main_host
+    apply:
+      tags: sap_hana_install_create_configfile
+  when: >
+    __sap_hana_install_fact_is_main_host or
+    ('sap_hana_install_create_configfile' in ansible_run_tags | d([])) or
+    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([]))
+  tags:
+    - sap_hana_install_create_configfile
+    - sap_hana_install_hdblcm_commandline
 
 
 # Proper idempotency needs to check existing version, not just existence.
@@ -45,11 +52,13 @@
   # Execute only once for Scale-Out to avoid conflicts when updating shared file systems.
   run_once: "{{ __sap_hana_install_fact_is_scaleout }}"
   when: not __sap_hana_install_fact_is_installed
-  tags: sap_hana_install_chown_hana_directories
 
 - name: SAP HANA - Install - Pre-Tasks - Process the hdblcm configfile
   ansible.builtin.include_tasks:
     file: pre_tasks/hdblcm_configfile.yml
-  when:
-    - __sap_hana_install_fact_is_main_host
-    - not __sap_hana_install_fact_is_installed
+    apply:
+      tags: sap_hana_install_create_configfile
+  when: >
+    (not __sap_hana_install_fact_is_installed and __sap_hana_install_fact_is_main_host) or
+    ('sap_hana_install_create_configfile' in ansible_run_tags | d([]))
+  tags: sap_hana_install_create_configfile

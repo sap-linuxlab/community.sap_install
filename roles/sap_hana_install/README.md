@@ -377,59 +377,45 @@ Installs SAP HANA on `host1` and `host2`, while running on host `host0` where ex
 
 <!-- BEGIN Role Tags -->
 ### Role Tags
+Note: When using tags, only one tag at a time is possible.
+
 With the following tags, the role can be called to perform certain activities only:
-- tag `sap_hana_install_check_installation`: Perform an installation check, using `hdbcheck` or
-  `hdblcm --action=check_installation`.
-- tag `sap_hana_install_chown_hana_directories`: Only perform the chown of the SAP HANA directories
-  `/hana`, `/hana/shared`, `/hana/log`, and `/hana/data`. The main purpose of this tag is to use it
-  with `--skip-tags`, to skip modifying these directories. This can be useful when using tag
-  `sap_hana_install_preinstall`.
-- tag `sap_hana_install_configure_firewall`: Use this flag to only configure the firewall ports for
-  SAP HANA. Note: The role variable `sap_hana_install_update_firewall` has to be set to `true` as
-  well.
-- tag `sap_hana_install_extract_sarfiles`: Use this flag with `--skip-tags` to run the SAR file
-  preparation steps of tag `sap_hana_install_prepare_sarfiles` without extracting the SAR files.
-- tag `sap_hana_install_generate_input_file`: Only generate the input file for SAP Application
-  deployment
 - tag `sap_hana_install_hdblcm_commandline`: Only show the hdblcm command line, without processing
   the hdblcm template. This can be useful for checking the hdblcm command line options, especially
   when using the `addhosts` function.
-- tag `sap_hana_install_preinstall`: Only perform pre-install activities. This includes selecting
-  the SAPCAR EXE file, extracting the SAR files if necessary, searching for hdblcm, and creating
-  the hdblcm configfile.
-- tag `sap_hana_install_prepare_sapcar`: Only copy the SAPCAR EXE files for the current architecture
-  to the extraction directory, verify the checksums of these files, and select the latest
-  version. Or copy the SAPCAR EXE file if given by role variable `sap_hana_install_sapcar_filename`
-  and then verify the checksum.
-- tag `sap_hana_install_prepare_sarfiles`: Run the steps of tag `sap_hana_install_prepare_sapcar`
-  to select the correct SAPCAR file, then copy the selected or provided SAR files to the
-  extraction directory (if requested), then verify the checksums of each SAR file. Lastly, extract
-  these SAR files to the extraction directory.
-- tag `sap_hana_install_set_log_mode`: Only set the log mode of an existing HANA installation to
-  `overwrite`.
-- tag `sap_hana_install_store_connection_information`: Only run the `hdbuserstore` command
+- tag `sap_hana_install_create_configfile`: Only generate the hdblcm configfile.
+- tag `sap_hana_install_check_hana_exists`: Only check if there is already HANA installed with the
+  desired SID and instance number.
+
+The following tags have been removed in this release:
+- tag `sap_hana_install_preinstall`
+- tag `sap_hana_install_chown_hana_directories`
+- tag `sap_hana_install_prepare_sapcar`
+- tag `sap_hana_install_prepare_sarfiles`
+- tag `sap_hana_install_extract_sarfiles`
+- tag `sap_hana_install_configure_firewall`
+- tag `sap_hana_install_configure_fapolicyd`
+- tag `sap_hana_install_generate_input_file`
+- tag `sap_hana_install_store_connection_information`
+- tag `sap_hana_install_set_log_mode`
+- tag `sap_hana_install_check_installation`
 
 <details>
   <summary><b>How to run sap_hana_install with tags</b></summary>
 
-  #### Process SAPCAR and SAR files and create the hdblcm configfile:
-  ```console
-  ansible-playbook sap-hana-install.yml --tags=sap_hana_install_preinstall --skip-tags=sap_hana_install_chown_hana_directories
-  ```
-
-  #### Process only SAPCAR files:
-  ```console
-  ansible-playbook sap-hana-install.yml --tags=sap_hana_install_prepare_sapcar
-  ```
-
-  #### Process SAPCAR and SAR files without extracting SAR files:
-  ```console
-  ansible-playbook sap-hana-install.yml --tags=sap_hana_install_prepare_sarfiles --skip-tags=sap_hana_install_extract_sarfiles
-  ```
-
-  #### Display SAP HANA hdblcm command without using it
+  #### Display SAP HANA hdblcm command line without performing an installation:
   ```
   ansible-playbook sap-hana-install.yml --tags=sap_hana_install_hdblcm_commandline
+  ```
+
+  #### Only create the hdblcm configfile:
+  ```console
+  ansible-playbook sap-hana-install.yml --tags=sap_hana_install_create_configfile
+  ```
+
+  #### Perform a SAP HANA existence check:
+  ```console
+  ansible-playbook sap-hana-install.yml --tags=sap_hana_install_check_hana_exists
   ```
 </details>
 

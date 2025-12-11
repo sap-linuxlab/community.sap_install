@@ -9,14 +9,15 @@
   ansible.builtin.set_fact:
     __sap_hana_install_fact_addhosts: "{{ __sap_hana_install_fact_addhosts | d([]) + [item] }}"
   loop: "{{ sap_hana_install_addhosts.split(',') | map('trim') | reject('equalto', '') | list }}"
-  when:
-    - item.split(':')[0] in __sap_hana_install_fact_addhosts_hosts_new
+  when: item.split(':')[0] in __sap_hana_install_fact_addhosts_hosts_new
+  tags: sap_hana_install_create_configfile
 
 - name: SAP HANA - Addhosts - Update configfile with new addhosts string
   ansible.builtin.lineinfile:
     path: "{{ __sap_hana_install_register_tmpdir.path }}/configfile.cfg"
     regexp: '^addhosts\s*=\s*.*$'
     line: "addhosts = {{ __sap_hana_install_fact_addhosts | join(',') }}"
+  tags: sap_hana_install_create_configfile
 
 
 - name: SAP HANA - Addhosts - Set fact for hdblcm command line
