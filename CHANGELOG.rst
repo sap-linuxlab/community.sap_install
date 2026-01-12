@@ -29,7 +29,7 @@ Minor Changes
 - sap_hana_preconfigure - Sync with SAP note 3108302 (https://github.com/sap-linuxlab/community.sap_install/pull/1130)
 - sap_netweaver_preconfigure - Add sap_netweaver preconfigure vars prefix (https://github.com/sap-linuxlab/community.sap_install/pull/1117)
 - sap_storage_setup/SUSE - Add btrfs support for SLES 16 (https://github.com/sap-linuxlab/community.sap_install/pull/1141)
-- sap_swm - Enhance detection of multiple files (https://github.com/sap-linuxlab/community.sap_install/pull/1125)
+- sap_swpm - Enhance detection of multiple files (https://github.com/sap-linuxlab/community.sap_install/pull/1125)
 - sap_swpm - Implement a test and a filter for validating hostnames (https://github.com/sap-linuxlab/community.sap_install/pull/1105)
 - sap_swpm - extensive variable input validation (https://github.com/sap-linuxlab/community.sap_install/pull/1108)
 
