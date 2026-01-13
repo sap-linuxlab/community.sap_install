@@ -5,16 +5,20 @@
 # uuidd.socket is not found, while uuidd.service service is.
 - name: Check status of services - Active  # noqa command-instead-of-module
   ansible.builtin.command:
-    cmd: "systemctl is-active {{ item }}"
+    cmd: "systemctl is-active {{ service_item }}"
   loop: "{{ __sap_general_preconfigure_services_2578899 }}"
+  loop_control:
+    loop_var: service_item
   register: __sap_general_preconfigure_register_services_active
   changed_when: false
   ignore_errors: true  # Disabled is RC 1
 
 - name: Check status of services - Enabled  # noqa command-instead-of-module
   ansible.builtin.command:
-    cmd: "systemctl is-enabled {{ item }}"
+    cmd: "systemctl is-enabled {{ service_item }}"
   loop: "{{ __sap_general_preconfigure_services_2578899 }}"
+  loop_control:
+    loop_var: service_item
   register: __sap_general_preconfigure_register_services_enabled
   changed_when: false
   ignore_errors: true  # Disabled is RC 1
@@ -22,11 +26,13 @@
 - name: Assert that services are running and enabled
   ansible.builtin.assert:
     that:
-      - __sap_general_preconfigure_register_services_active.results | selectattr('item', 'equalto', item) | map(attribute='rc') | first == 0
-      - __sap_general_preconfigure_register_services_enabled.results | selectattr('item', 'equalto', item) | map(attribute='rc') | first == 0
-    fail_msg: "FAIL: Service '{{ item }}' is not running or not enabled!"
-    success_msg: "PASS: Package '{{ item }}' is running and enabled."
+      - __sap_general_preconfigure_register_services_active.results | selectattr('service_item', 'equalto', service_item) | map(attribute='rc') | first == 0
+      - __sap_general_preconfigure_register_services_enabled.results | selectattr('service_item', 'equalto', service_item) | map(attribute='rc') | first == 0
+    fail_msg: "FAIL: Service '{{ service_item }}' is not running or not enabled!"
+    success_msg: "PASS: Package '{{ service_item }}' is running and enabled."
   loop: "{{ __sap_general_preconfigure_services_2578899 }}"
+  loop_control:
+    loop_var: service_item
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 
@@ -43,10 +49,11 @@
 
     - name: Assert that SAP note 2578899 is verified by saptune
       ansible.builtin.assert:
-        that: "{{ __sap_general_preconfigure_saptune_verify_2578899.rc == 0 }}"
+        that: __sap_general_preconfigure_saptune_verify_2578899.rc == 0
         success_msg: "PASS: SAP note 2578899 is verified by saptune."
         fail_msg: |
-          "FAIL: SAP note 2578899 is not verified by saptune! See details below:"
+          FAIL: SAP Note 2578899 verification failed.
+          Please check the output below:
           {{ __sap_general_preconfigure_saptune_verify_2578899.stdout_lines }}
           {{ __sap_general_preconfigure_saptune_verify_2578899.stderr_lines }}
       ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
@@ -77,9 +84,11 @@
     - name: Assert that GRUB cmdline parameters are set
       ansible.builtin.assert:
         that:
-          - "'{{ item }}' in __sap_general_preconfigure_grub_contents.content | b64decode | string"
-        fail_msg: "FAIL: GRUB cmdline parameter {{ item }} is not set!"
-        success_msg: "PASS: GRUB cmdline parameter {{ item }} is set."
+          - "'{{ grub_line_item }}' in __sap_general_preconfigure_grub_contents.content | b64decode | string"
+        fail_msg: "FAIL: GRUB cmdline parameter {{ grub_line_item }} is not set!"
+        success_msg: "PASS: GRUB cmdline parameter {{ grub_line_item }} is set."
       loop: "{{ __sap_general_preconfigure_grub_cmdline_2578899 }}"
+      loop_control:
+        loop_var: grub_line_item
       when: __sap_general_preconfigure_grub_cmdline_2578899 | length > 0
       ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"

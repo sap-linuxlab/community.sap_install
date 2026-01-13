@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP HANA - Post-Tasks - Enable and start the firewalld service
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: SAP HANA - Post-Tasks - Construct the argument list for 'firewall-cmd --add-port'
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_firewall_cmd_args:
+      "{{ ['--add-port='] | product(sap_hana_install_firewall[0].port) | map('join') | list }}"
+  when: sap_hana_install_firewall[0].state == 'enabled'
+
+- name: SAP HANA - Post-Tasks - Construct the argument list for 'firewall-cmd --remove-port'
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_firewall_cmd_args:
+      "{{ ['--remove-port='] | product(sap_hana_install_firewall[0].port) | map('join') | list }}"
+  when: sap_hana_install_firewall[0].state == 'disabled'
+
+- name: SAP HANA - Post-Tasks - Set fact for the 'firewall-cmd' command
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_firewall_cmd_command:
+      "firewall-cmd --zone=public {{ __sap_hana_install_fact_firewall_cmd_args | map('quote') | join(' ') }}"
+
+- name: SAP HANA - Post-Tasks - Display the 'firewall-cmd' command
+  ansible.builtin.debug:
+    msg: "{{ __sap_hana_install_fact_firewall_cmd_command }}"
+
+# No matter if the ports have already been enabled or not, the changed state
+# of the command is always true. For avoiding ansible-lint to report a violation
+# of the no-changed-when rule, we just set changed_when to true here.
+- name: SAP HANA - Post-Tasks - Enable the required ports immediately
+  ansible.builtin.command: "{{ __sap_hana_install_fact_firewall_cmd_command }}"
+  changed_when: true
+
+- name: SAP HANA - Post-Tasks - Get the current firewall configuration of the default zone
+  ansible.builtin.command: firewall-cmd --list-all
+  changed_when: false
+  register: __sap_hana_install_register_current_firewall_ports
+
+- name: SAP HANA - Post-Tasks - Display the current firewall configuration of the default zone
+  ansible.builtin.debug:
+    msg: "{{ __sap_hana_install_register_current_firewall_ports.stdout_lines }}"
+  when: __sap_hana_install_register_current_firewall_ports.stdout_lines is defined
+
+# No matter if the ports have already been enabled or not, the changed state
+# of the command is always true. For avoiding ansible-lint to report a violation
+# of the no-changed-when rule, we just set changed_when to true here.
+- name: SAP HANA - Post-Tasks - Enable the required ports permanently
+  ansible.builtin.command: "{{ __sap_hana_install_fact_firewall_cmd_command }} --permanent"
+  changed_when: true
+
+- name: SAP HANA - Post-Tasks - Get the permanent firewall configuration of the default zone
+  ansible.builtin.command: firewall-cmd --list-all
+  changed_when: false
+  register: __sap_hana_install_register_permanent_firewall_ports
+
+- name: SAP HANA - Post-Tasks - Display the permanent firewall configuration of the default zone
+  ansible.builtin.debug:
+    msg: "{{ __sap_hana_install_register_permanent_firewall_ports.stdout_lines }}"
+  when: __sap_hana_install_register_permanent_firewall_ports.stdout_lines is defined

@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# For an addhosts operation, we first use the hdblcm command for creating a new configfile template, which
+# we then process with the templating engine. The actual addhosts installation is done via the resident hdblcm.
+# Non-resident hdblcm is used to avoid issues when attempting to generate configfile with resident hdblcm.
+
+# 'sap_hana_install_software_extract_directory' is required for configfile creation.
+- name: SAP HANA - Addhosts - Pre-Tasks - Get status of the directory '{{ sap_hana_install_software_extract_directory }}'
+  ansible.builtin.stat:
+    path: "{{ sap_hana_install_software_extract_directory }}"
+  check_mode: false
+  register: __sap_hana_install_register_stat_extract_directory
+  failed_when: false
+  tags: sap_hana_install_create_configfile
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Fail if '{{ sap_hana_install_software_extract_directory }}' does not exist
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The directory {{ sap_hana_install_software_extract_directory }} does not exist.
+      Path must be defined in the variable 'sap_hana_install_software_extract_directory'.
+  when: not __sap_hana_install_register_stat_extract_directory.stat.exists
+  tags: sap_hana_install_create_configfile
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Find directory 'SAP_HANA_DATABASE' in '{{ sap_hana_install_software_extract_directory }}'
+  ansible.builtin.find:
+    paths: "{{ sap_hana_install_software_extract_directory }}"
+    recurse: true
+    file_type: directory
+    patterns: 'SAP_HANA_DATABASE'
+  register: __sap_hana_install_register_find_directory_sap_hana_database_addhosts
+  tags: sap_hana_install_create_configfile
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Fail if directory 'SAP_HANA_DATABASE' does not exist in '{{ sap_hana_install_software_extract_directory }}'
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The directory {{ sap_hana_install_software_extract_directory }} does not contain directory 'SAP_HANA_DATABASE'.
+  when: __sap_hana_install_register_find_directory_sap_hana_database_addhosts.files | length == 0
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Set fact for 'hdblcm' installer directory, addhosts
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_hdblcm_path:
+      "{{ __sap_hana_install_register_find_directory_sap_hana_database_addhosts.files[0].path }}"
+  tags: sap_hana_install_create_configfile
+
+
+# Create temporary directory and hdblcm configuration file.
+- name: SAP HANA - Addhosts - Pre-Tasks - Create temporary directory to store various files
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: hanaconfig
+  register: __sap_hana_install_register_tmpdir
+  tags:
+    - sap_hana_install_hdblcm_commandline
+    - sap_hana_install_create_configfile
+
+- name: SAP HANA - Addhosts - Pre-Tasks - Fill variable __sap_hana_install_register_tmpdir for check mode only
+  ansible.builtin.set_fact:
+    __sap_hana_install_register_tmpdir:
+      path: '/tmp'
+  when: ansible_check_mode or
+    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([])) or
+    ('sap_hana_install_create_configfile' in ansible_run_tags | d([]))
+  tags:
+    - sap_hana_install_hdblcm_commandline
+    - sap_hana_install_create_configfile

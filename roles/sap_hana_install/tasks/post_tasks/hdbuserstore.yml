@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Executed only for new installations or new addhosts to avoid overwriting existing configuration.
+- name: SAP HANA - Post-Tasks - hdbuserstore - Add key {{ sap_hana_install_hdbuserstore_key }}
+  ansible.builtin.shell: |
+      /usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbuserstore \
+      SET {{ sap_hana_install_hdbuserstore_key }} \
+      {{ ansible_hostname }}:3{{ sap_hana_install_number }}13 \
+      SYSTEM '{{ sap_hana_install_db_system_password | d(sap_hana_install_master_password) }}'
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ sap_hana_install_sid | lower }}adm"
+  changed_when: true
+  when:
+    - not ansible_check_mode
+    - sap_hana_install_hdbuserstore_force or __sap_hana_install_fact_is_new_addhost_host
+
+- name: SAP HANA - Post-Tasks - hdbuserstore - Execute 'hdbuserstore list' command
+  ansible.builtin.shell:
+    cmd: "/usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbuserstore list"
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ sap_hana_install_sid | lower }}adm"
+  register: __sap_hana_install_register_hdbuserstore_list
+  changed_when: false
+  failed_when: false
+
+- name: SAP HANA - Post-Tasks - hdbuserstore - Inform if command 'hdbuserstore list' failed for existing installation
+  ansible.builtin.debug:
+    msg: |
+      Command '/usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbuserstore list' was not successful!
+      {% if not sap_hana_install_hdbuserstore_force %}
+      Resolve these issues or execute this role again with 'sap_hana_install_hdbuserstore_force' set to 'true'.
+      {% endif %}
+
+      {{ __sap_hana_install_register_hdbuserstore_list.stdout_lines }}
+  when:
+    - __sap_hana_install_register_hdbuserstore_list.rc != 0

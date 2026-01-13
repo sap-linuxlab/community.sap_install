@@ -119,8 +119,13 @@ SAP Products:
 
 **NOTE: It is not possible to test every Operating System and SAP Product combination with every release. Testing is regularly done for common scenarios: SAP HANA, SAP HANA HA, SAP S4HANA Distributed HA**
 
+
 ## Contributing
-You can find more information about ways you can contribute at [sap-linuxlab website](https://sap-linuxlab.github.io/initiative_contributions/).
+For information on how to contribute, please see our [contribution guidelines](https://sap-linuxlab.github.io/initiative_contributions/).
+
+
+## Contributors
+We welcome contributions to this collection. For a list of all contributors and information on how you can get involved, please see our [CONTRIBUTORS document](./CONTRIBUTORS.md).
 
 
 ## Support

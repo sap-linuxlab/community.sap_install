@@ -1,0 +1,99 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP HSR - Enable HANA System Replication on primary node
+  ansible.builtin.shell:
+    cmd: >
+      source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
+      {{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
+      -sr_enable --name="{{ __sap_ha_install_hana_hsr_connection.hana_site }}"
+  become: true
+  become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+  register: __sap_ha_install_hana_hsr_register_sr_enable
+  changed_when: "'successfully enabled system as system replication source site' in __sap_ha_install_hana_hsr_register_sr_enable.stdout"
+  when:
+    - __sap_ha_install_hana_hsr_fact_is_primary
+    - "'is source system' not in __sap_ha_install_hana_hsr_register_srstate.stdout"
+
+# Added 'throttle' to avoid simultaneous run for multiple secondaries as this confuses the primary
+- name: SAP HSR - Register secondary node to HANA System Replication
+  ansible.builtin.shell:
+    cmd: >-
+      source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
+      {{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
+      -sr_register --name={{ __sap_ha_install_hana_hsr_connection.hana_site }}
+      --remoteHost={{ __sap_ha_install_hana_hsr_fact_primary_name }}
+      --remoteInstance={{ __sap_ha_install_hana_hsr_instance_number }}
+      --replicationMode={{ sap_ha_install_hana_hsr_rep_mode }}
+      --operationMode={{ sap_ha_install_hana_hsr_oper_mode }}
+      --online
+  become: true
+  become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+  register: __sap_ha_install_hana_hsr_register_sr_register
+  # Retry helps with cases where primary is not yet ready to accept registration
+  delay: 10
+  retries: 6
+  when:
+    - __sap_ha_install_hana_hsr_fact_is_secondary
+    - __sap_ha_install_hana_hsr_connection.node_name not in __sap_ha_install_hana_hsr_register_srstate.stdout
+    - __sap_ha_install_hana_hsr_connection.node_fqdn not in __sap_ha_install_hana_hsr_register_srstate.stdout
+  changed_when: true
+  throttle: 1
+
+# This start is not needed when --online is used, but it helps to ensure that HANA is running
+# after registration in case it was stopped for some reason.
+- name: SAP HSR - Start HANA instance on secondary
+  ansible.builtin.include_tasks:
+    file: pre_tasks/start_hana.yml
+  when:
+    - __sap_ha_install_hana_hsr_fact_is_secondary
+    - __sap_ha_install_hana_hsr_connection.node_name not in __sap_ha_install_hana_hsr_register_srstate.stdout
+    - __sap_ha_install_hana_hsr_connection.node_fqdn not in __sap_ha_install_hana_hsr_register_srstate.stdout
+
+
+- name: SAP HSR - Run post-enable status check
+  when:
+    - __sap_ha_install_hana_hsr_register_sr_enable.changed or
+      (__sap_ha_install_hana_hsr_fact_is_secondary
+        and __sap_ha_install_hana_hsr_connection.node_name not in __sap_ha_install_hana_hsr_register_srstate.stdout
+        and __sap_ha_install_hana_hsr_connection.node_fqdn not in __sap_ha_install_hana_hsr_register_srstate.stdout)
+  block:
+    - name: SAP HSR - Re-check System Replication status with retry
+      ansible.builtin.shell:
+        cmd: >-
+          source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
+          {{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
+          -sr_state
+      become: true
+      become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+      register: __sap_ha_install_hana_hsr_register_srstate_after
+      changed_when: false
+      failed_when: false
+      delay: 20
+      retries: 10
+      # This check will ensure that mapping information is also available in sr_state output
+      until: >
+        (
+          (__sap_ha_install_hana_hsr_fact_is_primary and 'is source system: true'
+            in __sap_ha_install_hana_hsr_register_srstate_after.stdout) or
+          (__sap_ha_install_hana_hsr_fact_is_secondary and 'is secondary/consumer system: true'
+            in __sap_ha_install_hana_hsr_register_srstate_after.stdout)
+        ) and (
+          __sap_ha_install_hana_hsr_register_srstate_after.stdout
+          | regex_search('^Mapping:\s*.*$', multiline=True)
+          is not none
+        )
+
+    - name: SAP HSR - Fail if replication is not enabled on primary
+      ansible.builtin.fail:
+        msg: "HANA System Replication enable failed on primary. 'is source system: true' not found in sr_state output."
+      when:
+        - __sap_ha_install_hana_hsr_fact_is_primary
+        - "'is source system: true' not in __sap_ha_install_hana_hsr_register_srstate_after.stdout"
+
+    - name: SAP HSR - Fail if replication is not enabled on secondary
+      ansible.builtin.fail:
+        msg: "HANA System Replication enable failed on secondary. 'is secondary/consumer system: true' found in sr_state output."
+      when:
+        - __sap_ha_install_hana_hsr_fact_is_secondary
+        - "'is secondary/consumer system: true' not in __sap_ha_install_hana_hsr_register_srstate_after.stdout"

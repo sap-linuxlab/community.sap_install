@@ -39,8 +39,8 @@
   environment:
     LD_LIBRARY_PATH: /usr/sap/hostctrl/exe
     SECUDIR: /usr/sap/hostctrl/exe/sec
-  register: ssl_config_output
-  changed_when: "'Certificate Request:' in ssl_config_output.stdout"
+  register: __sap_hostagent_register_sapgenpse_gen_pse
+  changed_when: "'Certificate Request:' in __sap_hostagent_register_sapgenpse_gen_pse.stdout"
 
 - name: Grant SAP Host Agent access to the server PSE
   ansible.builtin.command: >
@@ -55,8 +55,8 @@
   environment:
     LD_LIBRARY_PATH: /usr/sap/hostctrl/exe
     SECUDIR: /usr/sap/hostctrl/exe/sec
-  register: ssl_config_output
-  changed_when: "'Added SSO-credentials for PSE' in ssl_config_output.stdout"
+  register: __sap_hostagent_register_sapgenpse_seclogin
+  changed_when: "'Added SSO-credentials for PSE' in __sap_hostagent_register_sapgenpse_seclogin.stdout"
 
 # Right now there is no option to import the signed certificate. The CSR must be signed
 # by a valid CA in order to import it
@@ -86,10 +86,10 @@
   environment:
     LD_LIBRARY_PATH: /usr/sap/hostctrl/exe
     SECUDIR: /usr/sap/hostctrl/exe/sec
-  register: ssl_config_output
-  changed_when: "'Opening PSE' in ssl_config_output.stdout"
+  register: __sap_hostagent_register_sapgenpse_get_my_name
+  changed_when: "'Opening PSE' in __sap_hostagent_register_sapgenpse_get_my_name.stdout"
 
 - name: Restart SAPHOSTAGENT
   ansible.builtin.command: /usr/sap/hostctrl/exe/saphostexec -restart
-  register: ssl_config_output
-  changed_when: "'start hostcontrol using profile' in ssl_config_output.stdout"
+  register: __sap_hostagent_register_saphostexec_restart
+  changed_when: "'start hostcontrol using profile' in __sap_hostagent_register_saphostexec_restart.stdout"

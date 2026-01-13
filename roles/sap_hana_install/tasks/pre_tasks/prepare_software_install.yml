@@ -1,0 +1,147 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP HANA - Install - Pre-Tasks - Normalize directory path
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_software_directory: "{{ sap_hana_install_software_directory | regex_replace('\\/$', '') }}"
+
+- name: SAP HANA - Install - Pre-Tasks - Check availability of software directory '{{ __sap_hana_install_fact_software_directory }}'
+  ansible.builtin.stat:
+    path: "{{ __sap_hana_install_fact_software_directory }}"
+  check_mode: false
+  register: __sap_hana_install_register_stat_software_directory
+  failed_when: false
+
+- name: SAP HANA - Install - Pre-Tasks - Assert that the software directory exists
+  ansible.builtin.assert:
+    that: __sap_hana_install_register_stat_software_directory.stat.exists
+    fail_msg: "FAIL: The software directory '{{ __sap_hana_install_fact_software_directory }}' does not exist!"
+    success_msg: "PASS: The software directory '{{ __sap_hana_install_fact_software_directory }}' exist."
+
+- name: >
+    SAP HANA - Install - Pre-Tasks - Assert directory permissions in case `sap_hana_install_software_extract_directory`
+    is below `sap_hana_install_software_extract_directory`
+  when: sap_hana_install_software_extract_directory is search(sap_hana_install_software_directory)
+  block:
+
+    - name: SAP HANA - Install - Pre-Tasks - Set fact for number of directory levels of the software directory
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_software_directory_levels: "{{ __sap_hana_install_fact_software_directory | regex_findall('/') | length }}"
+
+    - name: SAP HANA - Install - Pre-Tasks - Assert directory permissions
+      ansible.builtin.include_tasks:
+        file: pre_tasks/software_directory_permissions.yml
+      loop: "{{ range(1, __sap_hana_install_fact_software_directory_levels | int + 1, 1) | list }}"
+      loop_control:
+        loop_var: line_item
+
+- name: SAP HANA - Install - Pre-Tasks - Get info about software extract directory '{{ sap_hana_install_software_extract_directory }}'
+  ansible.builtin.stat:
+    path: "{{ sap_hana_install_software_extract_directory }}"
+  check_mode: false
+  register: __sap_hana_install_register_stat_software_extract_directory
+  failed_when: false
+
+- name: SAP HANA - Install - Pre-Tasks - Change ownership of software extract directory '{{ sap_hana_install_software_extract_directory }}'
+  ansible.builtin.file:
+    path: "{{ sap_hana_install_software_extract_directory }}"
+    state: directory
+    recurse: true
+    mode: '0755'
+    owner: root
+    group: root
+  when: __sap_hana_install_register_stat_software_extract_directory.stat.exists
+
+# In case more than one installation is ongoing and extracting to the same shared directory, wait until the extraction has completed:
+- name: SAP HANA - Install - Pre-Tasks - Suspending if extraction status file '{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__' exists
+  ansible.builtin.wait_for:
+    path: "{{ sap_hana_install_software_extract_directory }}/__EXTRACTION_ONGOING__"
+    state: absent
+  failed_when: false
+
+- name: SAP HANA - Install - Pre-Tasks - Find directory 'SAP_HANA_DATABASE' if '{{ sap_hana_install_software_extract_directory }}' exists
+  ansible.builtin.find:
+    paths: "{{ sap_hana_install_software_extract_directory }}"
+    recurse: true
+    file_type: directory
+    patterns: 'SAP_HANA_DATABASE'
+  register: __sap_hana_install_register_find_directory_sap_hana_database_initial
+  when: __sap_hana_install_register_stat_software_extract_directory.stat.exists
+
+# All SAPCAR and SAR files pre_tasks steps will be skipped if role `sap_install_media_detect` successfully extracts software.
+- name: SAP HANA - Install - Pre-Tasks - Set directory of 'hdblcm' from successful find result
+  when:
+    - __sap_hana_install_register_stat_software_extract_directory.stat.exists
+    - __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is defined
+  block:
+
+    - name: SAP HANA - Install - Pre-Tasks - Set fact for 'hdblcm' installer directory if found initially
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_hdblcm_path: "{{ __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0].path }}"
+
+    - name: SAP HANA - Install - Pre-Tasks - Get info about '{{ __sap_hana_install_fact_hdblcm_path }}/hdblcm' if found initially
+      ansible.builtin.stat:
+        path: "{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}"
+      check_mode: false
+      register: __sap_hana_install_register_stat_hdblcm_initial
+      failed_when: false
+
+    - name: SAP HANA - Install - Pre-Tasks - Assert that file 'hdblcm' is available if found initially
+      ansible.builtin.assert:
+        that: __sap_hana_install_register_stat_hdblcm_initial.stat.exists
+        fail_msg: "FAIL: File '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' could not be found. Installation of SAP HANA is not possible."
+        success_msg: "Using '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' for the installation of SAP HANA."
+
+- name: SAP HANA - Install - Pre-Tasks - Extract SAR files if file 'hdblcm' was not found initially
+  when: __sap_hana_install_register_find_directory_sap_hana_database_initial.files[0] is not defined
+  block:
+
+    - name: SAP HANA - Install - Pre-Tasks - Run hdblcm prepare
+      ansible.builtin.include_tasks: pre_tasks/hdblcm_prepare.yml
+
+    - name: SAP HANA - Install - Pre-Tasks - Display 'hdblcm' installer directory
+      ansible.builtin.debug:
+        msg: "{{ __sap_hana_install_fact_hdblcm_path }}"
+      when: __sap_hana_install_fact_hdblcm_path is defined
+
+    - name: SAP HANA - Install - Pre-Tasks - Set __sap_hana_install_fact_hdblcm_path in case of check mode
+      ansible.builtin.set_fact:
+        __sap_hana_install_fact_hdblcm_path: '/software/hana/extracted'
+      when: ansible_check_mode
+
+    - name: SAP HANA - Install - Pre-Tasks - Get info about '{{ __sap_hana_install_fact_hdblcm_path }}/hdblcm'
+      ansible.builtin.stat:
+        path: "{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}"
+      check_mode: false
+      register: __sap_hana_install_register_stat_hdblcm
+      failed_when: false
+
+    - name: SAP HANA - Install - Pre-Tasks - Assert that file 'hdblcm' is available
+      ansible.builtin.assert:
+        that: __sap_hana_install_register_stat_hdblcm.stat.exists
+        fail_msg: "FAIL: File 'hdblcm' could not be found. Installation of SAP HANA is not possible."
+        success_msg: "Using file '{{ __sap_hana_install_fact_hdblcm_path + '/hdblcm' }}' for the installation of SAP HANA."
+      when: not ansible_check_mode
+
+
+# Create temporary directory and hdblcm configuration file.
+- name: SAP HANA - Install - Pre-Tasks - Create temporary directory to store various files
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: hanaconfig
+  register: __sap_hana_install_register_tmpdir
+  when: not __sap_hana_install_fact_is_installed
+  tags:
+    - sap_hana_install_hdblcm_commandline
+    - sap_hana_install_create_configfile
+
+- name: SAP HANA - Install - Pre-Tasks - Fill variable __sap_hana_install_register_tmpdir for check mode only
+  ansible.builtin.set_fact:
+    __sap_hana_install_register_tmpdir:
+      path: '/tmp'
+  when: ansible_check_mode or
+    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([])) or
+    ('sap_hana_install_create_configfile' in ansible_run_tags | d([]))
+  tags:
+    - sap_hana_install_hdblcm_commandline
+    - sap_hana_install_create_configfile

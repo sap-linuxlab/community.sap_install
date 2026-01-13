@@ -2,18 +2,18 @@
 ---
 ##########
 # Creating a list of unused devices that match the requested filesystem sizes, using
-# - definition of unconfigured filesystems: sap_storage_setup_new_mounts_fact
+# - definition of unconfigured filesystems: __sap_storage_setup_fact_new_mounts
 # - ansible facts: ansible_devices
 #
 #########
 
 - name: SAP Storage Setup - Make a list of unused disk devices of the requested sizes
   ansible.builtin.set_fact:
-    available_devices: |
+    __sap_storage_setup_fact_available_devices: |
       {%- set av_disks = [] -%}
       {%- set all_disks = (ansible_devices | dict2items) -%}
       {%- for disk in all_disks -%}
-        {%- for fs in sap_storage_setup_new_mounts_fact -%}
+        {%- for fs in __sap_storage_setup_fact_new_mounts -%}
           {%- if disk.value.size | regex_search('.*TB$') -%}
             {%- set disk_size_gb = (((( disk.value.size | replace(' TB','') | float * 1024) /8) | round(0,'ceil') * 8) | int) -%}
           {%- else -%}
@@ -39,14 +39,14 @@
 
 ##########
 # This task assigns device names for each volume to be created.
-# - sap_storage_setup_new_mounts_fact derived from extravars: sap_storage_setup_definition
+# - __sap_storage_setup_fact_new_mounts derived from extravars: sap_storage_setup_definition
 #   and is dynamically generated during runtime to list only unconfigured filesystems
 # - ansible facts: ansible-devices
 #
 ##########
 
 
-# When multipathing is enabled, there will be a {{ filesystem_device_map }}
+# When multipathing is enabled, there will be a {{ __sap_storage_setup_fact_filesystem_device_map }}
 # defined already that is to be enhanced with single disk definitions, if
 # applicable.
 
@@ -54,19 +54,20 @@
 # Second pass assigns disks based on approximate size -8GB and +8GB
 - name: SAP Storage Setup - Set fact for target filesystem device mapping
   ansible.builtin.set_fact:
-    filesystem_device_map: "{{ filesystem_device_map | default([]) + __single_disk_to_fs_device_map }}"
+    __sap_storage_setup_fact_filesystem_device_map:
+      "{{ __sap_storage_setup_fact_filesystem_device_map | default([]) + __single_disk_to_fs_device_map }}"
   vars:
     __single_disk_to_fs_device_map: |
       {% set device_map = [] %}
-      {% set av_dev = (available_devices | dict2items) %}
+      {% set av_dev = (__sap_storage_setup_fact_available_devices | dict2items) %}
       {% set assigned_dev = [] %}
-      {% for fs in sap_storage_setup_new_mounts_fact -%}
+      {% for fs in __sap_storage_setup_fact_new_mounts -%}
         {% set matching_dev = [] -%}
 
         {%- if fs.disk_size is defined
           and 'nfs' not in fs.filesystem_type | default(sap_storage_setup_local_filesystem_type)
           and fs.swap_path is not defined
-          and fs.name not in filesystem_device_map | default([]) | map(attribute="name")
+          and fs.name not in __sap_storage_setup_fact_filesystem_device_map | default([]) | map(attribute="name")
           -%}
 
           {%- for dev in av_dev -%}
@@ -118,7 +119,7 @@
 
 # This task combines information to create a mapping list of devices to filesystems.
 # Sources:
-# - sap_storage_setup_new_mounts_fact derived from extravars: sap_storage_setup_definition
+# - __sap_storage_setup_fact_new_mounts derived from extravars: sap_storage_setup_definition
 #   and is dynamically generated during runtime to list only unconfigured filesystems
 # - Ansible host facts: hostvars[host_node].ansible_devices
 - name: SAP Storage Setup - Set fact for device to filesystem mapping
@@ -126,19 +127,18 @@
     - map_item.nfs_path is not defined
     - '"nfs" not in map_item.filesystem_type'
     - map_item.swap_path is not defined
-    - filesystem_device_map is defined
-    - filesystem_device_map | length > 0
+    - __sap_storage_setup_fact_filesystem_device_map is defined
+    - __sap_storage_setup_fact_filesystem_device_map | length > 0
   ansible.builtin.set_fact:
-    volume_map: "{{ volume_map + volume_element }}"
+    __sap_storage_setup_fact_volume_map: "{{ __sap_storage_setup_fact_volume_map | d([]) + volume_element }}"
   vars:
-    volume_map: []
     volume_element:
       - filesystem_type: "{{ map_item.filesystem_type | default(sap_storage_setup_local_filesystem_type) }}"
         mountpoint: "{{ map_item.mountpoint | default('') }}"
         volume_group: "{{ map_item.lvm_vg_name | default('vg_' + map_item.name) }}"
         volume_name: "{{ map_item.lvm_lv_name | default('lv_' + map_item.name) }}"
         device: |-
-          {% for entry in filesystem_device_map %}
+          {% for entry in __sap_storage_setup_fact_filesystem_device_map %}
           {%- if map_item.name == entry.name -%}
               {{ entry.device }}
           {%- endif %}
@@ -158,7 +158,7 @@
           {%- endif %}
           {{ lvopts | join(' ') }}
 
-  loop: "{{ sap_storage_setup_new_mounts_fact }}"
+  loop: "{{ __sap_storage_setup_fact_new_mounts }}"
   loop_control:
     label: "{{ map_item.name }}"
     loop_var: map_item
@@ -166,6 +166,6 @@
 
 - name: SAP Storage Setup - Display local disk setup assignment
   ansible.builtin.debug:
-    var: volume_map
+    var: __sap_storage_setup_fact_volume_map
   when:
-    - volume_map is defined
+    - __sap_storage_setup_fact_volume_map is defined

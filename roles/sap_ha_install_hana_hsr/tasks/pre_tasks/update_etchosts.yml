@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP HSR - Check /etc/hosts for conflicting entries
+  ansible.builtin.shell: |
+    awk '(/{{ "( |\t)" + node_item.node_name + "($| |\t)" }}/ && !/^{{ node_item.node_ip + "( |\t)" }}/) \
+    || (/^{{ node_item.node_ip + "( |\t)" }}/ \
+    && !/{{ "( |\t)" + node_item.node_name + "($| |\t)" }}/)' /etc/hosts
+  register: __sap_ha_install_hana_hsr_register_etchosts_conflict
+  changed_when: false
+  failed_when: __sap_ha_install_hana_hsr_register_etchosts_conflict.stdout != ''
+  loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
+  loop_control:
+    label: "Check if {{ node_item.node_ip }} exists for hosts other than {{ node_item.node_name }}"
+    loop_var: node_item
+
+# ansible-lint:
+# no-tabs exception for standard aligned /etc/hosts entries
+- name: SAP HSR - Add Cluster Nodes to /etc/hosts  # noqa no-tabs
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    create: true
+    mode: '0644'
+    state: present
+    backup: true
+    line: "{{ node_item.node_ip }}\t{{ node_item.node_name.split('.')[0] }}.{{ node_item.node_name.split('.')[1:]
+      | join('.') or __sap_ha_install_hana_hsr_domain }}\t{{ node_item.node_name.split('.')[0] }}"
+    regexp: (?i)^\s*{{ node_item.node_ip }}\s+{{ node_item.node_name.split('.')[0] }}
+  loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
+  loop_control:
+    label: "{{ node_item.node_ip }} {{ node_item.node_name }}"
+    loop_var: node_item
+
+
+# TODO: Replace with sap_maintain_etc_hosts when sap_infrastructure.sap_vm_provision
+# is aligned, because it creates duplicates now.
+
+# Set which Ansible Collection to use when calling sap_install roles.
+# sap_ha_install_hana_hsr_sap_install_collection: 'community.sap_install'
+
+# - name: SAP HSR - Update '/etc/hosts'
+#   ansible.builtin.import_role:
+#     name: '{{ sap_ha_install_hana_hsr_sap_install_collection }}.sap_maintain_etc_hosts'
+#   vars:
+#     sap_maintain_etc_hosts_list: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"

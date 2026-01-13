@@ -1,0 +1,192 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Ensure that we create same folder structure inside of user provided path.
+- name: SAP HSR - Create sub-directories in the user provided path
+  ansible.builtin.file:
+    path: "{{ sap_ha_install_hana_hsr_backup_path | regex_replace('/$', '') ~ '/' ~ user_item }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+    group: sapsys
+  loop:
+    - SYSTEMDB
+    - "{{ 'DB_' ~ __sap_ha_install_hana_hsr_sid }}"
+  loop_control:
+    loop_var: user_item
+  when:
+    - sap_ha_install_hana_hsr_backup_path is defined
+    - sap_ha_install_hana_hsr_backup_path | string | length > 0
+
+
+- name: Block to find basepath_databackup
+  when:
+    - sap_ha_install_hana_hsr_backup_path is not defined
+      or sap_ha_install_hana_hsr_backup_path | string | length == 0
+  block:
+
+    # Getting data from global.ini file is not accurate and we will get it from database.
+    # The value is stored either in 'SYSTEM' layer or 'DEFAULT' layer. It will default to "NONE" if nothing was found.
+    - name: SAP HSR - Get 'basepath_databackup' from database
+      become: true
+      become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+      ansible.builtin.shell:
+        cmd: |
+          /usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql \
+          -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
+          -m -a -quiet \
+          -c ';' \
+          <<EOF
+          SELECT COALESCE(
+            (SELECT VALUE FROM M_INIFILE_CONTENTS WHERE LAYER_NAME = 'SYSTEM'
+              AND SECTION = 'persistence' AND KEY = 'basepath_databackup'),
+            (SELECT VALUE FROM M_INIFILE_CONTENTS WHERE LAYER_NAME = 'DEFAULT'
+              AND SECTION = 'persistence' AND KEY = 'basepath_databackup'),
+            'NONE'
+          ) FROM DUMMY;
+          EOF
+      register: __sap_ha_install_hana_hsr_register_basepath_databackup
+      changed_when: false
+      ignore_errors: true
+
+
+    # Proceed with preparation of command output only when valid.
+    # Default path '$(DIR_INSTANCE)/backup/data' requires expansion of $DIR_INSTANCE variable.
+    - name: SAP HSR - Block to process obtained 'basepath_databackup'
+      when:
+        - not __sap_ha_install_hana_hsr_register_basepath_databackup.failed
+        - __sap_ha_install_hana_hsr_register_basepath_databackup.stdout_lines | length > 0
+        - __sap_ha_install_hana_hsr_register_basepath_databackup.stdout_lines[0] != '"NONE"'
+      vars:
+        # Remove double quotes around query result.
+        __basepath_databackup_trimmed:
+          "{{ __sap_ha_install_hana_hsr_register_basepath_databackup.stdout_lines[0] | replace('\"', '') }}"
+        # Identify if ENV variable is present by searching for $.
+        __basepath_databackup_expansion_needed:
+          "{{ __basepath_databackup_trimmed is search('\\$\\(') }}"
+        # Finds text inside parentheses and then strips them.
+        __basepath_databackup_expand_var:
+          "{{ __basepath_databackup_trimmed | regex_search('\\((.*?)\\)') | regex_replace('\\(|\\)', '') | d('') }}"
+
+      block:
+        # Ansible become is not enough to load ENV so we have to use source.
+        - name: SAP HSR - Get value of the expanded variable
+          become: true
+          become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+          ansible.builtin.shell:
+            cmd: >-
+              source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
+              echo ${{ __basepath_databackup_expand_var }}
+            executable: /bin/bash
+          register: __sap_ha_install_hana_hsr_register_expansion_result
+          changed_when: false
+          check_mode: false
+          ignore_errors: true
+          when: __basepath_databackup_expansion_needed
+
+        # Either expand variable or fall back to value, as it does not contain ENV variable.
+        - name: SAP HSR - Create full path of 'basepath_databackup' directory
+          ansible.builtin.set_fact:
+            __sap_ha_install_hana_hsr_fact_basepath_databackup_expanded: >-
+              {{
+                __basepath_databackup_trimmed |
+                replace('$(' + __basepath_databackup_expand_var + ')', __sap_ha_install_hana_hsr_register_expansion_result.stdout)
+                if __basepath_databackup_expansion_needed and not __sap_ha_install_hana_hsr_register_expansion_result.failed
+                else __basepath_databackup_trimmed
+              }}
+
+        # Identify if path is same as default and set fact only if it is different.
+        - name: SAP HSR - Set fact 'basepath_databackup' when different from default path
+          ansible.builtin.set_fact:
+            __sap_ha_install_hana_hsr_fact_basepath_databackup:
+              "{{ __sap_ha_install_hana_hsr_fact_basepath_databackup_expanded }}"
+          when: >-
+            (__sap_ha_install_hana_hsr_fact_basepath_databackup_expanded | regex_replace('/$', '')) !=
+            __sap_ha_install_hana_hsr_backup_data_path
+
+
+# Combine final path to backup directory in order:
+# 1. User defined 'sap_ha_install_hana_hsr_backup_path' if defined and not empty.
+# 2. Generated '__sap_ha_install_hana_hsr_fact_basepath_databackup' or empty.
+- name: SAP HSR - Set variable with path to backup directory
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_fact_backup_path:
+      "{{ sap_ha_install_hana_hsr_backup_path
+        if sap_ha_install_hana_hsr_backup_path is defined and sap_ha_install_hana_hsr_backup_path | string | length > 0
+        else __sap_ha_install_hana_hsr_fact_basepath_databackup | d('') }}"
+
+- name: SAP HSR - Set variable with backup file prefix
+  ansible.builtin.set_fact:
+    # Prepare backup name as <SID>_PRE_HSR_<TIMESTAMP>. Example: H02_PRE_HSR_20250729_1444
+    __sap_ha_install_hana_hsr_fact_backup_prefix:
+      "{{ (__sap_ha_install_hana_hsr_sid | upper) ~ '_PRE_HSR_' ~ now(utc=False).strftime('%Y%m%d_%H%M') }}"
+
+
+# 'USING FILE' parameter accepts range of inputs:
+# - ('name') - Backup 'name' will be created in default basepath_databackup.
+# - ('','name') - Backup 'name' will be created in default basepath_databackup.
+# - ('/backup/name') - Backup 'name' will be created in /backup/ folder, but it has to exist with correct permissions.
+# - ('/backup/','name') - Backup 'name' will be created in /backup/ folder, but it has to exist with correct permissions.
+# Using full path requires us to specify sub-directories to avoid mixing up SYSTEMDB and TENANTDB backups.
+- name: SAP HSR - Run backup for SYSTEMDB
+  ansible.builtin.shell:
+    cmd: |
+      /usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql -quiet \
+      -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
+      -m <<EOF
+      BACKUP DATA FOR SYSTEMDB USING FILE ('{{ __systemdb_path }}','{{ __sap_ha_install_hana_hsr_fact_backup_prefix }}');
+      EOF
+  changed_when: true
+  vars:
+    # Ensure that backup goes into sub-directory, when path is not default.
+    __systemdb_path:
+      "{{ __sap_ha_install_hana_hsr_fact_backup_path | regex_replace('/$', '') ~ '/SYSTEMDB/'
+        if __sap_ha_install_hana_hsr_fact_backup_path != ''
+        else '' }}"
+
+- name: SAP HSR - Run backup in TENANTDB
+  ansible.builtin.shell:
+    cmd: |
+      /usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql -quiet \
+      -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
+      -m <<EOF
+      BACKUP DATA FOR {{ __sap_ha_install_hana_hsr_sid }} USING FILE ('{{ __tenantdb_path }}','{{ __sap_ha_install_hana_hsr_fact_backup_prefix }}');
+      EOF
+  changed_when: true
+  vars:
+    # Ensure that backup goes into sub-directory, when path is not default.
+    __tenantdb_path:
+      "{{ __sap_ha_install_hana_hsr_fact_backup_path | regex_replace('/$', '') ~ '/DB_' ~ __sap_ha_install_hana_hsr_sid ~ '/'
+        if __sap_ha_install_hana_hsr_fact_backup_path != ''
+        else '' }}"
+
+
+# This is final configuration of backup path, because find command cannot proceed with
+# empty string '' like hdbsql.
+- name: SAP HSR - Set variable with final path to backup directory
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_fact_backup_path_final:
+      "{{ __sap_ha_install_hana_hsr_fact_backup_path
+         if __sap_ha_install_hana_hsr_fact_backup_path != ''
+         else __sap_ha_install_hana_hsr_backup_data_path }}"
+
+- name: SAP HSR - Verify backup files
+  ansible.builtin.shell:
+    cmd: >-
+      source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
+      find {{ __sap_ha_install_hana_hsr_fact_backup_path_final }}
+      -type f -name {{ __sap_ha_install_hana_hsr_fact_backup_prefix }}*
+      -exec /usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbbackupcheck {} \;
+  register: __sap_ha_install_hana_hsr_verify_backup
+  failed_when:
+    - __sap_ha_install_hana_hsr_verify_backup.rc == '1' or
+      __sap_ha_install_hana_hsr_verify_backup.stderr != ""
+  changed_when: false
+
+
+- name: SAP HSR - Show backup details
+  ansible.builtin.debug:
+    msg: |
+      Database backup was successfully completed.
+      Location: {{ __sap_ha_install_hana_hsr_fact_backup_path_final }}
+      File prefix: {{ __sap_ha_install_hana_hsr_fact_backup_prefix }}

@@ -1,0 +1,77 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP HSR - Check System Replication Status
+  ansible.builtin.shell:
+    cmd: >-
+      source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
+      {{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
+      -sr_state
+  become: true
+  become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+  register: __sap_ha_install_hana_hsr_register_srstate
+  changed_when: false
+  failed_when: false
+
+
+- name: SAP HSR - Set fact if replication is enabled
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_fact_replication_enabled: true
+  when: >
+    'is source system: true' in __sap_ha_install_hana_hsr_register_srstate.stdout or
+    'is secondary/consumer system: true' in __sap_ha_install_hana_hsr_register_srstate.stdout
+
+
+# We need to ensure that absent tasks are executed only
+# when existing replication is aligned with expected roles.
+- name: SAP HSR - Assert that existing replication contains expected primary
+  ansible.builtin.assert:
+    that:
+      - "'is source system: true' in __sap_ha_install_hana_hsr_register_srstate.stdout"
+    fail_msg: |
+      FAIL: Existing System Replication on this node is not aligned with expected role as primary.
+      This node is expected to be 'primary' based on the variable 'sap_ha_install_hana_hsr_cluster_nodes',
+      but output of command 'hdbnsutil -sr_state' does not indicate primary role.
+  when:
+    - __sap_ha_install_hana_hsr_fact_replication_enabled
+    - __sap_ha_install_hana_hsr_fact_is_primary
+
+- name: SAP HSR - Assert that existing replication contains expected secondary
+  ansible.builtin.assert:
+    that:
+      - "'is secondary/consumer system: true' in __sap_ha_install_hana_hsr_register_srstate.stdout"
+    fail_msg: |
+      FAIL: Existing System Replication on this node is not aligned with expected role as secondary.
+      This node is expected to be 'secondary' based on the variable 'sap_ha_install_hana_hsr_cluster_nodes',
+      but output of command 'hdbnsutil -sr_state' does not indicate secondary role.
+  when:
+    - __sap_ha_install_hana_hsr_fact_replication_enabled
+    - __sap_ha_install_hana_hsr_fact_is_secondary
+
+# We need to ensure that existing replication setup contains expected primary hostname on secondary nodes.
+# This check will allow FQDN hostnames.
+- name: SAP HSR - Assert that existing replication setup contains expected primary hostname on secondary
+  ansible.builtin.assert:
+    that:
+      - "__primary_masters in __sap_ha_install_hana_hsr_register_srstate.stdout"
+    fail_msg: |
+      FAIL: Existing System Replication on this node does not contain primary hostname {{ __sap_ha_install_hana_hsr_fact_primary_name }}.
+      This node is configured as secondary, but output of command 'hdbnsutil -sr_state' does not contain expected primary hostname.
+      Expected hostname: {{ __sap_ha_install_hana_hsr_fact_primary_name }}
+  vars:
+    __primary_masters: "primary masters: {{ __sap_ha_install_hana_hsr_fact_primary_name }}"
+  when:
+    - __sap_ha_install_hana_hsr_fact_replication_enabled
+    - __sap_ha_install_hana_hsr_fact_is_secondary
+
+
+- name: SAP HSR - Inform if existing System Replication was found
+  ansible.builtin.debug:
+    msg: |
+      Existing System Replication was found on this node.
+      {% if __sap_ha_install_hana_hsr_fact_is_primary and not __sap_ha_install_hana_hsr_fact_is_secondary %}
+      Node role: Primary
+      {% elif __sap_ha_install_hana_hsr_fact_is_secondary and not __sap_ha_install_hana_hsr_fact_is_primary %}
+      Node role: Secondary
+      {% endif %}
+  when: __sap_ha_install_hana_hsr_fact_replication_enabled

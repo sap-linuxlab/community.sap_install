@@ -1,84 +1,84 @@
 ---
+# Always check ansible-core support matrix before configuring units matrix.
+# https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix
 
-# Worflow for ansible-test sanity tests
-
-name: ansible-test sanity of the collection
+name: Ansible Test - Sanity
 
 on:
+  schedule:
+    # This is 01:05 UTC, which is 3:05 AM in Prague/CEST
+    - cron: '5 3 * * 1'
+
   pull_request:
     branches:
       - main
       - dev
+
   workflow_dispatch:
 
 jobs:
-  sanity:
+  sanity-supported:
     runs-on: ubuntu-latest
-
+    name: Sanity (Supported Ⓐ${{ matrix.ansible }})
+    strategy:
+      fail-fast: false  # Disabled so we can see all failed combinations.
+      # Define a build matrix to test compatibility across multiple Ansible versions.
+      # Each version listed below will spawn a separate job that runs in parallel.
+      matrix:
+        ansible:
+          # Supported versions (must pass)
+          - 'stable-2.18'  # Python 3.11 - 3.13
+          - 'stable-2.19'  # Python 3.11 - 3.13
+          - 'devel'  # Test against the upcoming development version.
     steps:
-      - name: Check out the code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: Set up Python 3
-        uses: actions/setup-python@v5
+      - name: ansible-test - sanity
+        uses: ansible-community/ansible-test-gh-action@release/v1
         with:
-          python-version: '3.12'
+          ansible-core-version: ${{ matrix.ansible }}
+          testing-type: sanity
 
-      - name: Install test dependencies
-        run: |
-          pip3 install ansible ansible-lint==6.8.6
-          pip3 install ansible-compat==3.0.2
+  sanity-eol:
+    runs-on: ubuntu-latest
+    # This job only runs if the supported tests pass
+    needs: sanity-supported
+    name: Sanity (EOL Ⓐ${{ matrix.ansible }}+py${{ matrix.python }})
+    continue-on-error: true  # This entire job is allowed to fail
+    strategy:
+      fail-fast: false  # Disabled so we can see all failed combinations.
+      # Define a build matrix to test compatibility across multiple Ansible versions.
+      # Each version listed below will spawn a separate job that runs in parallel.
+      matrix:
+        ansible:
+          - 'stable-2.14'  # Python 3.9 - 3.11
+          - 'stable-2.15'  # Python 3.9 - 3.11
+          - 'stable-2.16'  # Python 3.10 - 3.12
+          - 'stable-2.17'  # Python 3.10 - 3.12
+        python:
+          - '3.9'
+          - '3.10'
+          - '3.11'
+          - '3.12'
+        exclude:
+          # Exclusions for incompatible Python versions.
+          - ansible: 'stable-2.14'
+            python: '3.12'
 
-#      - name: Install collection dependencies
-#        run: ansible-galaxy collection install community.general
+          - ansible: 'stable-2.15'
+            python: '3.12'
 
-#      - name: List directory /home/runner/work/
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/work/
+          - ansible: 'stable-2.16'
+            python: '3.9'
 
-#      - name: List directory /home/runner/work/_actions
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/work/_actions
+          - ansible: 'stable-2.17'
+            python: '3.9'
+    steps:
+      - uses: actions/checkout@v5
 
-      - name: List directory /home/runner/work/_actions/actions
-        working-directory: /home/runner/
-        run: ls -al /home/runner/work/_actions/actions
-
-#      - name: List directory /home/runner/work/community.sap_install
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/work/community.sap_install
-
-#      - name: List directory /home/runner/work/community.sap_install/community.sap_install
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/work/community.sap_install/community.sap_install
-
-      - name: Move the collection to the correct location - Create new directory
-        run: mkdir -p /home/runner/.ansible/collections/ansible_collections/community
-
-      - name: Move the collection to the correct location - Move the collection
-        working-directory: /home/runner/
-        run: mv /home/runner/work/community.sap_install/community.sap_install /home/runner/.ansible/collections/ansible_collections/community
-
-#      - name: List directory /home/runner/.ansible/collections/ansible_collections/community
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/.ansible/collections/ansible_collections/community
-
-      - name: Move the collection to the correct location - Rename the directory
-        working-directory: /home/runner/
-        run: mv /home/runner/.ansible/collections/ansible_collections/community/community.sap_install /home/runner/.ansible/collections/ansible_collections/community/sap_install
-
-#      - name: List directory /home/runner/.ansible/collections/ansible_collections/community
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/.ansible/collections/ansible_collections/community
-
-#      - name: List directory /home/runner/.ansible/collections/ansible_collections/community/sap_install
-#        working-directory: /home/runner/
-#        run: ls -al /home/runner/.ansible/collections/ansible_collections/community/sap_install
-
-      - name: Run sanity tests
-        working-directory: /home/runner/.ansible/collections/ansible_collections/community/sap_install
-        run: ansible-test sanity
-
-      - name: Move the collection to its previous location
-        working-directory: /home/runner/
-        run: mv /home/runner/.ansible/collections/ansible_collections/community/sap_install /home/runner/work/community.sap_install/community.sap_install
+      - name: ansible-test - sanity
+        uses: ansible-community/ansible-test-gh-action@release/v1
+        with:
+          ansible-core-version: ${{ matrix.ansible }}
+          target-python-version: ${{ matrix.python }}
+          testing-type: sanity

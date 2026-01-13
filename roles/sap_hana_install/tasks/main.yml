@@ -1,138 +1,158 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# Load variables while maintaining backwards compatibility when variable is empty string.
-# Check if variable is defined and non-empty before using it, otherwise fall back to backwards
-# compatible variable or default empty string that will fail asserts afterwards.
-- name: Rename some variables used by hdblcm configfile
-  ansible.builtin.set_fact:
-    sap_hana_install_sid:
-      "{{ sap_hana_sid | d('')
-        if sap_hana_install_sid | string | length == 0
-        else sap_hana_install_sid }}"
-    sap_hana_install_number:
-      "{{ sap_hana_instance_number | d(sap_hana_install_instance_nr) | d(sap_hana_install_instance_number) | d('')
-        if sap_hana_install_number | string | length == 0
-        else sap_hana_install_number }}"
-    sap_hana_install_system_usage: "{{ sap_hana_install_env_type | d(sap_hana_install_system_usage) | d('custom') }}"
-    sap_hana_install_restrict_max_mem: "{{ sap_hana_install_mem_restrict | d(sap_hana_install_restrict_max_mem) | d('n') }}"
-  tags:
-    - sap_hana_install_check_hana_exists
-    - sap_hana_install_check_installation
-    - sap_hana_install_preinstall
-    - sap_hana_install_set_log_mode
-    - sap_hana_install_configure_firewall
+# Fail when more than one tag is used
+- name: SAP HANA - Main - Fail if more than one tag is used
+  ansible.builtin.fail:
+    msg: "This role supports only one tag at a time."
+  when: ansible_run_tags | d([]) | count > 1
+  tags: always
 
-# Separate task for password with no_log
-- name: Rename some variables used by hdblcm configfile - passwords
-  ansible.builtin.set_fact:
-    sap_hana_install_master_password:
-      "{{ sap_hana_install_common_master_password | d('')
-        if sap_hana_install_master_password is not defined or sap_hana_install_master_password | string | length == 0
-        else sap_hana_install_master_password }}"
-  no_log: true  # Required for password handling
-  tags:
-    - sap_hana_install_check_hana_exists
-    - sap_hana_install_check_installation
-    - sap_hana_install_preinstall
-    - sap_hana_install_set_log_mode
-    - sap_hana_install_configure_firewall
+# SAP HANA
+- name: SAP HANA - Main - Prepare some variables
+  ansible.builtin.include_tasks:
+    file: pre_tasks/prepare_variables.yml
+    apply:
+      tags: always
+  tags: always
 
-
-- name: Validate SAP HANA System ID - 'sap_hana_install_sid' is defined as String consisting of 3 characters
-  ansible.builtin.assert:
-    that:
-      - sap_hana_install_sid is defined
-      - sap_hana_install_sid is string
-      - sap_hana_install_sid | length == 3
-    success_msg: |
-      PASS: The length of the SAP HANA System ID '{{ sap_hana_install_sid }}' is 3 characters.
-    fail_msg: |
-      {% if sap_hana_install_sid is not string %}
-        FAIL: The variable 'sap_hana_install_sid' is not String. Value: {{ sap_hana_install_sid }}
-      {% elif sap_hana_install_sid | length == 0 %}
-        FAIL: The variable 'sap_hana_install_sid' is empty.
-      {% else %}
-        FAIL: The length of the SAP HANA System ID '{{ sap_hana_install_sid }}' is not 3 characters!
-      {% endif %}
-  tags:
-    - sap_hana_install_check_hana_exists
-    - sap_hana_install_preinstall
-
-- name: Validate SAP HANA System ID - 'sap_hana_install_sid' is not in the list of reserved SAP SIDs
-  ansible.builtin.assert:
-    that: sap_hana_install_sid not in __sap_hana_install_sid_prohibited
-    success_msg: |
-      PASS: The SAP HANA System ID '{{ sap_hana_install_sid }}' is not in the list of reserved SAP SIDs in SAP note 1979280 v.20.
-    fail_msg: |
-      FAIL: The SAP HANA System ID '{{ sap_hana_install_sid }}' is in the list of reserved SAP SIDs in SAP note 1979280 v.20!
-  tags:
-    - sap_hana_install_check_hana_exists
-    - sap_hana_install_preinstall
-
-- name: Validate SAP HANA Instance Number - 'sap_hana_install_number' is defined as String consisting of 2 characters
-  ansible.builtin.assert:
-    that:
-      - sap_hana_install_number is defined
-      - sap_hana_install_number is string
-      - sap_hana_install_number | length == 2
-    success_msg: |
-      PASS: The length of the SAP HANA Instance Number '{{ sap_hana_install_number }}' is 2 characters.
-    fail_msg: |
-      {% if sap_hana_install_number is not string %}
-        FAIL: The variable 'sap_hana_install_number' is not String. Value: {{ sap_hana_install_number }}
-      {% elif sap_hana_install_number | length == 0 %}
-        FAIL: The variable 'sap_hana_install_number' is empty.
-      {% else %}
-        FAIL: The length of the SAP HANA Instance Number '{{ sap_hana_install_number }}' is not 2 characters!
-      {% endif %}
-  tags:
-    - sap_hana_install_check_hana_exists
-    - sap_hana_install_preinstall
-
-- name: Validate SAP HANA Master Password - 'sap_hana_install_master_password' is defined as String and not empty
-  ansible.builtin.assert:
-    that:
-      - sap_hana_install_master_password is defined
-      - sap_hana_install_master_password is string
-      - sap_hana_install_master_password | length > 0
-    fail_msg: |
-      {% if sap_hana_install_master_password is not defined %}
-        FAIL: The variable 'sap_hana_install_master_password' is not defined.
-      {% elif sap_hana_install_master_password is not string %}
-        FAIL: The variable 'sap_hana_install_master_password' is not String.
-      {% else %}
-        FAIL: The variable 'sap_hana_install_master_password' is empty.
-      {% endif %}
-  tags:
-    - sap_hana_install_check_hana_exists
-    - sap_hana_install_preinstall
-
-
-- name: SAP HANA existence checking
-  ansible.builtin.import_tasks: hana_exists.yml
+# SAP HANA presence has to be validated for both new system and adding new hosts.
+- name: SAP HANA - Main - Validate presence of existing SAP HANA database
+  ansible.builtin.include_tasks:
+    file: pre_tasks/hana_exists.yml
+    apply:
+      tags:
+        - sap_hana_install_check_hana_exists
   when:
-    - sap_hana_install_new_system | d(true)
-    - not sap_hana_install_force | d(false)
+    - (sap_hana_install_new_system and not sap_hana_install_force)
+      or not sap_hana_install_new_system
   tags:
     - sap_hana_install_check_hana_exists
-    - sap_hana_install_preinstall
 
-- name: Install SAP HANA
-  when: not __sap_hana_install_fact_is_installed | d(false)
+
+- name: SAP HANA - Main - Identify hosts in play based on addhosts
+  ansible.builtin.include_tasks:
+    file: pre_tasks/identify_hosts.yml
+
+
+- name: SAP HANA - Main - Ensure SAP HANA is running for existing systems or addhosts operations
+  ansible.builtin.include_tasks:
+    file: pre_tasks/hana_start.yml
+  when:
+    - __sap_hana_install_fact_is_installed
+    - __sap_hana_install_fact_is_main_host
+
+
+# Instructions for separating tasks to achieve idempotency:
+# - Installation - Run once for new installations, never repeated.
+# - Configuration - Run always to ensure idempotent outcome.
+
+- name: Block for Installation tasks
+  when: sap_hana_install_new_system or
+    ('sap_hana_install_create_configfile' in ansible_run_tags | d([])) or
+    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([]))
   block:
+    - name: SAP HANA - Install - Pre-Tasks
+      ansible.builtin.include_tasks:
+        file: pre_install.yml
+      tags:
+        - sap_hana_install_create_configfile
+        - sap_hana_install_hdblcm_commandline
 
-    - name: SAP HANA pre-install steps
-      ansible.builtin.import_tasks: pre_install.yml
-      tags: sap_hana_install_preinstall
+    - name: SAP HANA - Install
+      ansible.builtin.include_tasks:
+        file: hana_install.yml
+      when: >
+        (not __sap_hana_install_fact_is_installed and __sap_hana_install_fact_is_main_host) or
+        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([]))
+      tags: sap_hana_install_hdblcm_commandline
 
-    - name: SAP HANA installation steps
-      ansible.builtin.import_tasks: hana_install.yml
-      when: sap_hana_install_new_system | d(true)
+    - name: SAP HANA - Install - Post-tasks
+      ansible.builtin.include_tasks:
+        file: post_install.yml
+      when: __sap_hana_install_fact_is_installed
 
-    - name: SAP HANA addhosts steps
-      ansible.builtin.import_tasks: hana_addhosts.yml
-      when: not sap_hana_install_new_system | d(true)
 
-    - name: SAP HANA post-install steps
-      ansible.builtin.import_tasks: post_install.yml
+- name: Block for Addhosts tasks
+  when: >
+    not sap_hana_install_new_system and
+    ((__sap_hana_install_fact_is_scaleout and __sap_hana_install_fact_is_installed) or
+    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([])) or
+    ('sap_hana_install_create_configfile' in ansible_run_tags | d([])))
+  block:
+    # Execute only if new hosts are to be added.
+    - name: SAP HANA - Addhosts - Pre-Tasks
+      ansible.builtin.include_tasks:
+        file: pre_addhosts.yml
+      when: >
+        (__sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0) or
+        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([])) or
+        ('sap_hana_install_create_configfile' in ansible_run_tags | d([]))
+      tags:
+        - sap_hana_install_hdblcm_commandline
+        - sap_hana_install_create_configfile
+
+    - name: SAP HANA - Addhosts
+      ansible.builtin.include_tasks:
+        file: hana_addhosts.yml
+      when:
+        (__sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0 and __sap_hana_install_fact_is_main_host) or
+        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([])) or
+        ('sap_hana_install_create_configfile' in ansible_run_tags | d([]))
+      tags:
+        - sap_hana_install_hdblcm_commandline
+        - sap_hana_install_create_configfile
+
+    - name: SAP HANA - Addhosts - Post-tasks
+      ansible.builtin.include_tasks:
+        file: post_addhosts.yml
+
+
+# Show final status of SAP HANA System
+# Gather details about installed database for finished message
+- name: SAP HANA - Main - Run 'hdblcm --list_systems' after the completion
+  ansible.builtin.shell: |
+      set -o pipefail && ./hdblcm --list_systems | awk '/\/hana\/shared\/{{ sap_hana_install_sid }}/{a=1}
+      /version:/{if (a==1){
+        gsub ("^\\s*version: ", "");printf ("%s;", $NF)}
+      }
+      /hosts?:/{if (a==1){
+        gsub ("^\\s*hosts?: ", ""); gsub (", ", ","); print; a=0}
+      }'
+  args:
+    chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/hdblcm"
+  register: __sap_hana_install_register_completion_result
+  changed_when: false
+  when:
+    - not ansible_check_mode
+    - __sap_hana_install_fact_is_main_host
+
+- name: SAP HANA - Main - Display SAP HANA details and completed post tasks
+  ansible.builtin.debug:
+    msg: |
+      SAP HANA database is installed and running:
+      HANA Version     -       {{ __sap_hana_install_fact_hana_version }}
+      Hosts            -       {{ __sap_hana_install_fact_hana_hosts }}
+      SID              -       {{ sap_hana_install_sid }}
+      NR               -       {{ sap_hana_install_number }}
+
+      {% if sap_hana_install_new_system and __sap_hana_install_fact_is_installed and __sap_hana_install_fact_addhosts_hosts_new | length > 0 %}
+      The new hosts defined in the variable 'sap_hana_install_addhosts' were not added: {{ __sap_hana_install_fact_addhosts_hosts_new | join(', ') }}.
+      Execute this role with the variable 'sap_hana_install_new_system' set to false to add new hosts.
+      {% endif %}
+
+      {% if sap_hana_install_update_firewall %}
+      Firewall is enabled and SAP HANA ports are open.
+      {% endif %}
+      {% if __sap_hana_install_configure_selinux %}
+      SELinux file contexts are configured for SAP folders ({{ sap_hana_install_directories | map('quote') | join(', ') }}).
+      {% endif %}
+      {% if ansible_os_family == "RedHat" and __sap_hana_install_configure_fapolicyd %}
+      Fapolicyd is configured for SAP folders ({{ sap_hana_install_directories | map('quote') | join(', ') }}).
+      {% endif %}
+  vars:
+    __sap_hana_install_fact_hana_version: "{{ __sap_hana_install_register_completion_result.stdout.split(';')[0] }}"
+    __sap_hana_install_fact_hana_hosts: "{{ __sap_hana_install_register_completion_result.stdout.split(';')[1] }}"
+  when:
+    - not ansible_check_mode
+    - __sap_hana_install_fact_is_main_host

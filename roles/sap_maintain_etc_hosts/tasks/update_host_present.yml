@@ -11,8 +11,11 @@
 
 - name: Verify that variable node_ip is using the correct IP address format
   ansible.builtin.assert:
-    that: thishost.node_ip | regex_search(sap_maintain_etc_hosts_regexp_ipv4) or
-          thishost.node_ip | regex_search(sap_maintain_etc_hosts_regexp_ipv6)
+    that:
+      - (thishost.node_ip | regex_search(sap_maintain_etc_hosts_regexp_ipv4) is not none
+          and thishost.node_ip | regex_search(sap_maintain_etc_hosts_regexp_ipv4) | length > 0)
+        or (thishost.node_ip | regex_search(sap_maintain_etc_hosts_regexp_ipv6) is not none
+          and thishost.node_ip | regex_search(sap_maintain_etc_hosts_regexp_ipv6) | length > 0)
     msg: |
       "The IP address of this host does not have a correct format.
        Configure the IP address appropriately in of the following variables:
@@ -177,9 +180,9 @@
 
 - name: Display the output of the hosts file completeness check
   ansible.builtin.debug:
-    var:
-      __sap_maintain_etc_hosts_register_ipv4_fqdn_sap_hostname_once_check.stdout_lines,
-      __sap_maintain_etc_hosts_register_ipv4_fqdn_sap_hostname_once_check.stderr_lines
+    msg: |
+      {{ __sap_maintain_etc_hosts_register_ipv4_fqdn_sap_hostname_once_check.stdout_lines | d('') }}
+      {{ __sap_maintain_etc_hosts_register_ipv4_fqdn_sap_hostname_once_check.stderr_lines | d('') }}
 
 - name: Display the expected output of the hosts file completeness check
   ansible.builtin.debug:

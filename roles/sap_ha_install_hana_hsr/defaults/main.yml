@@ -1,43 +1,74 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-# SAP HANA Database SID in capital letters (String). Example: 'H02'
-sap_ha_install_hana_hsr_sid: "{{ sap_hana_sid | upper }}"
 
-# SAP HANA Database Instance Number (String). Example: '90'
-sap_ha_install_hana_hsr_instance_number: "{{ sap_hana_instance_number }}"
+# Set the desired state of the HSR configuration (String).
+# 'present' - Creates and enables the HSR configuration.
+# 'absent'  - Removes the HSR configuration.
+sap_ha_install_hana_hsr_state: present
 
-# Dictionary with cluster nodes. Same dictionary is used by LSR ha_cluster.
-# sap_hana_cluster_nodes:
-#   - node_name: "hana0"
+# SAP HANA Database System ID (SID) in capital letters (String).
+# This can be inherited from the variable 'sap_hana_sid'.
+# Example: 'H02'
+sap_ha_install_hana_hsr_sid: ''
+
+# SAP HANA Database Instance Number (String).
+# This can be inherited from the variable 'sap_hana_instance_number'.
+# Example: '90'
+sap_ha_install_hana_hsr_instance_number: ''
+
+# List of dictionaries defining the nodes in the HSR setup (List).
+# This can be inherited from the variable  'sap_hana_cluster_nodes'.
+# - node_name: (string) Short hostname of the node.
+#   node_ip: (string) IP address for the node.
+#   node_role: (string) Role of the node in the HSR setup. Valid options: 'primary', 'secondary'.
+#   hana_site: (string) A unique logical site name (e.g., DC01, EU-WEST).
+#
+# Example:
+# sap_ha_install_hana_hsr_cluster_nodes:
+#   - node_name: "hana01"
 #     node_ip: "10.0.0.1"
 #     node_role: primary
 #     hana_site: DC01
-#   - node_name: "hana1"
+#   - node_name: "hana02"
 #     node_ip: "10.0.0.2"
 #     node_role: secondary
 #     hana_site: DC02
-sap_ha_install_hana_hsr_cluster_nodes: "{{ sap_hana_cluster_nodes }}"
+sap_ha_install_hana_hsr_cluster_nodes: []
 
-# Name of database user for backups (String).
+# The hdbuserstore key used for connecting to the SYSTEMDB for administrative tasks like backups (String).
 sap_ha_install_hana_hsr_hdbuserstore_system_backup_user: HDB_SYSTEMDB
 
-# Master password for database (String).
-sap_ha_install_hana_hsr_db_system_password: "{{ sap_hana_install_master_password }}"
+# Password for the HANA 'SYSTEM' user (String).
+# Required to create the initial hdbuserstore key.
+# This can be inherited from the variable  'sap_hana_install_master_password'.
+sap_ha_install_hana_hsr_db_system_password: ''
 
-# Fully qualified domain name (String).
-sap_ha_install_hana_hsr_fqdn: "{{ sap_domain }}"
+# The DNS domain name for the HANA nodes (String).
+# This is not required if 'node_name' in 'sap_ha_install_hana_hsr_cluster_nodes' is a Fully Qualified Domain Name (FQDN).
+# If not set, the role attempts to use the value of 'sap_domain' or 'ansible_facts['domain']'.
+sap_ha_install_hana_hsr_domain: ''
 
 # HSR Replication mode (String).
+# Available values: sync, syncmem, async
 sap_ha_install_hana_hsr_rep_mode: sync
 
 # HSR Operation mode (String).
+# Available values: delta_datashipping, logreplay, logreplay_readaccess
 sap_ha_install_hana_hsr_oper_mode: logreplay
 
-# Set to true to update /etc/hosts (Boolean).
+# Set to true to update /etc/hosts on all nodes with the IP addresses and hostnames of all other nodes in the cluster (Boolean).
 sap_ha_install_hana_hsr_update_etchosts: true
 
-# Define the directory path where database backup will be created (String).
-# Required sub-directories will be created in this path: SYSTEMDB and DB_<SID>.
-# Default: /usr/sap/<SID>/HDB<INST_NR>/backup/data/
-# Backup will be created with name: <SID>_PRE_HSR_<TIMESTAMP> (e.g. H02_PRE_HSR_20250729_1426)
+# SAP HANA HOME directory path (String).
+# If not set, it defaults to: '/usr/sap/{{ sap_ha_install_hana_hsr_sid }}/home'
+# sap_ha_install_hana_hsr_home_path: "/usr/sap/{{ sap_ha_install_hana_hsr_sid }}/home"
+
+# Directory path for the safety backup created before HSR is configured (String).
+# If not specified, the default HANA backup location is used.
+# Required sub-directories (SYSTEMDB and DB_<SID>) will be created automatically within this path.
+# The backup created will have a file prefix of '<SID>_PRE_HSR_<TIMESTAMP>'.
+# Example: '/hana/shared/backup'
 # sap_ha_install_hana_hsr_backup_path: ''
+
+# Set to true to create a safety backup of the HANA database before configuring HSR (Boolean).
+sap_ha_install_hana_hsr_create_backup: true

@@ -1,0 +1,70 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Example output of '/usr/sap/H02/HDB90/exe/hdbnsutil -sr_unregister':
+# unregistering site ...
+# done.
+- name: SAP HSR - Unregister the secondary node from the HANA system replication
+  ansible.builtin.shell:
+    cmd: >-
+      source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
+      {{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
+      -sr_unregister
+  become: true
+  become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+  register: __sap_ha_install_hana_hsr_register_sr_disable_secondary
+  changed_when:
+    - "'unregistering site' in __sap_ha_install_hana_hsr_register_sr_disable_secondary.stdout"
+    - "'done.' in __sap_ha_install_hana_hsr_register_sr_disable_secondary.stdout"
+  when:
+    - __sap_ha_install_hana_hsr_fact_is_secondary
+    - "'is secondary/consumer system: true' in __sap_ha_install_hana_hsr_register_srstate.stdout"
+
+# Example output of '/usr/sap/H02/HDB90/exe/hdbnsutil -sr_disable':
+# checking local nameserver:
+# nameserver is running, proceeding ...
+# done.
+- name: SAP HSR - Disable HANA System Replication on primary node
+  ansible.builtin.shell:
+    cmd: >-
+      source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
+      {{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
+      -sr_disable
+  become: true
+  become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+  register: __sap_ha_install_hana_hsr_register_sr_disable_primary
+  changed_when: "'done.' in __sap_ha_install_hana_hsr_register_sr_disable_primary.stdout"
+  when:
+    - __sap_ha_install_hana_hsr_fact_is_primary
+    - "'is source system: true' in __sap_ha_install_hana_hsr_register_srstate.stdout"
+
+
+# This start is not strictly needed, but it helps to ensure that HANA is running
+# sr_unregister will restart HANA automatically on secondary.
+- name: SAP HSR - Start HANA instance on former secondary
+  ansible.builtin.include_tasks:
+    file: pre_tasks/start_hana.yml
+  when:
+    - __sap_ha_install_hana_hsr_fact_is_secondary
+    - __sap_ha_install_hana_hsr_register_sr_disable_secondary.changed
+
+
+- name: SAP HSR - Run post-disable status check
+  when: __sap_ha_install_hana_hsr_register_sr_disable_primary.changed or __sap_ha_install_hana_hsr_register_sr_disable_secondary.changed
+  block:
+    - name: SAP HSR - Re-check System Replication status
+      ansible.builtin.shell:
+        cmd: >-
+          source {{ __sap_ha_install_hana_hsr_home_path }}/.profile &&
+          {{ __sap_ha_install_hana_hsr_executable_path }}/hdbnsutil
+          -sr_state
+      become: true
+      become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+      register: __sap_ha_install_hana_hsr_register_srstate_after
+      changed_when: false
+      failed_when: false
+
+    - name: SAP HSR - Fail if replication is enabled
+      ansible.builtin.fail:
+        msg: "HANA System Replication disable failed. Node is still reporting as a replication site."
+      when: "'source system' in __sap_ha_install_hana_hsr_register_srstate_after.stdout"

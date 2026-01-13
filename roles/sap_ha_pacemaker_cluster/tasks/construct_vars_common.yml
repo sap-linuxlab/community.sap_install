@@ -8,16 +8,18 @@
 # sap_ha_pacemaker_cluster_cluster_name   -> user-defined or default inherited from {{ ha_cluster_cluster_name }}
 - name: "SAP HA Prepare Pacemaker - Set cluster name"
   when:
-    - __sap_ha_pacemaker_cluster_cluster_name is not defined
+    - __sap_ha_pacemaker_cluster_cluster_name is not defined  # TODO: Remove when ha_cluster vars stop taking precedence
     - sap_ha_pacemaker_cluster_cluster_name is defined
+    - sap_ha_pacemaker_cluster_cluster_name | length > 0
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_cluster_name: "{{ sap_ha_pacemaker_cluster_cluster_name }}"
 
 # sap_ha_pacemaker_cluster_hacluster_user_password -> user-defined or default inherited from {{ ha_cluster_hacluster_password }}
+# Defined validation is removed as argument_specs file handles that.
 - name: "SAP HA Prepare Pacemaker - Register the 'hacluster' user password"
   when:
-    - __sap_ha_pacemaker_cluster_hacluster_user_password is not defined
-    - sap_ha_pacemaker_cluster_hacluster_user_password
+    - __sap_ha_pacemaker_cluster_hacluster_user_password is not defined  # TODO: Remove when ha_cluster vars stop taking precedence
+    - sap_ha_pacemaker_cluster_hacluster_user_password | length > 0
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_hacluster_user_password: "{{ sap_ha_pacemaker_cluster_hacluster_user_password }}"
   no_log: true  # secure the credential
@@ -25,14 +27,13 @@
 # sap_ha_pacemaker_cluster_ha_cluster   -> user-defined or default inherited from {{ ha_cluster }}
 - name: "SAP HA Prepare Pacemaker - Register sap_ha_pacemaker_cluster_ha_cluster"
   when:
-    - __sap_ha_pacemaker_cluster_ha_cluster is not defined
+    - __sap_ha_pacemaker_cluster_ha_cluster is not defined  # TODO: Remove when ha_cluster vars stop taking precedence
     - sap_ha_pacemaker_cluster_ha_cluster is defined
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_ha_cluster: "{{ sap_ha_pacemaker_cluster_ha_cluster }}"
 
 - name: "SAP HA Prepare Pacemaker - Generate default sap_ha_pacemaker_cluster_ha_cluster"
   when:
-    - not __sap_ha_pacemaker_cluster_ha_cluster is defined
     - not sap_ha_pacemaker_cluster_ha_cluster is defined
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_ha_cluster:

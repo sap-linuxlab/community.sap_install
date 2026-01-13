@@ -1,0 +1,199 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Load variables while maintaining backwards compatibility when variable is empty string.
+# Check if variable is defined and non-empty before using it, otherwise fall back to backwards
+# compatible variable or default empty string that will fail asserts afterwards.
+# NOTE: This is not __var assignment so it will not override user specified vars due to precedence!
+#
+# Vars used in the hdblcm configfile:
+- name: SAP HANA - Pre-Tasks - Set mandatory variables used by hdblcm configfile
+  ansible.builtin.set_fact:
+    sap_hana_install_sid:
+      "{{ sap_hana_sid | d('')
+        if sap_hana_install_sid | string | length == 0
+        else sap_hana_install_sid }}"
+    sap_hana_install_number:
+      "{{ sap_hana_instance_number | d(sap_hana_install_instance_nr) | d(sap_hana_install_instance_number) | d('')
+        if sap_hana_install_number | string | length == 0
+        else sap_hana_install_number }}"
+    sap_hana_install_system_usage: "{{ sap_hana_install_env_type | d(sap_hana_install_system_usage) | d('custom') }}"
+    sap_hana_install_restrict_max_mem: "{{ sap_hana_install_mem_restrict | d(sap_hana_install_restrict_max_mem) | d('n') }}"
+
+# SID
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_sid' is defined as String consisting of 3 characters
+  ansible.builtin.assert:
+    that:
+      - sap_hana_install_sid is defined
+      - sap_hana_install_sid is string
+      - sap_hana_install_sid | trim | length == 3
+    success_msg: |
+      PASS: The length of SAP HANA System ID '{{ sap_hana_install_sid }}' is 3 characters.
+    fail_msg: |
+      {% if sap_hana_install_sid is not string %}
+        FAIL: The variable 'sap_hana_install_sid' is not String.
+      {% elif sap_hana_install_sid | length == 0 %}
+        FAIL: The variable 'sap_hana_install_sid' is empty.
+      {% else %}
+        FAIL: The length of SAP HANA System ID '{{ sap_hana_install_sid }}' is not 3 characters!
+      {% endif %}
+
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_sid' is not in the list of reserved SAP SIDs
+  ansible.builtin.assert:
+    that: sap_hana_install_sid not in __sap_hana_install_sid_prohibited
+    success_msg: |
+      PASS: The SAP HANA System ID '{{ sap_hana_install_sid }}' is not in the list of reserved SAP SIDs in SAP note 1979280 v.20.
+    fail_msg: |
+      FAIL: The SAP HANA System ID '{{ sap_hana_install_sid }}' is in the list of reserved SAP SIDs in SAP note 1979280 v.20!
+
+# Instance Number
+- name: Assert that the variable 'sap_hana_install_number' is defined as String consisting of 2 digits
+  ansible.builtin.assert:
+    that:
+      - sap_hana_install_number is defined
+      - sap_hana_install_number is string
+      - sap_hana_install_number | trim | length == 2
+      - sap_hana_install_number is match('^[0-9]{2}$')
+    success_msg: |
+      PASS: The SAP HANA Instance Number '{{ sap_hana_install_number }}' is defined as String consisting of 2 digits.
+    fail_msg: |
+      {% if sap_hana_install_number is not string %}
+        FAIL: The variable 'sap_hana_install_number' is not String.
+      {% elif sap_hana_install_number | length == 0 %}
+        FAIL: The variable 'sap_hana_install_number' is empty.
+      {% else %}
+        FAIL: The SAP HANA Instance Number '{{ sap_hana_install_number }}' is not 2 digits!
+      {% endif %}
+
+# Master password
+- name: SAP HANA - Pre-Tasks - Set mandatory variables used by hdblcm configfile - passwords
+  ansible.builtin.set_fact:
+    sap_hana_install_master_password:
+      "{{ sap_hana_install_common_master_password | d('')
+        if sap_hana_install_master_password is not defined or sap_hana_install_master_password | string | length == 0
+        else sap_hana_install_master_password }}"
+  no_log: true  # Required for password handling
+
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_master_password' is defined as String and not empty
+  ansible.builtin.assert:
+    that:
+      - sap_hana_install_master_password is defined
+      - sap_hana_install_master_password is string
+      - sap_hana_install_master_password | trim | length > 0
+    success_msg: |
+      PASS: The variable 'sap_hana_install_master_password' is defined as String and not empty.
+    fail_msg: |
+      {% if sap_hana_install_master_password is not defined %}
+        FAIL: The variable 'sap_hana_install_master_password' is not defined.
+      {% elif sap_hana_install_master_password is not string %}
+        FAIL: The variable 'sap_hana_install_master_password' is not String.
+      {% else %}
+        FAIL: The variable 'sap_hana_install_master_password' is empty.
+      {% endif %}
+
+# TODO: Issue#1123 Uncomment and update when fixing issue with use_master_password
+# Master Password cannot be used in combination with other initial passwords
+# Mandatory parameter 'password' (Password) is missing or invalid
+
+# # This will not replace user defined variables due to variable precedence.
+# - name: SAP HANA - Pre-Tasks - Set password facts when using master password
+#   ansible.builtin.set_fact:
+#     sap_hana_install_sapadm_password: "{{ sap_hana_install_master_password }}"
+#     sap_hana_install_sidadm_password: "{{ sap_hana_install_master_password }}"
+#     sap_hana_install_db_system_password: "{{ sap_hana_install_master_password }}"
+#     sap_hana_install_ase_user_password: "{{ sap_hana_install_master_password }}"
+#     sap_hana_install_xs_org_password: "{{ sap_hana_install_master_password }}"
+#     sap_hana_install_lss_user_password: "{{ sap_hana_install_master_password }}"
+#     sap_hana_install_lss_backup_password: "{{ sap_hana_install_master_password }}"
+#   no_log: true
+#   when:
+#    - sap_hana_install_use_master_password is defined
+#    - sap_hana_install_use_master_password == 'y'
+
+
+# - name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_sapadm_password' is defined as String and not empty
+#   ansible.builtin.assert:
+#     that:
+#       - sap_hana_install_sapadm_password is defined
+#       - sap_hana_install_sapadm_password is string
+#       - sap_hana_install_sapadm_password | trim | length > 0
+#     success_msg: |
+#       PASS: The variable 'sap_hana_install_sapadm_password' is defined as String and not empty.
+#     fail_msg: |
+#       {% if sap_hana_install_sapadm_password is not defined %}
+#         FAIL: The variable 'sap_hana_install_sapadm_password' is not defined.
+#       {% elif sap_hana_install_sapadm_password is not string %}
+#         FAIL: The variable 'sap_hana_install_sapadm_password' is not String.
+#       {% else %}
+#         FAIL: The variable 'sap_hana_install_sapadm_password' is empty.
+#       {% endif %}
+#         This variable is required when 'sap_hana_install_new_system' is set to false.
+#   when:
+#     - not sap_hana_install_new_system
+#     - sap_hana_install_use_master_password is undefined
+#       or sap_hana_install_use_master_password != 'y'
+
+# addhosts
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_addhosts' is defined as String and not empty
+  ansible.builtin.assert:
+    that:
+      - sap_hana_install_addhosts is defined
+      - sap_hana_install_addhosts is string
+      - sap_hana_install_addhosts | trim | length > 0
+    success_msg: |
+      PASS: The variable 'sap_hana_install_addhosts' is defined as String and not empty.
+    fail_msg: |
+      {% if sap_hana_install_addhosts is not defined %}
+        FAIL: The variable 'sap_hana_install_addhosts' is not defined.
+      {% elif sap_hana_install_addhosts is not string %}
+        FAIL: The variable 'sap_hana_install_addhosts' is not String.
+      {% else %}
+        FAIL: The variable 'sap_hana_install_addhosts' is empty.
+      {% endif %}
+        This variable is required when 'sap_hana_install_new_system' is set to false.
+  when:
+    - not sap_hana_install_new_system
+
+# Load selinux and fapolicyd related variables while maintaining backwards compatibility
+- name: SAP HANA - Pre-Tasks - Set variables for selinux and fapolicyd
+  ansible.builtin.set_fact:
+    __sap_hana_install_configure_selinux:
+      "{{ sap_hana_install_modify_selinux_labels | d(false)
+        if sap_hana_install_modify_selinux_labels is defined and (sap_hana_install_modify_selinux_labels | type_debug) == 'bool'
+        else sap_hana_install_configure_selinux | bool }}"
+    __sap_hana_install_configure_fapolicyd:
+      "{{ sap_hana_install_use_fapolicyd | d(false)
+        if sap_hana_install_use_fapolicyd is defined and (sap_hana_install_use_fapolicyd | type_debug) == 'bool'
+        else sap_hana_install_configure_fapolicyd | bool }}"
+
+# SAP HANA Directories processed by selinux and fapolicyd
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_directories' is defined as a list containing at least one directory
+  ansible.builtin.assert:
+    that:
+      - sap_hana_install_directories is defined
+      - sap_hana_install_directories | type_debug == 'list'
+      - sap_hana_install_directories | reject('string') | list | length == 0
+      - sap_hana_install_directories | reject('match', '^/') | list | length == 0
+    success_msg: |
+      PASS: The variable 'sap_hana_install_directories' is defined as list containing at least one directory.
+    fail_msg: |
+      {% if sap_hana_install_directories is not defined %}
+        FAIL: The variable 'sap_hana_install_directories' is not defined.
+      {% elif (sap_hana_install_directories | type_debug) != 'list' %}
+        FAIL: The variable 'sap_hana_install_directories' is not defined as a list.
+      {% elif sap_hana_install_directories | select('string') | list | length == 0 %}
+        FAIL: The variable 'sap_hana_install_directories' does not contain at least one string
+      {% elif sap_hana_install_directories | select('match', '^/') | list | length == 0 %}
+        FAIL: The variable 'sap_hana_install_directories' does not contain at least one directory
+      {% else %}
+        FAIL: The variable 'sap_hana_install_directories' is empty.
+      {% endif %}
+  when:
+    - __sap_hana_install_configure_selinux or __sap_hana_install_configure_fapolicyd
+
+# SELinux is not currently supported by SAP using SLES4SAP
+# This can still be overwritten by extra variables.
+- name: SAP HANA Pre Install - Ensure SELinux does not execute for SLES
+  ansible.builtin.set_fact:
+    __sap_hana_install_configure_selinux: false
+  when: ansible_os_family == "Suse"
