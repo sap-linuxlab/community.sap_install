@@ -4,6 +4,46 @@ community.sap\_install Release Notes
 
 .. contents:: Topics
 
+v1.8.0
+======
+
+Release Summary
+---------------
+
+New features, improvements, validations and bug fixes
+
+Minor Changes
+-------------
+
+- collection - Add Matrix to Sanity tests and ignore files up to 2.25 (https://github.com/sap-linuxlab/community.sap_install/pull/1128)
+- collection - Adjust roles for ansible-core 2.19 part 1 (https://github.com/sap-linuxlab/community.sap_install/pull/1102)
+- collection - Adjust roles for ansible-core 2.19 part 2 (https://github.com/sap-linuxlab/community.sap_install/pull/1106)
+- sap_*_preconfigure/SLES - Improved pattern check, sanitize log output and add loop_vars (https://github.com/sap-linuxlab/community.sap_install/pull/1127)
+- sap_ha_install_hana_hsr - Rework role with new features, validations and compatibility for 2.20 (https://github.com/sap-linuxlab/community.sap_install/pull/1135)
+- sap_hana_install - Enhance variable validation and account for missed variable combinations (https://github.com/sap-linuxlab/community.sap_install/pull/1114)
+- sap_hana_install - Idempotency Rework (https://github.com/sap-linuxlab/community.sap_install/pull/1111)
+- sap_hana_install - Inventory based Scale-Out and idempotency validations (https://github.com/sap-linuxlab/community.sap_install/pull/1126)
+- sap_hana_install - Rework tags (https://github.com/sap-linuxlab/community.sap_install/pull/1138)
+- sap_hana_install - simplified and more flexible SELinux and fapolicyd handling (https://github.com/sap-linuxlab/community.sap_install/pull/1136)
+- sap_hana_preconfigure - Add sap_hana preconfigure vars prefix (https://github.com/sap-linuxlab/community.sap_install/pull/1116)
+- sap_hana_preconfigure - Sync with SAP note 3108302 (https://github.com/sap-linuxlab/community.sap_install/pull/1130)
+- sap_netweaver_preconfigure - Add sap_netweaver preconfigure vars prefix (https://github.com/sap-linuxlab/community.sap_install/pull/1117)
+- sap_storage_setup/SUSE - Add btrfs support for SLES 16 (https://github.com/sap-linuxlab/community.sap_install/pull/1141)
+- sap_swpm - Enhance detection of multiple files (https://github.com/sap-linuxlab/community.sap_install/pull/1125)
+- sap_swpm - Implement a test and a filter for validating hostnames (https://github.com/sap-linuxlab/community.sap_install/pull/1105)
+- sap_swpm - extensive variable input validation (https://github.com/sap-linuxlab/community.sap_install/pull/1108)
+
+Bugfixes
+--------
+
+- collection - Fix linting errors in 2.20 with facts and register var names (https://github.com/sap-linuxlab/community.sap_install/pull/1132)
+- collection - Update linting workflows and configuration to latest version (https://github.com/sap-linuxlab/community.sap_install/pull/1118)
+- collection - Update sanity github action and add missing ignore files for 2.19 and 2.20 (https://github.com/sap-linuxlab/community.sap_install/pull/1115)
+- sap_ha_install_hana_hsr - Fix linter failures (https://github.com/sap-linuxlab/community.sap_install/pull/1107)
+- sap_ha_pacemaker_cluster - Fix linting errors (https://github.com/sap-linuxlab/community.sap_install/pull/1119)
+- sap_hostagent - Fix linting errors (https://github.com/sap-linuxlab/community.sap_install/pull/1121)
+- sap_install_media_detect - Fix linting errors (https://github.com/sap-linuxlab/community.sap_install/pull/1120)
+
 v1.7.1
 ======
 
