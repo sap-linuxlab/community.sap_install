@@ -32,6 +32,37 @@
   when:
     - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
 
+# Majority-maker: The role does not handle the simultaneous setup of a quorum-only node.
+- name: "SAP HA Prepare Pacemaker - Fail if the majority-maker node is in the play hosts list"
+  ansible.builtin.assert:
+    that:
+      - sap_ha_pacemaker_cluster_quorum_majority_maker_node not in ansible_play_hosts
+    fail_msg: |
+      This role does not handle the simultaneous setup of SAP hosts and a quorum-only
+      cluster node, also called 'majority-maker'.
+
+      Remove the majority-maker node from the target hosts of the playbook run.
+  when:
+    - sap_ha_pacemaker_cluster_quorum_majority_maker_node | length > 0
+
+# Scale-out
+- name: "SAP HA Prepare Pacemaker - Verify that for 'hana_scaleout' types a minimum of 4 HANA hosts is used"
+  ansible.builtin.assert:
+    that:
+      - ansible_play_hosts | difference(sap_ha_pacemaker_cluster_quorum_majority_maker_node | split(',')) | length > 3
+    fail_msg: |
+      There are less than 4 HANA target hosts available for a scale-out setup.
+
+      Play hosts:
+      {{ ansible_play_hosts | to_nice_yaml }}
+      Excluded majority-maker hosts: {{ sap_ha_pacemaker_cluster_quorum_majority_maker_node }}
+
+      Available hosts:
+      {{ ansible_play_hosts | difference(sap_ha_pacemaker_cluster_quorum_majority_maker_node | split(',')) | to_nice_yaml }}
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleout') | length > 0
+
+
 # Host type rules:
 # - there can only be 0 or 1 HANA type in the list
 # - there can only be 0 or 1 NW (A)SCS/ERS type in the list

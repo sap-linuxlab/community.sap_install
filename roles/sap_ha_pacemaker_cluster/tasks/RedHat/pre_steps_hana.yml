@@ -55,3 +55,18 @@
       when:
         - __sap_ha_pacemaker_cluster_saphanasr_angi_check is defined
         - __sap_ha_pacemaker_cluster_saphanasr_angi_check.rc == 0
+
+
+# Make sure that "Autostart" is disabled in the HANA profiles.
+# The profile path is '/hana/shared/<SID>/profile/<SID>_HDB<instance>_<host>'.
+- name: "SAP HA Prepare Pacemaker - Disable 'Autostart' in the HANA instance profiles"
+  ansible.builtin.replace:
+    path: "/hana/shared/{{ sap_ha_pacemaker_cluster_hana_sid }}/profile/{{ sap_ha_pacemaker_cluster_hana_sid }}_HDB{{ sap_ha_pacemaker_cluster_hana_instance_nr }}_{{ ansible_hostname }}"
+    backup: true
+    regexp: 'Autostart\s*=\s*1'
+    replace: 'Autostart = 0'
+  # Throttle and retry loop was added to combat NFS write lockups on Azure NFS
+  throttle: 1
+  retries: "{{ 1 if ansible_check_mode else 30 }}"
+  delay: "{{ 1 if ansible_check_mode else 10 }}"
+  ignore_errors: "{{ ansible_check_mode }}"

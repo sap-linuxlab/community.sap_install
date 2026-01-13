@@ -169,3 +169,14 @@
       "{{ '/usr/sap/' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '/SYS/global/hdb/custom/config/global.ini'
         if sap_ha_pacemaker_cluster_hana_global_ini_path | string | length == 0
         else sap_ha_pacemaker_cluster_hana_global_ini_path }}"
+
+    __sap_ha_pacemaker_cluster_hana_nameserver_ini_path:
+      "{{ '/usr/sap/' ~ __sap_ha_pacemaker_cluster_hana_sid ~ '/SYS/global/hdb/custom/config/nameserver.ini'
+        if sap_ha_pacemaker_cluster_hana_nameserver_ini_path | string | length == 0
+        else sap_ha_pacemaker_cluster_hana_nameserver_ini_path }}"
+
+    __sap_ha_pacemaker_cluster_meta_clone_max:
+      "{{ (ansible_play_hosts | length) - 1
+        if (sap_ha_pacemaker_cluster_quorum_majority_maker_node | string | length > 0)
+        and (sap_ha_pacemaker_cluster_quorum_majority_maker_node in ansible_play_hosts)
+        else (ansible_play_hosts | length) | string }}"

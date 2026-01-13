@@ -132,7 +132,7 @@ argument_specs:
 #          - hana_scaleup_costopt
           - hana_scaleup_perf
 #          - hana_scaleup_perf_dr
-#          - hana_scaleout
+          - hana_scaleout
           - nwas_abap_ascs_ers
 #          - nwas_abap_pas_aas
           - nwas_java_scs_ers
@@ -340,6 +340,10 @@ argument_specs:
               - name: crypto_cipher
                 value: aes256
 
+      sap_ha_pacemaker_cluster_quorum_majority_maker_node:
+        description:
+          - Define a host name that is configured only as a majority-maker node.
+          - This is an optional host, typically in HANA scale-out HA environments, to add an empty cluster member for the purpose of adding a quorum vote to the otherwise even number of hosts.
 
       ##########################################################################
       # Parameters that are optionally imported from 'ha_cluster' LSR parameters
@@ -589,12 +593,24 @@ argument_specs:
         description:
           - Path with location of global.ini for srHook update
 
+      sap_ha_pacemaker_cluster_hana_nameserver_ini_path:
+        default: "/usr/sap/<SID>/SYS/global/hdb/custom/config/nameserver.ini"
+        description:
+          - Path with the location of the nameserver.ini for scale-out updates.
+
       sap_ha_pacemaker_cluster_saphanasr_angi_detection:
+        type: bool
         default: true
         description:
           - Disabling this variable enables to use Classic SAPHanaSR agents even on server,
             where SAPHanaSR-angi is available.
           - Value `false` (Classic) is ignored when only SAPHanaSR-angi packages are available.
+
+      sap_ha_pacemaker_cluster_hana_create_filesystem:
+        type: bool
+        default: true
+        description:
+          - Controls if the SAPHanaFileystem resource is created in an 'angi' setup.
 
       ##########################################################################
       # NetWeaver specific parameters

@@ -89,6 +89,15 @@
     - __sap_ha_pacemaker_cluster_saphanasr_angi_available
   tags: pre_ha_cluster
 
+- name: "SAP HA Prepare Pacemaker - Include variable construction for SAP HANA Scale-out"
+  ansible.builtin.include_tasks:
+    file: construct_vars_hana_scaleout.yml
+    apply:
+      tags: pre_ha_cluster
+  when:
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleout') | length > 0
+  tags: pre_ha_cluster
+
 
 # Common variables for Netweaver scenarios
 - name: "SAP HA Prepare Pacemaker - Include variable construction for SAP NetWeaver common"
@@ -256,15 +265,28 @@
       tags: pre_ha_cluster
 
     # Prerequisite changes for certain scenarios, if applicable
-    - name: "SAP HA Install Pacemaker - Include scenario specific prerequisites"
+    - name: "SAP HA Install Pacemaker - Include HANA scenario specific prerequisites"
       ansible.builtin.include_tasks:
-        file: "{{ pre_item }}"
+        file: "{{ pre_hana_item }}"
+        apply:
+          tags: pre_ha_cluster
+      loop:
+        - pre_steps_hana.yml
+      loop_control:
+        loop_var: pre_hana_item
+      when:
+        - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+      tags: pre_ha_cluster
+
+    - name: "SAP HA Install Pacemaker - Include NWAS scenario specific prerequisites"
+      ansible.builtin.include_tasks:
+        file: "{{ pre_nwas_item }}"
         apply:
           tags: pre_ha_cluster
       loop:
         - pre_steps_nwas_cs_ers.yml
       loop_control:
-        loop_var: pre_item
+        loop_var: pre_nwas_item
       when:
         - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_.*_ers') | length > 0
       tags: pre_ha_cluster
@@ -364,11 +386,11 @@
     # Graceful start of SAPHana clone to ensure resource agents are able to load configuration.
     - name: "SAP HA Install Pacemaker - Gracefully start SAP HANA cluster"
       ansible.builtin.include_tasks:
-        file: "{{ ansible_facts['os_family'] }}/post_steps_hana_scaleup.yml"
+        file: "{{ ansible_facts['os_family'] }}/post_steps_hana.yml"
         apply:
           tags: post_ha_cluster
       when:
-        - sap_ha_pacemaker_cluster_host_type | select('search', 'hana_scaleup') | length > 0
+        - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
       run_once: true
       tags: post_ha_cluster
 
