@@ -75,7 +75,7 @@
   failed_when: _sap_swpm_sum_push.status != 200
 
 # Post the config XML back to SUM unchanged as we want to keep the default patch levels as per the XML file. This will move SUM to the next step.
-- name: Move SUM to the next step (SPAUINFO)
+- name: Move SUM to the next step (SPAUINFO or EXIT)
   ansible.builtin.uri:
     url: "https://localhost:1129/slp/sumabap/{{ sap_swpm_sid | upper }}/config"
     method: POST
@@ -96,7 +96,7 @@
 # At this point SUM should be running. This will take anything between 6-12 hours to complete.
 # Patiently check every 10 minutes to see if SUM has completed all the steps and is now in the SPAUINFO step.
 # Check the SUM status via SUMOBSEVER.XML
-- name: Checking the status of SUM (SPAUINFO) every 5 minutes
+- name: Checking the status of SUM (SPAUINFO or EXIT) every 5 minutes
   ansible.builtin.uri:
     url: "https://localhost:1129/lmsl/sumobserver/{{ sap_swpm_sid | upper }}/analysis/SUMOBSERVER.XML"
     method: GET
@@ -107,7 +107,7 @@
     password: "{{ sap_swpm_sap_sidadm_password }}"
   register: _sap_swpm_sum_push
   until: _sap_swpm_sum_push.status == 200 and ('<dialogId>SUM4ABAP|POST-EXECUTE|MAIN_POSTPROC|SPAUINFO|FinishSPAU</dialogId>' in _sap_swpm_sum_push.content or '<dialogId>SUM4ABAP|MAIN_POSTCLEAN|EXIT|UnitWizard</dialogId>' in _sap_swpm_sum_push.content)
-  retries: 144 # 12 hours
+  retries: 240 # 20 hours
   delay: 300  # 5 minutes
   failed_when: _sap_swpm_sum_push.status != 200 or ('<dialogId>SUM4ABAP|POST-EXECUTE|MAIN_POSTPROC|SPAUINFO|FinishSPAU</dialogId>' not in _sap_swpm_sum_push.content and '<dialogId>SUM4ABAP|MAIN_POSTCLEAN|EXIT|UnitWizard</dialogId>' not in _sap_swpm_sum_push.content)
 
@@ -118,7 +118,7 @@
   block:
     # Get the config XML from SUM, repeat 3 times in case SUM is still busy and doesn't respond promptly
     # Need to get config XML even through we are not going to use it. This is to get the diagtime cookie.
-    - name: Get the config XML from SUM (SPAUINFO)
+    - name: Get the config XML from SUM (SPAUINFO or EXIT)
       ansible.builtin.uri:
         url: "https://localhost:1129/slp/sumabap/{{ sap_swpm_sid | upper }}/config"
         method: GET
@@ -136,7 +136,7 @@
       failed_when: _sap_swpm_sum_push_config2.status != 200
 
     # Get the CSRF token from SUM by calling config
-    - name: Get the CSRF token from SUM (SPAUINFO)
+    - name: Get the CSRF token from SUM (SPAUINFO or EXIT)
       ansible.builtin.uri:
         url: "https://localhost:1129/slp/sumabap/{{ sap_swpm_sid | upper }}/config"
         method: GET
