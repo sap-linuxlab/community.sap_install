@@ -14,6 +14,7 @@ The Ansible role `sap_swpm` installs various SAP Systems installable by SAP Soft
 ## Prerequisites
 <!-- BEGIN Prerequisites -->
 Managed nodes:
+
 - Directory with SAP Installation media is present and `sap_swpm_software_path` updated. Download can be completed using [community.sap_launchpad](https://github.com/sap-linuxlab/community.sap_launchpad).
 - Ensure that servers are configured for SAP Systems. See [Recommended](#recommended) section.
 - Ensure that volumes and filesystems are configured correctly. See [Recommended](#recommended) section.
@@ -24,6 +25,7 @@ Place a valid SAPCAR executable file in a directory specified by variable `sap_s
 Place a valid SWPM SAR file in a directory specified by variable `sap_swpm_swpm_path` (e.g. /software/sap_swpm). Example: `SWPM20SP18_3-80003424.SAR`
 
 Place the following files in a directory specified by variable `sap_swpm_software_path` (e.g. /software/sap_swpm_download_basket):
+
   - For a new installation
       - Download the appropriate software from SAP Software Download Center, Maintenance Planner, etc.
   - For a restore or new installation
@@ -34,7 +36,8 @@ Place the following files in a directory specified by variable `sap_swpm_softwar
       - SAP Kernel DB Independent - `SAPEXE_*SAR`
       - SAP HANA Client           - `IMDB_CLIENT*SAR`
 
-Alternatively, you can place all the files mentioned above into a single directory and use the role [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect) to identify the required files and set the role variables automatically so that the role `sap_swpm` has access to all the files needed for a successful installation of SAP System.
+Alternatively, you can place all the files mentioned above into a single directory and use the role [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect) to identify the required files<br>
+and set the role variables automatically so that the role `sap_swpm` has access to all the files needed for a successful installation of SAP System.
 <!-- END Prerequisites -->
 
 ## Execution
@@ -43,13 +46,14 @@ Alternatively, you can place all the files mentioned above into a single directo
 
 <!-- BEGIN Execution Recommended -->
 ### Recommended
-It is recommended to execute this role together with other roles in this collection, in the following order:</br>
+It is recommended to execute this role together with other roles in this collection, in the following order:
+
 1. [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure)
 2. [sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_netweaver_preconfigure)
 3. [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect)
 4. *`sap_swpm`*
 
-Note: For most scenarios, a database like SAP HANA must be available. Use the role [sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_install) for installing the SAP HANA database.
+**NOTE:** For most scenarios, a database like SAP HANA must be available. Use the role [sap_hana_install](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_install) for installing the SAP HANA database.
 <!-- END Execution Recommended -->
 
 ### Execution Flow
@@ -78,22 +82,26 @@ Note: For most scenarios, a database like SAP HANA must be available. Use the ro
 
 - At this stage, the role is searching for a sapinst inifile on the managed node, or it will create one:
 
-  - If a file `inifile.params` is located on the managed node in the directory specified in `sap_swpm_inifile_directory`,
-    the role will not create a new one but rather download this file to the control node.
+    - If a file `inifile.params` is located on the managed node in the directory specified in `sap_swpm_inifile_directory`,
+      the role will not create a new one but rather download this file to the control node.
 
-  - If such a file does *not* exist, the role will create an SAP SWPM `inifile.params` file by one of the following methods:
+    - If such a file does *not* exist, the role will create an SAP SWPM `inifile.params` file by one of the following methods:<br>
 
-    Method 1: Predefined sections of the file `inifile_params.j2` will be used to create the file `inifile.params`. The variable `sap_swpm_inifile_sections_list` contains a list of sections which will part of the file `inifile.params`. All other sections will be ignored. The inifile parameters themselves will be set according to other role parameters. Example: The inifile parameter `archives.downloadBasket` will be set to the content of the role parameter `sap_swpm_software_path`.
+        - It is also possible to use method 1 for creating the inifile and then replace or set additional variables using method 2:<br>
+          Define both of the related parameters, `sap_swpm_inifile_sections_list` and `sap_swpm_inifile_parameters_dict`.
 
-    Method 2: The file `inifile.params` will be configured from the content of the dictionary `sap_swpm_inifile_parameters_dict`. This dictionary is defined like in the following example:
+        - Method 1: Predefined sections of the file `inifile_params.j2` will be used to create the file `inifile.params`.<br>
+          The variable `sap_swpm_inifile_sections_list` contains a list of sections which will part of the file `inifile.params`.<br>
+          All other sections will be ignored. The inifile parameters themselves will be set according to other role parameters.<br>
+          Example: The inifile parameter `archives.downloadBasket` will be set to the content of the role parameter `sap_swpm_software_path`.
 
-```
+        - Method 2: The file `inifile.params` will be configured from the content of the dictionary `sap_swpm_inifile_parameters_dict`.<br>
+          This dictionary is defined like in the following example:<br>
+```yaml
 sap_swpm_inifile_parameters_dict:
   archives.downloadBasket: /software/download_basket
   NW_getFQDN.FQDN: example.com
 ```
-
-It is also possible to use method 1 for creating the inifile and then replace or set additional variables using method 2: Define both of the related parameters, `sap_swpm_inifile_sections_list` and `sap_swpm_inifile_parameters_dict`.
 
 - The file `inifile.params` is then transferred to a temporary directory on the managed node, to be used by the sapinst process.
 
@@ -114,7 +122,8 @@ It is also possible to use method 1 for creating the inifile and then replace or
 <!-- BEGIN Execution Example -->
 
 #### Playbook for installing a SAP ABAP ASCS instance in distributed system with [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect) role
-Example shows execution together with [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect) role, which sets required variables for `sap_swpm` role.</br>
+Example shows execution together with [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect) role, which sets required variables for `sap_swpm` role.
+
 ```yaml
 ---
 - name: Ansible Play for SAP ABAP ASCS installation in distributed system
@@ -165,12 +174,12 @@ Example shows execution together with [sap_install_media_detect](https://github.
         sap_swpm_role_parameters_dict:
           sap_swpm_install_saphostagent: 'true'
 ```
-
 <!-- END Execution Example -->
 
 <!-- BEGIN Role Tags -->
 ### Role Tags
 With the following tags, the role can be called to perform certain activities only:
+
 - tag `sap_swpm_generate_inifile`: Only create the sapinst inifile, without running most of the preinstall steps.
   This can be useful for checking if the inifile is created as desired.
 - tag `sap_swpm_sapinst_commandline`: Only show the sapinst command line.
@@ -182,9 +191,10 @@ With the following tags, the role can be called to perform certain activities on
 ## Additional information
 <!-- BEGIN UDI -->
 ### Up-To-Date Installation (UDI)
-The Software Update Manager can run on any host with an Application Server instance (e.g. NWAS ABAP PAS/AAS, NWAS JAVA CI/AAS) with correct permissions to access /usr/sap/ and /sapmnt/ directories.
+The Software Update Manager can run on any host with an Application Server instance (e.g. NWAS ABAP PAS/AAS, NWAS JAVA CI/AAS) with correct permissions to access `/usr/sap/` and `/sapmnt/` directories.
 
-When using the Software Provisioning Manager (SWPM) with a Maintenance Planner Stack XML file to perform an "up-to-date installation" (UDI) - it will start the Software Update Manager (SUM) automatically at the end of the installation process. This UDI feature applies only to SAP ABAP Platform / SAP NetWeaver, and must be performed from the Primary Application Server instance (i.e. NWAS ABAP PAS, or a OneHost installation).
+When using the Software Provisioning Manager (SWPM) with a Maintenance Planner Stack XML file to perform an "up-to-date installation" (UDI) - it will start the Software Update Manager (SUM) automatically at the end of the installation process.<br>
+This UDI feature applies only to SAP ABAP Platform / SAP NetWeaver, and must be performed from the Primary Application Server instance (i.e. NWAS ABAP PAS, or a OneHost installation).
 
 Furthermore, during SWPM variable selection the enabling of Transport Management System (TMS) is required, see SAP Note 2522253 - SWPM can not call SUM automatically when doing the up-to-date installation.
 <!-- END UDI -->
@@ -203,6 +213,7 @@ Apache 2.0
 ## Role Variables
 <!-- BEGIN Role Variables -->
 **NOTE: Discontinued variables:**
+
 - `sap_swpm_ansible_role_mode`
 
 ### Variables for creating sapinst inifile
@@ -421,9 +432,9 @@ Define DDIC user password in client 000 for new install, or existing for restore
 #### sap_swpm_virtual_hostname
 - _Type:_ `string`
 
-Define virtual hostname when installing High Available instances (e.g. SAP ASCS/ERS cluster).
-The role attempts to resolve `sap_swpm_virtual_hostname` on the managed node, using DNS and /etc/hosts, and will fail
-if this hostname resolution fails. The role will also fail if the IPv4 address for `sap_swpm_virtual_hostname` is
+Define virtual hostname when installing High Available instances (e.g. SAP ASCS/ERS cluster).<br>
+The role attempts to resolve `sap_swpm_virtual_hostname` on the managed node, using DNS and /etc/hosts, and will fail<br>
+if this hostname resolution fails. The role will also fail if the IPv4 address for `sap_swpm_virtual_hostname` is<br>
 not part of the IPv4 addresses of the managed node.
 
 ### Variables specific to SAP HANA Database Installation
