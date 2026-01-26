@@ -18,7 +18,7 @@ Included roles cover range of tasks:
 
 | Component | Control Node | Managed Node |
 | --- | --- | --- |
-| Operating System | Any OS | SUSE Linux Enterprise Server for SAP applications 15 SP5, 15 SP6, 15 SP7 and 16.0<br>Red Hat Enterprise Linux for SAP Solutions 8.x 9.x 10.x |
+| Operating System | Any OS | Red Hat Enterprise Linux for SAP Solutions 8.x, 9.x and 10.x<br>SUSE Linux Enterprise Server for SAP applications 15 SP5, 15 SP6, 15 SP7 and 16.0 |
 | Python | 3.11 or higher | 3.9 or higher |
 | Ansible-Core | 2.18 or higher | N/A |
 | Ansible | 12 or higher | N/A |
@@ -99,8 +99,8 @@ This Ansible Collection was tested across different Operating Systems, SAP produ
 
 Operating systems:
 
+- Red Hat Enterprise Linux for SAP Solutions 8.x, 9.x and 10.x
 - SUSE Linux Enterprise Server for SAP applications 15 SP5, 15 SP6, 15 SP7 and 16.0
-- Red Hat Enterprise Linux for SAP Solutions 8.x 9.x 10.x
 
 Deployment scenarios:
 
