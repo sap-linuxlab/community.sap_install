@@ -9,6 +9,12 @@ argument_specs:
 
   main:
     short_description: SAP HA automated cluster setup requirements
+    # This is used to populate beginning of the Role Variables section in README.md
+    description: |
+      Minimum required parameters for all clusters:
+      - [sap_ha_pacemaker_cluster_hacluster_user_password](#sap_ha_pacemaker_cluster_hacluster_user_password)
+
+      Additional minimum requirements depend on the type of cluster setup and on the target platform.
     options:
 
 # Take this template and copy it to the desired place.
@@ -170,8 +176,7 @@ argument_specs:
             description:
               - Parameter `id` is required.
               - Name that will be used as the resource ID (name).
-            # TODO: Enable to remove Tech debt after name and options are removed!
-            # required: true
+            required: true
           agent:
             type: str
             description:
@@ -199,16 +204,6 @@ argument_specs:
             type: list
             description:
               - Defines meta attributes as list of name/value pairs.
-          # TODO: Tech Debt: Remove name and options in next release
-          name:
-            type: str
-            description:
-              - WARNING! This option will be removed in future release.
-          # TODO: Tech Debt: Remove name and options in next release
-          options:
-            type: dict
-            description:
-              - WARNING! This option will be removed in future release.
 
         example:
           sap_ha_pacemaker_cluster_stonith_custom:
@@ -298,11 +293,9 @@ argument_specs:
       sap_ha_pacemaker_cluster_cluster_properties:
         type: dict
         description:
-          - Standard pacemaker cluster properties are configured with recommended settings for
-            cluster node fencing.
+          - Optional configuration of cluster properties (cib-bootstrap-options).
+          - Default values are applied by Operating System and Platform, if the variable is not defined.
           - When no STONITH resource is defined, STONITH will be disabled and a warning displayed.
-          - Default values are predefined by OS and Platform if the variable is not defined.
-          - Some mandatory properties are appended, if not defined.
 
         example:
           sap_ha_pacemaker_cluster_cluster_properties:
@@ -380,9 +373,7 @@ argument_specs:
         type: list
         description:
           - Additional fence agent packages to be installed.
-          - "This is automatically combined with default packages in:"
-          - "`__sap_ha_pacemaker_cluster_fence_agent_packages_minimal`"
-          - "`__sap_ha_pacemaker_cluster_fence_agent_packages_platform`"
+          - "This is automatically combined with default OS and Platform specific packages."
 
       sap_ha_pacemaker_cluster_zypper_patterns:
         type: list
