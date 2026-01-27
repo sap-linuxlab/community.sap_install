@@ -1149,7 +1149,7 @@ Mandatory for NetWeaver PAS cluster setup.<br>
 
 Name of the Virtual IP resource for NetWeaver PAS.<br>
 
-### sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address
+### sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address
 - _Type:_ `string`<br>
 
 Virtual IP of the NetWeaver ABAP Central Services (ASCS) instance.<br>
@@ -1167,7 +1167,7 @@ Name of the NetWeaver ASCS resource group.<br>
 
 Name of the Virtual IP resource for NetWeaver ABAP Central Services (ASCS).<br>
 
-### sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address
+### sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address
 - _Type:_ `string`<br>
 
 Virtual IP of the NetWeaver Enqueue Replication Service (ERS) instance.<br>
