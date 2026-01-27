@@ -46,6 +46,9 @@ All deprecated variables offer time limited backwards compatibility that will be
 | ~~sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ascs_id~~<br>sap_ha_pacemaker_cluster_healthcheck_nwas_ascs_id | :heavy_check_mark: | Removal of `_abap_` |
 | ~~sap_ha_pacemaker_cluster_healthcheck_nwas_abap_ers_id~~<br>sap_ha_pacemaker_cluster_healthcheck_nwas_ers_id | :heavy_check_mark: | Removal of `_abap_` |
 | ~~sap_ha_pacemaker_cluster_storage_nfs_filesytem_type~~<br>sap_ha_pacemaker_cluster_storage_nfs_filesystem_type | :heavy_check_mark: | Typo |
+| ~~sap_ha_pacemaker_cluster_fence_agent_minimal_packages~~ | :x: | Replaced with `sap_ha_pacemaker_cluster_fence_agent_packages` |
+| ~~sap_ha_pacemaker_cluster_stonith_custom.name~~ | :x: | Replaced with `sap_ha_pacemaker_cluster_stonith_custom.id` | 
+| ~~sap_ha_pacemaker_cluster_stonith_custom.options~~ | :x: | Removed in favor of `instance_attrs` and `meta_attrs` |
 
 
 ## Status explanation:
