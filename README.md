@@ -7,6 +7,7 @@
 This Ansible Collection executes various SAP Software installations and configuration tasks for various SAP solutions and deployment scenarios on supported Linux operating systems.
 
 Included roles cover range of tasks:
+
 - Preparation of Operating system and SAP installation media before installation
 - Installation of SAP Database, either SAP HANA or Oracle Database
 - Installation of SAP Products, like SAP S4HANA, SAP BW4HANA, SAP Netweaver, SAP Solution Manager and others.
@@ -15,28 +16,20 @@ Included roles cover range of tasks:
 
 ## Requirements
 
-### Control Nodes
-Operating system:
-- Any operating system with required Python and Ansible versions.
+| Component | Control Node | Managed Node |
+| --- | --- | --- |
+| Operating System | Any OS | Red Hat Enterprise Linux for SAP Solutions 8.x, 9.x and 10.x<br>SUSE Linux Enterprise Server for SAP applications 15 SP5, 15 SP6, 15 SP7 and 16.0 |
+| Python | 3.11 or higher | 3.9 or higher |
+| Ansible-Core | 2.18 or higher | N/A |
+| Ansible | 12 or higher | N/A |
 
-Python: 3.11 or higher
+> **Managed Node Registration**<br>
+> Operating system needs to have access to required package repositories either directly or via subscription registration.
 
-Ansible: 9.9.x
+**Additional notes:**
 
-Ansible-core: 2.16.x
-
-**NOTE: Ansible 10 and ansible-core 2.17.x are not supported, because of breaking changes requiring higher Python version on managed nodes.**
-
-### Managed Nodes
-Operating system:
-- SUSE Linux Enterprise Server for SAP applications 15 SP5+ (SLE4SAP)
-- Red Hat Enterprise Linux for SAP Solutions 8.x 9.x (RHEL4SAP)
-
-**NOTE: Operating system needs to have access to required package repositories either directly or via subscription registration.**
-
-
-Python: 3.6 or higher
-
+- **Version Compatibility:** For a detailed mapping of supported Python versions and Ansible-Core lifecycles, refer to the official [Ansible-Core Support Matrix](https://docs.ansible.com/projects/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix).
+- **Control Node Permissions:** Ensure the user executing the playbooks has the necessary SSH keys and sudo privileges configured for the target environment.
 
 ## Installation Instructions
 
@@ -73,6 +66,7 @@ See [Installing collections](https://docs.ansible.com/ansible/latest/collections
 ## Use Cases
 
 ### Example Scenarios
+
 - Preparation of Operating system for SAP installation
 - Preparation of SAP installation media for SAP installation
 - Installation of SAP HANA (including High Availability with replication) or Oracle Database
@@ -85,7 +79,7 @@ More deployment scenarios are available in [ansible.playbooks_for_sap](https://g
 All included roles can be executed independently or as part of [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
 
 | Name | Summary |
-| :--- | :--- |
+| --- | --- |
 | [sap_anydb_install_oracle](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_anydb_install_oracle) | Install Oracle DB 19.x for SAP |
 | [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure) | Configure general OS settings for SAP software |
 | [sap_ha_install_hana_hsr](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_install_hana_hsr) | Configure and enable SAP HANA System Replication |
@@ -104,20 +98,25 @@ All included roles can be executed independently or as part of [ansible.playbook
 This Ansible Collection was tested across different Operating Systems, SAP products and scenarios. You can find examples of some of them below.
 
 Operating systems:
-- SUSE Linux Enterprise Server for SAP applications 15 SP5+ (SLE4SAP)
-- Red Hat Enterprise Linux for SAP Solutions 8.x 9.x (RHEL4SAP)
+
+- Red Hat Enterprise Linux for SAP Solutions 8.x, 9.x and 10.x
+- SUSE Linux Enterprise Server for SAP applications 15 SP5, 15 SP6, 15 SP7 and 16.0
 
 Deployment scenarios:
+
 - All scenarios included in [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) repository
 
 SAP Products:
+
 - SAP S/4HANA AnyPremise (1809, 1909, 2020, 2021, 2022, 2023) with setup as Standard, Distributed, High Availability and optional Maintenance Planner or Restore System Copy
 - SAP Business Suite (ECC) on HANA and SAP Business Suite (ECC) with SAP AnyDB - SAP ASE, SAP MaxDB, IBM Db2, Oracle DB
 - SAP BW/4HANA (2021, 2023) with setup as Standard or Scale-Out
 - SAP HANA 2.0 (SPS04+) with setup as Scale-Up, Scale-Out, High Availability
 - Other SAP installation activities; such as System Rename, System Copy Export, SAP Solution Manager and SAP Web Dispatcher
 
-**NOTE: It is not possible to test every Operating System and SAP Product combination with every release. Testing is regularly done for common scenarios: SAP HANA, SAP HANA HA, SAP S4HANA Distributed HA**
+> **Testing Disclaimer**<br>
+> It is not possible to test every Operating System and SAP Product combination with every release.<br>
+> Testing is regularly done for common scenarios: SAP HANA, SAP HANA HA, SAP S4HANA Distributed HA**
 
 
 ## Contributing

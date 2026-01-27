@@ -13,6 +13,7 @@ The Ansible role `sap_anydb_install_oracle` is used to install Oracle Database 1
 <!-- BEGIN Prerequisites -->
 ## Prerequisites
 Managed Nodes:
+
 - Directory with installation media is present and `sap_anydb_install_oracle_extract_path` updated.</br>
   Download can be completed using [community.sap_launchpad](https://github.com/sap-linuxlab/community.sap_launchpad) Ansible Collection.
 <!-- END Prerequisites -->

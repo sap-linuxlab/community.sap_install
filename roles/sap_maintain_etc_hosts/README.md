@@ -30,6 +30,7 @@ The Ansible role `sap_maintain_etc_hosts` is used to maintain the `/etc/hosts` f
 ### Example
 <!-- BEGIN Execution Example -->
 Example playbook will update `/etc/hosts`:
+
 - Remove node with IP `10.10.10.10`.
 - Remove node with name `host2`.
 - Add node with IP `10.10.10.11`, name `host1`, aliases `alias1, alias2` and comment `host1 comment`.
@@ -106,6 +107,7 @@ If the value `sap_hana_cluster_nodes`or `sap_ha_pacemaker_cluster_cluster_nodes`
 Mandatory list of nodes in form of dictionaries to be added or removed in `/etc/hosts` file.
 
 Following dictionary keys can be defined:
+
 - **node_ip**<br>
     IP address of the managed node.<br>
     **Required** for adding new entries to `/etc/hosts`.</br>
@@ -141,7 +143,7 @@ Following dictionary keys can be defined:
     _Optional_ for adding new entries to `/etc/hosts`.
 
     - _Type:_ `string`
-    - _Default:_ `merge`    
+    - _Default:_ `merge`
 
 - **node_comment**<br>
     Node comment is appended at end of line of managed node.<br>
@@ -166,5 +168,5 @@ Following dictionary keys can be defined:
     **Required** for removing entries, otherwise default `present` is used.
 
     - _Type:_ `string`
-    - _Default:_ `present`   
+    - _Default:_ `present`
 <!-- END Role Variables -->
