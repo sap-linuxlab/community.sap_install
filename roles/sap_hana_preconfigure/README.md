@@ -20,63 +20,10 @@ Install required collections by `ansible-galaxy collection install -vv -r meta/c
 <!-- BEGIN Prerequisites -->
 ## Prerequisites
 Managed nodes:
+
 - Ensure that general operating system configuration for SAP is performed by [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure). See [Recommended](#recommended) section.
 
-<details>
-  <summary><b>(Red Hat) Ensure required repositories are available</b></summary>
-
-  Managed nodes need to be properly registered to a repository source and have at least the following Red Hat repositories accessible:
-
-  for RHEL 7.x:
-  - rhel-7-[server|for-power-le]-e4s-rpms
-  - rhel-sap-hana-for-rhel-7-[server|for-power-le]-e4s-rpms
-
-  for RHEL 8.x:
-  - rhel-8-for-[x86_64|ppc64le]-baseos-e4s-rpms
-  - rhel-8-for-[x86_64|ppc64le]-appstream-e4s-rpms
-  - rhel-8-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
-
-  for RHEL 9.x:
-  - rhel-9-for-[x86_64|ppc64le]-baseos-e4s-rpms
-  - rhel-9-for-[x86_64|ppc64le]-appstream-e4s-rpms
-  - rhel-9-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
-
-  For details on configuring Red Hat, see the knowledge base article: [How to subscribe SAP HANA systems to the Update Services for SAP Solutions](https://access.redhat.com/solutions/3075991)). If you set role parameter sap_hana_preconfigure_enable_sap_hana_repos to `yes`, the role can enable these repos.
-
-  To install HANA on Red Hat Enterprise Linux 7, 8, or 9, you need some additional packages which are contained in one of following repositories
-  - rhel-sap-hana-for-rhel-7-[server|for-power-le]-e4s-rpms
-  - rhel-8-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
-  - rhel-9-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
-
-  To get this repository you need to have one of the following products:
-  - [RHEL for SAP Solutions](https://access.redhat.com/solutions/3082481) (premium, standard)
-  - RHEL for Business Partner NFRs
-  - [RHEL Developer Subscription](https://developers.redhat.com/products/sap/download/)
-
-  To get a personal developer edition of RHEL for SAP solutions, please register as a developer and download the developer edition.
-
-  - [Registration Link](http://developers.redhat.com/register) :
-    Here you can either register a new personal account or link it to an already existing
-    **personal** Red Hat Network account.
-  - [Download Link](https://access.redhat.com/downloads/content/69/ver=/rhel---7/7.2/x86_64/product-software):
-    Here you can download the Installation DVD for RHEL with your previously registered
-    account
-
-  *NOTE:* This is a regular RHEL installation DVD as RHEL for SAP Solutions is no additional
-  product but only a special bundling. The subscription grants you access to the additional
-  packages through our content delivery network (CDN) after installation.
-
-  For supported RHEL releases [click here](https://access.redhat.com/solutions/2479121).
-
-  It is also important that your disks are setup according to the [SAP storage requirements for SAP HANA](https://www.sap.com/documents/2015/03/74cdb554-5a7c-0010-8F2c7-eda71af511fa.html). This [BLOG](https://blogs.sap.com/2017/03/07/the-ultimate-guide-to-effective-sizing-of-sap-hana/) is also quite helpful when sizing HANA systems.
-  You can use the [storage](https://galaxy.ansible.com/linux-system-roles/storage) role to automate this process
-
-  If you want to use this system in production, make sure that the time service is configured correctly. You can use [rhel-system-roles](https://access.redhat.com/articles/3050101) to automate this.
-
-  Note
-  ----
-  For finding out which SAP notes will be used by this role for Red Hat systems, please check the contents of variable `__sap_hana_preconfigure_sapnotes` in files `vars/*.yml` (choose the file which matches your OS distribution and version). 
-</details>
+- (Red Hat) Ensure required repositories are available. See [Further Information Section](#red-hat-ensure-required-repositories-are-available)
 <!-- END Prerequisites -->
 
 ## Execution
@@ -89,6 +36,7 @@ Managed nodes:
 <!-- BEGIN Execution Recommended -->
 ### Recommended
 It is recommended to execute this role together with other roles in this collection, in the following order:</br>
+
 1. [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure)
 2. *`sap_hana_preconfigure`*
 <!-- END Execution Recommended -->
@@ -128,6 +76,61 @@ Example of execution together with prerequisite role [sap_general_preconfigure](
 <!-- BEGIN Further Information -->
 ## Further Information
 For more examples on how to use this role in different installation scenarios, refer to the [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
+
+### (Red Hat) Ensure required repositories are available
+
+Managed nodes need to be properly registered to a repository source and have at least the following Red Hat repositories accessible:
+
+- RHEL 7.x:
+    - rhel-7-[server|for-power-le]-e4s-rpms
+    - rhel-sap-hana-for-rhel-7-[server|for-power-le]-e4s-rpms
+
+- RHEL 8.x:
+    - rhel-8-for-[x86_64|ppc64le]-baseos-e4s-rpms
+    - rhel-8-for-[x86_64|ppc64le]-appstream-e4s-rpms
+    - rhel-8-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
+
+- RHEL 9.x:
+    - rhel-9-for-[x86_64|ppc64le]-baseos-e4s-rpms
+    - rhel-9-for-[x86_64|ppc64le]-appstream-e4s-rpms
+    - rhel-9-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
+
+For details on configuring Red Hat, see the knowledge base article: [How to subscribe SAP HANA systems to the Update Services for SAP Solutions](https://access.redhat.com/solutions/3075991).<br>
+If you set role parameter sap_hana_preconfigure_enable_sap_hana_repos to `yes`, the role can enable these repos.
+
+To install HANA on Red Hat Enterprise Linux 7, 8, or 9, you need some additional packages which are contained in one of following repositories
+
+- rhel-sap-hana-for-rhel-7-[server|for-power-le]-e4s-rpms
+- rhel-8-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
+- rhel-9-for-[x86_64|ppc64le]-sap-solutions-e4s-rpms
+
+To get this repository you need to have one of the following products:
+
+- [RHEL for SAP Solutions](https://access.redhat.com/solutions/3082481) (premium, standard)
+- RHEL for Business Partner NFRs
+- [RHEL Developer Subscription](https://developers.redhat.com/products/sap/download/)
+
+To get a personal developer edition of RHEL for SAP solutions, please register as a developer and download the developer edition.
+
+- [Registration Link](http://developers.redhat.com/register):<br>
+  Here you can either register a new personal account or link it to an already existing **personal** Red Hat Network account.
+- [Download Link](https://access.redhat.com/downloads/content/69/ver=/rhel---7/7.2/x86_64/product-software):<br>
+  Here you can download the Installation DVD for RHEL with your previously registered account.<br>
+
+**NOTE:** This is a regular RHEL installation DVD as RHEL for SAP Solutions is no additional<br>
+product but only a special bundling. The subscription grants you access to the additional<br>
+packages through our content delivery network (CDN) after installation.<br>
+
+For supported RHEL releases [click here](https://access.redhat.com/solutions/2479121).<br>
+
+It is also important that your disks are setup according to the [SAP storage requirements for SAP HANA](https://www.sap.com/documents/2015/03/74cdb554-5a7c-0010-8F2c7-eda71af511fa.html).<br>
+This [BLOG](https://blogs.sap.com/2017/03/07/the-ultimate-guide-to-effective-sizing-of-sap-hana/) is also quite helpful when sizing HANA systems.<br>
+You can use the [storage](https://galaxy.ansible.com/linux-system-roles/storage) role to automate this process.<br>
+
+If you want to use this system in production, make sure that the time service is configured correctly.<br>
+You can use [rhel-system-roles](https://access.redhat.com/articles/3050101) to automate this.<br>
+
+**NOTE:** For finding out which SAP notes will be used by this role for Red Hat systems, please check the contents of variable `__sap_hana_preconfigure_sapnotes` in files `vars/*.yml` (choose the file which matches your OS distribution and version). 
 <!-- END Further Information -->
 
 ## License
@@ -287,8 +290,8 @@ The SAP HANA directories will always be created if `sap_hana_preconfigure_modify
 ### sap_hana_preconfigure_hana_directories
 - _Type:_ `list` with elements of type `str`
 - _Default:_
-  - /hana
-  - /lss/shared
+    - /hana
+    - /lss/shared
 
 List of SAP HANA directories to be created.<br>
 
@@ -393,8 +396,7 @@ List of interfaces for which the MTU size will be set to `9000`.<br>
 
 ### sap_hana_preconfigure_ppcle_tso_if
 - _Type:_ `list` with elements of type `str`
-- _Default:_
-  '{{ ansible_interfaces | difference([''lo'']) }}'
+- _Default:_ `'{{ ansible_interfaces | difference([''lo'']) }}'`
 
 List of interfaces for which the tso flag will be set.<br>
 

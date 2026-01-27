@@ -14,6 +14,7 @@ The Ansible Role `sap_ha_install_hana_hsr` is used to configure and enable SAP H
 <!-- BEGIN Prerequisites -->
 ## Prerequisites
 Managed nodes:
+
 - Same Operating system version
 - SAP HANA is installed with same version on both nodes.
 <!-- END Prerequisites -->
@@ -25,6 +26,7 @@ Managed nodes:
 <!-- BEGIN Execution Recommended -->
 ### Recommended
 It is recommended to execute this role together with other roles in this collection, in the following order:
+
 1. [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure)
 2. [sap_hana_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_hana_preconfigure)
 3. [sap_install_media_detect](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_install_media_detect)

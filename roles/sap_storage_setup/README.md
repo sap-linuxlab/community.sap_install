@@ -8,6 +8,7 @@
 The Ansible Role `sap_storage_setup` is used to prepare a host with the storage requirements of an SAP System (prior to software installation).
 
 This role can prepare host with:
+
 - Local block storage volume setup as LVM Logical Volumes, Filesystem formatting and mount to defined directory path
 - Remote file storage mount (and subdirectories as required)
 - SWAP file or SWAP partition
@@ -22,24 +23,32 @@ This Ansible Role is agnostic, and will run on any Infrastructure Platform. Only
         - `lvg`
         - `lvol`
         - `filesystem`
+
 Install required collection by `ansible-galaxy collection install community.general`.
 <!-- END Dependencies -->
 
 <!-- BEGIN Prerequisites -->
 ## Prerequisites
 Managed nodes:
-- All local/block storage volumes must be attached to the host
+
+- All local/block storage volumes must be attached to the host.
 - All remote/file storage mounts must be available with host accessibility (e.g. port 2049).
 <!-- END Prerequisites -->
 
 ## Execution
 <!-- BEGIN Execution -->
 **:warning: Do not execute this Ansible Role against existing SAP systems unless you know what you are doing and you prepare inputs to avoid unintended changes caused by default inputs.**</br>
-:warning: While this Ansible Role has protection against overwrite of existing disks and filesystems - sensible review and care is required for any automation of disk storage. Please review the documentation and samples/examples carefully. It is strongly suggested to initially execute the Ansible Playbook calling this Ansible Role, with `ansible-playbook --check` for Check Mode - this will perform no changes to the host and show which changes would be made.
+
+:warning: While this Ansible Role has protection against overwrite of existing disks and filesystems - sensible review and care is required for any automation of disk storage.</br>
+Please review the documentation and samples/examples carefully. It is strongly suggested to initially execute the Ansible Playbook calling this Ansible Role,</br>
+with `ansible-playbook --check` for Check Mode - this will perform no changes to the host and show which changes would be made.
 
 **Considerations**
-- This role does not permit static definition for mountpoint to use a specific device (e.g. `/dev/sdk`). The definition will define the disk size to use for the mountpoint, and match accordingly.
-- This role enforces that 1 mountpoint will use 1 LVM Logical Volume (LV) that consumes 100% of an LVM Volume Group (VG), with the LVM Volume Group (VG) consuming 100% of 1..n LVM Physical Volumes (PV).
+
+- This role does not permit static definition for mountpoint to use a specific device (e.g. `/dev/sdk`).<br>
+  The definition will define the disk size to use for the mountpoint, and match accordingly.
+- This role enforces that 1 mountpoint will use 1 LVM Logical Volume (LV) that consumes 100% of an LVM Volume Group (VG),<br>
+  with the LVM Volume Group (VG) consuming 100% of `1..n` LVM Physical Volumes (PV).
     - Following roles and modules offer alternative for more granular control of LVM setup:
         - Role `storage` from [fedora.linux_system_roles](https://github.com/linux-system-roles/storage)
         - Modules `filesystem`, `lvg`, `lvol` from [community.general](https://galaxy.ansible.com/ui/repo/published/community/general/)
@@ -60,6 +69,7 @@ Managed nodes:
 
 <!-- BEGIN Execution Example -->
 Example playbook to configure SAP HANA OneHost node on AWS that includes:
+
 - 3 disks for `/hana/data`, `/hana/log` and ` /hana/shared`
 - Remote filesystem for `/software`
 - SWAP
@@ -197,10 +207,10 @@ Describes list of the filesystems to be configured.<br>
 
     - _Type:_ `str`
     - _Default:_ `hard,acl`
-    
+
 - **nfs_path**<br>
     When defining an NFS filesystem, this is the directory path of the filesystem to be mounted.
-    
+
     - _Type:_ `str`
 
 - **nfs_server**<br>

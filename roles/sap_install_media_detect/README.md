@@ -7,9 +7,18 @@
 <!-- BEGIN Description -->
 The Ansible Role `sap_install_media_detect` is used to detect and extract SAP installation media.
 
-This role searches provided source directory, sorts files based on type and extracts them to target directory. Extraction can be further adjusted to create individual folders based on defined inputs.
+This role searches provided source directory, sorts files based on type and extracts them to target directory.<br>
+Extraction can be further adjusted to create individual folders based on defined inputs.
 
-Detection of supported installation media is available for SAP HANA and wide range of SAP Applications (example: SAP S/4HANA, SAP BW/4HANA, SAP ECC, SAP BW, SAP WebDispatcher, SAP Business Applications based upon SAP NetWeaver, etc).
+Detection of supported installation media is available for SAP HANA and wide range of SAP Applications like:
+
+- SAP S/4HANA
+- SAP BW/4HANA
+- SAP ECC
+- SAP BW
+- SAP WebDispatcher
+- SAP Business Applications based upon SAP NetWeaver
+- Other SAP products based on SAP NetWeaver
 <!-- END Description -->
 
 <!-- BEGIN Dependencies -->
@@ -18,6 +27,7 @@ Detection of supported installation media is available for SAP HANA and wide ran
 <!-- BEGIN Prerequisites -->
 ## Prerequisites
 Managed nodes:
+
 - Directory with SAP Installation media is present and `sap_install_media_detect_source_directory` updated. Download can be completed using [community.sap_launchpad](https://github.com/sap-linuxlab/community.sap_launchpad) Ansible Collection.
 <!-- END Prerequisites -->
 
@@ -62,14 +72,13 @@ It is recommended to execute this role together with other roles in this collect
 12. The last step is to fill all required `sap_swpm` parameters from the result of the previous find step, and display all the variables.
     - Once detection (e.g. using `zipinfo -1` and `unrar lb`) and extraction are completed, the file paths are shown and stored as variables for subsequent use by other Ansible Tasks.
 
-<details>
-  <summary><b>(Red Hat) Additional steps for RAR files</b></summary>
+#### (Red Hat) Additional steps for RAR files
 
-  RAR files can be either handled by the unar package from EPEL or by another package which can list the contents of, and extract files from, RAR files. See the comments and examples for the RAR file handling in `defaults/main.yml`.
+RAR files can be either handled by the unar package from EPEL or by another package which can list the contents of, and extract files from, RAR files.<br>
+See the comments and examples for the RAR file handling in `defaults/main.yml`.
 
-  - If the EPEL repo had been enabled at the time when the role was run, it will remain enabled.
-  - If the EPEL repo was not present, the associated GPG key will be removed and the EPEL repo will be disabled as the last task.
-</details>
+- If the EPEL repo had been enabled at the time when the role was run, it will remain enabled.
+- If the EPEL repo was not present, the associated GPG key will be removed and the EPEL repo will be disabled as the last task.
 <!-- END Execution Flow -->
 
 ### Example
@@ -99,6 +108,7 @@ Example playbook to extract SAP Installation media for SAP ASCS Netweaver.
 <!-- BEGIN Role Tags -->
 ### Role Tags
 With the following tags, the role can be called to perform certain activities only:
+
 - tag `sap_install_media_detect_zip_handling`: Only perform the task for enabling the listing and extracting of files of type `ZIP`.
 - tag `sap_install_media_detect_rar_handling`: Only perform the tasks for enabling the listing and extracting of files of type `RAR`. This
   includes enabling and disabling the EPEL repo for RHEL systems, if desired.
@@ -112,8 +122,13 @@ With the following tags, the role can be called to perform certain activities on
 - tag `sap_install_media_detect_find_files_after_extraction`: Finds all required files after they have been extracted so the final variables can be filled in the next step.
 - tag `sap_install_media_detect_set_global_vars`: Set all final variables for later use by Ansible roles or tasks.
 
-Note: After running the role with the following four tags, the SAP archive files will be in the same place as before running the role the first time. The directories with pattern `*_extracted` will remain in place.
-`sap_install_media_detect_provide_sapfile_utility,sap_install_media_detect_check_directories,sap_install_media_detect_create_file_list_phase_1,sap_install_media_detect_move_files_to_main_directory`
+**Note:** After running the role with the following four tags, the SAP archive files will be in the same place as before running the role the first time.<br>
+The directories with pattern `*_extracted` will remain in place.
+
+- `sap_install_media_detect_provide_sapfile_utility`
+- `sap_install_media_detect_check_directories`
+- `sap_install_media_detect_create_file_list_phase_1`
+- `sap_install_media_detect_move_files_to_main_directory`
 <!-- END Role Tags -->
 
 <!-- BEGIN Further Information -->

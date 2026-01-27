@@ -13,6 +13,7 @@ The Ansible role `sap_netweaver_preconfigure` installs additional required packa
 <!-- BEGIN Prerequisites -->
 ## Prerequisites
 Managed nodes:
+
 - Ensure that general operating system configuration for SAP is performed by [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure). See [Recommended](#recommended) section.
 <!-- END Prerequisites -->
 
@@ -25,7 +26,8 @@ Managed nodes:
 
 <!-- BEGIN Execution Recommended -->
 ### Recommended
-It is recommended to execute this role together with other roles in this collection, in the following order:</br>
+It is recommended to execute this role together with other roles in this collection, in the following order:
+
 1. [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure)
 2. *`sap_netweaver_preconfigure`*
 <!-- END Execution Recommended -->
@@ -35,10 +37,10 @@ It is recommended to execute this role together with other roles in this collect
 1. Assert that required inputs were provided.
 2. Install required packages
 3. Apply configurations
-  - Execute configuration tasks based on SAP Notes
-  - (SUSE) Execute saptune with solution `sap_netweaver_preconfigure_saptune_solution` (Default: `NETWEAVER`)
+    - Execute configuration tasks based on SAP Notes
+    - (SUSE) Execute saptune with solution `sap_netweaver_preconfigure_saptune_solution` (Default: `NETWEAVER`)
 
-**Note: (Red Hat) Due to SAP notes 2002167, 2772999, and 3108316, the role will switch to tuned profile sap-netweaver no matter if another tuned profile (e.g. virtual-guest) had been active before or not.**
+**NOTE:** (Red Hat) Due to SAP notes 2002167, 2772999, and 3108316, the role will switch to tuned profile sap-netweaver no matter if another tuned profile (e.g. virtual-guest) had been active before or not.
 <!-- END Execution Flow -->
 
 ### Example

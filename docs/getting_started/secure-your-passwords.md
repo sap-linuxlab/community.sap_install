@@ -29,7 +29,7 @@ Use ansible-vault to encrypt the string, which it reads from the file. Adding th
 ansible-vault encrypt_string $(cat passfile) -n my_secret_var
 ```
 
-Ansible-vault will ask to enter a vault password, which is required to decrypt the value during ansible runtime afterwards.  
+Ansible-vault will ask to enter a vault password, which is required to decrypt the value during ansible runtime afterwards.<br>
 Consider this the "master key" for your vault-encrypted credentials.
 
 ```text
@@ -45,7 +45,7 @@ my_secret_var: !vault |
 Encryption successful
 ```
 
-Save the `my_secret_var` and encrypted multi-line value in your variable definitions and include the definition file as usual.  
+Save the `my_secret_var` and encrypted multi-line value in your variable definitions and include the definition file as usual.<br>
 The variable can as well be referenced and used by other variables for more flexibility.
 
 ```yaml
@@ -62,7 +62,7 @@ rm passfile
 
 ## Run playbook which uses vault-encrypted content
 
-As soon as a vault-encrypted value is present in your playbook, ansible will require the vault password to be entered for playbook execution.  
+As soon as a vault-encrypted value is present in your playbook, ansible will require the vault password to be entered for playbook execution.<br>
 Add `--ask-vault` to your `ansible-playbook` command to prompt for this "master key" password and allow secure decryption.
 
 ```bash
@@ -75,7 +75,7 @@ _When encrypting multiple values that will be used together, you have to make su
 
 You can also encrypt an entire file, e.g. containing multiple secrets.
 
-However, if variables are defined in the file it will encrypt the variable names as well and makes it harder to identify the source definition of a referenced variable.  
+However, if variables are defined in the file it will encrypt the variable names as well and makes it harder to identify the source definition of a referenced variable.<br>
 Also, encrypting the entire file will require ansible-vault commands to view or edit the contents of the file. A file containing individually encrypted values can be viewed and edited as any other file without uncovering the actual secret value.
 
 `ansible-vault` will prompt for the vault password - either to be created for a new encrypted file, or to be used for decrypting existing content (for view or edit operations).
@@ -87,7 +87,7 @@ ansible-vault view file_containing_secrets.yml
 ansible-vault edit file_containing_secrets.yml
 ```
 
-This file can be included into a playbook similar to any other file include.  
+This file can be included into a playbook similar to any other file include.<br>
 The playbook will only be usable when the correct vault password is provided to `ansible-playbook` for the runtime, see above.
 
 ## More features and information

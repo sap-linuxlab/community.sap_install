@@ -8,6 +8,7 @@
 The Ansible Role for instantiation of IBM Db2 'Integrated Linux Pacemaker' HADR cluster.
 
 **NOTE:** IBM Db2 with 'Integrated Linux Pacemaker' can use two deployment models:
+
 - Mutual Failover option, **not** covered by this Ansible Role
 - High Availability and Disaster Recovery (HADR) option for Idle Standby, initialized by this Ansible Role
 <!-- END Description -->
@@ -17,10 +18,13 @@ The Ansible Role for instantiation of IBM Db2 'Integrated Linux Pacemaker' HADR 
 
 <!-- BEGIN Prerequisites -->
 ## Prerequisites
+
 Managed nodes:
+
 - Directory with installation media is present and `sap_ha_install_anydb_ibmdb2_software_directory` updated. Download can be completed using [community.sap_launchpad](https://github.com/sap-linuxlab/community.sap_launchpad) Ansible Collection.
 
 Software compatibility:
+
 - This Ansible Role is applicable to IBM Db2 11.5 certified for SAP.
 - It is applicable to 11.5.9 and later, which provides `db2cm` binary compatibility for AWS, GCP and MS Azure.
 <!-- END Prerequisites -->
