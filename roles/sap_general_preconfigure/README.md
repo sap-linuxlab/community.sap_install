@@ -362,7 +362,7 @@ One of the three SELinux modes to be set on the system.<br>
 If the system is running with a higher SELinux mode than demanded by the<br>
 variable `sap_general_preconfigure_selinux_mode`, we let the role fail in order to avoid an<br>
 unintentional configuration change to a lower SELinux security level.<br>
-Set this paramer to `false` if you want the role to change the SELinux mode from `enforcing`<br>
+Set this variable to `false` if you want the role to change the SELinux mode from `enforcing`<br>
 to `permissive` or `disabled`, or from `permissive` to `disabled`<br>
 
 ### sap_general_preconfigure_create_directories
