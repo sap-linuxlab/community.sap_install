@@ -245,16 +245,29 @@ argument_specs:
         required: false
         type: bool
 
-      sap_general_preconfigure_selinux_state:
+      sap_general_preconfigure_selinux_mode:
         default: 'permissive'
         description:
-          - One of the SELinux states to be set on the system.
+          - One of the three SELinux modes to be set on the system.
+          - "Note: A transition from `disabled` to `enforcing` is not supported, see the `Using SELinux` RHEL product documentation"
+          - and Red Hat Bug 2021835.
         choices:
           - 'enforcing'
           - 'permissive'
           - 'disabled'
         required: false
         type: str
+
+      sap_general_preconfigure_fail_if_selinux_mode_lowered:
+        default: true
+        description:
+          - If the system is running with a higher SELinux mode than demanded by the
+          - variable `sap_general_preconfigure_selinux_mode`, we let the role fail in order to avoid an
+          - unintentional configuration change to a lower SELinux security level.
+          - Set this variable to `false` if you want the role to change the SELinux mode from `enforcing`
+          - to `permissive` or `disabled`, or from `permissive` to `disabled`.
+        required: false
+        type: bool
 
       sap_general_preconfigure_create_directories:
         default: true

@@ -346,7 +346,7 @@ If `sap_general_preconfigure_reboot_ok` is set to `false`, which is the default,
 remain unnoticed. For this reason, we let the role fail. Set this parameter to `false` to override this behavior.<br>
 Can be useful if you want to implement your own reboot handling.<br>
 
-### sap_general_preconfigure_selinux_state
+### sap_general_preconfigure_selinux_mode
 - _Type:_ `str`
 - _Default:_ `'permissive'`
 - _Possible Values:_<br>
@@ -354,7 +354,19 @@ Can be useful if you want to implement your own reboot handling.<br>
   - `permissive`
   - `disabled`
 
-One of the SELinux states to be set on the system.<br>
+One of the three SELinux modes to be set on the system.<br>
+Note: A transition from `disabled` to `enforcing` is not supported, see the `Using SELinux` RHEL product documentation<br>
+and Red Hat Bug 2021835.<br>
+
+### sap_general_preconfigure_fail_if_selinux_mode_lowered
+- _Type:_ `bool`
+- _Default:_ `true`
+
+If the system is running with a higher SELinux mode than demanded by the<br>
+variable `sap_general_preconfigure_selinux_mode`, we let the role fail in order to avoid an<br>
+unintentional configuration change to a lower SELinux security level.<br>
+Set this variable to `false` if you want the role to change the SELinux mode from `enforcing`<br>
+to `permissive` or `disabled`, or from `permissive` to `disabled`<br>
 
 ### sap_general_preconfigure_create_directories
 - _Type:_ `bool`

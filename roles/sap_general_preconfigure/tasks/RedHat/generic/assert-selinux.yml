@@ -15,44 +15,44 @@
 
 - name: Info about SELinux being set to 'enforcing'
   ansible.builtin.debug:
-    msg: "INFO: The SELinux state has been set to 'enforcing' (variable sap_general_preconfigure_selinux_state)."
+    msg: "INFO: The SELinux mode has been set to 'enforcing' (variable sap_general_preconfigure_selinux_mode)."
   ignore_errors: true
-  when: "sap_general_preconfigure_selinux_state == 'enforcing'"
+  when: "sap_general_preconfigure_selinux_mode == 'enforcing'"
 
 - name: Warn about how SELinux would be set when role is run in normal mode
   ansible.builtin.debug:
-    msg: "INFO: When running in normal mode, the role will set the SELinux state to '{{ sap_general_preconfigure_selinux_state }}'
-          (variable sap_general_preconfigure_selinux_state)."
+    msg: "INFO: When running in normal mode, the role will set the SELinux mode to '{{ sap_general_preconfigure_selinux_mode }}'
+          (variable sap_general_preconfigure_selinux_mode)."
   ignore_errors: true
-  when: "sap_general_preconfigure_selinux_state != 'enforcing'"
+  when: "sap_general_preconfigure_selinux_mode != 'enforcing'"
 
-- name: "Check if the permanent configuration of the SELinux state is '{{ sap_general_preconfigure_selinux_state }}'"
+- name: "Check if the permanent configuration of the SELinux mode is '{{ sap_general_preconfigure_selinux_mode }}'"
   ansible.builtin.command: awk 'BEGIN{FS="="}/^SELINUX=/{print $NF}' /etc/selinux/config
   register: __sap_general_preconfigure_register_selinux_conf_assert
   changed_when: false
   ignore_errors: true
   when: __sap_general_preconfigure_register_stat_selinux_conf_assert.stat.isreg
 
-- name: "Assert that the permanent configuration of the SELinux state is set to '{{ sap_general_preconfigure_selinux_state }}'"
+- name: "Assert that the permanent configuration of the SELinux mode is set to '{{ sap_general_preconfigure_selinux_mode }}'"
   ansible.builtin.assert:
-    that: __sap_general_preconfigure_register_selinux_conf_assert.stdout == sap_general_preconfigure_selinux_state
-    fail_msg: "FAIL: The system is not configured for the SELinux state of '{{ sap_general_preconfigure_selinux_state }}'.
+    that: __sap_general_preconfigure_register_selinux_conf_assert.stdout == sap_general_preconfigure_selinux_mode
+    fail_msg: "FAIL: The system is not configured for the SELinux mode of '{{ sap_general_preconfigure_selinux_mode }}'.
                Current configuration: '{{ __sap_general_preconfigure_register_selinux_conf_assert.stdout }}'."
-    success_msg: "PASS: The system is configured for the SELinux state of '{{ sap_general_preconfigure_selinux_state }}'"
+    success_msg: "PASS: The system is configured for the SELinux mode of '{{ sap_general_preconfigure_selinux_mode }}'"
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
   when: __sap_general_preconfigure_register_stat_selinux_conf_assert.stat.isreg
 
-- name: Assert - Determine the current SELinux state
+- name: Assert - Determine the current SELinux mode
   ansible.builtin.command: getenforce
   register: __sap_general_preconfigure_register_getenforce_assert
   changed_when: false
 
-- name: Assert that the SELinux state is set correctly
+- name: Assert that the SELinux mode is set correctly
   ansible.builtin.assert:
-    that: (__sap_general_preconfigure_register_getenforce_assert.stdout | lower) == sap_general_preconfigure_selinux_state
-    fail_msg: "FAIL: SELinux is currently not '{{ sap_general_preconfigure_selinux_state }}'!
-               The current SELinux state is: '{{ __sap_general_preconfigure_register_getenforce_assert.stdout | lower }}'."
-    success_msg: "PASS: SELinux is currently {{ sap_general_preconfigure_selinux_state }}."
+    that: (__sap_general_preconfigure_register_getenforce_assert.stdout | lower) == sap_general_preconfigure_selinux_mode
+    fail_msg: "FAIL: SELinux is currently not '{{ sap_general_preconfigure_selinux_mode }}'!
+               The current SELinux mode is: '{{ __sap_general_preconfigure_register_getenforce_assert.stdout | lower }}'."
+    success_msg: "PASS: SELinux is currently {{ sap_general_preconfigure_selinux_mode }}."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 # Reason for noqa: Both yum and dnf support "state: latest"

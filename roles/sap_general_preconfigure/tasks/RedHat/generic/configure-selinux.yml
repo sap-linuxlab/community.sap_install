@@ -1,13 +1,72 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: Set SELinux state to '{{ sap_general_preconfigure_selinux_state }}' in /etc/selinux/config
+# The following task leads to less complex statements in the fail and debug tasks which follow
+- name: Set fact for the SELinux mode and config mode
+  ansible.builtin.set_fact:
+    __sap_general_preconfigure_fact_selinux_mode: "{{ ((ansible_facts['selinux']).status == 'disabled') | ternary((ansible_facts['selinux']).status, (ansible_facts['selinux']).mode) }}"
+    __sap_general_preconfigure_fact_selinux_config_mode: "{{ ((ansible_facts['selinux']).status == 'disabled') | ternary((ansible_facts['selinux']).status, (ansible_facts['selinux']).config_mode) }}"
+
+# Going from disabled to enforcing is not supported, see the 'Using SELinux' RHEL product documentation
+# and Red Hat Bug 2021835.
+- name: Fail if the currently active SELinux mode is 'disabled' and the role is configured for 'enforcing'
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The currently active mode is '{{ __sap_general_preconfigure_fact_selinux_mode }}'. A direct
+            transition to 'enforcing' is not supported. Recommendation:
+            Run the role with 'sap_general_preconfigure_selinux_mode' set to 'permissive', reboot, then
+            run it again with 'sap_general_preconfigure_selinux_mode' set to 'enforcing'.
+  when:
+    - __sap_general_preconfigure_fact_selinux_mode == 'disabled'
+    - sap_general_preconfigure_selinux_mode == 'enforcing'
+
+- name: Set fact for possible failure of currently active mode
+  ansible.builtin.set_fact:
+    __sap_general_preconfigure_fact_failed_selinux_mode: true
+  when:
+    - (__sap_general_preconfigure_fact_selinux_mode == 'enforcing' and
+       sap_general_preconfigure_selinux_mode in ['permissive', 'disabled']) or
+      (__sap_general_preconfigure_fact_selinux_mode == 'permissive' and
+       sap_general_preconfigure_selinux_mode == 'disabled')
+
+- name: Set fact for possible failure of current config mode
+  ansible.builtin.set_fact:
+    __sap_general_preconfigure_fact_failed_selinux_config_mode: true
+  when:
+    - (__sap_general_preconfigure_fact_selinux_config_mode == 'enforcing' and
+       sap_general_preconfigure_selinux_mode in ['permissive', 'disabled']) or
+      (__sap_general_preconfigure_fact_selinux_config_mode == 'permissive' and
+       sap_general_preconfigure_selinux_mode == 'disabled')
+
+- name: Fail if the SELinux mode is lower than the currently active mode or the current config mode
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The desired SELinux mode, '{{ sap_general_preconfigure_selinux_mode }}',
+            is lower than the currently active mode, '{{ __sap_general_preconfigure_fact_selinux_mode }}', or
+            the current config mode, '{{ __sap_general_preconfigure_fact_selinux_config_mode }}'!
+  when:
+    - sap_general_preconfigure_fail_if_selinux_mode_lowered
+    - __sap_general_preconfigure_fact_failed_selinux_mode | d(false) or
+      __sap_general_preconfigure_fact_failed_selinux_config_mode | d(false)
+
+- name: Warn if the SELinux mode is lower than the currently active mode or the current config mode
+  ansible.builtin.debug:
+    msg: |
+      WARN: The desired SELinux mode, '{{ sap_general_preconfigure_selinux_mode }}',
+            is lower than the currently active mode, '{{ __sap_general_preconfigure_fact_selinux_mode }}', or
+            the current config mode, '{{ __sap_general_preconfigure_fact_selinux_config_mode }}'!
+  when:
+    - not sap_general_preconfigure_fail_if_selinux_mode_lowered
+    - __sap_general_preconfigure_fact_failed_selinux_mode | d(false) or
+      __sap_general_preconfigure_fact_failed_selinux_config_mode | d(false)
+
+- name: Set SELinux mode to '{{ sap_general_preconfigure_selinux_mode }}' in /etc/selinux/config
   ansible.builtin.lineinfile:
     path: /etc/selinux/config
     regexp: ^SELINUX\s*=.*
-    line: "SELINUX={{ sap_general_preconfigure_selinux_state }}"
+    line: "SELINUX={{ sap_general_preconfigure_selinux_mode }}"
     state: present
-  register: __sap_general_preconfigure_register_selinux_config_state_changed
+  register: __sap_general_preconfigure_register_selinux_config_mode_changed
   notify: __sap_general_preconfigure_reboot_handler
 
 - name: Set SELinux type to 'targeted' in /etc/selinux/config
@@ -19,29 +78,19 @@
   register: __sap_general_preconfigure_register_selinux_config_type_changed
   notify: __sap_general_preconfigure_reboot_handler
 
-# Set a new SELinux mode variable to the SELinux status if 'disabled' or otherwise to
-# the value of the 'mode' member ('permissive' or 'enforcing')
-- name: SELinux - Set an SELinux mode variable
-  ansible.builtin.set_fact:
-    __sap_general_preconfigure_fact_selinux_mode: "{{ (ansible_selinux.status == 'disabled') | ternary(ansible_selinux.status, ansible_selinux.mode) }}"
-
-- name: SELinux - Display the current SELinux mode or status
-  ansible.builtin.debug:
-    var: __sap_general_preconfigure_fact_selinux_mode
-
 # Reason for noqa: We need to notify a handler in another role, which is not possible from a handler in the current role
 - name: SELinux - Set the flag that reboot is needed to apply changes # noqa no-handler
   ansible.builtin.set_fact:
     sap_general_preconfigure_fact_reboot_required: true
-  when: __sap_general_preconfigure_register_selinux_config_state_changed.changed or
+  when: __sap_general_preconfigure_register_selinux_config_mode_changed.changed or
         __sap_general_preconfigure_register_selinux_config_type_changed.changed or
-        __sap_general_preconfigure_fact_selinux_mode != sap_general_preconfigure_selinux_state
+        __sap_general_preconfigure_fact_selinux_mode != sap_general_preconfigure_selinux_mode
 
 - name: SELinux - Call Reboot handler if necessary
   ansible.builtin.command: /bin/true
   notify: __sap_general_preconfigure_reboot_handler
   changed_when: false
-  when: __sap_general_preconfigure_fact_selinux_mode != sap_general_preconfigure_selinux_state
+  when: __sap_general_preconfigure_fact_selinux_mode != sap_general_preconfigure_selinux_mode
 
 - name: Set or unset SELinux kernel parameter, RHEL >= 8
   when:
@@ -57,7 +106,7 @@
 
     - name: Disable SELinux on the kernel command line, RHEL >= 8
       when:
-        - sap_general_preconfigure_selinux_state == 'disabled'
+        - sap_general_preconfigure_selinux_mode == 'disabled'
         - __sap_general_preconfigure_register_grubby_info_all_selinux.stdout.split(' ').1 !=
           __sap_general_preconfigure_register_grubby_info_all_selinux.stdout.split(' ').0
       block:
@@ -77,8 +126,8 @@
 
     - name: Enable SELinux on the kernel command line, RHEL >= 8
       when:
-        - sap_general_preconfigure_selinux_state == 'enforcing' or
-          sap_general_preconfigure_selinux_state == 'permissive'
+        - sap_general_preconfigure_selinux_mode == 'enforcing' or
+          sap_general_preconfigure_selinux_mode == 'permissive'
         - __sap_general_preconfigure_register_grubby_info_all_selinux.stdout.split(' ').1 != '0'
       block:
 
@@ -117,5 +166,5 @@
       - "{{ sap_general_preconfigure_sap_directories }}"
   when:
     - sap_general_preconfigure_modify_selinux_labels
-    - sap_general_preconfigure_selinux_state != 'disabled'
+    - sap_general_preconfigure_selinux_mode != 'disabled'
     - __sap_general_preconfigure_fact_selinux_mode != 'disabled'
