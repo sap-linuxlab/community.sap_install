@@ -24,160 +24,232 @@ __sap_ha_pacemaker_cluster_repos:
 # NWAS:
 #   SLES: https://docs.aws.amazon.com/sap/latest/sap-netweaver/sles-netweaver-ha-cluster-resources.html#create-stonith
 #   RHEL: https://docs.aws.amazon.com/sap/latest/sap-netweaver/rhel-netweaver-ha-cluster-resources.html#create-stonith
+# NOTE: Versions must be string for keys to work.
 
 __sap_ha_pacemaker_cluster_stonith_default_dict:
-  redhat_hana:
-    id: "rsc_fence_aws"
-    agent: "stonith:fence_aws"
-    instance_attrs:
-      - attrs:
-          # String of cluster hosts defined in include_vars_platform
-          - name: pcmk_host_map
-            value: "{{ __sap_ha_pacemaker_cluster_pcmk_host_map }}"
-          - name: pcmk_delay_max
-            value: 45
-          - name: power_timeout
-            value: 600
-          # It is recommended to disable default reboot action for Production environment or when manual investigation is required.
-          - name: pcmk_reboot_action
-            value: 'off'
-          - name: pcmk_reboot_timeout
-            value: 600
-          - name: pcmk_reboot_retries
-            value: 4
-          # AWS Credentials are not defined here, because they override attached
-          # IAM Role or IAM Instance Profile
-          # - name: access_key
-          #   value: "{{ sap_ha_pacemaker_cluster_aws_access_key_id }}"
-          # - name: secret_key
-          #   value: "{{ sap_ha_pacemaker_cluster_aws_secret_access_key }}"
-          # - name: region
-          #   value: "{{ sap_ha_pacemaker_cluster_aws_region }}"
-    operations:
-      - action: start
-        attrs:
-          - name: timeout
-            value: 600
-      - action: monitor
-        attrs:
-          - name: interval
-            value: 300
-          - name: timeout
-            value: 60
+  redhat:
+    default:  # default for all versions
+      hana:
+        id: "rsc_fence_aws"
+        agent: "stonith:fence_aws"
+        instance_attrs:
+          - attrs:
+              # String of cluster hosts defined in include_vars_platform
+              - name: pcmk_host_map
+                value: "{{ __sap_ha_pacemaker_cluster_pcmk_host_map }}"
+              - name: pcmk_delay_max
+                value: 45
+              - name: power_timeout
+                value: 600
+              # Parameter 'pcmk_reboot_action' is removed as documentations rely on default value. Default: 'reboot'.
+              - name: pcmk_reboot_timeout
+                value: 600
+              - name: pcmk_reboot_retries
+                value: 4
+              # AWS Credentials are not defined here, because they override attached
+              # IAM Role or IAM Instance Profile
+              # - name: access_key
+              #   value: "{{ sap_ha_pacemaker_cluster_aws_access_key_id }}"
+              # - name: secret_key
+              #   value: "{{ sap_ha_pacemaker_cluster_aws_secret_access_key }}"
+              # - name: region
+              #   value: "{{ sap_ha_pacemaker_cluster_aws_region }}"
+        operations:
+          - action: start
+            attrs:
+              - name: timeout
+                value: 600
+          - action: monitor
+            attrs:
+              - name: interval
+                value: 300
+              - name: timeout
+                value: 60
 
-  redhat_nwas:
-    id: "rsc_fence_aws"
-    agent: "stonith:fence_aws"
-    instance_attrs:
-      - attrs:
-          # String of cluster hosts defined in include_vars_platform
-          - name: pcmk_host_map
-            value: "{{ __sap_ha_pacemaker_cluster_pcmk_host_map }}"
-          - name: pcmk_delay_max
-            value: 30
-          - name: power_timeout
-            value: 240
-          # It is recommended to disable default reboot action for Production environment or when manual investigation is required.
-          - name: pcmk_reboot_action
-            value: 'off'
-          - name: pcmk_reboot_timeout
-            value: 300
-          - name: pcmk_reboot_retries
-            value: 2
-    operations:
-      - action: start
-        attrs:
-          - name: timeout
-            value: 180
-      - action: stop
-        attrs:
-          - name: timeout
-            value: 180
-      - action: monitor
-        attrs:
-          - name: interval
-            value: 180
-          - name: timeout
-            value: 60
+      nwas:
+        id: "rsc_fence_aws"
+        agent: "stonith:fence_aws"
+        instance_attrs:
+          - attrs:
+              # String of cluster hosts defined in include_vars_platform
+              - name: pcmk_host_map
+                value: "{{ __sap_ha_pacemaker_cluster_pcmk_host_map }}"
+              - name: pcmk_delay_max
+                value: 30
+              - name: power_timeout
+                value: 240
+              # Parameter 'pcmk_reboot_action' is removed as documentations rely on default value. Default: 'reboot'.
+              - name: pcmk_reboot_timeout
+                value: 300
+              - name: pcmk_reboot_retries
+                value: 2
+        operations:
+          - action: start
+            attrs:
+              - name: timeout
+                value: 180
+          - action: stop
+            attrs:
+              - name: timeout
+                value: 180
+          - action: monitor
+            attrs:
+              - name: interval
+                value: 180
+              - name: timeout
+                value: 60
 
-  # SUSE Recommends stonith:external/ec2 instead of fence_aws
-  suse_hana:
-    id: "rsc_fence_aws"
-    agent: "stonith:external/ec2"
-    instance_attrs:
-      - attrs:
-          - name: pcmk_delay_max
-            value: 45
-          - name: tag
-            value: "pacemaker"  # tag instance with pacemaker: {{ ansible_hostname }}
-          # Use AWS config profile if AWS credentials are used.
-          # - name: profile
-          #   value: cluster
-    meta_attrs:
-      - attrs:
-          - name: target-role
-            value: Started
-    operations:
-      - action: start
-        attrs:
-          - name: interval
-            value: 0
-          - name: timeout
-            value: 180
-      - action: stop
-        attrs:
-          - name: interval
-            value: 0
-          - name: timeout
-            value: 180
-      - action: monitor
-        attrs:
-          - name: interval
-            value: 120
-          - name: timeout
-            value: 60
+  suse:
+    # SLES 15 uses stonith:external/ec2 instead of fence_aws.
+    '15':  # SLES_SAP 15
+      hana:
+        id: "rsc_fence_aws"
+        agent: "stonith:external/ec2"
+        instance_attrs:
+          - attrs:
+              - name: pcmk_delay_max
+                value: 45
+              - name: tag
+                value: "pacemaker"  # tag instance with pacemaker: {{ ansible_hostname }}
+              # Use AWS config profile if AWS credentials are used.
+              # - name: profile
+              #   value: cluster
+        meta_attrs:
+          - attrs:
+              - name: target-role
+                value: Started
+        operations:
+          - action: start
+            attrs:
+              - name: interval
+                value: 0
+              - name: timeout
+                value: 180
+          - action: stop
+            attrs:
+              - name: interval
+                value: 0
+              - name: timeout
+                value: 180
+          - action: monitor
+            attrs:
+              - name: interval
+                value: 120
+              - name: timeout
+                value: 60
 
-  suse_nwas:
-    id: "rsc_fence_aws"
-    agent: "stonith:external/ec2"
-    instance_attrs:
-      - attrs:
-          - name: pcmk_delay_max
-            value: 30
-          - name: tag
-            value: "pacemaker"  # tag instance with pacemaker: {{ ansible_hostname }}
-          # Use AWS config profile if AWS credentials are used.
-          # - name: profile
-          #   value: cluster
-    meta_attrs:
-      - attrs:
-          - name: target-role
-            value: Started
-    operations:
-      - action: start
-        attrs:
-          - name: interval
-            value: 0
-          - name: timeout
-            value: 180
-      - action: stop
-        attrs:
-          - name: interval
-            value: 0
-          - name: timeout
-            value: 180
-      - action: monitor
-        attrs:
-          - name: interval
-            value: 120
-          - name: timeout
-            value: 60
+      nwas:
+        id: "rsc_fence_aws"
+        agent: "stonith:external/ec2"
+        instance_attrs:
+          - attrs:
+              - name: pcmk_delay_max
+                value: 30
+              - name: tag
+                value: "pacemaker"  # tag instance with pacemaker: {{ ansible_hostname }}
+              # Use AWS config profile if AWS credentials are used.
+              # - name: profile
+              #   value: cluster
+        meta_attrs:
+          - attrs:
+              - name: target-role
+                value: Started
+        operations:
+          - action: start
+            attrs:
+              - name: interval
+                value: 0
+              - name: timeout
+                value: 180
+          - action: stop
+            attrs:
+              - name: interval
+                value: 0
+              - name: timeout
+                value: 180
+          - action: monitor
+            attrs:
+              - name: interval
+                value: 120
+              - name: timeout
+                value: 60
+
+    # Agent 'stonith:external/ec2' was removed in SLES 16, use 'fence_aws' instead.
+    '16':  # SLES_SAP 16
+      hana:
+        id: "rsc_fence_aws"
+        agent: "stonith:fence_aws"
+        instance_attrs:
+          - attrs:
+              # String of cluster hosts defined in include_vars_platform
+              - name: pcmk_host_map
+                value: "{{ __sap_ha_pacemaker_cluster_pcmk_host_map }}"
+              - name: pcmk_delay_max
+                value: 45
+              - name: power_timeout
+                value: 600
+              # Parameter 'pcmk_reboot_action' is removed as documentations rely on default value. Default: 'reboot'.
+              - name: pcmk_reboot_timeout
+                value: 600
+              - name: pcmk_reboot_retries
+                value: 4
+        operations:
+          - action: start
+            attrs:
+              - name: timeout
+                value: 600
+          - action: monitor
+            attrs:
+              - name: interval
+                value: 300
+              - name: timeout
+                value: 60
+
+      nwas:
+        id: "rsc_fence_aws"
+        agent: "stonith:fence_aws"
+        instance_attrs:
+          - attrs:
+              # String of cluster hosts defined in include_vars_platform
+              - name: pcmk_host_map
+                value: "{{ __sap_ha_pacemaker_cluster_pcmk_host_map }}"
+              - name: pcmk_delay_max
+                value: 30
+              - name: power_timeout
+                value: 240
+              # Parameter 'pcmk_reboot_action' is removed as documentations rely on default value. Default: 'reboot'.
+              - name: pcmk_reboot_timeout
+                value: 300
+              - name: pcmk_reboot_retries
+                value: 2
+        operations:
+          - action: start
+            attrs:
+              - name: timeout
+                value: 180
+          - action: stop
+            attrs:
+              - name: timeout
+                value: 180
+          - action: monitor
+            attrs:
+              - name: interval
+                value: 180
+              - name: timeout
+                value: 60
+
+# Set helper variables to simplify default stonith selection.
+__sap_ha_pacemaker_cluster_stonith_version:
+  "{{ ansible_distribution_major_version if ansible_os_family == 'Suse' else 'default' }}"
+
+__sap_ha_pacemaker_cluster_stonith_type:
+  "{{ 'hana' if (sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | list | length > 0) else 'nwas' }}"
 
 # Select __sap_ha_pacemaker_cluster_stonith_default
+# This structure can be adjusted in future if more combinations are needed.
+# Current levels are: OS Family -> Major Version -> Type
 __sap_ha_pacemaker_cluster_stonith_default:
-  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict[ansible_os_family | lower ~ '_hana']
-    if sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
-   else __sap_ha_pacemaker_cluster_stonith_default_dict[ansible_os_family | lower ~ '_nwas'] }}"
+  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict[ansible_os_family | lower][__sap_ha_pacemaker_cluster_stonith_version][__sap_ha_pacemaker_cluster_stonith_type] }}"
 
 
 # Default corosync options - Platform specific

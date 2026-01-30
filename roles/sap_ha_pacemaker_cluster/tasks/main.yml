@@ -50,9 +50,16 @@
   ansible.builtin.import_tasks: construct_vars_common.yml
   tags: pre_ha_cluster
 
-- name: "SAP HA Prepare Pacemaker - Include variable construction for STONITH resources"
+# STONITH tasks are split to allow for full user override using 'sap_ha_pacemaker_cluster_stonith_custom'.
+- name: "SAP HA Prepare Pacemaker - Include variable construction for default STONITH resources"
   ansible.builtin.import_tasks: construct_vars_stonith.yml
   tags: pre_ha_cluster
+  when: sap_ha_pacemaker_cluster_stonith_custom is not defined
+
+- name: "SAP HA Prepare Pacemaker - Include variable construction for custom STONITH resources"
+  ansible.builtin.import_tasks: construct_vars_stonith_custom.yml
+  tags: pre_ha_cluster
+  when: sap_ha_pacemaker_cluster_stonith_custom is defined
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for VIP resources"
   ansible.builtin.import_tasks: include_construct_vip_resources.yml

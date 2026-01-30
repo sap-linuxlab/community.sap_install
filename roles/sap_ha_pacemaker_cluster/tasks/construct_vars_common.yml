@@ -70,39 +70,26 @@
 
 # __sap_ha_pacemaker_cluster_fence_agent_packages loaded from ha_cluster is not included,
 # because it would still not be used due to precedence.
-# TODO: Remove Tech debt conditionals in future for deprecated var 'sap_ha_pacemaker_cluster_fence_agent_minimal_packages'
 - name: "SAP HA Prepare Pacemaker - Combine fence agent packages lists"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_fence_agent_packages: "{{
-      (__sap_ha_pacemaker_cluster_fence_agent_packages_minimal_combined
+      (__sap_ha_pacemaker_cluster_fence_agent_packages_minimal
       + __sap_ha_pacemaker_cluster_fence_agent_packages_platform
       + sap_ha_pacemaker_cluster_fence_agent_packages)
       | unique }}"
-  vars:
-    # Tech debt for sap_ha_pacemaker_cluster_fence_agent_minimal_packages
-    __sap_ha_pacemaker_cluster_fence_agent_packages_minimal_combined:
-      "{{ __sap_ha_pacemaker_cluster_fence_agent_packages_minimal
-       + sap_ha_pacemaker_cluster_fence_agent_minimal_packages
-        if (sap_ha_pacemaker_cluster_fence_agent_minimal_packages is defined
-          and sap_ha_pacemaker_cluster_fence_agent_minimal_packages | length > 0
-          and sap_ha_pacemaker_cluster_fence_agent_minimal_packages is iterable)
-        else __sap_ha_pacemaker_cluster_fence_agent_packages_minimal }}"
-
 
 # Prepare cluster properties variable with either:
-# - User provided 'sap_ha_pacemaker_cluster_cluster_properties' if defined and not empty.
+# - User provided 'sap_ha_pacemaker_cluster_cluster_properties' if defined.
 # - Platform specific defaults, if defined.
 # - OS specific defaults.
-# If the variable 'ha_cluster_properties' is defined, it will append only missing keys.
+# Combine prioritizes platform specific over OS specific.
 - name: "SAP HA Prepare Pacemaker - Prepare cluster properties variable"
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_cluster_properties:
       "{{ sap_ha_pacemaker_cluster_cluster_properties
-        if sap_ha_pacemaker_cluster_cluster_properties is defined and sap_ha_pacemaker_cluster_cluster_properties | length > 0
-        else (__sap_ha_pacemaker_cluster_cluster_properties_platform
-          if __sap_ha_pacemaker_cluster_cluster_properties_platform is defined
-          else __sap_ha_pacemaker_cluster_cluster_properties_default) }}"
-
+        if sap_ha_pacemaker_cluster_cluster_properties is defined
+        else __sap_ha_pacemaker_cluster_cluster_properties_default | d({})
+          | combine(__sap_ha_pacemaker_cluster_cluster_properties_platform | d({})) }}"
 
 # Prepare corosync totem variable with either:
 # - User provided 'sap_ha_pacemaker_cluster_corosync_totem' if present
