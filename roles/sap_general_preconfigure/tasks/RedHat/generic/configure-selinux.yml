@@ -7,13 +7,25 @@
     __sap_general_preconfigure_fact_selinux_mode: "{{ ((ansible_facts['selinux']).status == 'disabled') | ternary((ansible_facts['selinux']).status, (ansible_facts['selinux']).mode) }}"
     __sap_general_preconfigure_fact_selinux_config_mode: "{{ ((ansible_facts['selinux']).status == 'disabled') | ternary((ansible_facts['selinux']).status, (ansible_facts['selinux']).config_mode) }}"
 
+# Going from disabled to enforcing is not supported, see the 'Using SELinux' RHEL product documentation
+# and Red Hat Bug 2021835.
+- name: Fail if the currently active SELinux mode is 'disabled' and the role is configured for 'enforcing'
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The currently active mode is '{{ __sap_general_preconfigure_fact_selinux_mode }}'. A direct
+            transition to 'enforcing' is not supported. Recommendation:
+            Run the role with 'sap_general_preconfigure_selinux_mode' set to 'permissive', reboot, then
+            run it again with 'sap_general_preconfigure_selinux_mode' set to 'enforcing'.
+  when:
+    - __sap_general_preconfigure_fact_selinux_mode == 'disabled'
+    - sap_general_preconfigure_selinux_mode == 'enforcing'
+
 - name: Set fact for possible failure of currently active mode
   ansible.builtin.set_fact:
     __sap_general_preconfigure_fact_failed_selinux_mode: true
   when:
-    - (__sap_general_preconfigure_fact_selinux_mode == 'enforcing' and (
-       sap_general_preconfigure_selinux_mode == 'permissive' or
-       sap_general_preconfigure_selinux_mode == 'disabled')) or
+    - (__sap_general_preconfigure_fact_selinux_mode == 'enforcing' and
+       sap_general_preconfigure_selinux_mode in ['permissive', 'disabled']) or
       (__sap_general_preconfigure_fact_selinux_mode == 'permissive' and
        sap_general_preconfigure_selinux_mode == 'disabled')
 
@@ -21,11 +33,10 @@
   ansible.builtin.set_fact:
     __sap_general_preconfigure_fact_failed_selinux_config_mode: true
   when:
-    - (__sap_general_preconfigure_fact_selinux_config_mode == 'enforcing' and (
-        sap_general_preconfigure_selinux_mode == 'permissive' or
-        sap_general_preconfigure_selinux_mode == 'disabled')) or
-       (__sap_general_preconfigure_fact_selinux_config_mode == 'permissive' and
-        sap_general_preconfigure_selinux_mode == 'disabled')
+    - (__sap_general_preconfigure_fact_selinux_config_mode == 'enforcing' and
+       sap_general_preconfigure_selinux_mode in ['permissive', 'disabled']) or
+      (__sap_general_preconfigure_fact_selinux_config_mode == 'permissive' and
+       sap_general_preconfigure_selinux_mode == 'disabled')
 
 - name: Fail if the SELinux mode is lower than the currently active mode or the current config mode
   ansible.builtin.fail:

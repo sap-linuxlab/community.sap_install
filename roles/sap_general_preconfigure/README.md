@@ -354,6 +354,8 @@ Can be useful if you want to implement your own reboot handling.<br>
   - `disabled`
 
 One of the three SELinux modes to be set on the system.<br>
+Note: A transition from `disabled` to `enforcing` is not supported, see the `Using SELinux` RHEL product documentation<br>
+and Red Hat Bug 2021835.<br>
 
 ### sap_general_preconfigure_fail_if_selinux_mode_lowered
 - _Type:_ `bool`
