@@ -308,7 +308,7 @@ Steps:
 3. Apply SAP HANA license if the variable `sap_hana_install_apply_license` is set to `true`, for new installations.
 4. Recreate the initial tenant database if the variable `sap_hana_install_recreate_tenant_database` is set to `true`, for new installations.
 5. Set expiration of unix users to `never` if the variable `sap_hana_install_set_sidadm_noexpire` is set to `true`, for new installations.
-6. Apply firewall rules if the variable `sap_hana_install_update_firewall` is set to `true`.
+6. Apply firewall rules if the variable `sap_hana_install_configure_firewall` is set to `true`.
 7. Apply SELinux policies if the variable `sap_hana_install_configure_selinux` is set to `true`.
 8. (Red Hat specific) Configure `fapolicyd` if the variable `sap_hana_install_configure_fapolicyd` is set to `true`.
 Additionally, if `sap_hana_install_enable_fapolicyd` is set to `true`, also enable and start the `fapolicyd` service.
@@ -324,7 +324,7 @@ Steps:
 
 1. Update Secure User Store configuration (`hdbuserstore`) for `<sid>adm` user, for new hosts.
 5. Set expiration of unix users to `never` if the variable `sap_hana_install_set_sidadm_noexpire` is set to `true`, for new hosts.
-6. Apply firewall rules if the variable `sap_hana_install_update_firewall` is set to `true`.
+6. Apply firewall rules if the variable `sap_hana_install_configure_firewall` is set to `true`.
 7. Apply SELinux policies if the variable `sap_hana_install_configure_selinux` is set to `true`.
 8. (Red Hat specific) Configure `fapolicyd` if the variable `sap_hana_install_configure_fapolicyd` is set to `true`.
 Additionally, if `sap_hana_install_enable_fapolicyd` is set to `true`, also enable and start the `fapolicyd` service.
@@ -527,15 +527,19 @@ Default is `True`, in which case fresh SAP HANA installation will be performed.
 If the following variable is specified, the role will perform a scaleout installation or it will add additional hosts to an existing SAP HANA system.</br>
 Example: `sap_hana_install_addhosts: 'host2:role=worker,host3:role=worker:group=g02,host4:role=standby:group=g02',host5`.
 
-### sap_hana_install_update_firewall
+### sap_hana_install_configure_firewall
 
 - _Type:_ `bool`
 - _Default:_ `False`
 
-The role can be configured to also set the required firewall ports for SAP HANA. If this is desired, set the variable `sap_hana_install_update_firewall` to `true` (default is `false`).</br>
-The firewall ports are defined in a variable which is compatible with the variable structure used by Linux System Role `firewall`.</br>
-The firewall ports for SAP HANA are defined in member `port` of the first field of variable `sap_hana_install_firewall` (`sap_hana_install_firewall[0].port`), see file `defaults/main.yml`.</br>
-If the member `state` is set to `enabled`, the ports will be enabled. If the member `state` is set to `disabled`, the ports will be disabled, which might be useful for testing.</br>
+Set this variable to `true` to configure the required firewall ports for SAP HANA (default is `false`).</br>
+This configuration includes installing the `firewalld` package and starting the service.<br>
+Configuration can be customized by variable `sap_hana_install_firewall_ports`:<br>
+- If not defined, a Firewalld service definition is created with the recommended ports.<br>
+- If defined, the specified ports are opened directly and no service definition is created.<br>
+Note: Setting this variable to `false` does not remove any existing firewall configuration.<br>
+For ongoing firewall management after installation, consider using the `community.sap_operations.sap_firewall` role or the `firewall` Linux System Role.</br>
+
 
 Certain parameters have identical meanings, for supporting different naming schemes in playbooks and inventories.</br>
 You can find those in the task `Rename some variables used by hdblcm configfile` of the file `tasks/main.yml`.</br>

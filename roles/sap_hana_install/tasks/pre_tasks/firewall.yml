@@ -1,0 +1,124 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP HANA - Pre-Tasks - Firewall - Install packages
+  ansible.builtin.package:
+    name: "{{ __sap_hana_install_firewall_packages + __sap_hana_install_firewall_extra_packages }}"
+    state: present
+
+- name: SAP HANA - Pre-Tasks - Firewall - Start and enable firewalld service
+  ansible.builtin.systemd_service:
+    name: firewalld
+    state: started
+    enabled: true
+    masked: false
+
+
+# Validate firewall zone if defined
+- name: Block for validation of firewall zone
+  when: sap_hana_install_firewall_zone is defined
+  block:
+    - name: SAP HANA - Pre-Tasks - Firewall - Get list of configured zones from firewalld
+      ansible.builtin.command:
+        cmd: firewall-cmd --get-zones
+      register: __sap_hana_install_register_firewall_zones
+      changed_when: false
+
+    - name: SAP HANA - Pre-Tasks - Firewall - Assert that the firewall zone is available
+      ansible.builtin.assert:
+        that:
+          - sap_hana_install_firewall_zone in __sap_hana_install_register_firewall_zones.stdout.split()
+        success_msg: |
+          PASS: The zone '{{ sap_hana_install_firewall_zone }}' is present in firewalld.
+        fail_msg: |
+          FAIL: The zone '{{ sap_hana_install_firewall_zone }}' is not preset in firewalld.
+          Available zones: {{ __sap_hana_install_register_firewall_zones.stdout }}
+        quiet: true
+
+
+- name: Block for service
+  when: sap_hana_install_firewall_ports | d([]) | length == 0
+  block:
+    - name: SAP HANA - Pre-Tasks - Firewall - Create temporary file for generation
+      ansible.builtin.tempfile:
+        state: file
+        suffix: _sap_hana_install_firewall_service
+      register: __sap_hana_install_register_service_tempfile
+
+    - name: SAP HANA - Pre-Tasks - Firewall - Generate service file from template
+      ansible.builtin.template:
+        src: firewall-hana.j2
+        dest: "{{ __sap_hana_install_register_service_tempfile.path }}"
+        mode: '0640'
+
+    - name: SAP HANA - Pre-Tasks - Firewall - Copy new service file to destination
+      ansible.builtin.copy:
+        src: "{{ __sap_hana_install_register_service_tempfile.path }}"
+        dest: "/etc/firewalld/services/{{ __sap_hana_install_firewall_service_name }}.xml"
+        owner: 'root'
+        group: 'root'
+        mode: '0640'
+        remote_src: true
+      register: __sap_hana_install_register_firewall_copy_service
+      changed_when: __sap_hana_install_register_firewall_copy_service.changed
+
+    - name: SAP HANA - Pre-Tasks - Firewall - Reload firewalld after creating service file
+      ansible.builtin.command:
+        cmd: firewall-cmd --reload
+      changed_when: true
+
+    - name: SAP HANA - Pre-Tasks - Firewall - Configure service in firewall
+      ansible.builtin.command:
+        cmd: >-
+          firewall-cmd
+          {% if sap_hana_install_firewall_zone is defined %}
+          --zone={{ sap_hana_install_firewall_zone }}
+          {% endif %}
+          --permanent
+          --add-service={{ __sap_hana_install_firewall_service_name }}
+      register: __sap_hana_install_register_firewall_add_service
+      changed_when: true
+
+    - name: SAP HANA - Pre-Tasks - Firewall - Remove temporary service file
+      ansible.builtin.file:
+        path: "{{ __sap_hana_install_register_service_tempfile.path }}"
+        state: absent
+
+
+- name: Block for ports
+  when: sap_hana_install_firewall_ports | d([]) | length > 0
+  block:
+    - name: SAP HANA - Pre-Tasks - Firewall - Open Ports without service file
+      ansible.builtin.command:
+        cmd: >-
+          firewall-cmd
+          {% if sap_hana_install_firewall_zone is defined %}
+          --zone={{ sap_hana_install_firewall_zone }}
+          {% endif %}
+          --permanent
+          {% for port_item in sap_hana_install_firewall_ports %}
+          --add-port={{ port_item }}
+          {% endfor %}
+      register: __sap_hana_install_register_firewall_add_port
+      changed_when: true
+
+
+- name: SAP HANA - Pre-Tasks - Firewall - Reload firewalld after applying changes
+  ansible.builtin.command:
+    cmd: firewall-cmd --reload
+  changed_when: true
+
+- name: SAP HANA - Pre-Tasks - Firewall - Get current firewall configuration of the default zone
+  ansible.builtin.command:
+    cmd: firewall-cmd --list-all
+  changed_when: false
+  register: __sap_hana_install_register_current_firewall_configuration
+
+
+- name: SAP HANA - Pre-Tasks - Firewall - Show details of configured firewall
+  ansible.builtin.debug:
+    msg: |
+      Firewall was configured for SAP HANA and reloaded.
+      Output of command 'firewall-cmd --list-all':
+      {{ __sap_hana_install_register_current_firewall_configuration.stdout }}
+  when: __sap_hana_install_register_current_firewall_configuration.stdout is defined
