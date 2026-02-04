@@ -201,4 +201,17 @@ If not specified, the default HANA backup location is used.</br>
 Required sub-directories (`SYSTEMDB` and `DB_<SID>`) will be created automatically within this path</br>
 The backup created will have a file prefix of `<SID>_PRE_HSR_<TIMESTAMP>`.</br>
 
+### sap_ha_install_hana_hsr_configure_firewall
+
+- _Type:_ `bool`
+- _Default:_ `False`
+
+Set this variable to `true` to configure the required firewall ports for SAP HANA (default is `false`).</br>
+This configuration includes installing the `firewalld` package and starting the service.<br>
+Configuration can be customized by variable `sap_ha_install_hana_hsr_firewall_ports`:<br>
+- If not defined, a Firewalld service definition is created with the recommended ports.<br>
+- If defined, the specified ports are opened directly and no service definition is created.<br>
+Note: Setting this variable to `false` does not remove any existing firewall configuration.<br>
+For ongoing firewall management after installation, consider using the `community.sap_operations.sap_firewall` role or the `firewall` Linux System Role.</br>
+
 <!-- END Role Variables -->
