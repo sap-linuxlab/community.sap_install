@@ -1,0 +1,84 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Platform
+- name: "SAP HA Install Pacemaker - Include platform specific pre-tasks"
+  ansible.builtin.include_tasks:
+    file: "{{ __task_file }}"
+    apply:
+      tags: pre_ha_cluster
+  vars:
+    __task_file: "platform/pre_{{ __sap_ha_pacemaker_cluster_platform }}.yml"
+    __task_file_path: "{{ role_path }}/tasks/pre_tasks/{{ __task_file }}"
+  when: __task_file_path is file
+  tags: pre_ha_cluster
+
+
+# ASCS/ERS
+- name: "SAP HA Install Pacemaker - Include NetWeaver (A)SCS/ERS pre-tasks"
+  ansible.builtin.include_tasks:
+    file: "{{ __task_file }}"
+    apply:
+      tags: pre_ha_cluster
+  vars:
+    __task_file: "pre_nwas_cs_ers.yml"
+    __task_file_path: "{{ role_path }}/tasks/pre_tasks/{{ __task_file }}"
+  when:
+    - __task_file_path is file
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_.*_ers') | length > 0
+  tags: pre_ha_cluster
+
+# TODO: separate pre-steps from variable includes for NW and HANA
+- name: "SAP HA Install Pacemaker - Include NetWeaver ASCS/ERS pre-tasks OS specific"
+  ansible.builtin.include_tasks:
+    file: "{{ __task_file }}"
+    apply:
+      tags: pre_ha_cluster
+  vars:
+    __task_file: "{{ ansible_facts['os_family'] }}/pre_nwas_ascs_ers.yml"
+    __task_file_path: "{{ role_path }}/tasks/pre_tasks/{{ __task_file }}"
+  when:
+    - __task_file_path is file
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas') | length > 0
+
+
+# Stop and disable services that conflict with cluster setups,
+# for instance cloud-init services on cloud platforms
+- name: "SAP HA Install Pacemaker - Stop and disable services"
+  when: sap_ha_pacemaker_cluster_disable_services is defined
+  register: __sap_ha_pacemaker_cluster_disable_services
+  ansible.builtin.service:
+    name: "{{ service_item }}"
+    enabled: false
+    state: stopped
+  loop: "{{ sap_ha_pacemaker_cluster_disable_services }}"
+  loop_control:
+    loop_var: service_item
+    label: "{{ service_item }}"
+  failed_when:
+    - __sap_ha_pacemaker_cluster_disable_services.failed
+    - '"Could not find the requested service" not in __sap_ha_pacemaker_cluster_disable_services.msg'
+  tags: pre_ha_cluster
+
+
+- name: "SAP HA Install Pacemaker - Query if CIB already exists"
+  ansible.builtin.command:
+    cmd: cibadmin --query
+  register: __sap_ha_pacemaker_cluster_cib_query
+  check_mode: false
+  changed_when: false
+  failed_when: false
+  tags: pre_ha_cluster
+
+- name: "SAP HA Install Pacemaker - Create backup of existing CIB"
+  when:
+    - __sap_ha_pacemaker_cluster_cib_query.stdout is defined
+    - __sap_ha_pacemaker_cluster_cib_query.stdout | length > 0
+  ansible.builtin.copy: # noqa template-instead-of-copy
+    backup: true
+    content: "{{ __sap_ha_pacemaker_cluster_cib_query.stdout }}"
+    dest: /root/cib_backup.xml
+    group: root
+    owner: root
+    mode: "0600"
+  tags: pre_ha_cluster

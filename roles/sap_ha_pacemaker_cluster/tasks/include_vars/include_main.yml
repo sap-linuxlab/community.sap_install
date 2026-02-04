@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Scope of variable inclusion and validation:
+# - Data type validation of variables is done by meta/arguments_spec.yml (ansible >= 2.11).
+# - Does not include detection of installed SAP Systems, but it assumes they exist.
+# - Cluster types are validated for correct number of hosts in play.
+
+# Make sure that all parameters already set for 'ha_cluster' are also inherited.
+# Add to this file a task for EACH parameter which this SAP cluster role
+# supports.
+- name: "SAP HA Prepare Pacemaker - Include tasks from 'ha_cluster' role definitions"
+  ansible.builtin.import_tasks:
+    file: import_hacluster_vars_from_inventory.yml
+  tags: always
+
+- name: "SAP HA Prepare Pacemaker - Include facts and common variables"
+  ansible.builtin.import_tasks:
+    file: include_common.yml
+  tags: always
+
+# Determine which SAP landscape we are going to configure in the cluster.
+- name: "SAP HA Prepare Pacemaker - Include tasks for SAP landscape calculation"
+  ansible.builtin.import_tasks:
+    file: detect_sap_landscape.yml
+  tags: always
+
+# Validate input variables after processing in include_vars_ tasks.
+- name: "SAP HA Prepare Pacemaker - Include parameter validation tasks"
+  ansible.builtin.import_tasks:
+    file: validate_input_parameters.yml
+  tags: pre_ha_cluster
+
+# Determine if we are on a cloud platform.
+- name: "SAP HA Prepare Pacemaker - Include tasks for platform detection"
+  ansible.builtin.import_tasks:
+    file: detect_platform_type.yml
+  tags: pre_ha_cluster
+
+- name: "SAP HA Prepare Pacemaker - Include platform specific variables"
+  ansible.builtin.import_tasks:
+    file: include_platform.yml
+  tags: pre_ha_cluster
