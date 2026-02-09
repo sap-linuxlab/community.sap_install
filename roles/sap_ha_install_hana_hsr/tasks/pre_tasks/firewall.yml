@@ -39,28 +39,13 @@
 - name: Block for service
   when: sap_ha_install_hana_hsr_firewall_ports | d([]) | length == 0
   block:
-    - name: SAP HSR - Firewall - Create temporary file for generation
-      ansible.builtin.tempfile:
-        state: file
-        suffix: _sap_ha_install_hana_hsr_firewall_service
-      register: __sap_ha_install_hana_hsr_register_service_tempfile
-
     - name: SAP HSR - Firewall - Generate service file from template
       ansible.builtin.template:
         src: firewall-hana-replication.j2
-        dest: "{{ __sap_ha_install_hana_hsr_register_service_tempfile.path }}"
-        mode: '0640'
-
-    - name: SAP HSR - Firewall - Copy new service file to destination
-      ansible.builtin.copy:
-        src: "{{ __sap_ha_install_hana_hsr_register_service_tempfile.path }}"
         dest: "/etc/firewalld/services/{{ __sap_ha_install_hana_hsr_firewall_service_name }}.xml"
         owner: 'root'
         group: 'root'
         mode: '0640'
-        remote_src: true
-      register: __sap_ha_install_hana_hsr_register_firewall_copy_service
-      changed_when: __sap_ha_install_hana_hsr_register_firewall_copy_service.changed
 
     - name: SAP HSR - Firewall - Reload firewalld after creating service file
       ansible.builtin.command:
@@ -78,11 +63,6 @@
           --add-service={{ __sap_ha_install_hana_hsr_firewall_service_name }}
       register: __sap_ha_install_hana_hsr_register_firewall_add_service
       changed_when: true
-
-    - name: SAP HSR - Firewall - Remove temporary service file
-      ansible.builtin.file:
-        path: "{{ __sap_ha_install_hana_hsr_register_service_tempfile.path }}"
-        state: absent
 
 
 - name: Block for ports
