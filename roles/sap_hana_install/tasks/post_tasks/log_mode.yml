@@ -5,14 +5,14 @@
   ansible.builtin.shell: |
       LD_LIBRARY_PATH=/usr/sap/{{ sap_hana_install_sid }}/HDB{{ sap_hana_install_number }}/exe \
       /usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbsql \
-      -n '{{ ansible_hostname }}' \
+      -n '{{ ansible_facts['hostname'] }}' \
       -i '{{ sap_hana_install_number }}' \
       -d SYSTEMDB \
       -u SYSTEM \
       -p '{{ sap_hana_install_db_system_password | d(sap_hana_install_master_password) }}' \
       -m <<EOF
       ALTER SYSTEM ALTER CONFIGURATION('global.ini', 'SYSTEM') SET ('persistence', 'log_mode') = 'overwrite' WITH RECONFIGURE;
-      ALTER SYSTEM ALTER CONFIGURATION('global.ini', 'HOST', '{{ ansible_hostname }}') SET ('persistence', 'log_mode') = 'overwrite' WITH RECONFIGURE;
+      ALTER SYSTEM ALTER CONFIGURATION('global.ini', 'HOST', '{{ ansible_facts['hostname'] }}') SET ('persistence', 'log_mode') = 'overwrite' WITH RECONFIGURE;
       EOF
   args:
     executable: /bin/bash
@@ -38,14 +38,14 @@
   ansible.builtin.shell: |
       LD_LIBRARY_PATH=/usr/sap/{{ sap_hana_install_sid }}/HDB{{ sap_hana_install_number }}/exe \
       /usr/sap/{{ sap_hana_install_sid }}/SYS/exe/hdb/hdbsql \
-      -n '{{ ansible_hostname }}' \
+      -n '{{ ansible_facts['hostname'] }}' \
       -i '{{ sap_hana_install_number }}' \
       -d SYSTEMDB \
       -u SYSTEM \
       -p '{{ sap_hana_install_db_system_password | d(sap_hana_install_master_password) }}' \
       -m <<EOF
       ALTER SYSTEM ALTER CONFIGURATION('global.ini', 'SYSTEM') SET ('persistence', 'log_mode') = 'overwrite' WITH RECONFIGURE;
-      ALTER SYSTEM ALTER CONFIGURATION('global.ini', 'HOST', '{{ ansible_hostname }}') SET ('persistence', 'log_mode') = 'overwrite' WITH RECONFIGURE;
+      ALTER SYSTEM ALTER CONFIGURATION('global.ini', 'HOST', '{{ ansible_facts['hostname'] }}') SET ('persistence', 'log_mode') = 'overwrite' WITH RECONFIGURE;
       ALTER SYSTEM ALTER CONFIGURATION('global.ini', 'DATABASE', '{{ sap_hana_install_sid }}') SET ('persistence', 'log_mode') = 'overwrite' WITH RECONFIGURE;
       EOF
   args:
