@@ -345,6 +345,16 @@ Define directory where sapinst inifile will be stored.
 
 Set to `false` to disable installation of SAP Hostagent. **Not recommended**
 
+#### sap_swpm_env_vars
+- _Type:_ `dict`
+
+(Optional) Define a dictionary of SHELL environment variables, one per line.</br>
+
+Example:
+
+```yaml
+sap_swpm_env_vars:
+  TMP: /var/tmp
 
 ### Variables specific to SAP Netweaver
 
