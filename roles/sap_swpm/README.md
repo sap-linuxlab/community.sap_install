@@ -355,6 +355,7 @@ Example:
 ```yaml
 sap_swpm_env_vars:
   TMP: /var/tmp
+```
 
 ### Variables specific to SAP Netweaver
 
