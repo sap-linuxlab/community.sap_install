@@ -2,7 +2,7 @@
 ---
 
 - name: SAP SWPM Pre Install - Firewall Setup
-  when: ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
+  when: ansible_facts['virtualization_role'] != "guest" or ansible_facts['virtualization_type'] != "docker"
   block:
 
     # Requirement for package_facts Ansible Module
@@ -10,7 +10,7 @@
       ansible.builtin.package:
         name: python3-rpm
         state: present
-      when: ansible_os_family == "Suse"
+      when: ansible_facts['os_family'] == "Suse"
 
     - name: SAP SWPM Pre Install - Gathering Firewall Facts
       ansible.builtin.package_facts:

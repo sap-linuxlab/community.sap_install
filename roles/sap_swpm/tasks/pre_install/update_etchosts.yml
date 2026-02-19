@@ -15,8 +15,8 @@
     name: '{{ sap_swpm_sap_install_collection }}.sap_maintain_etc_hosts'
   vars:
     sap_maintain_etc_hosts_list:
-      - node_ip: "{{ ansible_default_ipv4.address | d(ansible_all_ipv4_addresses[0]) }}"
-        node_name: "{{ ansible_hostname }}"
+      - node_ip: "{{ ansible_facts['default_ipv4'].address | d(ansible_facts['all_ipv4_addresses'][0]) }}"
+        node_name: "{{ ansible_facts['hostname'] }}"
         node_domain: "{{ sap_swpm_fqdn }}"
         state: present
   when:
@@ -42,7 +42,7 @@
 - name: SAP SWPM Pre Install - Display warning message if '/etc/hosts' will not be configured for HANA because 'sap_swpm_db_host' is the current host
   ansible.builtin.debug:
     msg: "WARN: Not configuring HANA entries in '/etc/hosts' because 'sap_swpm_db_host' is the current host!"
-  when: sap_swpm_db_host == ansible_hostname
+  when: sap_swpm_db_host == ansible_facts['hostname']
 
 - name: SAP SWPM Pre Install - Update '/etc/hosts' for HANA
   ansible.builtin.import_role:
@@ -58,4 +58,4 @@
     - "sap_swpm_db_ip | length > 0"
     - "sap_swpm_db_host | type_debug != 'NoneType'"
     - "sap_swpm_db_host | length > 0"
-    - "sap_swpm_db_host != ansible_hostname"
+    - "sap_swpm_db_host != ansible_facts['hostname']"

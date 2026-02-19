@@ -22,7 +22,7 @@ Managed nodes:
 ### Prepare SAP installation media
 Place a valid SAPCAR executable file in a directory specified by variable `sap_swpm_sapcar_path` (e.g. /software/sapcar). Example: `SAPCAR_1300-70007716.EXE`
 
-Place a valid SWPM SAR file in a directory specified by variable `sap_swpm_swpm_path` (e.g. /software/sap_swpm). Example: `SWPM20SP18_3-80003424.SAR`
+Place a valid SWPM SAR file in a directory specified by variable `sap_swpm_path` (e.g. /software/sap_swpm). Example: `SWPM20SP23_0-80003424.SAR`
 
 Place the following files in a directory specified by variable `sap_swpm_software_path` (e.g. /software/sap_swpm_download_basket):
 
@@ -70,7 +70,7 @@ It is recommended to execute this role together with other roles in this collect
 
 - Get SAPCAR executable filename from `sap_swpm_sapcar_path`
 
-- Get SWPM executable filename from `sap_swpm_swpm_path`
+- Get SWPM executable filename from `sap_swpm_path`
 
 - Get all .SAR filenames  from `sap_swpm_software_path`
 
@@ -322,12 +322,12 @@ Define path to directory with SAPCAR file.
 
 (Optional) Define name of SAPCAR file, or leave for auto-detection.
 
-#### sap_swpm_swpm_path
+#### sap_swpm_path
 - _Type:_ `string`
 
 Define path to directory with SWPM.
 
-#### sap_swpm_swpm_sar_file_name
+#### sap_swpm_sar_file_name
 - _Type:_ `string`
 
 (Optional) Define name of SWPM file, or leave for auto-detection.
@@ -350,6 +350,11 @@ Set to `true` to use SAP Media files instead of SAR files.</br>
 
 Define directory where sapinst inifile will be stored.
 
+#### sap_swpm_command_extra_args
+- _Type:_ `string`
+
+(Optional) Define extra sapinst arguments to be added to the sapinst command line
+
 #### sap_swpm_install_saphostagent
 - _Type:_ `bool`
 - _Default:_ `true`
@@ -367,6 +372,7 @@ Example:
 sap_swpm_env_vars:
   TMP: /var/tmp
 ```
+
 
 ### Variables specific to SAP Netweaver
 
@@ -737,18 +743,12 @@ Define load type parameter `loadType`.
 
 Set to `true` to execute `sap_swpm` role in generic auto-detection mode, ignoring steps for individual detection.
 
-#### sap_swpm_swpm_installation_type
-- _Type:_ `string`
-
-Define installation type method. Available types: `restore`, `ha`, `maint_plan_stack`, `ha_maint_plan_stack`.</br>
-Installation type is auto-detected from `sap_swpm_product_catalog_id`.
-
-#### sap_swpm_swpm_command_virtual_hostname
+#### sap_swpm_command_virtual_hostname
 - _Type:_ `string`
 
 Define to override default virtual hostname `sap_swpm_virtual_hostname` sapinst command used for HA installation.
 
-#### sap_swpm_swpm_command_mp_stack
+#### sap_swpm_command_mp_stack
 - _Type:_ `string`
 
 Define to override default sapinst command parameter for Maintenance Plan stack file.
@@ -820,17 +820,17 @@ Set group ownership for SAPCAR file in `sap_swpm_sapcar_path`.
 - _Type:_ `string`
 - _Default:_ `0644`
 
-Set permissions for all non-SAPCAR files in `sap_swpm_software_path` and for SWPM*.SAR files in `sap_swpm_swpm_path`.
+Set permissions for all non-SAPCAR files in `sap_swpm_software_path` and for SWPM*.SAR files in `sap_swpm_path`.
 
 #### sap_swpm_files_non_sapcar_owner
 - _Type:_ `string`
 - _Default:_ `root`
 
-Set owner for all non-SAPCAR files in `sap_swpm_software_path` and for SWPM*.SAR files in `sap_swpm_swpm_path`.
+Set owner for all non-SAPCAR files in `sap_swpm_software_path` and for SWPM*.SAR files in `sap_swpm_path`.
 
 #### sap_swpm_files_non_sapcar_group
 - _Type:_ `string`
 - _Default:_ `root`
 
-Set group ownership for all non-SAPCAR files in `sap_swpm_software_path` and for SWPM*.SAR files in `sap_swpm_swpm_path`.
+Set group ownership for all non-SAPCAR files in `sap_swpm_software_path` and for SWPM*.SAR files in `sap_swpm_path`.
 <!-- END Role Variables -->

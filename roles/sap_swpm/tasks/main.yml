@@ -1,18 +1,25 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP SWPM - run pre_install tasks
+- name: SAP SWPM - Prepare some variables
+  ansible.builtin.include_tasks:
+    file: pre_tasks/prepare_variables.yml
+    apply:
+      tags: always
+  tags: always
+
+- name: SAP SWPM - Run pre_install tasks
   ansible.builtin.import_tasks: pre_install.yml
   tags:
     - sap_swpm_pre_install
     - sap_swpm_install
 
-- name: SAP SWPM - run swpm
+- name: SAP SWPM - Run swpm
   ansible.builtin.import_tasks: swpm.yml
   when: sap_swpm_run_sapinst
   tags:
     - sap_swpm_install
 
-- name: SAP SWPM - run postinstall task
+- name: SAP SWPM - Run postinstall task
   ansible.builtin.import_tasks: post_install.yml
   when: sap_swpm_run_sapinst
