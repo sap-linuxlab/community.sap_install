@@ -3,10 +3,10 @@
 
 - name: SAP SWPM Pre Install - Determine Installation Type
   ansible.builtin.set_fact:
-    sap_swpm_swpm_installation_type: ""
-    sap_swpm_swpm_installation_header: "Standard installation of SAP Software"
-    sap_swpm_swpm_command_virtual_hostname: ""
-    sap_swpm_swpm_command_mp_stack: ""
+    __sap_swpm_fact_installation_type: ""
+    __sap_swpm_fact_installation_header: "Standard installation of SAP Software"
+    __sap_swpm_fact_command_virtual_hostname: ""
+    __sap_swpm_fact_command_mp_stack: ""
 
 ################
 # Determine Installation Type
@@ -19,22 +19,22 @@
 
 - name: SAP SWPM Pre Install - Check if System Copy (Backup/Restore)
   ansible.builtin.set_fact:
-    sap_swpm_swpm_installation_type: "restore"
-    sap_swpm_swpm_installation_header: "System Copy restore from backup"
+    __sap_swpm_fact_installation_type: "restore"
+    __sap_swpm_fact_installation_header: "System Copy restore from backup"
   when: "'.CP' in sap_swpm_product_catalog_id | string"
 
 - name: SAP SWPM Pre Install - Check if SAP High Availability installation
   ansible.builtin.set_fact:
-    sap_swpm_swpm_installation_type: "ha"
-    sap_swpm_swpm_installation_header: "High Availability Installation using virtual hostname"
+    __sap_swpm_fact_installation_type: "ha"
+    __sap_swpm_fact_installation_header: "High Availability Installation using virtual hostname"
   when: "'.ABAPHA' in sap_swpm_product_catalog_id | string or
          '.HA' in sap_swpm_product_catalog_id | string or
          '.HACP' in sap_swpm_product_catalog_id | string"
 
 - name: SAP SWPM Pre Install - Check if installation using SAP Maintenance Planner
   ansible.builtin.set_fact:
-    sap_swpm_swpm_installation_type: "maint_plan_stack"
-    sap_swpm_swpm_installation_header: "Installing using SAP Maintenance Planner Stack XML"
+    __sap_swpm_fact_installation_type: "maint_plan_stack"
+    __sap_swpm_fact_installation_header: "Installing using SAP Maintenance Planner Stack XML"
   when:
     - sap_swpm_mp_stack_path is defined
     - sap_swpm_mp_stack_path is string
@@ -42,8 +42,8 @@
 
 - name: SAP SWPM Pre Install - Check if SAP High Availability installation and using SAP Maintenance Planner
   ansible.builtin.set_fact:
-    sap_swpm_swpm_installation_type: "ha_maint_plan_stack"
-    sap_swpm_swpm_installation_header: "High Availability Installation using virtual hostname and SAP Maintenance Planner Stack XML"
+    __sap_swpm_fact_installation_type: "ha_maint_plan_stack"
+    __sap_swpm_fact_installation_header: "High Availability Installation using virtual hostname and SAP Maintenance Planner Stack XML"
   when:
     - "'.ABAPHA' in sap_swpm_product_catalog_id | string"
     - sap_swpm_mp_stack_path is defined
@@ -57,22 +57,22 @@
 - name: SAP SWPM Pre Install - Assert installation type is defined (including empty)
   ansible.builtin.assert:
     that:
-      - sap_swpm_swpm_installation_type is defined
+      - __sap_swpm_fact_installation_type is defined
     fail_msg:
-      - "The installation type (variable 'sap_swpm_swpm_installation_type') is not defined!"
+      - "The installation type (variable '__sap_swpm_fact_installation_type') is not defined!"
     success_msg:
-      - "The installation type (variable 'sap_swpm_swpm_installation_type') is defined (including an empty string)."
+      - "The installation type (variable '__sap_swpm_fact_installation_type') is defined (including an empty string)."
 
 - name: SAP SWPM Pre Install - Assert supported installation types
   ansible.builtin.assert:
     that:
-      - sap_swpm_swpm_installation_type == '' or
-        sap_swpm_swpm_installation_type == 'restore' or
-        sap_swpm_swpm_installation_type == 'ha' or
-        sap_swpm_swpm_installation_type == 'maint_plan_stack' or
-        sap_swpm_swpm_installation_type == 'ha_maint_plan_stack'
+      - __sap_swpm_fact_installation_type == '' or
+        __sap_swpm_fact_installation_type == 'restore' or
+        __sap_swpm_fact_installation_type == 'ha' or
+        __sap_swpm_fact_installation_type == 'maint_plan_stack' or
+        __sap_swpm_fact_installation_type == 'ha_maint_plan_stack'
     fail_msg:
-      - "The specified installation type, '{{ sap_swpm_swpm_installation_type }}', is not supported!"
+      - "The specified installation type, '{{ __sap_swpm_fact_installation_type }}', is not supported!"
       - "The following installation types are supported:"
       - "- '' (empty string, the default)"
       - "- 'restore'"
@@ -80,7 +80,7 @@
       - "- 'maint_plan_stack'"
       - "- 'ha_maint_plan_stack'"
     success_msg:
-      - "The specified installation type, '{{ sap_swpm_swpm_installation_type }}', is supported."
+      - "The specified installation type, '{{ __sap_swpm_fact_installation_type }}', is supported."
 
 - name: SAP SWPM Pre Install - Assert that necessary variable for HA is defined
   ansible.builtin.assert:
@@ -88,12 +88,12 @@
     fail_msg: "FAIL: 'sap_swpm_virtual_hostname' is not defined or is defined with an empty string!"
     success_msg: "PASS: 'sap_swpm_virtual_hostname' is defined, as '{{ sap_swpm_virtual_hostname }}'."
   when:
-    - sap_swpm_swpm_installation_type is search('ha')
+    - __sap_swpm_fact_installation_type is search('ha')
 
 ################
 # Installation Type file will not be included if install type is empty (= the default):
 ################
 
 - name: SAP SWPM Pre Install - Run Installation Type Steps
-  ansible.builtin.include_tasks: "install_type/{{ sap_swpm_swpm_installation_type }}_install.yml"
-  when: "sap_swpm_swpm_installation_type | length > 0"
+  ansible.builtin.include_tasks: "install_type/{{ __sap_swpm_fact_installation_type }}_install.yml"
+  when: "__sap_swpm_fact_installation_type | length > 0"
