@@ -428,8 +428,73 @@ sap_swpm_generic: false
 # Set linux user password expiry settings
 sap_swpm_set_sidadm_noexpire: true
 
-# Firewall setup
-sap_swpm_setup_firewall: false
+# Set this variable to `true` to configure the required firewall ports for SAP Netweaver instances.
+# What this configuration includes:
+# - Installation of the `firewalld` package and starting the service.
+# - If `sap_swpm_firewall_ports` is undefined: A Firewalld service definition is created with recommended ports.
+#   Note: `NN` refers to the SAP Instance Number defined in respective variables.
+#   Application instances: PAS, AAS, WD
+#  | Ports | Protocol | Reason |
+#  | --- | --- | --- |
+#  | 1128-1129 | TCP | SAP Host Agent ports for status and metrics communication. |
+#  | 32NN | TCP | SAP Dispatcher (32NN) communication |
+#  | 33NN | TCP | SAP Gateway (33NN) communication |
+#  | 47NN | TCP | SAP Dispatcher (47NN) SNC secured for CPIC and RFC communication. |
+#  | 48NN | TCP | SAP Gateway (48NN) SNC secured for CPIC and RFC communication. |
+#  | 80NN | TCP | SAP Internet Communication Manager (ICM) HTTP port (80NN). Used for non-secure web client access. |
+#  | 443NN | TCP | SAP Internet Communication Manager (ICM) HTTPS port (443NN). Used for secure web client access. |
+#  | 5NN13 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+#  | 5NN14 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+#  | 5NN16 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+#  | 620NN<br>621NN | TCP | JAVA ports (62NNN), commonly used for communication within the AS-Java stack, e.g., P4/P4S protocols. |
+#  Central Services instances: ASCS, SCS, ERS
+#  | Ports | Protocol | Reason |
+#  | --- | --- | --- |
+#  | 1128-1129 | TCP | SAP Host Agent ports for status and metrics communication. |
+#  | 36NN | TCP | SAP Message Server port (36NN). Used for internal communication between application servers. |
+#  | 39NN | TCP | SAP SAP Enqueue Server port (39NN). |
+#  | 81NN | TCP | SAP Message Server HTTP port (81NN), configured via the `ms/http_port_<n>` profile parameter. |
+#  | 5NN13 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+#  | 5NN14 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+#  | 5NN16 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+# - If `sap_swpm_firewall_ports` is defined: The specified ports are opened directly and no service definition is created.
+# Important: This does not include configuration of database services or ports, as they are not directly installed with this role.
+# For example, firewall configuration for SAP HANA can be managed separately in the `sap_hana_install` role.
+# Managing configured Firewall:
+# - Setting this variable to `false` does not remove any existing firewall configuration.
+# - For ongoing firewall management, consider using the `community.sap_operations.sap_firewall` role or the `firewall` Linux System Role.
+sap_swpm_configure_firewall: false
+
+# Optional list of firewall ports.
+# The specified ports are opened directly and no service definition is created.
+# Commented out example 1: Ports that are defined in service file for application instance.
+# sap_swpm_firewall_ports:
+#   - "1128-1129/tcp"  # SAP Host Agent ports for status and metrics communication
+#   - "32{{ sap_swpm_pas_instance_nr }}"  # SAP Dispatcher (32NN) communication.
+#   - "33{{ sap_swpm_pas_instance_nr }}"  # SAP Gateway (33NN) communication.
+#   - "47{{ sap_swpm_pas_instance_nr }}"  # SAP Dispatcher (47NN) SNC secured for CPIC and RFC communication.
+#   - "48{{ sap_swpm_pas_instance_nr }}"  # SAP Gateway (48NN) SNC secured for CPIC and RFC communication.
+#   - "80{{ sap_swpm_pas_instance_nr }}"  # SAP Internet Communication Manager (ICM) HTTP port (80NN).
+#   - "443{{ sap_swpm_pas_instance_nr }}"  # SAP Internet Communication Manager (ICM) HTTPS port (443NN).
+#   - "5{{ sap_swpm_pas_instance_nr }}13"  # SAP Start Service (sapstartsrv) communication.
+#   - "5{{ sap_swpm_pas_instance_nr }}14"  # SAP Start Service (sapstartsrv) communication.
+#   - "5{{ sap_swpm_pas_instance_nr }}16"  # SAP Start Service (sapstartsrv) communication.
+#   - "620{{ sap_swpm_pas_instance_nr }}"  # JAVA ports (620NN)
+#   - "621{{ sap_swpm_pas_instance_nr }}"  # JAVA ports (621NN)
+
+# Commented out example 2: Ports that are defined in service file for central service instance.
+# sap_swpm_firewall_ports:
+#   - "1128-1129/tcp"  # SAP Host Agent ports for status and metrics communication
+#   - "36{{ sap_swpm_ascs_instance_nr }}"  # SAP Message Server port
+#   - "39{{ sap_swpm_ascs_instance_nr }}"  # SAP Enqueue Server port (39NN).
+#   - "81{{ sap_swpm_ascs_instance_nr }}"  # SAP Message Server HTTP port (81NN), configured via ms/http_port_<n> profile parameter.
+#   - "5{{ sap_swpm_ascs_instance_nr }}13"  # SAP Start Service (sapstartsrv) communication.
+#   - "5{{ sap_swpm_ascs_instance_nr }}14"  # SAP Start Service (sapstartsrv) communication.
+#   - "5{{ sap_swpm_ascs_instance_nr }}16"  # SAP Start Service (sapstartsrv) communication.
+
+# Optional name of firewall zone where service or ports will be configured.<br>
+# Default firewall zone, usually `public`, is used if this variable is undefined.
+# sap_swpm_firewall_zone: ''
 
 # Update /etc/hosts
 sap_swpm_update_etchosts: false
