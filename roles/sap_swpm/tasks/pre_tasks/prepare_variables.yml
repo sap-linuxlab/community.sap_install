@@ -3,29 +3,20 @@
 
 # Rename variables while maintaining backwards compatibility
 #
-- name: Rename sap_swpm_swpm variables if found
+- name: SAP SWPM - Rename sap_swpm_swpm variables if found
   ansible.builtin.set_fact:
     sap_swpm_path:
       "{{ sap_swpm_swpm_path | d('')
-      if sap_swpm_path | string | length == 0
-      else sap_swpm_path }}"
+          if sap_swpm_path | string | length == 0
+          else sap_swpm_path }}"
     sap_swpm_sar_file_name:
       "{{ sap_swpm_swpm_sar_file_name | d('')
-      if sap_swpm_sar_file_name | string | length == 0
-      else sap_swpm_sar_file_name }}"
+          if sap_swpm_sar_file_name | string | length == 0
+          else sap_swpm_sar_file_name }}"
     sap_swpm_observer_mode:
-      "{{ sap_swpm_swpm_observer_mode | d(false)
-      if sap_swpm_observer_mode | string | length == 0
-      else sap_swpm_observer_mode }}"
+      "{{ (sap_swpm_observer_mode if sap_swpm_observer_mode is defined
+           else sap_swpm_swpm_observer_mode | default(false)) | bool }}"
     sap_swpm_remote_access_user:
       "{{ sap_swpm_swpm_remote_access_user | d('')
-      if sap_swpm_remote_access_user | string | length == 0
-      else sap_swpm_remote_access_user }}"
-
-# Assert certain vars
-#
-- name: Assert that sap_swpm_observer_mode is a boolean
-  ansible.builtin.assert:
-    that: sap_swpm_observer_mode is boolean
-    fail_msg: "FAIL: The variable 'sap_swpm_fact_observer_mode' is not defined as a boolean!"
-    success_msg: "PASS: The variable 'sap_swpm_fact_observer_mode' is defined as a boolean, with a value of: '{{ sap_swpm_observer_mode }}'."
+          if sap_swpm_remote_access_user | string | length == 0
+          else sap_swpm_remote_access_user }}"

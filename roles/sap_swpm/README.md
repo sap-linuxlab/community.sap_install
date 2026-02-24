@@ -353,7 +353,7 @@ Define directory where sapinst inifile will be stored.
 #### sap_swpm_command_extra_args
 - _Type:_ `string`
 
-(Optional) Define extra sapinst arguments to be added to the sapinst command line
+(Optional) Define extra sapinst arguments to be added to the sapinst command line.
 
 #### sap_swpm_install_saphostagent
 - _Type:_ `bool`
