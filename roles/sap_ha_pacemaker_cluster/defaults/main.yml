@@ -80,6 +80,25 @@ sap_ha_pacemaker_cluster_constraint_colo_base_score: 2000
 sap_ha_pacemaker_cluster_corosync_totem: {}
 sap_ha_pacemaker_cluster_corosync_transport: {}
 
+### Firewall
+# Set this variable to `true` to configure the required firewall ports for Pacemaker/Corosync.
+# What this configuration includes:
+# - Installation of the `firewalld` package and starting the service.
+# - A Firewalld service definition is created with recommended ports:
+#   5404-5405/udp for Corosync communication and 2224/tcp with 3121/tcp for Pacemaker remote communication.
+# Important: This does not include configuration of ports for SAP products, as they are not directly installed with this role.
+# For example:
+# - Firewall configuration for SAP HANA can be managed separately in the `sap_hana_install` role.
+# - Firewall configuration for SAP ASCS/ERS can be managed separately in the `sap_swpm` role.
+# Managing configured Firewall:
+# - Setting this variable to `false` does not remove any existing firewall configuration.
+# - For ongoing firewall management, consider using the `community.sap_operations.sap_firewall` role or the `firewall` Linux System Role.
+sap_ha_pacemaker_cluster_configure_firewall: false
+
+# Optional name of firewall zone where service or ports will be configured.
+# Default firewall zone, usually `public`, is used if this variable is undefined.
+# sap_ha_pacemaker_cluster_firewall_zone: ''
+
 ################################################################################
 # Inherit from 'ha_cluster' Linux System Role parameters when defined
 ################################################################################
