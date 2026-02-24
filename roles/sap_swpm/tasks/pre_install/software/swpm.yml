@@ -8,19 +8,19 @@
 # 4. Select latest based on version.
 # NOTE: '--version' cannot be used because 'sapinst' executable is not always updated.
 
-- name: SAP SWPM Pre Install - Check availability of SWPM path - {{ sap_swpm_path }}
+- name: SAP SWPM Pre Install - Check availability of SWPM path - {{ __sap_swpm_fact_swpm_path }}
   ansible.builtin.stat:
-    path: "{{ sap_swpm_path }}"
+    path: "{{ __sap_swpm_fact_swpm_path }}"
   register: __sap_swpm_register_swpm_path_stat
   failed_when: not __sap_swpm_register_swpm_path_stat.stat.exists
 
-- name: SAP SWPM Pre Install - Find all SWPM files in {{ sap_swpm_path }}
+- name: SAP SWPM Pre Install - Find all SWPM files in {{ __sap_swpm_fact_swpm_path }}
   ansible.builtin.find:
-    paths: "{{ sap_swpm_path }}"
+    paths: "{{ __sap_swpm_fact_swpm_path }}"
     patterns: 'SWPM*.SAR'
   register: __sap_swpm_register_swpm_files
 
-- name: SAP SWPM Pre Install - Change owner and permission of SWPM file(s) - {{ sap_swpm_path }}
+- name: SAP SWPM Pre Install - Change owner and permission of SWPM file(s) - {{ __sap_swpm_fact_swpm_path }}
   ansible.builtin.file:
     path: "{{ __sap_swpm_line_item.path }}"
     recurse: false
@@ -35,32 +35,27 @@
     - sap_swpm_set_file_permissions
 
 
-- name: Block when 'sap_swpm_sar_file_name' is defined and valid
+- name: Block when 'sap_swpm_file_name' is defined and valid
   when:
-    - sap_swpm_sar_file_name is defined
-    - sap_swpm_sar_file_name is string
-    - sap_swpm_sar_file_name | trim | length > 0
+    - __sap_swpm_fact_swpm_file_name is defined
+    - __sap_swpm_fact_swpm_file_name is string
+    - __sap_swpm_fact_swpm_file_name | trim | length > 0
   block:
     - name: SAP SWPM Pre Install - SWPM defined - Check if the SWPM executable exists
       ansible.builtin.stat:
-        path: "{{ sap_swpm_path }}/{{ sap_swpm_sar_file_name }}"
+        path: "{{ __sap_swpm_fact_swpm_path }}/{{ __sap_swpm_fact_swpm_file_name }}"
       register: __sap_swpm_register_swpm_stat
 
     - name: SAP SWPM Pre Install - SWPM defined - Fail if the SWPM executable does not exist
       ansible.builtin.debug:
         msg: |
-          WARN: The SWPM EXE file '{{ sap_swpm_path }}/{{ sap_swpm_sar_file_name }}' does not exist!"
-          Proceeding with auto-detection of SWPM files in '{{ sap_swpm_path }}/'
+          WARN: The SWPM EXE file '{{ __sap_swpm_fact_swpm_path }}/{{ __sap_swpm_fact_swpm_file_name }}' does not exist!"
+          Proceeding with auto-detection of SWPM files in '{{ __sap_swpm_fact_swpm_path }}/'
       when: not __sap_swpm_register_swpm_stat.stat.exists
-
-    - name: SAP SWPM Pre Install - SWPM defined - Set fact with defined SWPM filename
-      ansible.builtin.set_fact:
-        __sap_swpm_fact_swpm_sar_file_name: "{{ sap_swpm_sar_file_name }}"
-      when: __sap_swpm_register_swpm_stat.stat.exists
 
     - name: SAP SWPM Pre Install - SWPM defined - Change owner and permission of defined SWPM file
       ansible.builtin.file:
-        path: "{{ sap_swpm_path }}/{{ sap_swpm_sar_file_name }}"
+        path: "{{ __sap_swpm_fact_swpm_path }}/{{ __sap_swpm_fact_swpm_file_name }}"
         recurse: false
         mode: "{{ sap_swpm_files_non_sapcar_mode }}"
         owner: "{{ sap_swpm_files_non_sapcar_owner }}"
@@ -68,8 +63,9 @@
 
 
 # Undefined check is enough because only valid combination would be done in block above.
-- name: Block when 'sap_swpm_sar_file_name' is undefined, invalid or does not exist
-  when: __sap_swpm_fact_swpm_sar_file_name is undefined
+- name: Block when '__sap_swpm_fact_swpm_file_name' is undefined or is empty
+  when:
+    - __sap_swpm_fact_swpm_file_name | trim | length == 0
   block:
 
     # Package 'file' is present in Base system, but this task ensures next task does not fail on hardened images.
@@ -90,10 +86,10 @@
         that:
           - __sap_swpm_register_swpm_files.files | length > 0
         success_msg: |
-          SUCCESS: SWPM files were found in '{{ sap_swpm_path }}'.
+          SUCCESS: SWPM files were found in '{{ __sap_swpm_fact_swpm_path }}'.
           Files: {{ __sap_swpm_register_swpm_files.files | map(attribute='path') | map('basename') | join(', ') }}
         fail_msg: |
-          FAIL: No SWPM files were found in {{ sap_swpm_path }}!
+          FAIL: No SWPM files were found in {{ __sap_swpm_fact_swpm_path }}!
 
     - name: SAP SWPM Pre Install - SWPM auto-detection - Prepare detected files for validation
       ansible.builtin.include_tasks:
@@ -157,7 +153,7 @@
           SUCCESS: Compatible SWPM files were found for architecture '{{ ansible_facts['architecture'] }}'.
           Files: {{ __sap_swpm_fact_swpm_matching_arch | join(', ') }}
         fail_msg: |
-          FAIL: No SWPM file for architecture '{{ ansible_facts['architecture'] }}' was found in {{ sap_swpm_path }}!
+          FAIL: No SWPM file for architecture '{{ ansible_facts['architecture'] }}' was found in {{ __sap_swpm_fact_swpm_path }}!
 
 
     # We cannot use 'sapinst --version' because it is not updated in every new version.
@@ -187,7 +183,7 @@
     - name: SAP SWPM Pre Install - SWPM auto-detection - Fail if SWPM1 files were not found
       ansible.builtin.fail:
         msg: |
-          FAIL: No SWPM1 files were found in '{{ sap_swpm_path }}'!
+          FAIL: No SWPM1 files were found in '{{ __sap_swpm_fact_swpm_path }}'!
           SWPM1 is required when the variable 'sap_swpm_inifile_sections_list' contains
           items starting with 'swpm_installation_media_swpm1'.
       when:
@@ -221,7 +217,7 @@
 
     - name: SAP SWPM Pre Install - SWPM auto-detection - Set fact for SWPM file from auto-detection
       ansible.builtin.set_fact:
-        __sap_swpm_fact_swpm_sar_file_name: "{{ __sap_swpm_fact_latest_swpm_file | trim }}"
+        __sap_swpm_fact_swpm_file_name: "{{ __sap_swpm_fact_latest_swpm_file | trim }}"
 
   always:
     - name: SAP SWPM Pre Install - SWPM auto-detection - Cleanup temporary directory
