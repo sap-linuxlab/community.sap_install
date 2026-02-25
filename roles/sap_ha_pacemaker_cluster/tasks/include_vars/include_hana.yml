@@ -1,20 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-# Detect presence of SAPHanaSR-angi package before loading HANA variables
-# Detection of package availability was chosen instead of OS version check.
-# SAPHanaSR-angi will be retrofitted to older SP repositories in future.
-# NOTE: This task is doing changes and should not be run in variable section!
-# TODO: Split and move to pre-tasks.
-- name: "SAP HA Install Pacemaker - Include HANA pre-tasks"
+
+# Detect presence of SAP HANA packages before loading HANA variables.
+# This is used to populate accurate value of '__sap_ha_pacemaker_cluster_saphanasr_angi_available' used in set_facts.
+- name: "SAP HA Install Pacemaker - Detect SAP HANA packages"
   ansible.builtin.include_tasks:
-    # We cannot use full path as long as this task is in wrong place.
-    file: "../{{ __task_file }}"
+    file: "{{ __task_file }}"
+    apply:
+      tags: pre_ha_cluster
   vars:
-    __task_file: "pre_tasks/{{ ansible_facts['os_family'] }}/pre_hana.yml"
-    __task_file_path: "{{ role_path }}/tasks/{{ __task_file }}"
+    __task_file: "{{ ansible_facts['os_family'] }}/detect_hana.yml"
+    __task_file_path: "{{ role_path }}/tasks/include_vars/{{ __task_file }}"
   when:
     - __task_file_path is file
-    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
 
 
 - name: "SAP HA Prepare Pacemaker - Include HANA landscape specific variables"
