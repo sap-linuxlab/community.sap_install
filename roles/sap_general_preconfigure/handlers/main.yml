@@ -139,5 +139,9 @@
 
 - name: Show the result of df -h /dev/shm
   ansible.builtin.debug:
-    var: __sap_general_preconfigure_command_df_shm_result.stdout_lines, __sap_general_preconfigure_command_df_shm_result.stderr_lines
+    msg: |
+      stdout{{ ' is empty.' if __sap_general_preconfigure_command_df_shm_result.stdout | length == 0 else ':
+      ' ~ __sap_general_preconfigure_command_df_shm_result.stdout }}
+      stderr{{ ' is empty.' if __sap_general_preconfigure_command_df_shm_result.stderr | length == 0 else ':
+      ' ~ __sap_general_preconfigure_command_df_shm_result.stderr }}
   listen: __sap_general_preconfigure_mount_tmpfs_handler
