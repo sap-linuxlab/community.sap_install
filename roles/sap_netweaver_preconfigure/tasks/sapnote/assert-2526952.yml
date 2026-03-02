@@ -48,8 +48,11 @@
 
 - name: Assert - Display the output of the tuned-adm active command
   ansible.builtin.debug:
-    var: __sap_netweaver_preconfigure_register_current_tuned_profile.stdout_lines,
-         __sap_netweaver_preconfigure_register_current_tuned_profile.stderr_lines
+    msg: |
+      stdout{{ ' is empty.' if __sap_netweaver_preconfigure_register_current_tuned_profile.stdout | length == 0 else ':
+      ' ~ __sap_netweaver_preconfigure_register_current_tuned_profile.stdout }}
+      stderr{{ ' is empty.' if __sap_netweaver_preconfigure_register_current_tuned_profile.stderr | length == 0 else ':
+      ' ~ __sap_netweaver_preconfigure_register_current_tuned_profile.stderr }}
   ignore_errors: true
 
 - name: Assert that tuned profile 'sap-netweaver' is currently active
