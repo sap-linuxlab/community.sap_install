@@ -19,8 +19,11 @@
 
     - name: Display the output of the cpupower info command
       ansible.builtin.debug:
-        var: __sap_hana_preconfigure_register_cpupower_info_epb_supported.stdout_lines,
-             __sap_hana_preconfigure_register_cpupower_info_epb_supported.stderr_lines
+        msg: |
+          stdout{{ ' is empty.' if __sap_hana_preconfigure_register_cpupower_info_epb_supported.stdout | length == 0 else ':
+          ' ~ __sap_hana_preconfigure_register_cpupower_info_epb_supported.stdout }}
+          stderr{{ ' is empty.' if __sap_hana_preconfigure_register_cpupower_info_epb_supported.stderr | length == 0 else ':
+          ' ~ __sap_hana_preconfigure_register_cpupower_info_epb_supported.stderr }}
 
     - name: Change EPB if possible
       when: __sap_hana_preconfigure_register_cpupower_info_epb_supported.stdout != 'does not support'
@@ -46,7 +49,11 @@
 
         - name: Display the output of the cpupower set command
           ansible.builtin.debug:
-            var: __sap_hana_preconfigure_register_cpupower_set.stdout_lines, __sap_hana_preconfigure_register_cpupower_set.stderr_lines
+            msg: |
+              stdout{{ ' is empty.' if __sap_hana_preconfigure_register_cpupower_set.stdout | length == 0 else ':
+              ' ~ __sap_hana_preconfigure_register_cpupower_set.stdout }}
+              stderr{{ ' is empty.' if __sap_hana_preconfigure_register_cpupower_set.stderr | length == 0 else ':
+              ' ~ __sap_hana_preconfigure_register_cpupower_set.stderr }}
 
         - name: Get status of EPB
           ansible.builtin.command: cpupower info -b
@@ -56,4 +63,8 @@
 
         - name: Display the output of the cpupower info -b command
           ansible.builtin.debug:
-            var: __sap_hana_preconfigure_register_cpupower_info.stdout_lines, __sap_hana_preconfigure_register_cpupower_info.stderr_lines
+            msg: |
+              stdout{{ ' is empty.' if __sap_hana_preconfigure_register_cpupower_info.stdout | length == 0 else ':
+              ' ~ __sap_hana_preconfigure_register_cpupower_info.stdout }}
+              stderr{{ ' is empty.' if __sap_hana_preconfigure_register_cpupower_info.stderr | length == 0 else ':
+              ' ~ __sap_hana_preconfigure_register_cpupower_info.stderr }}
