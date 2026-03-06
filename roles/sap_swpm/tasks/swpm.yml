@@ -3,62 +3,51 @@
 
 ### Deprecated standard method, can fail to detect process exit (e.g. hang errors with SAP SWPM 2.0 SP11)
 ### Detect changed when using 'SAPinst build information' from beginning of stdout
-### Or detect changed when using instslana.xml at end of stdout (this is the Process XML file aka. SAPInst Software Logistics Toolset Analytics XML file, which records the installation information)
+### Or detect changed when using instslana.xml at end of stdout (this is the Process XML file aka.
+###   SAPInst Software Logistics Toolset Analytics XML file, which records the installation information)
 ### Execute SAP SWPM, instead of command module use the shell module to allow use of umask according to SAP SWPM recommendations
-### Use of umask will enforce permissions 755 in /usr/sap etc (thereby resolving any shared NFS mount points initially attached with permissions 777)
-#- name:  SAP SWPM - {{ sap_swpm_swpm_installation_header }}
+### Use of umask will enforce permissions 755 in /usr/sap etc (thereby resolving any shared NFS mount points
+###   initially attached with permissions 777)
+#- name:  SAP SWPM - {{ __sap_swpm_fact_installation_header }}
 #  ansible.builtin.shell: >-
 #    umask {{ sap_swpm_umask | default('022') }};
 #    ./sapinst \
-#    {{ sap_swpm_swpm_command_inifile }} \
-#    {{ sap_swpm_swpm_command_product_id }} \
-#    {{ sap_swpm_swpm_command_extra_args }}
+#    {{ __sap_swpm_fact_command_inifile }} \
+#    {{ __sap_swpm_fact_command_product_id }} \
+#    {{ __sap_swpm_fact_command_extra_args }}
 #  register: __sap_swpm_register_sapinst
 #  args:
-#    chdir: "{{ sap_swpm_sapinst_path }}"
+#    chdir: "{{ __sap_swpm_fact_sapinst_path }}"
 #  failed_when: __sap_swpm_register_sapinst is failed
 #  changed_when: "'SAPinst build information' in __sap_swpm_register_sapinst.stdout"
 ##  changed_when: "'instslana' in __sap_swpm_register_sapinst.stdout"
-
-
-### Async method
-
-# now in file pre_install.yml:
-#- name: Set fact for the sapinst command line
-#  ansible.builtin.set_fact:
-#    __sap_swpm_sapinst_command: "umask {{ sap_swpm_umask | d('022') }} ; ./sapinst {{ sap_swpm_swpm_command_inifile }}
-#    {{ sap_swpm_swpm_command_product_id }}
-#    {{ sap_swpm_swpm_command_extra_args }}"
-#  tags: sap_swpm_sapinst_commandline
-
-# now in file pre_install.yml:
-#- name: Display the sapinst command line
-#  ansible.builtin.debug:
-#    msg: "SAP SWPM install command: '{{ __sap_swpm_sapinst_command }}'"
-#  tags: sap_swpm_sapinst_commandline
-
+#
 # Call sapinst synchronously
 # Reason for noqa: This command installs software, so it will change things
-# - name: SAP SWPM - {{ sap_swpm_swpm_installation_header }} # noqa no-changed-when
+# - name: SAP SWPM - {{ __sap_swpm_fact_installation_header }} # noqa no-changed-when
 #   ansible.builtin.command: "{{ __sap_swpm_sapinst_command }}"
 #   register: __sap_swpm_register_sapinst
 #   args:
-#     chdir: "{{ sap_swpm_sapinst_path }}"
+#     chdir: "{{ __sap_swpm_fact_sapinst_path }}"
+
+### Async method
+# Note: The sapinst command is being assembled in file pre_install.yml, which is called from main.yml right before calling swpm.yml.
 
 # Execute SAP SWPM, instead of command module use the shell module to allow use of umask according to SAP SWPM recommendations
-# Use of umask will enforce permissions 755 in /usr/sap etc (thereby resolving any shared NFS mount points initially attached with permissions 777)
+# Use of umask will enforce permissions 755 in /usr/sap etc (thereby resolving any shared NFS mount points
+#   initially attached with permissions 777)
 # Reason for noqa: This command installs software, so it will change things
-- name: SAP SWPM - {{ sap_swpm_swpm_installation_header }} # noqa no-changed-when
+- name: SAP SWPM - {{ __sap_swpm_fact_installation_header }} # noqa no-changed-when
   ansible.builtin.shell: |
     {{ __sap_swpm_sapinst_command }}
   register: __sap_swpm_register_sapinst_async_job
   args:
-    chdir: "{{ sap_swpm_sapinst_path }}"
+    chdir: "{{ __sap_swpm_fact_sapinst_path }}"
   async: 86400 # Seconds for maximum runtime, set to 24 hours
   poll: 0 # Seconds between polls, use 0 to run Ansible Tasks concurrently
   environment: "{{ sap_swpm_env_vars }}"
 
-# Monitor sapinst process and wait for exit
+# Monitor the sapinst process and wait for exit
 - name: SAP SWPM - Wait for sapinst process to exit, poll every 60 seconds
   ansible.builtin.shell: set -o pipefail && ps -ef | awk '/\.\/sapinst /&&!/umask/&&!/ awk /{print}'
   register: __sap_swpm_register_pids_sapinst
@@ -71,7 +60,7 @@
   ansible.builtin.async_status:
     jid: "{{ __sap_swpm_register_sapinst_async_job.ansible_job_id }}"
   register: __sap_swpm_register_sapinst
-  failed_when: __sap_swpm_register_sapinst.finished != 1 or __sap_swpm_register_sapinst.rc != 0
+  failed_when: (not __sap_swpm_register_sapinst.finished) or __sap_swpm_register_sapinst.rc != 0
 #   #until: __sap_swpm_register_sapinst.finished
 #   #retries: 1000
 #   #delay: 60

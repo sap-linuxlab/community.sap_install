@@ -19,17 +19,17 @@
 
 - name: SAP SWPM Deployment - Finished
   ansible.builtin.debug:
-    msg:
-      - '   SAP SWPM deployment successfully completed '
-      - ' '
-      - '   SAP Product        -       {{ sap_swpm_product_catalog_id }}  '
-      - '   SID                -       {{ sap_swpm_sid | d("") }} '
-      - '   Primary Instance   -       {{ sap_swpm_pas_instance_nr | d("") }} '
-      - '   Host               -       {{ ansible_hostname }} '
-      - '   FQDN               -       {{ ansible_fqdn }}  '
-      - '   IP                 -       {{ ansible_default_ipv4.address | d(ansible_all_ipv4_addresses[0]) }}  '
-#      - '   Master Password    -       {{ sap_swpm_master_password }} '
-#      - '   DDIC 000 Password  -       {{ sap_swpm_ddic_000_password }} '
+    msg: |
+      "   SAP SWPM deployment successfully completed "
+      " "
+      "   SAP Product        -       {{ sap_swpm_product_catalog_id }}  "
+      "   SID                -       {{ sap_swpm_sid | d('') }} "
+      "   Primary Instance   -       {{ sap_swpm_pas_instance_nr | d('') }} "
+      "   Host               -       {{ ansible_facts['hostname'] }} "
+      "   FQDN               -       {{ ansible_facts['fqdn'] }}  "
+      "   IP                 -       {{ ansible_facts['default_ipv4'].address | d(ansible_facts['all_ipv4_addresses'][0]) }}  "
+#      "   Master Password    -       {{ sap_swpm_master_password }} "
+#      "   DDIC 000 Password  -       {{ sap_swpm_ddic_000_password }} "
 
 # SAP HANA Client will not be installed for any installation with SAP AnyDB
 # and will only be installed alongside SAP NWAS PAS or AAS (not NWAS ASCS)
@@ -62,6 +62,6 @@
   ansible.builtin.include_tasks: post_install/sum_push_to_finish.yml
   when:
     - sap_swpm_sum_start
-    - not sap_swpm_swpm_observer_mode
+    - not __sap_swpm_fact_observer_mode
     - "'NW_ABAP_CI:' in sap_swpm_product_catalog_id | string or
        'NW_ABAP_OneHost:' in sap_swpm_product_catalog_id | string"

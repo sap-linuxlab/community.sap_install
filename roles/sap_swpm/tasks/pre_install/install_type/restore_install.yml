@@ -6,9 +6,9 @@
 - name: SAP SWPM Pre Install - Check availability backup location - {{ sap_swpm_backup_location }}
   ansible.builtin.stat:
     path: "{{ sap_swpm_backup_location }}"
-  register: sap_swpm_backup_location_stat
+  register: __sap_swpm_register_backup_location_stat
   failed_when:
-    - not sap_swpm_backup_location_stat.stat.exists
+    - not __sap_swpm_register_backup_location_stat.stat.exists
     - "'.CP' in sap_swpm_product_catalog_id | string"
 
 - name: SAP SWPM Pre Install - Change ownership of backup location - {{ sap_swpm_backup_location }}
@@ -20,5 +20,5 @@
     owner: root
     group: root
   when:
-    - sap_swpm_backup_location_stat.stat.exists
-    - sap_swpm_backup_location_stat.stat.isdir
+    - __sap_swpm_register_backup_location_stat.stat.exists
+    - __sap_swpm_register_backup_location_stat.stat.isdir

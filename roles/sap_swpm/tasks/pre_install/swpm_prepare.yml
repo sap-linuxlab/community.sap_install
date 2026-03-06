@@ -32,7 +32,7 @@
 #      tags: sap_swpm_generate_inifile
 #  tags: sap_swpm_generate_inifile
 
-# Requires variables - sap_swpm_software_path (e.g. /software/download_basket), sap_swpm_sapcar_path (e.g. /software/sapcar), sap_swpm_swpm_path (e.g. /software/swpm)
+# Requires variables - sap_swpm_software_path (e.g. /software/download_basket), __sap_swpm_fact_sapcar_path (e.g. /software/sapcar), __sap_swpm_fact_swpm_path (e.g. /software/swpm)
 # Prepare Software
 - name: SAP SWPM Pre Install - Prepare Software
   ansible.builtin.include_tasks: prepare_software.yml
@@ -41,7 +41,7 @@
 # Set fact for SWPM path
 - name: SAP SWPM Pre Install - Set fact for SWPM path when extract directory defined
   ansible.builtin.set_fact:
-    sap_swpm_sapinst_path: "{{ sap_swpm_software_extract_directory }}"
+    __sap_swpm_fact_sapinst_path: "{{ sap_swpm_software_extract_directory }}"
   when:
     - sap_swpm_run_sapinst
     - sap_swpm_software_extract_directory is defined
@@ -50,14 +50,14 @@
 # Set fact for SWPM path
 - name: SAP SWPM Pre Install - Set fact for SWPM path when undefined extract directory
   ansible.builtin.set_fact:
-    sap_swpm_sapinst_path: "{{ (sap_swpm_swpm_path | regex_replace('\\/$', '')) + '/extracted' }}"
+    __sap_swpm_fact_sapinst_path: "{{ (__sap_swpm_fact_swpm_path | regex_replace('\\/$', '')) + '/extracted' }}"
   when:
     - sap_swpm_run_sapinst
     - sap_swpm_software_extract_directory is undefined or (sap_swpm_software_extract_directory is none or (sap_swpm_software_extract_directory | length) == 0)
 
-- name: SAP SWPM Pre Install - Ensure directory '{{ sap_swpm_sapinst_path }}' exists
+- name: SAP SWPM Pre Install - Ensure directory '{{ __sap_swpm_fact_sapinst_path }}' exists
   ansible.builtin.file:
-    path: "{{ sap_swpm_sapinst_path }}"
+    path: "{{ __sap_swpm_fact_sapinst_path }}"
     state: directory
     mode: '0755'
   when: sap_swpm_run_sapinst
@@ -65,11 +65,11 @@
 # Extract SWPM
 - name: SAP SWPM Pre Install - Extract SWPM
   ansible.builtin.command: >-
-    {{ sap_swpm_sapcar_path }}/{{ __sap_swpm_fact_sapcar_file_name }} \
-    -xvf {{ sap_swpm_swpm_path }}/{{ __sap_swpm_fact_swpm_sar_file_name }} \
+    {{ __sap_swpm_fact_sapcar_path }}/{{ __sap_swpm_fact_sapcar_file_name }} \
+    -xvf {{ __sap_swpm_fact_swpm_path }}/{{ __sap_swpm_fact_swpm_file_name }} \
     -manifest SIGNATURE.SMF
   register: sap_swpm_extractswpm
   args:
-    chdir: "{{ sap_swpm_sapinst_path }}"
+    chdir: "{{ __sap_swpm_fact_sapinst_path }}"
   changed_when: "'SAPCAR: processing archive' in sap_swpm_extractswpm.stdout"
   when: sap_swpm_run_sapinst
