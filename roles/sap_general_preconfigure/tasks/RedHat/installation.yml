@@ -89,7 +89,11 @@
 
     - name: Display the list of enabled repositories
       ansible.builtin.debug:
-        var: __sap_general_preconfigure_register_yum_repolist.stdout_lines
+        msg: |
+          stdout:
+          {{ __sap_general_preconfigure_register_yum_repolist.stdout | d('') }}
+          stderr:
+          {{ __sap_general_preconfigure_register_yum_repolist.stderr | d('') }}
 
 - name: Detect if the RHEL minor release lock is set
   ansible.builtin.shell: set -o pipefail && subscription-manager release --show | awk '{print $NF}'
@@ -268,7 +272,7 @@
 
 - name: Display the output of the reboot requirement check
   ansible.builtin.debug:
-    var: __sap_general_preconfigure_register_needs_restarting
+    msg: "{{ __sap_general_preconfigure_register_needs_restarting.stdout }}"
 
 - name: Set the reboot requirement flag to false
   ansible.builtin.set_fact:
