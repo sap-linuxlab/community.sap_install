@@ -270,7 +270,7 @@
       {% endif %}
 
 
-# Host specific luster configuration
+# Host specific cluster configuration
 - name: SAP HSR - Set host specific connection variable
   ansible.builtin.set_fact:
     __sap_ha_install_hana_hsr_connection:
@@ -316,7 +316,6 @@
 
       If this host is not supposed to be part of the HSR cluster, please remove it from hosts in Ansible Play.
 
-
 # Set details of primary for connection from secondary
 - name: SAP HSR - Set connection variables for primary node
   ansible.builtin.set_fact:
@@ -327,6 +326,16 @@
     __sap_ha_install_hana_hsr_fact_primary_ip:
       "{{ (sap_ha_install_hana_hsr_cluster_nodes | selectattr('node_role', '==', 'primary'))[0].node_ip }}"
 
+# Identify the inventory host name of the defined primary node name.
+# This is required for tasks that must explicitly be delegated to the primary node host.
+- name: SAP HSR - Set inventory host name of the primary node
+  ansible.builtin.set_fact:
+    __sap_ha_install_hana_hsr_fact_inventory_primary_node_name: "{{ inventory_item }}"
+  loop: "{{ ansible_play_hosts }}"
+  loop_control:
+    loop_var: inventory_item
+  when:
+    - hostvars[inventory_item].ansible_facts['hostname'] == __sap_ha_install_hana_hsr_fact_primary_name
 
 - name: SAP HSR - Check presence of SAP HANA executables
   ansible.builtin.stat:
