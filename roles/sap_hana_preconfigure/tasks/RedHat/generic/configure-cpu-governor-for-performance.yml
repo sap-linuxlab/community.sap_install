@@ -18,8 +18,11 @@
 
     - name: Display the output of the cpupower frequency-info -g command
       ansible.builtin.debug:
-        var: __sap_hana_preconfigure_register_cpupower_frequency_info_supported.stdout_lines,
-             __sap_hana_preconfigure_register_cpupower_frequency_info_supported.stderr_lines
+        msg: |
+          stdout:
+          {{ __sap_hana_preconfigure_register_cpupower_frequency_info_supported.stdout | d('') }}
+          stderr:
+          {{ __sap_hana_preconfigure_register_cpupower_frequency_info_supported.stderr | d('') }}
 
     - name: Configure CPU Governor for performance if possible
       when: __sap_hana_preconfigure_register_cpupower_frequency_info_supported.stdout != 'Not Available'
@@ -44,8 +47,11 @@
 
         - name: Display the output of the cpupower frequency-set command
           ansible.builtin.debug:
-            var: __sap_hana_preconfigure_register_cpupower_frequency_set.stdout_lines,
-                 __sap_hana_preconfigure_register_cpupower_frequency_set.stderr_lines
+            msg: |
+              stdout:
+              {{ __sap_hana_preconfigure_register_cpupower_frequency_set.stdout | d('') }}
+              stderr:
+              {{ __sap_hana_preconfigure_register_cpupower_frequency_set.stderr | d('') }}
 
         - name: Get status of CPU Governor
           ansible.builtin.command: cpupower frequency-info -g
@@ -55,4 +61,8 @@
 
         - name: Display the output of the cpupower frequency-info -g command again
           ansible.builtin.debug:
-            var: __sap_hana_preconfigure_register_cpupower_frequency_info.stdout_lines, __sap_hana_preconfigure_register_cpupower_frequency_info.stderr_lines
+            msg: |
+              stdout:
+              {{ __sap_hana_preconfigure_register_cpupower_frequency_info.stdout | d('') }}
+              stderr:
+              {{ __sap_hana_preconfigure_register_cpupower_frequency_info.stderr | d('') }}
