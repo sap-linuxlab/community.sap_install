@@ -969,11 +969,24 @@ sap_ha_pacemaker_cluster_resource_defaults:
 ```
 
 ### sap_ha_pacemaker_cluster_saphanasr_angi_detection
-- _Type:_ `string`
+- _Type:_ `bool`
 - _Default:_ `true`
 
-Disabling this variable enables to use Classic SAPHanaSR agents even on server, where SAPHanaSR-angi is available.<br>
-Value `false` (Classic) is ignored when only SAPHanaSR-angi packages are available.<br>
+Set to 'false' to disable auto-detection of SAP HANA Angi resource agent and use Classic agents.<br>
+This role does not substitute Migration procedure from Classic to Angi on existing cluster,<br>
+but rather new cluster setup with Angi resource agent when detected.<br>
+
+### sap_ha_pacemaker_cluster_saphanasr_angi_force
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Set to 'true' to uninstall conflicting packages before using SAP HANA Angi.<br>
+This is destructive step if executed on running cluster without proper migration to SAP HANA Angi resource agent!<br>
+This is one-way process and it cannot be reverted by this role.<br>
+Reinstallation of removed packages is required to get back to the previous state.<br>
+Example for SAP HANA Scale-Up:<br>
+- RedHat: 'resource-agents-sap-hana' conflicts with SAP HANA Angi package 'sap-hana-ha'.<br>
+- Suse: 'SAPHanaSR' conflicts with SAP HANA Angi package 'SAPHanaSR-angi'.<br>
 
 ### sap_ha_pacemaker_cluster_sbd_devices
 - _Type:_ `list`

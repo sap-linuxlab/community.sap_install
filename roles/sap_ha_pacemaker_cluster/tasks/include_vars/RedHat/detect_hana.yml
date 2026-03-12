@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# NOTE: If list of packages is needed in future, these tasks need to be updated to assert loop results.
+
+- name: Block for SAP HANA Angi detection
+  when:
+    - sap_ha_pacemaker_cluster_saphanasr_angi_detection
+    - __sap_ha_pacemaker_cluster_saphanasr_angi_package_name | trim | length > 0
+  block:
+
+    - name: SAP HA Prepare Pacemaker - Check if SAP HANA Angi package is available for installation
+      ansible.builtin.command:
+        cmd: dnf list --available {{ __sap_ha_pacemaker_cluster_saphanasr_angi_package_name }}
+      changed_when: false
+      check_mode: false
+      register: __sap_ha_pacemaker_cluster_register_saphanasr_angi_exists
+      failed_when: false
+
+    - name: SAP HA Prepare Pacemaker - Assert that the SAP HANA Angi package is available
+      ansible.builtin.assert:
+        that:
+          - __sap_ha_pacemaker_cluster_register_saphanasr_angi_exists.rc == 0
+          - __sap_ha_pacemaker_cluster_saphanasr_angi_package_name in __sap_ha_pacemaker_cluster_register_saphanasr_angi_exists.stdout
+        fail_msg: |
+          FAIL: Required package '{{ __sap_ha_pacemaker_cluster_saphanasr_angi_package_name }}' was not found in repositories.
+          Please make sure that the package is available for installation before executing the role again.
+
+
+    - name: Block for defined conflicting packages
+      when: __sap_ha_pacemaker_cluster_saphanasr_angi_package_conflicts | length > 0
+      block:
+        - name: SAP HA Prepare Pacemaker - Gather installed packages facts
+          ansible.builtin.package_facts:
+            manager: auto
+
+        # Force var is part of assert because it passes only if force is enabled or conflicting package is not installed.
+        - name: SAP HA Prepare Pacemaker - Assert that conflicting package was not found when force is not enabled
+          ansible.builtin.assert:
+            that:
+              - sap_ha_pacemaker_cluster_saphanasr_angi_force
+                or (__sap_ha_pacemaker_cluster_saphanasr_angi_package_conflicts | d([]) | intersect(ansible_facts.packages | list) | length == 0)
+            fail_msg: |
+              FAIL: Conflicting packages '{{ __sap_ha_pacemaker_cluster_saphanasr_angi_package_conflicts | join(", ") }}' are installed.
+              Uninstall these packages or set 'sap_ha_pacemaker_cluster_saphanasr_angi_force' to 'true' before executing the role again.
+
+
+        - name: SAP HA Prepare Pacemaker - Show information about upcoming removal of conflicting packages when force is enabled
+          ansible.builtin.debug:
+            msg: |
+              INFO: Conflicting packages '{{ __sap_ha_pacemaker_cluster_saphanasr_angi_package_conflicts | d([])| intersect(ansible_facts.packages | list)
+                | join(", ") }}' are installed, but 'sap_ha_pacemaker_cluster_saphanasr_angi_force' is set to 'true'.
+              The role will attempt to remove these packages during execution.
+          when:
+            - sap_ha_pacemaker_cluster_saphanasr_angi_force
+            - __sap_ha_pacemaker_cluster_saphanasr_angi_package_conflicts | d([]) | intersect(ansible_facts.packages | list) | length > 0
+
+    - name: SAP HA Prepare Pacemaker - Set fact that SAP HANA Angi is available if asserts passed
+      ansible.builtin.set_fact:
+        __sap_ha_pacemaker_cluster_saphanasr_angi_available: true

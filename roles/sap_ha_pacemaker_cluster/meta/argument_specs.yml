@@ -604,11 +604,24 @@ argument_specs:
           - Path with location of global.ini for srHook update
 
       sap_ha_pacemaker_cluster_saphanasr_angi_detection:
+        type: bool
         default: true
         description:
-          - Disabling this variable enables to use Classic SAPHanaSR agents even on server,
-            where SAPHanaSR-angi is available.
-          - Value `false` (Classic) is ignored when only SAPHanaSR-angi packages are available.
+          - Set to 'false' to disable auto-detection of SAP HANA Angi resource agent and use Classic agents.
+          - This role does not substitute Migration procedure from Classic to Angi on existing cluster,
+          - but rather new cluster setup with Angi resource agent when detected.
+
+      sap_ha_pacemaker_cluster_saphanasr_angi_force:
+        type: bool
+        default: false
+        description:
+          - Set to 'true' to uninstall conflicting packages before using SAP HANA Angi.
+          - This is destructive step if executed on running cluster without proper migration to SAP HANA Angi resource agent!
+          - This is one-way process and it cannot be reverted by this role.
+          - Reinstallation of removed packages is required to get back to the previous state.
+          - "Example for SAP HANA Scale-Up:"
+          - "- RedHat: 'resource-agents-sap-hana' conflicts with SAP HANA Angi package 'sap-hana-ha'."
+          - "- Suse: 'SAPHanaSR' conflicts with SAP HANA Angi package 'SAPHanaSR-angi'."
 
       ##########################################################################
       # NetWeaver specific parameters

@@ -18,7 +18,21 @@
   ansible.builtin.include_tasks:
     file: pre_firewall.yml
   when: sap_ha_pacemaker_cluster_configure_firewall | d(false)
+  tags: pre_ha_cluster
 
+# HANA
+- name: "SAP HA Install Pacemaker - Include HANA pre-tasks"
+  ansible.builtin.include_tasks:
+    file: "{{ __task_file }}"
+    apply:
+      tags: pre_ha_cluster
+  vars:
+    __task_file: "{{ ansible_facts['os_family'] }}/pre_hana.yml"
+    __task_file_path: "{{ role_path }}/tasks/pre_tasks/{{ __task_file }}"
+  when:
+    - __task_file_path is file
+    - sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
+  tags: pre_ha_cluster
 
 # ASCS/ERS
 - name: "SAP HA Install Pacemaker - Include NetWeaver (A)SCS/ERS pre-tasks"
@@ -34,7 +48,6 @@
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas_.*_ers') | length > 0
   tags: pre_ha_cluster
 
-# TODO: separate pre-steps from variable includes for NW and HANA
 - name: "SAP HA Install Pacemaker - Include NetWeaver ASCS/ERS pre-tasks OS specific"
   ansible.builtin.include_tasks:
     file: "{{ __task_file }}"
@@ -46,6 +59,7 @@
   when:
     - __task_file_path is file
     - sap_ha_pacemaker_cluster_host_type | select('search', 'nwas') | length > 0
+  tags: pre_ha_cluster
 
 
 # Stop and disable services that conflict with cluster setups,
