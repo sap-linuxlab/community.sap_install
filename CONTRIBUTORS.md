@@ -25,21 +25,21 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Bernd Finger](https://github.com/berndfinger) | 865 | 71536 | 2026-02-11 |
-| [Janine Fuchs](https://github.com/ja9fuchs) | 472 | 27970 | 2025-08-14 |
+| [Bernd Finger](https://github.com/berndfinger) | 878 | 72767 | 2026-03-11 |
+| [Janine Fuchs](https://github.com/ja9fuchs) | 477 | 28147 | 2026-03-12 |
 | [Sean Freeman](https://github.com/sean-freeman) | 213 | 25561 | 2025-02-28 |
-| [Marcel Mamula](https://github.com/marcelmamula) | 123 | 42222 | 2026-01-30 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 139 | 45066 | 2026-03-12 |
 | [Nils Koenig](https://github.com/newkit) | 81 | 19806 | 2024-01-29 |
 | [Markus Koch](https://github.com/rhmk) | 76 | 3462 | 2024-12-27 |
 | [Markus Moster](https://github.com/mmoster) | 65 | 7983 | 2022-06-28 |
 | [Gabriele Puliti](https://github.com/Wabri) | 46 | 2544 | 2024-08-02 |
-| [Rob Dobozy](https://github.com/rob0d) | 34 | 836 | 2026-01-13 |
+| [Rob Dobozy](https://github.com/rob0d) | 36 | 851 | 2026-02-19 |
 | [Rainer Leber](https://github.com/rainerleber) | 17 | 1209 | 2023-02-01 |
+| SunnyCrockett | 9 | 41 | 2026-01-29 |
 | [Steven Stringer](https://github.com/mr-stringer) | 8 | 586 | 2022-12-14 |
 | Roberto Nozaki | 6 | 116 | 2024-03-09 |
 | Sjoerd Lubbers | 4 | 21 | 2025-04-16 |
 | Bruno Doser | 4 | 218 | 2023-12-04 |
-| SunnyCrockett | 3 | 6 | 2025-03-17 |
 | Alexander Wilke | 2 | 10 | 2024-11-14 |
 | remi.mrozek | 2 | 7 | 2024-07-29 |
 | Irina Gulina | 2 | 145 | 2024-01-03 |
@@ -65,7 +65,7 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Bernd Finger](https://github.com/berndfinger) | 176 | 11520 | 2026-02-11 |
+| [Bernd Finger](https://github.com/berndfinger) | 177 | 11552 | 2026-03-09 |
 | [Marcel Mamula](https://github.com/marcelmamula) | 26 | 3420 | 2026-01-21 |
 | [Markus Koch](https://github.com/rhmk) | 8 | 220 | 2024-12-27 |
 | [Rob Dobozy](https://github.com/rob0d) | 5 | 47 | 2025-03-12 |
@@ -89,9 +89,9 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Janine Fuchs](https://github.com/ja9fuchs) | 52 | 1440 | 2025-08-14 |
+| [Janine Fuchs](https://github.com/ja9fuchs) | 55 | 1526 | 2026-03-10 |
 | [Markus Moster](https://github.com/mmoster) | 28 | 734 | 2022-06-24 |
-| [Marcel Mamula](https://github.com/marcelmamula) | 12 | 2779 | 2026-01-21 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 17 | 3116 | 2026-02-18 |
 | [Bernd Finger](https://github.com/berndfinger) | 11 | 440 | 2024-07-23 |
 | [Markus Koch](https://github.com/rhmk) | 9 | 114 | 2022-07-20 |
 | [Sean Freeman](https://github.com/sean-freeman) | 2 | 10 | 2022-09-13 |
@@ -102,8 +102,8 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Janine Fuchs](https://github.com/ja9fuchs) | 195 | 16084 | 2025-02-27 |
-| [Marcel Mamula](https://github.com/marcelmamula) | 58 | 18495 | 2026-01-29 |
+| [Janine Fuchs](https://github.com/ja9fuchs) | 198 | 16178 | 2026-03-12 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 63 | 20109 | 2026-03-12 |
 | [Sean Freeman](https://github.com/sean-freeman) | 12 | 391 | 2024-05-23 |
 | [Bernd Finger](https://github.com/berndfinger) | 6 | 78 | 2025-02-17 |
 | [Rob Dobozy](https://github.com/rob0d) | 3 | 7 | 2025-01-08 |
@@ -114,8 +114,8 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Bernd Finger](https://github.com/berndfinger) | 197 | 11444 | 2025-12-10 |
-| [Marcel Mamula](https://github.com/marcelmamula) | 23 | 5205 | 2026-01-21 |
+| [Bernd Finger](https://github.com/berndfinger) | 198 | 11448 | 2026-03-09 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 27 | 5732 | 2026-02-18 |
 | [Markus Koch](https://github.com/rhmk) | 13 | 454 | 2022-11-22 |
 | Sjoerd Lubbers | 4 | 21 | 2025-04-16 |
 | [Sean Freeman](https://github.com/sean-freeman) | 3 | 11 | 2023-09-27 |
@@ -131,7 +131,7 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Bernd Finger](https://github.com/berndfinger) | 165 | 13717 | 2026-02-11 |
+| [Bernd Finger](https://github.com/berndfinger) | 166 | 13826 | 2026-03-09 |
 | [Marcel Mamula](https://github.com/marcelmamula) | 33 | 4196 | 2026-01-21 |
 | [Gabriele Puliti](https://github.com/Wabri) | 14 | 308 | 2024-07-23 |
 | [Rainer Leber](https://github.com/rainerleber) | 11 | 51 | 2023-02-01 |
@@ -169,7 +169,7 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Bernd Finger](https://github.com/berndfinger) | 15 | 248 | 2025-08-13 |
+| [Bernd Finger](https://github.com/berndfinger) | 16 | 254 | 2026-03-09 |
 | [Marcel Mamula](https://github.com/marcelmamula) | 7 | 543 | 2026-01-21 |
 | [Gabriele Puliti](https://github.com/Wabri) | 1 | 9 | 2024-06-25 |
 | [Janine Fuchs](https://github.com/ja9fuchs) | 1 | 2 | 2024-01-12 |
@@ -180,7 +180,7 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Bernd Finger](https://github.com/berndfinger) | 64 | 2416 | 2025-09-24 |
+| [Bernd Finger](https://github.com/berndfinger) | 65 | 2447 | 2026-03-09 |
 | [Marcel Mamula](https://github.com/marcelmamula) | 25 | 2303 | 2026-01-21 |
 | [Rainer Leber](https://github.com/rainerleber) | 9 | 243 | 2023-02-01 |
 | [Sean Freeman](https://github.com/sean-freeman) | 6 | 66 | 2024-07-17 |
@@ -205,10 +205,10 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Bernd Finger](https://github.com/berndfinger) | 128 | 9205 | 2026-02-09 |
+| [Bernd Finger](https://github.com/berndfinger) | 133 | 9977 | 2026-02-27 |
 | [Sean Freeman](https://github.com/sean-freeman) | 70 | 2303 | 2024-06-20 |
-| [Rob Dobozy](https://github.com/rob0d) | 21 | 669 | 2026-01-13 |
-| [Marcel Mamula](https://github.com/marcelmamula) | 10 | 1890 | 2026-01-27 |
+| [Rob Dobozy](https://github.com/rob0d) | 23 | 684 | 2026-02-19 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 13 | 2459 | 2026-02-23 |
 | [Markus Koch](https://github.com/rhmk) | 6 | 68 | 2022-11-16 |
 | [Janine Fuchs](https://github.com/ja9fuchs) | 5 | 76 | 2024-01-12 |
 | [Markus Moster](https://github.com/mmoster) | 3 | 2 | 2022-06-09 |
