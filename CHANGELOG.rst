@@ -18,6 +18,7 @@ Minor Changes
 - sap_ha_install_hana_hsr - inventory vs. hostname (https://github.com/sap-linuxlab/community.sap_install/pull/1177)
 - sap_ha_pacemaker_cluster - Add firewall steps (https://github.com/sap-linuxlab/community.sap_install/pull/1170)
 - sap_ha_pacemaker_cluster - Split off HANA pre_tasks from include_vars and add new force mode (https://github.com/sap-linuxlab/community.sap_install/pull/1173)
+- sap_swpm - Update firewall steps (https://github.com/sap-linuxlab/community.sap_install/pull/1168)
 
 Bugfixes
 --------
@@ -27,7 +28,6 @@ Bugfixes
 - sap_hana_install - Fix hana versions mismatch and replace injected vars (https://github.com/sap-linuxlab/community.sap_install/pull/1167)
 - sap_swpm - Only ensure the presence of the 'file' package on Suse (https://github.com/sap-linuxlab/community.sap_install/pull/1166)
 - sap_swpm - Rename all vars which contain '_swpm_swpm' (https://github.com/sap-linuxlab/community.sap_install/pull/1172)
-- sap_swpm - Update firewall steps (https://github.com/sap-linuxlab/community.sap_install/pull/1168)
 
 v1.8.1
 ======
