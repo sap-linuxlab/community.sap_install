@@ -15,11 +15,6 @@
   ansible.builtin.include_tasks:
     file: post_tasks/hdbuserstore.yml
 
-- name: SAP HANA - Addhosts - Post-Tasks - Firewall
-  ansible.builtin.include_tasks:
-    file: post_tasks/firewall.yml
-  when: sap_hana_install_update_firewall
-
 - name: SAP HANA - Addhosts - Post-Tasks - SELinux
   ansible.builtin.include_tasks:
     file: post_tasks/selinux.yml
@@ -30,5 +25,5 @@
     file: post_tasks/fapolicyd.yml
   when:
     # Ensure fapolicyd is checked only on supported systems.
-    - ansible_os_family == "RedHat"
+    - ansible_facts['os_family'] == "RedHat"
     - __sap_hana_install_configure_fapolicyd

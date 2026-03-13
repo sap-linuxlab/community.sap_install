@@ -26,19 +26,29 @@
         __revision: "{{ __manifest_lines | select('match', '^rev-number:') | first | default('') }}"
         __version: "{{ __manifest_lines | select('match', '^fullversion:') | first | default('') }}"
 
+
+    # This implementation solves issue where SAP mentions '0' in 'hdblcm --list systems',
+    # while having '00' in manifest file for patch level 0, which would lead to version mismatch. Example:
+    # Existing version: 2.00.077.0
+    # Expected version: 2.00.077.00
     - name: SAP HANA - Pre-Tasks - Assert that existing installation has correct version
       ansible.builtin.assert:
         that:
-          - __sap_hana_install_fact_manifest_version == __existing_version
+          # Compare as lists of integers: [2, 0, 77, 0] == [2, 0, 77, 0]
+          - (__sap_hana_install_fact_manifest_version.split('.') | map('int') | list) ==
+            (__existing_version.split('.') | map('int') | list)
         success_msg: |
-          PASS: Existing installation has expected version.
-          Expected version: {{ __sap_hana_install_fact_manifest_version }}.
+          PASS: The existing installation has the expected version.
+          Existing: {{ __existing_version }}
+          Expected: {{ __sap_hana_install_fact_manifest_version }}
         fail_msg: |
-          FAIL: Existing installation does not have expected version!
-          Existing version: {{ __existing_version }}
-          Expected version: {{ __sap_hana_install_fact_manifest_version }}
+          FAIL: The existing installation version does not match the expected version.
+          Existing: {{ __existing_version }}
+          Expected: {{ __sap_hana_install_fact_manifest_version }}
       vars:
-        __existing_version: "{{ __sap_hana_install_fact_existing_hana_version.split('.')[:4] | join('.') }}"
+        # Ensure we are only looking at the first 4 parts (Major.Minor.SPS.Patch)
+        __existing_version:
+          "{{ __sap_hana_install_register_existing_systems.stdout.split(';')[0].split('.')[:4] | join('.') }}"
       when: __sap_hana_install_fact_is_installed
 
     # Revision number follows SPS, where first digit designates SPS.

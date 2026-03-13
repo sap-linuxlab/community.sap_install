@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# This task does not use the variable 'sap_ha_pacemaker_cluster_saphanasr_angi_force' directly,
+# because it will always fail in include_vars assert section if it is in wrong state 'false'.
+- name: SAP HA Prepare Pacemaker - Remove packages conflicting with SAP HANA Angi
+  ansible.builtin.package:
+    name: "{{ package_item.conflict_item }}"
+    state: absent
+  loop: "{{ __sap_ha_pacemaker_cluster_register_saphanasr_conflict.results | d([]) }}"
+  loop_control:
+    loop_var: package_item
+    label: "{{ package_item.conflict_item | d('') }}"
+  when:
+    - sap_ha_pacemaker_cluster_saphanasr_angi_detection
+    - __sap_ha_pacemaker_cluster_saphanasr_angi_available
+    - __sap_ha_pacemaker_cluster_saphanasr_angi_package_conflicts | length > 0
+    - package_item.rc == 0
+
+# NOTE: Removal of SAP HANA Angi was removed from pre tasks.
+# Migration from Classic to Angi should be considered one-way process and it cannot be reverted by this role.
+# Reinstallation of removed packages is required to get back to the previous state.

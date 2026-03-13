@@ -284,6 +284,23 @@ sap_ha_pacemaker_cluster_cluster_properties:
   stonith-timeout: 150
 ```
 
+### sap_ha_pacemaker_cluster_configure_firewall
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Set this variable to `true` to configure the required firewall ports for Pacemaker/Corosync.<br>
+What this configuration includes:<br>
+- Installation of the `firewalld` package and starting the service.<br>
+- A Firewalld service definition is created with recommended ports:<br>
+  5404-5405/udp for Corosync communication and 2224/tcp with 3121/tcp for Pacemaker remote communication.<br>
+Important: This does not include configuration of ports for SAP products, as they are not directly installed with this role.<br>
+For example:<br>
+- Firewall configuration for SAP HANA can be managed separately in the `sap_hana_install` role.<br>
+- Firewall configuration for SAP ASCS/ERS can be managed separately in the `sap_swpm` role.<br>
+Managing configured Firewall:<br>
+- Setting this variable to `false` does not remove any existing firewall configuration.<br>
+- For ongoing firewall management, consider using the `community.sap_operations.sap_firewall` role or the `firewall` Linux System Role.<br>
+
 ### sap_ha_pacemaker_cluster_corosync_totem
 - _Type:_ `dict`
 - _Default:_ `Specified in Operating System and Platform variables.`
@@ -355,6 +372,12 @@ For SAP clusters configured by this role, the relevant standard packages for the
 
 Additional fence agent packages to be installed.<br>
 This is automatically combined with default OS and Platform specific packages.<br>
+
+### sap_ha_pacemaker_cluster_firewall_zone
+- _Type:_ `str`
+
+Optional name of firewall zone where service or ports will be configured.<br>
+Default firewall zone, usually `public`, is used if this variable is undefined.<br>
 
 ### sap_ha_pacemaker_cluster_gcp_project
 - _Type:_ `string`
@@ -946,11 +969,24 @@ sap_ha_pacemaker_cluster_resource_defaults:
 ```
 
 ### sap_ha_pacemaker_cluster_saphanasr_angi_detection
-- _Type:_ `string`
+- _Type:_ `bool`
 - _Default:_ `true`
 
-Disabling this variable enables to use Classic SAPHanaSR agents even on server, where SAPHanaSR-angi is available.<br>
-Value `false` (Classic) is ignored when only SAPHanaSR-angi packages are available.<br>
+Set to 'false' to disable auto-detection of SAP HANA Angi resource agent and use Classic agents.<br>
+This role does not substitute Migration procedure from Classic to Angi on existing cluster,<br>
+but rather new cluster setup with Angi resource agent when detected.<br>
+
+### sap_ha_pacemaker_cluster_saphanasr_angi_force
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Set to 'true' to uninstall conflicting packages before using SAP HANA Angi.<br>
+This is destructive step if executed on running cluster without proper migration to SAP HANA Angi resource agent!<br>
+This is one-way process and it cannot be reverted by this role.<br>
+Reinstallation of removed packages is required to get back to the previous state.<br>
+Example for SAP HANA Scale-Up:<br>
+- RedHat: 'resource-agents-sap-hana' conflicts with SAP HANA Angi package 'sap-hana-ha'.<br>
+- Suse: 'SAPHanaSR' conflicts with SAP HANA Angi package 'SAPHanaSR-angi'.<br>
 
 ### sap_ha_pacemaker_cluster_sbd_devices
 - _Type:_ `list`

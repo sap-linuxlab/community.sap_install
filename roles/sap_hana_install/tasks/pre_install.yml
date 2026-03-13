@@ -6,7 +6,7 @@
     file: pre_tasks/fapolicyd.yml
   when:
     # Ensure fapolicyd is checked only on supported systems.
-    - ansible_os_family == "RedHat"
+    - ansible_facts['os_family'] == "RedHat"
     - not __sap_hana_install_fact_is_installed
 
 
@@ -62,3 +62,10 @@
     (not __sap_hana_install_fact_is_installed and __sap_hana_install_fact_is_main_host) or
     ('sap_hana_install_create_configfile' in ansible_run_tags | d([]))
   tags: sap_hana_install_create_configfile
+
+
+# Firewall is configured in pre_tasks to avoid connectivity problems during installation.
+- name: SAP HANA - Install - Pre-Tasks - Firewall
+  ansible.builtin.include_tasks:
+    file: pre_tasks/firewall.yml
+  when: sap_hana_install_configure_firewall

@@ -1,70 +1,192 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP SWPM Pre Install - Firewall Setup
-  when: ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
+- name: SAP SWPM - Firewall - Install packages
+  ansible.builtin.package:
+    name: "{{ __sap_swpm_firewall_packages + __sap_swpm_firewall_extra_packages }}"
+    state: present
+
+- name: SAP SWPM - Firewall - Start and enable firewalld service
+  ansible.builtin.systemd_service:
+    name: firewalld
+    state: started
+    enabled: true
+    masked: false
+
+
+# Validate firewall zone if defined
+- name: Block for validation of firewall zone
+  when: sap_swpm_firewall_zone is defined
+  block:
+    - name: SAP SWPM - Firewall - Get list of configured zones from firewalld
+      ansible.builtin.command:
+        cmd: firewall-cmd --get-zones
+      register: __sap_swpm_register_firewall_zones
+      changed_when: false
+
+    - name: SAP SWPM - Firewall - Assert that the firewall zone is available
+      ansible.builtin.assert:
+        that:
+          - sap_swpm_firewall_zone in __sap_swpm_register_firewall_zones.stdout.split()
+        success_msg: |
+          PASS: The zone '{{ sap_swpm_firewall_zone }}' is present in firewalld.
+        fail_msg: |
+          FAIL: The zone '{{ sap_swpm_firewall_zone }}' is not preset in firewalld.
+          Available zones: {{ __sap_swpm_register_firewall_zones.stdout }}
+        quiet: true
+
+
+- name: Block for service file
+  when: sap_swpm_firewall_ports | d([]) | length == 0
   block:
 
-    # Requirement for package_facts Ansible Module
-    - name: For SLES ensure OS Package for Python Lib of rpm bindings is enabled for System Python
-      ansible.builtin.package:
-        name: python3-rpm
-        state: present
-      when: ansible_os_family == "Suse"
+    - name: SAP SWPM - Firewall - Set fact with instance numbers for firewall configuration
+      ansible.builtin.set_fact:
+        # Combine ASCS, SCS, ERS into one list, if they are defined and their respective sections are in 'sap_swpm_inifile_sections_list'
+        __sap_swpm_firewall_inst_nrs_cs: >-
+          {{
+            [ (sap_swpm_ascs_instance_nr if (sap_swpm_ascs_instance_nr | d('') | length > 0 and
+                ('nw_config_central_services_abap' in sap_swpm_inifile_sections_list
+                  or 'nw_config_ports' in sap_swpm_inifile_sections_list)) else []),
 
-    - name: SAP SWPM Pre Install - Gathering Firewall Facts
-      ansible.builtin.package_facts:
-        manager: auto
+              (sap_swpm_ers_instance_nr if (sap_swpm_ers_instance_nr | d('') | length > 0 and
+                'nw_config_ers' in sap_swpm_inifile_sections_list) else []),
 
-    - name: SAP SWPM Pre Install - Setup Firewall if included in packages
-      when: '"firewalld" in ansible_facts.packages'
+              (sap_swpm_java_scs_instance_nr if (sap_swpm_java_scs_instance_nr | d('') | length > 0 and
+                'nw_config_central_services_java' in sap_swpm_inifile_sections_list) else [])
+            ] | flatten | reject('equalto', []) | unique | list
+          }}
+
+        # Combine PAS, AAS, WD into one list, if they are defined and their respective sections are in 'sap_swpm_inifile_sections_list'
+        __sap_swpm_firewall_inst_nrs_app: >-
+          {{
+            [ (sap_swpm_pas_instance_nr if (sap_swpm_pas_instance_nr | d('') | length > 0 and
+                'nw_config_primary_application_server_instance' in sap_swpm_inifile_sections_list) else []),
+
+              (sap_swpm_aas_instance_nr if (sap_swpm_aas_instance_nr | d('') | length > 0 and
+                'nw_config_additional_application_server_instance' in sap_swpm_inifile_sections_list) else []),
+
+              (sap_swpm_wd_instance_nr if (sap_swpm_wd_instance_nr | d('') | length > 0 and
+                'nw_config_webdisp_generic' in sap_swpm_inifile_sections_list) else [])
+            ] | flatten | reject('equalto', []) | unique | list
+          }}
+
+
+    - name: Block for central service instances
+      when: __sap_swpm_firewall_inst_nrs_cs | d([]) | length > 0
       block:
-
-        - name: SAP SWPM Pre Install - Enable and start the firewalld service
-          ansible.builtin.systemd:
-            name: firewalld
-            state: started
-            enabled: yes
-          tags: sap_swpm_configure_firewall
-
-        - name: SAP SWPM Pre Install - Generate SAP HANA Ports Based on NR - {{ sap_swpm_db_instance_nr }}
-          ansible.builtin.set_fact:
-            __sap_swpm_fact_sap_hana_firewall_ports:
-              - "1128"
-              - "1129"
-              - "43{{ sap_swpm_db_instance_nr }}"
-              - "5050"
-              - "9090"
-              - "9091"
-              - "9092"
-              - "9093"
-              - "3{{ sap_swpm_db_instance_nr }}00-3{{ sap_swpm_db_instance_nr }}90"
-              - "30105"
-              - "30107"
-              - "30140"
-              - "4{{ sap_swpm_db_instance_nr }}01"
-              - "4{{ sap_swpm_db_instance_nr }}02"
-              - "4{{ sap_swpm_db_instance_nr }}06"
-              - "4{{ sap_swpm_db_instance_nr }}12"
-              - "4{{ sap_swpm_db_instance_nr }}14"
-              - "4{{ sap_swpm_db_instance_nr }}40"
-              - "5{{ sap_swpm_db_instance_nr }}00"
-              - "5{{ sap_swpm_db_instance_nr }}13"
-              - "5{{ sap_swpm_db_instance_nr }}14"
-              - "51000"
-              - "64997"
-          when:
-            - not sap_swpm_generic
-
-        - name: SAP SWPM Pre Install - Add Ports Based on NR - {{ sap_swpm_db_instance_nr }}
-          ansible.builtin.include_tasks: update_firewall.yml
-          loop: "{{ __sap_swpm_fact_sap_hana_firewall_ports }}"
+        - name: SAP SWPM - Firewall - Generate service file from template for central service instances
+          ansible.builtin.template:
+            src: firewall-sap-nw-central.j2
+            dest: "/etc/firewalld/services/{{ __sap_swpm_firewall_service_name_cs }}-{{ instance_item }}.xml"
+            owner: 'root'
+            group: 'root'
+            mode: '0640'
+          loop: "{{ __sap_swpm_firewall_inst_nrs_cs }}"
           loop_control:
-            loop_var: passed_port
-          when:
-            - not sap_swpm_generic
+            loop_var: instance_item
+          vars:
+            # Variable is used inside of jinja2 template
+            __sap_swpm_firewall_instance_nr: "{{ instance_item }}"
 
-  # Reason for noqa: We currently do not determine if reloading the firewall changes anything
-        - name: SAP SWPM Pre Install - Reload Firewall # noqa no-changed-when
-          ansible.builtin.shell: |
-            firewall-cmd --reload
+        - name: SAP SWPM - Firewall - Reload firewalld after creating service file for central service instances
+          ansible.builtin.command:
+            cmd: firewall-cmd --reload
+          changed_when: true
+
+        - name: SAP SWPM - Firewall - Configure service in firewall for central service instances
+          ansible.builtin.command:
+            cmd: >-
+              firewall-cmd
+              {% if sap_swpm_firewall_zone is defined %}
+              --zone={{ sap_swpm_firewall_zone }}
+              {% endif %}
+              --permanent
+              --add-service={{ __sap_swpm_firewall_service_name_cs }}-{{ instance_item }}
+          loop: "{{ __sap_swpm_firewall_inst_nrs_cs }}"
+          loop_control:
+            loop_var: instance_item
+          changed_when: true
+
+
+    - name: Block for application instances
+      when: __sap_swpm_firewall_inst_nrs_app | d([]) | length > 0
+      block:
+        - name: SAP SWPM - Firewall - Generate service file from template for application instances
+          ansible.builtin.template:
+            src: firewall-sap-nw-app.j2
+            dest: "/etc/firewalld/services/{{ __sap_swpm_firewall_service_name_app }}-{{ instance_item }}.xml"
+            owner: 'root'
+            group: 'root'
+            mode: '0640'
+          loop: "{{ __sap_swpm_firewall_inst_nrs_app }}"
+          loop_control:
+            loop_var: instance_item
+          vars:
+            # Variable is used inside of jinja2 template
+            __sap_swpm_firewall_instance_nr: "{{ instance_item }}"
+
+        - name: SAP SWPM - Firewall - Reload firewalld after creating service file for application instances
+          ansible.builtin.command:
+            cmd: firewall-cmd --reload
+          changed_when: true
+
+        - name: SAP SWPM - Firewall - Configure service in firewall for application instances
+          ansible.builtin.command:
+            cmd: >-
+              firewall-cmd
+              {% if sap_swpm_firewall_zone is defined %}
+              --zone={{ sap_swpm_firewall_zone }}
+              {% endif %}
+              --permanent
+              --add-service={{ __sap_swpm_firewall_service_name_app }}-{{ instance_item }}
+          loop: "{{ __sap_swpm_firewall_inst_nrs_app }}"
+          loop_control:
+            loop_var: instance_item
+          changed_when: true
+
+
+- name: Block for ports
+  when: sap_swpm_firewall_ports | d([]) | length > 0
+  block:
+    - name: SAP SWPM - Firewall - Open Ports without service file
+      ansible.builtin.command:
+        cmd: >-
+          firewall-cmd
+          {% if sap_swpm_firewall_zone is defined %}
+          --zone={{ sap_swpm_firewall_zone }}
+          {% endif %}
+          --permanent
+          {% for port_item in sap_swpm_firewall_ports %}
+          --add-port={{ port_item }}
+          {% endfor %}
+      register: __sap_swpm_register_firewall_add_port
+      changed_when: true
+
+
+- name: Block for reloading firewall
+  when:
+    - (sap_swpm_firewall_ports | d([]) | length > 0)
+      or (__sap_swpm_firewall_inst_nrs_cs | d([]) | length > 0)
+      or (__sap_swpm_firewall_inst_nrs_app | d([]) | length > 0)
+  block:
+
+    - name: SAP SWPM - Firewall - Reload firewalld after applying changes
+      ansible.builtin.command:
+        cmd: firewall-cmd --reload
+      changed_when: true
+
+    - name: SAP SWPM - Firewall - Get current firewall configuration of the default zone
+      ansible.builtin.command:
+        cmd: firewall-cmd --list-all
+      changed_when: false
+      register: __sap_swpm_register_current_firewall_configuration
+
+
+    - name: SAP SWPM - Firewall - Show details of configured firewall
+      ansible.builtin.debug:
+        msg: |
+          Firewall was configured for SAP Netweaver instances and reloaded.
+          Output of command 'firewall-cmd --list-all':
+          {{ __sap_swpm_register_current_firewall_configuration.stdout }}
+      when: __sap_swpm_register_current_firewall_configuration.stdout is defined

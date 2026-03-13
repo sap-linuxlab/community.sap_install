@@ -191,9 +191,45 @@
   when:
     - __sap_hana_install_configure_selinux or __sap_hana_install_configure_fapolicyd
 
+# Firewall
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_firewall_ports' is defined as a list containing at least one item
+  ansible.builtin.assert:
+    that:
+      - sap_hana_install_firewall_ports | type_debug == 'list'
+      - sap_hana_install_firewall_ports | length > 0
+    success_msg: |
+      PASS: The variable 'sap_hana_install_firewall_ports' is defined as list containing at least one item.
+    fail_msg: |
+      {% if (sap_hana_install_firewall_ports | type_debug) != 'list' %}
+        FAIL: The variable 'sap_hana_install_firewall_ports' is not defined as a list.
+      {% else %}
+        FAIL: The variable 'sap_hana_install_firewall_ports' is empty.
+      {% endif %}
+  when:
+    - sap_hana_install_configure_firewall | d(false)
+    - sap_hana_install_firewall_ports is defined
+
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_firewall_zone' is defined as String and not empty
+  ansible.builtin.assert:
+    that:
+      - sap_hana_install_firewall_zone is string
+      - sap_hana_install_firewall_zone | length > 0
+    success_msg: |
+      PASS: The variable 'sap_hana_install_firewall_zone' is defined as String and not empty.
+    fail_msg: |
+      {% if sap_hana_install_firewall_zone is not string %}
+        FAIL: The variable 'sap_hana_install_firewall_zone' is not String.
+      {% else %}
+        FAIL: The variable 'sap_hana_install_firewall_zone' is empty.
+      {% endif %}
+  when:
+    - sap_hana_install_configure_firewall | d(false)
+    - sap_hana_install_firewall_zone is defined
+
+
 # SELinux is not currently supported by SAP using SLES4SAP
 # This can still be overwritten by extra variables.
 - name: SAP HANA Pre Install - Ensure SELinux does not execute for SLES
   ansible.builtin.set_fact:
     __sap_hana_install_configure_selinux: false
-  when: ansible_os_family == "Suse"
+  when: ansible_facts['os_family'] == "Suse"

@@ -201,4 +201,42 @@ If not specified, the default HANA backup location is used.</br>
 Required sub-directories (`SYSTEMDB` and `DB_<SID>`) will be created automatically within this path</br>
 The backup created will have a file prefix of `<SID>_PRE_HSR_<TIMESTAMP>`.</br>
 
+### sap_ha_install_hana_hsr_configure_firewall
+- _Type:_ `bool`
+- _Default:_ `False`
+
+Set this variable to `true` to configure the required firewall ports for SAP HANA System Replication.</br>
+What this configuration includes:<br>
+
+- Installation of the `firewalld` package and starting the service.
+- If `sap_ha_install_hana_hsr_firewall_ports` is undefined: A `firewalld` service definition is created with recommended ports.<br>
+  Note: `NN` refers to the SAP Instance Number defined in `sap_ha_install_hana_hsr_instance_number`.<br>
+
+| Ports | Protocol | Reason |
+| --- | --- | --- |
+| 30105 | TCP | Fixed port for SAP HANA System Replication (SR) and internal endpoint communication |
+| 30107 | TCP | Fixed port for SAP HANA System Replication (SR) and internal endpoint communication |
+| 30140 | TCP | Fixed port for SAP HANA System Replication (SR) and internal endpoint communication |
+| 4NN00-4NN99 | TCP | Range for SAP HANA System Replication (SR) and internal endpoint communication |
+
+- If `sap_ha_install_hana_hsr_firewall_ports` is defined: The specified ports are opened directly and no service definition is created.<br>
+
+**Important:** This does not include configuration of SAP HANA services or ports, because they are managed separately in the `sap_hana_install` role.<br>
+Managing configured Firewall:<br>
+
+- Setting this variable to `false` does not remove any existing firewall configuration.<br>
+- For ongoing firewall management, consider using the `community.sap_operations.sap_firewall` role or the `firewall` Linux System Role.</br>
+
+### sap_ha_install_hana_hsr_firewall_ports
+- _Type:_ `list`
+
+Optional list of firewall ports.<br>
+The specified ports are opened directly and no service definition is created.<br>
+
+### sap_ha_install_hana_hsr_firewall_zone
+- _Type:_ `string`
+
+Optional name of firewall zone where service or ports will be configured.<br>
+Default firewall zone, usually `public`, is used if this variable is undefined.
+
 <!-- END Role Variables -->

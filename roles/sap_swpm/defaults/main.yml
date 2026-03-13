@@ -28,7 +28,7 @@ sap_swpm_set_file_permissions: true
 # The guide mentions 755 as the minimum permission for the SPWM download directory and a umask setting of 022 for the user
 # which downloads the SAP software.
 #
-# Access permissions and ownership for all directories in sap_swpm_software_path, for sap_swpm_sapcar_path, and for sap_swpm_swpm_path:
+# Access permissions and ownership for all directories in sap_swpm_software_path, for sap_swpm_sapcar_path, and for sap_swpm_path:
 sap_swpm_software_directory_mode: '0755'
 sap_swpm_software_directory_owner: root
 sap_swpm_software_directory_group: root
@@ -38,7 +38,7 @@ sap_swpm_files_sapcar_mode: '0755'
 sap_swpm_files_sapcar_owner: root
 sap_swpm_files_sapcar_group: root
 #
-# Access permissions and ownership for all non-SAPCAR*EXE files in sap_swpm_software_path and for SWPM*.SAR in sap_swpm_swpm_path:
+# Access permissions and ownership for all non-SAPCAR*EXE files in sap_swpm_software_path and for SWPM*.SAR in sap_swpm_path:
 sap_swpm_files_non_sapcar_mode: '0644'
 sap_swpm_files_non_sapcar_owner: root
 sap_swpm_files_non_sapcar_group: root
@@ -149,15 +149,16 @@ sap_swpm_software_path: '/software/sapfiles'
 ##   - SAPHOSTAGENT*SAR
 
 # Directory and file name of SAPCAR*EXE. Only path is mandatory. The role will automatically determine file_name
-sap_swpm_sapcar_path: "{{ sap_swpm_software_path }}"
+sap_swpm_sapcar_path: ''
 # sap_swpm_sapcar_file_name:
 
 # Directory and file name of SWPM. Only path is mandatory. The role will automatically determine file_name
-sap_swpm_swpm_path: "{{ sap_swpm_software_path }}"
-# sap_swpm_swpm_sar_file_name:
+sap_swpm_path: ''
+sap_swpm_file_name: ''
+
 #
 # Define your own software extraction directory. If undefined, the role will use './extracted' as a subdirectory
-# of sap_swpm_swpm_path.
+# of sap_swpm_path.
 # sap_swpm_software_extract_directory: # e.g. /software/sap_swpm_extracted
 
 # Note:
@@ -165,8 +166,16 @@ sap_swpm_swpm_path: "{{ sap_swpm_software_path }}"
 # When using SWPM1 (for older SAP products), using CD Media is the only choice - param value should be true
 sap_swpm_software_use_media: false
 
+# Dictionary of environment variables which will be temporarily injected when executing swpm
+# This can be used to modify variables like TMP or rsdb_ssfs_connect which will be used by sapinst
+# See SAP Notes 3651688 and 2063079 for more information on TMP environment variable when executing SWPM
+sap_swpm_env_vars: {}
+
 # Directory in which a sapinst inifile which is to be used by the role can be stored:
 sap_swpm_inifile_directory: '/software/sap_swpm/inifiles'
+
+# extra sapinst arguments to be added to the sapinst command line:
+sap_swpm_command_extra_args: ''
 
 # SWPM1 - paths that this role will look for CD Media software
 sap_swpm_cd_export_pt1_path: ''
@@ -203,12 +212,12 @@ sap_swpm_tms_tr_files_path: ''
 # This allows user to watch the installation progress from a browser (on standard port 4237) and possibly interact with it
 # Note: Interaction can impact the automated installation and may result in the need for further manual actions
 # in order to complete the installation
-sap_swpm_swpm_observer_mode: false
+sap_swpm_observer_mode: false
 # Allows to specify a different remote access user (e.g. when root's password is unknown).
 # Default SWPM behaviour is to use root. This may not be desirable as the password of the root user
 # may not be available for security reasons. The remote access user must exist before SWPM is executed
 # (i.e. <sid>adm can't be used if it doesn't exist yet).
-sap_swpm_swpm_remote_access_user: ''
+sap_swpm_remote_access_user: ''
 # --- Experimental - SWPM Observer mode --- #
 
 sap_swpm_install_saphostagent: true
@@ -423,8 +432,73 @@ sap_swpm_generic: false
 # Set linux user password expiry settings
 sap_swpm_set_sidadm_noexpire: true
 
-# Firewall setup
-sap_swpm_setup_firewall: false
+# Set this variable to `true` to configure the required firewall ports for SAP Netweaver instances.
+# What this configuration includes:
+# - Installation of the `firewalld` package and starting the service.
+# - If `sap_swpm_firewall_ports` is undefined: A Firewalld service definition is created with recommended ports.
+#   Note: `NN` refers to the SAP Instance Number defined in respective variables.
+#   Application instances: PAS, AAS, WD
+#  | Ports | Protocol | Reason |
+#  | --- | --- | --- |
+#  | 1128-1129 | TCP | SAP Host Agent ports for status and metrics communication. |
+#  | 32NN | TCP | SAP Dispatcher (32NN) communication |
+#  | 33NN | TCP | SAP Gateway (33NN) communication |
+#  | 47NN | TCP | SAP Dispatcher (47NN) SNC secured for CPIC and RFC communication. |
+#  | 48NN | TCP | SAP Gateway (48NN) SNC secured for CPIC and RFC communication. |
+#  | 80NN | TCP | SAP Internet Communication Manager (ICM) HTTP port (80NN). Used for non-secure web client access. |
+#  | 443NN | TCP | SAP Internet Communication Manager (ICM) HTTPS port (443NN). Used for secure web client access. |
+#  | 5NN13 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+#  | 5NN14 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+#  | 5NN16 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+#  | 620NN<br>621NN | TCP | JAVA ports (62NNN), commonly used for communication within the AS-Java stack, e.g., P4/P4S protocols. |
+#  Central Services instances: ASCS, SCS, ERS
+#  | Ports | Protocol | Reason |
+#  | --- | --- | --- |
+#  | 1128-1129 | TCP | SAP Host Agent ports for status and metrics communication. |
+#  | 36NN | TCP | SAP Message Server port (36NN). Used for internal communication between application servers. |
+#  | 39NN | TCP | SAP SAP Enqueue Server port (39NN). |
+#  | 81NN | TCP | SAP Message Server HTTP port (81NN), configured via the `ms/http_port_<n>` profile parameter. |
+#  | 5NN13 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+#  | 5NN14 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+#  | 5NN16 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+# - If `sap_swpm_firewall_ports` is defined: The specified ports are opened directly and no service definition is created.
+# Important: This does not include configuration of database services or ports, as they are not directly installed with this role.
+# For example, firewall configuration for SAP HANA can be managed separately in the `sap_hana_install` role.
+# Managing configured Firewall:
+# - Setting this variable to `false` does not remove any existing firewall configuration.
+# - For ongoing firewall management, consider using the `community.sap_operations.sap_firewall` role or the `firewall` Linux System Role.
+sap_swpm_configure_firewall: false
+
+# Optional list of firewall ports.
+# The specified ports are opened directly and no service definition is created.
+# Commented out example 1: Ports that are defined in service file for application instance.
+# sap_swpm_firewall_ports:
+#   - "1128-1129/tcp"  # SAP Host Agent ports for status and metrics communication
+#   - "32{{ sap_swpm_pas_instance_nr }}"  # SAP Dispatcher (32NN) communication.
+#   - "33{{ sap_swpm_pas_instance_nr }}"  # SAP Gateway (33NN) communication.
+#   - "47{{ sap_swpm_pas_instance_nr }}"  # SAP Dispatcher (47NN) SNC secured for CPIC and RFC communication.
+#   - "48{{ sap_swpm_pas_instance_nr }}"  # SAP Gateway (48NN) SNC secured for CPIC and RFC communication.
+#   - "80{{ sap_swpm_pas_instance_nr }}"  # SAP Internet Communication Manager (ICM) HTTP port (80NN).
+#   - "443{{ sap_swpm_pas_instance_nr }}"  # SAP Internet Communication Manager (ICM) HTTPS port (443NN).
+#   - "5{{ sap_swpm_pas_instance_nr }}13"  # SAP Start Service (sapstartsrv) communication.
+#   - "5{{ sap_swpm_pas_instance_nr }}14"  # SAP Start Service (sapstartsrv) communication.
+#   - "5{{ sap_swpm_pas_instance_nr }}16"  # SAP Start Service (sapstartsrv) communication.
+#   - "620{{ sap_swpm_pas_instance_nr }}"  # JAVA ports (620NN)
+#   - "621{{ sap_swpm_pas_instance_nr }}"  # JAVA ports (621NN)
+
+# Commented out example 2: Ports that are defined in service file for central service instance.
+# sap_swpm_firewall_ports:
+#   - "1128-1129/tcp"  # SAP Host Agent ports for status and metrics communication
+#   - "36{{ sap_swpm_ascs_instance_nr }}"  # SAP Message Server port
+#   - "39{{ sap_swpm_ascs_instance_nr }}"  # SAP Enqueue Server port (39NN).
+#   - "81{{ sap_swpm_ascs_instance_nr }}"  # SAP Message Server HTTP port (81NN), configured via ms/http_port_<n> profile parameter.
+#   - "5{{ sap_swpm_ascs_instance_nr }}13"  # SAP Start Service (sapstartsrv) communication.
+#   - "5{{ sap_swpm_ascs_instance_nr }}14"  # SAP Start Service (sapstartsrv) communication.
+#   - "5{{ sap_swpm_ascs_instance_nr }}16"  # SAP Start Service (sapstartsrv) communication.
+
+# Optional name of firewall zone where service or ports will be configured.<br>
+# Default firewall zone, usually `public`, is used if this variable is undefined.
+# sap_swpm_firewall_zone: ''
 
 # Update /etc/hosts
 sap_swpm_update_etchosts: false

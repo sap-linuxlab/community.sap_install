@@ -90,14 +90,14 @@
       register: __sap_hana_install_register_sapcar_file_contents
       changed_when: false
 
-    # Loop through found files and compare them against search keywords for ansible_architecture.
+    # Loop through found files and compare them against search keywords for ansible_facts['architecture'].
     # Supported combinations are defined in the variable '__sap_hana_install_architecture_matrix' in vars/main.yml file.
     # Each platform can contain multiple search words. AND operator is achieved by counting all found keywords.
-    - name: SAP HANA hdblcm prepare - SAPCAR auto-detection - Compare found files against the variable ansible_architecture
+    - name: SAP HANA hdblcm prepare - SAPCAR auto-detection - Compare found files against the variable ansible_facts['architecture']
       ansible.builtin.set_fact:
         __sap_hana_install_fact_sapcar_matching_arch: |
           {%- set matching_files = [] -%}
-          {%- set rule_sets = __sap_hana_install_architecture_matrix.get(ansible_architecture, []) -%}
+          {%- set rule_sets = __sap_hana_install_architecture_matrix.get(ansible_facts['architecture'], []) -%}
           {%- if rule_sets -%}
             {%- for line in __sap_hana_install_register_sapcar_file_contents.stdout_lines -%}
               {%- set parts = line.split(': ', 1) -%}
@@ -122,7 +122,7 @@
 
     - name: SAP HANA hdblcm prepare - SAPCAR auto-detection - Fail if no matching SAPCAR executable could be found
       ansible.builtin.fail:
-        msg: "FAIL: No SAPCAR EXE file for architecture '{{ ansible_architecture }}' was found in
+        msg: "FAIL: No SAPCAR EXE file for architecture '{{ ansible_facts['architecture'] }}' was found in
               {{ __sap_hana_install_fact_software_directory }}!"
       when: __sap_hana_install_fact_sapcar_matching_arch | length == 0
 

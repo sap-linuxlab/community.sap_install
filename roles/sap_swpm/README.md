@@ -22,7 +22,7 @@ Managed nodes:
 ### Prepare SAP installation media
 Place a valid SAPCAR executable file in a directory specified by variable `sap_swpm_sapcar_path` (e.g. /software/sapcar). Example: `SAPCAR_1300-70007716.EXE`
 
-Place a valid SWPM SAR file in a directory specified by variable `sap_swpm_swpm_path` (e.g. /software/sap_swpm). Example: `SWPM20SP18_3-80003424.SAR`
+Place a valid SWPM SAR file in a directory specified by variable `sap_swpm_path` (e.g. /software/sap_swpm). Example: `SWPM20SP23_0-80003424
 
 Place the following files in a directory specified by variable `sap_swpm_software_path` (e.g. /software/sap_swpm_download_basket):
 
@@ -70,7 +70,7 @@ It is recommended to execute this role together with other roles in this collect
 
 - Get SAPCAR executable filename from `sap_swpm_sapcar_path`
 
-- Get SWPM executable filename from `sap_swpm_swpm_path`
+- Get SWPM executable filename from `sap_swpm_path`
 
 - Get all .SAR filenames  from `sap_swpm_software_path`
 
@@ -78,7 +78,7 @@ It is recommended to execute this role together with other roles in this collect
 
 - (Optional) Do not disable password expiry if `sap_swpm_set_sidadm_noexpire` is set to `false` (Default: `true`).
 
-- (Optional) Apply firewall rules for SAP HANA if `sap_swpm_setup_firewall` is set to `true` (Default: `false`).
+- (Optional) Apply firewall rules for SAP HANA if `sap_swpm_configure_firewall` is set to `true` (Default: `false`).
 
 - At this stage, the role is searching for a sapinst inifile on the managed node, or it will create one:
 
@@ -113,7 +113,7 @@ sap_swpm_inifile_parameters_dict:
 
 - Set expiry of Linux created users to 'never'
 
-- (Optional) Apply firewall rules for SAP Netweaver if `sap_swpm_setup_firewall` is set to `true` (Default: `false`).
+- (Optional) Apply firewall rules for SAP Netweaver if `sap_swpm_configure_firewall` is set to `true` (Default: `false`).
 
 - (Optional) Handle the execution of SUM if SWPM started it (See Up-To-Date Installation below).
 <!-- END Execution Flow -->
@@ -184,7 +184,7 @@ With the following tags, the role can be called to perform certain activities on
   This can be useful for checking if the inifile is created as desired.
 - tag `sap_swpm_sapinst_commandline`: Only show the sapinst command line.
 - tag `sap_swpm_pre_install`: Perform all preinstallation steps, then exit.
-- tag `sap_swpm_setup_firewall`: Only perform the firewall preinstallation settings (but only if variable `sap_swpm_setup_firewall` is set to `true`).
+- tag `sap_swpm_configure_firewall`: Only perform the firewall preinstallation settings (but only if variable `sap_swpm_configure_firewall` is set to `true`).
 - tag `sap_swpm_update_etchosts`: Only update file `/etc/hosts` (but only if variable `sap_swpm_update_etchosts` is set to `true`).
 <!-- END Role Tags -->
 
@@ -322,12 +322,12 @@ Define path to directory with SAPCAR file.
 
 (Optional) Define name of SAPCAR file, or leave for auto-detection.
 
-#### sap_swpm_swpm_path
+#### sap_swpm_path
 - _Type:_ `string`
 
 Define path to directory with SWPM.
 
-#### sap_swpm_swpm_sar_file_name
+#### sap_swpm_sar_file_name
 - _Type:_ `string`
 
 (Optional) Define name of SWPM file, or leave for auto-detection.
@@ -350,12 +350,28 @@ Set to `true` to use SAP Media files instead of SAR files.</br>
 
 Define directory where sapinst inifile will be stored.
 
+#### sap_swpm_command_extra_args
+- _Type:_ `string`
+
+(Optional) Define extra sapinst arguments to be added to the sapinst command line.
+
 #### sap_swpm_install_saphostagent
 - _Type:_ `bool`
 - _Default:_ `true`
 
 Set to `false` to disable installation of SAP Hostagent. **Not recommended**
 
+#### sap_swpm_env_vars
+- _Type:_ `dict`
+
+(Optional) Define a dictionary of SHELL environment variables, one per line.</br>
+
+Example:
+
+```yaml
+sap_swpm_env_vars:
+  TMP: /var/tmp
+```
 
 ### Variables specific to SAP Netweaver
 
@@ -726,27 +742,76 @@ Define load type parameter `loadType`.
 
 Set to `true` to execute `sap_swpm` role in generic auto-detection mode, ignoring steps for individual detection.
 
-#### sap_swpm_swpm_installation_type
-- _Type:_ `string`
-
-Define installation type method. Available types: `restore`, `ha`, `maint_plan_stack`, `ha_maint_plan_stack`.</br>
-Installation type is auto-detected from `sap_swpm_product_catalog_id`.
-
-#### sap_swpm_swpm_command_virtual_hostname
+#### sap_swpm_command_virtual_hostname
 - _Type:_ `string`
 
 Define to override default virtual hostname `sap_swpm_virtual_hostname` sapinst command used for HA installation.
 
-#### sap_swpm_swpm_command_mp_stack
+#### sap_swpm_command_mp_stack
 - _Type:_ `string`
 
 Define to override default sapinst command parameter for Maintenance Plan stack file.
 
-#### sap_swpm_setup_firewall
+#### sap_swpm_configure_firewall
 - _Type:_ `bool`
 - _Default:_ `false`
 
-Set to `true` to configure firewall after SWPM execution.
+Set this variable to `true` to configure the required firewall ports for SAP Netweaver instances.</br>
+What this configuration includes:<br>
+
+- Installation of the `firewalld` package and starting the service.
+- If `sap_swpm_firewall_ports` is undefined: A Firewalld service definition is created with recommended ports.<br>
+  Note: `NN` refers to the SAP Instance Number defined in respective variables.<br>
+
+Application instances: PAS, AAS, WD
+
+| Ports | Protocol | Reason |
+| --- | --- | --- |
+| 1128-1129 | TCP | SAP Host Agent ports for status and metrics communication. |
+| 32NN | TCP | SAP Dispatcher (32NN) communication |
+| 33NN | TCP | SAP Gateway (33NN) communication |
+| 47NN | TCP | SAP Dispatcher (47NN) SNC secured for CPIC and RFC communication. |
+| 48NN | TCP | SAP Gateway (48NN) SNC secured for CPIC and RFC communication. |
+| 80NN | TCP | SAP Internet Communication Manager (ICM) HTTP port (80NN). Used for non-secure web client access. |
+| 443NN | TCP | SAP Internet Communication Manager (ICM) HTTPS port (443NN). Used for secure web client access. |
+| 5NN13 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+| 5NN14 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+| 5NN16 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+| 620NN<br>621NN | TCP | JAVA ports (62NNN), commonly used for communication within the AS-Java stack, e.g., P4/P4S protocols. |
+
+Central Services instances: ASCS, SCS, ERS
+
+| Ports | Protocol | Reason |
+| --- | --- | --- |
+| 1128-1129 | TCP | SAP Host Agent ports for status and metrics communication. |
+| 36NN | TCP | SAP Message Server port (36NN). Used for internal communication between application servers. |
+| 39NN | TCP | SAP SAP Enqueue Server port (39NN). |
+| 81NN | TCP | SAP Message Server HTTP port (81NN), configured via the `ms/http_port_<n>` profile parameter. |
+| 5NN13 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+| 5NN14 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+| 5NN16 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
+
+- If `sap_swpm_firewall_ports` is defined: The specified ports are opened directly and no service definition is created.<br>
+
+**Important:** This does not include configuration of database services or ports, as they are not directly installed with this role.
+For example, firewall configuration for SAP HANA can be managed separately in the `sap_hana_install` role.<br>
+
+Managing configured Firewall:<br>
+
+- Setting this variable to `false` does not remove any existing firewall configuration.<br>
+- For ongoing firewall management, consider using the `community.sap_operations.sap_firewall` role or the `firewall` Linux System Role.</br>
+
+#### sap_swpm_firewall_ports
+- _Type:_ `list`
+
+Optional list of firewall ports.<br>
+The specified ports are opened directly and no service definition is created.<br>
+
+#### sap_swpm_firewall_zone
+- _Type:_ `string`
+
+Optional name of firewall zone where service or ports will be configured.<br>
+Default firewall zone, usually `public`, is used if this variable is undefined.
 
 #### sap_swpm_update_etchosts
 - _Type:_ `bool`
@@ -809,17 +874,17 @@ Set group ownership for SAPCAR file in `sap_swpm_sapcar_path`.
 - _Type:_ `string`
 - _Default:_ `0644`
 
-Set permissions for all non-SAPCAR files in `sap_swpm_software_path` and for SWPM*.SAR files in `sap_swpm_swpm_path`.
+Set permissions for all non-SAPCAR files in `sap_swpm_software_path` and for SWPM*.SAR files in `sap_swpm_path`.
 
 #### sap_swpm_files_non_sapcar_owner
 - _Type:_ `string`
 - _Default:_ `root`
 
-Set owner for all non-SAPCAR files in `sap_swpm_software_path` and for SWPM*.SAR files in `sap_swpm_swpm_path`.
+Set owner for all non-SAPCAR files in `sap_swpm_software_path` and for SWPM*.SAR files in `sap_swpm_path`.
 
 #### sap_swpm_files_non_sapcar_group
 - _Type:_ `string`
 - _Default:_ `root`
 
-Set group ownership for all non-SAPCAR files in `sap_swpm_software_path` and for SWPM*.SAR files in `sap_swpm_swpm_path`.
+Set group ownership for all non-SAPCAR files in `sap_swpm_software_path` and for SWPM*.SAR files in `sap_swpm_path`.
 <!-- END Role Variables -->

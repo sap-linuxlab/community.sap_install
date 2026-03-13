@@ -1,0 +1,104 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP HSR - Firewall - Install packages
+  ansible.builtin.package:
+    name: "{{ __sap_ha_install_hana_hsr_firewall_packages + __sap_ha_install_hana_hsr_firewall_extra_packages }}"
+    state: present
+
+- name: SAP HSR - Firewall - Start and enable firewalld service
+  ansible.builtin.systemd_service:
+    name: firewalld
+    state: started
+    enabled: true
+    masked: false
+
+
+# Validate firewall zone if defined
+- name: Block for validation of firewall zone
+  when: sap_ha_install_hana_hsr_firewall_zone is defined
+  block:
+    - name: SAP HSR - Firewall - Get list of configured zones from firewalld
+      ansible.builtin.command:
+        cmd: firewall-cmd --get-zones
+      register: __sap_ha_install_hana_hsr_register_firewall_zones
+      changed_when: false
+
+    - name: SAP HSR - Firewall - Assert that the firewall zone is available
+      ansible.builtin.assert:
+        that:
+          - sap_ha_install_hana_hsr_firewall_zone in __sap_ha_install_hana_hsr_register_firewall_zones.stdout.split()
+        success_msg: |
+          PASS: The zone '{{ sap_ha_install_hana_hsr_firewall_zone }}' is present in firewalld.
+        fail_msg: |
+          FAIL: The zone '{{ sap_ha_install_hana_hsr_firewall_zone }}' is not preset in firewalld.
+          Available zones: {{ __sap_ha_install_hana_hsr_register_firewall_zones.stdout }}
+        quiet: true
+
+
+- name: Block for service
+  when: sap_ha_install_hana_hsr_firewall_ports | d([]) | length == 0
+  block:
+    - name: SAP HSR - Firewall - Generate service file from template
+      ansible.builtin.template:
+        src: firewall-hana-replication.j2
+        dest: "/etc/firewalld/services/{{ __sap_ha_install_hana_hsr_firewall_service_name }}.xml"
+        owner: 'root'
+        group: 'root'
+        mode: '0640'
+
+    - name: SAP HSR - Firewall - Reload firewalld after creating service file
+      ansible.builtin.command:
+        cmd: firewall-cmd --reload
+      changed_when: true
+
+    - name: SAP HSR - Firewall - Configure service in firewall
+      ansible.builtin.command:
+        cmd: >-
+          firewall-cmd
+          {% if sap_ha_install_hana_hsr_firewall_zone is defined %}
+          --zone={{ sap_ha_install_hana_hsr_firewall_zone }}
+          {% endif %}
+          --permanent
+          --add-service={{ __sap_ha_install_hana_hsr_firewall_service_name }}
+      register: __sap_ha_install_hana_hsr_register_firewall_add_service
+      changed_when: true
+
+
+- name: Block for ports
+  when: sap_ha_install_hana_hsr_firewall_ports | d([]) | length > 0
+  block:
+    - name: SAP HSR - Firewall - Open Ports without service file
+      ansible.builtin.command:
+        cmd: >-
+          firewall-cmd
+          {% if sap_ha_install_hana_hsr_firewall_zone is defined %}
+          --zone={{ sap_ha_install_hana_hsr_firewall_zone }}
+          {% endif %}
+          --permanent
+          {% for port_item in sap_ha_install_hana_hsr_firewall_ports %}
+          --add-port={{ port_item }}
+          {% endfor %}
+      register: __sap_ha_install_hana_hsr_register_firewall_add_port
+      changed_when: true
+
+
+- name: SAP HSR - Firewall - Reload firewalld after applying changes
+  ansible.builtin.command:
+    cmd: firewall-cmd --reload
+  changed_when: true
+
+- name: SAP HSR - Firewall - Get current firewall configuration of the default zone
+  ansible.builtin.command:
+    cmd: firewall-cmd --list-all
+  changed_when: false
+  register: __sap_ha_install_hana_hsr_register_current_firewall_configuration
+
+
+- name: SAP HSR - Firewall - Show details of configured firewall
+  ansible.builtin.debug:
+    msg: |
+      Firewall was configured for SAP HANA System Replication and reloaded.
+      Output of command 'firewall-cmd --list-all':
+      {{ __sap_ha_install_hana_hsr_register_current_firewall_configuration.stdout }}
+  when: __sap_ha_install_hana_hsr_register_current_firewall_configuration.stdout is defined
