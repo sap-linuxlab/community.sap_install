@@ -21,13 +21,13 @@
         - action: stop
           attrs:
             - name: timeout
-              value: 600
+              value: 300
         - action: monitor
           attrs:
             - name: interval
-              value: 50
+              value: "{{ 50 if ansible_facts['os_family'] == 'Suse' else 30 }}"
             - name: timeout
-              value: 600
+              value: "{{ 600 if ansible_facts['os_family'] == 'Suse' else 300 }}"
   when:
     - __resource_hana_topology.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
 
@@ -125,7 +125,7 @@
             - name: interval
               value: 120
             - name: timeout
-              value: 180
+              value: 120
   when:
     - __resource_hana_filesystem.agent not in (__sap_ha_pacemaker_cluster_resource_primitives | map(attribute='agent'))
 
