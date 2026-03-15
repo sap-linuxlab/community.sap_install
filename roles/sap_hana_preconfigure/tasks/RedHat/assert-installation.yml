@@ -6,21 +6,21 @@
 
 - name: Assert that the system is running a RHEL release which is supported for SAP HANA
   ansible.builtin.assert:
-    that: ansible_distribution_version in sap_hana_preconfigure_supported_rhel_minor_releases
+    that: ansible_facts['distribution_version'] in sap_hana_preconfigure_supported_rhel_minor_releases
     fail_msg:
-      - "FAIL: The RHEL release '{{ ansible_distribution_version }}' may not (yet) be supported for SAP HANA. Please check SAP note 2235581!"
+      - "FAIL: The RHEL release '{{ ansible_facts['distribution_version'] }}' may not (yet) be supported for SAP HANA. Please check SAP note 2235581!"
       - "NOTE: If necessary, adapt role parameter `sap_hana_preconfigure_supported_rhel_minor_releases` accordingly."
-    success_msg: "PASS: The RHEL release {{ ansible_distribution_version }} is supported for SAP HANA."
+    success_msg: "PASS: The RHEL release {{ ansible_facts['distribution_version'] }} is supported for SAP HANA."
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
   when: sap_hana_preconfigure_min_rhel_release_check
 
 - name: Report if the RHEL release is supported for SAP HANA
   ansible.builtin.assert:
-    that: ansible_distribution_version in sap_hana_preconfigure_supported_rhel_minor_releases
+    that: ansible_facts['distribution_version'] in sap_hana_preconfigure_supported_rhel_minor_releases
     fail_msg:
-      - "WARN: The RHEL release '{{ ansible_distribution_version }}' may not (yet) be supported for SAP HANA. Please check SAP note 2235581!"
+      - "WARN: The RHEL release '{{ ansible_facts['distribution_version'] }}' may not (yet) be supported for SAP HANA. Please check SAP note 2235581!"
       - "NOTE: If necessary, adapt role parameter `sap_hana_preconfigure_supported_rhel_minor_releases` accordingly."
-    success_msg: "INFO: The RHEL release {{ ansible_distribution_version }} is supported for SAP HANA."
+    success_msg: "INFO: The RHEL release {{ ansible_facts['distribution_version'] }} is supported for SAP HANA."
   ignore_errors: yes
   when: not sap_hana_preconfigure_min_rhel_release_check
 
@@ -28,7 +28,7 @@
 - name: Fill the variable for the generic list of required repos
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_required_repos: "{{ lookup('vars', '__sap_hana_preconfigure_req_repos_redhat_' +
-    ansible_distribution_version | string | replace(\".\", \"_\") + '_' + ansible_architecture | string) }}"
+    ansible_facts['distribution_version'] | string | replace(\".\", \"_\") + '_' + ansible_facts['architecture'] | string) }}"
 
 - name: Get info about enabled repos
   ansible.builtin.shell: set -o pipefail && subscription-manager repos --list-enabled | awk '/Repo ID:/{print $NF}'
@@ -58,18 +58,18 @@
 
 - name: Assert that the RHEL release is locked correctly
   ansible.builtin.assert:
-    that: __sap_hana_preconfigure_register_subscription_manager_release_assert.stdout == ansible_distribution_version
+    that: __sap_hana_preconfigure_register_subscription_manager_release_assert.stdout == ansible_facts['distribution_version']
     fail_msg: "FAIL: The RHEL release lock status is '{{ __sap_hana_preconfigure_register_subscription_manager_release_assert.stdout }}'
-               but the expected value is '{{ ansible_distribution_version }}'!"
-    success_msg: "PASS: The RHEL release is correctly locked to '{{ ansible_distribution_version }}'."
+               but the expected value is '{{ ansible_facts['distribution_version'] }}'!"
+    success_msg: "PASS: The RHEL release is correctly locked to '{{ ansible_facts['distribution_version'] }}'."
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
-  when: "ansible_distribution_version != '7.9'"
+  when: "ansible_facts['distribution_version'] != '7.9'"
 
 - name: Report that checking the release lock is not necessary if the system is on RHEL 7.9
   ansible.builtin.debug:
-    msg: "INFO: No need to check the release lock setting as the RHEL release {{ ansible_distribution_version }}
-          is the last RHEL {{ ansible_distribution_major_version }} minor release"
-  when: "ansible_distribution_version == '7.9'"
+    msg: "INFO: No need to check the release lock setting as the RHEL release {{ ansible_facts['distribution_version'] }}
+          is the last RHEL {{ ansible_facts['distribution_major_version'] }} minor release"
+  when: "ansible_facts['distribution_version'] == '7.9'"
 
 - name: Assert that all required packages are installed
   ansible.builtin.assert:
@@ -96,7 +96,7 @@
   register: __sap_hana_preconfigure_register_required_ppc64le_packages_assert
   changed_when: false
   when:
-    - ansible_architecture == "ppc64le"
+    - ansible_facts['architecture'] == "ppc64le"
     - sap_general_preconfigure_install_ibm_power_tools
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
@@ -110,7 +110,7 @@
   loop_control:
     loop_var: line_item
   when:
-    - ansible_architecture == "ppc64le"
+    - ansible_facts['architecture'] == "ppc64le"
     - sap_general_preconfigure_install_ibm_power_tools
   ignore_errors: "{{ sap_hana_preconfigure_assert_ignore_errors | d(false) }}"
 
@@ -208,22 +208,22 @@
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_needs_restarting_command_assert: "needs-restarting -r"
   when:
-    - ansible_distribution_major_version == '7'
+    - ansible_facts['distribution_major_version'] == '7'
 
 - name: "Assert - Set needs-restarting command in case of RHEL 8 or greater, except RHEL 8.0"
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_needs_restarting_command_assert: "yum needs-restarting -r"
   when:
-    - ansible_distribution_major_version | int >= 8
-    - ansible_distribution_version != '8.0'
+    - ansible_facts['distribution_major_version'] | int >= 8
+    - ansible_facts['distribution_version'] != '8.0'
 
 - name: "Assert - Set customized needs-restarting command in case of RHEL 8.0"
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_fact_needs_restarting_command_assert: "_IKRNL=$(rpm -q --last kernel | awk 'NR==1{sub(/kernel-/,\"\"); print $1}');
       _CKRNL=$(uname -r); if [ ${_IKRNL} != ${_CKRNL} ]; then exit 1; else exit 0; fi"
   when:
-    - ansible_os_family == 'RedHat'
-    - ansible_distribution_version == '8.0'
+    - ansible_facts['os_family'] == 'RedHat'
+    - ansible_facts['distribution_version'] == '8.0'
 
 - name: Assert - Display the command for checking a reboot requirement
   ansible.builtin.debug:
