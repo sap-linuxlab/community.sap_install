@@ -145,7 +145,7 @@ sap_general_preconfigure_modify_selinux_labels: true
 # Set to `false` if you do not want to modify the SELinux labels for the SAP directories set
 # in variable `sap_general_preconfigure_sap_directories`.
 
-sap_general_preconfigure_size_of_tmpfs_gb: "{{ ((0.75 * (ansible_memtotal_mb + ansible_swaptotal_mb)) / 1024) | round | int }}"
+sap_general_preconfigure_size_of_tmpfs_gb: "{{ ((0.75 * (ansible_facts['memtotal_mb'] + ansible_facts['swaptotal_mb'])) / 1024) | round | int }}"
 # The size of the tmpfs in GB. The formula used here is mentioned in SAP note 941735.
 
 sap_general_preconfigure_modify_etc_hosts: true
@@ -167,13 +167,13 @@ sap_general_preconfigure_ignore_dns_failures: true
 # report such errors and continue running the role.
 
 # If "global" variables are set, use those. If not, default to the values from gather_facts:
-sap_general_preconfigure_ip: "{{ sap_ip | d(ansible_default_ipv4.address) }}"
+sap_general_preconfigure_ip: "{{ sap_ip | d(ansible_facts['default_ipv4'].address) }}"
 # The IPV4 address to be used for updating or checking `/etc/hosts` entries.
 
-sap_general_preconfigure_hostname: "{{ sap_hostname | d(ansible_hostname) }}"
+sap_general_preconfigure_hostname: "{{ sap_hostname | d(ansible_facts['hostname']) }}"
 # The hostname to be used for updating or checking `/etc/hosts` entries.
 
-sap_general_preconfigure_domain: "{{ sap_domain | d(ansible_domain) }}"
+sap_general_preconfigure_domain: "{{ sap_domain | d(ansible_facts['domain']) }}"
 # The DNS domain name to be used for updating or checking `/etc/hosts` entries.
 # Mandatory parameter when sap_general_preconfigure_modify_etc_hosts is set to true.
 
