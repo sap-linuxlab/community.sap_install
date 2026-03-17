@@ -3,7 +3,7 @@
 
 - name: Assert that the DNS domain is set
   ansible.builtin.assert:
-    that: not( (ansible_domain is undefined) or (ansible_domain is none) or (ansible_domain | trim == '') )
+    that: not( (ansible_facts['domain'] is undefined) or (ansible_facts['domain'] is none) or (ansible_facts['domain'] | trim == '') )
     fail_msg: "FAIL: The DNS domain is not configured! So variable 'sap_general_preconfigure_domain' needs to be configured!"
     success_msg: "PASS: The DNS domain is configured."
 #  ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
@@ -29,11 +29,11 @@
   changed_when: false
   when: "'bind-utils' in ansible_facts.packages"
 
-- name: Assert that ansible_default_ipv4.address is set
+- name: Assert that ansible_facts['default_ipv4'].address is set
   ansible.builtin.assert:
-    that: not( (ansible_default_ipv4.address is undefined) or (ansible_default_ipv4.address is none) or (ansible_default_ipv4.address | trim == '') )
-    fail_msg: "FAIL: The variable 'ansible_default_ipv4.address' is not defined!"
-    success_msg: "PASS: The variable 'ansible_default_ipv4.address' is defined."
+    that: not( (ansible_facts['default_ipv4'].address is undefined) or (ansible_facts['default_ipv4'].address is none) or (ansible_facts['default_ipv4'].address | trim == '') )
+    fail_msg: "FAIL: The variable 'ansible_facts['default_ipv4'].address' is not defined!"
+    success_msg: "PASS: The variable 'ansible_facts['default_ipv4'].address' is defined."
   ignore_errors: "{{ sap_general_preconfigure_assert_ignore_errors | d(false) }}"
 
 - name: Assert that sap_general_preconfigure_ip is set

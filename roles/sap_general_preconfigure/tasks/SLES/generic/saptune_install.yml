@@ -11,10 +11,10 @@
 - name: Set fact if baseproduct contains SLES without SLES_SAP
   ansible.builtin.set_fact:
     __sap_general_preconfigure_use_saptune: false
-  when:
-    - '"SLES_SAP" not in __sap_general_preconfigure_register_baseproduct.stat.lnk_target'
-    - '"SLES" in __sap_general_preconfigure_register_baseproduct.stat.lnk_target
-      and ansible_distribution_major_version | int < 16'
+  when: >-
+    "SLES_SAP" not in __sap_general_preconfigure_register_baseproduct.stat.lnk_target
+    and ("SLES" in __sap_general_preconfigure_register_baseproduct.stat.lnk_target
+    and ansible_facts['distribution_major_version'] | int < 16)
 
 
 - name: Block to ensure saptune is installed

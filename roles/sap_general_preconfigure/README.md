@@ -392,7 +392,7 @@ in variable `sap_general_preconfigure_sap_directories`.<br>
 
 ### sap_general_preconfigure_size_of_tmpfs_gb
 - _Type:_ `str`
-- _Default:_ `"{{ ((0.75 * (ansible_memtotal_mb + ansible_swaptotal_mb)) / 1024) | round | int }}"`
+- _Default:_ `"{{ ((0.75 * (ansible_facts['memtotal_mb'] + ansible_facts['swaptotal_mb'])) / 1024) | round | int }}"`
 
 The size of the tmpfs in GB. The formula used here is mentioned in SAP note 941735.<br>
 
@@ -433,20 +433,20 @@ The maximum length of the hostname. See SAP note 611361.<br>
 
 ### sap_general_preconfigure_hostname
 - _Type:_ `str`
-- _Default:_ `"{{ ansible_hostname }}"`
+- _Default:_ `"{{ ansible_facts['hostname'] }}"`
 
 The hostname to be used for updating or checking `/etc/hosts` entries.<br>
 
 ### sap_general_preconfigure_domain
 - _Type:_ `str`
-- _Default:_ `"{{ ansible_domain }}"`
+- _Default:_ `"{{ ansible_facts['domain'] }}"`
 
 The DNS domain name to be used for updating or checking `/etc/hosts` entries.<br>
 Mandatory parameter when sap_general_preconfigure_modify_etc_hosts is set to true.<br>
 
 ### sap_general_preconfigure_ip
 - _Type:_ `str`
-- _Default:_ `"{{ ansible_default_ipv4.address }}"`
+- _Default:_ `"{{ ansible_facts['default_ipv4'].address }}"`
 
 The IPV4 address to be used for updating or checking `/etc/hosts` entries.<br>
 

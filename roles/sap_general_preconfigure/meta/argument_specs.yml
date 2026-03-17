@@ -296,7 +296,7 @@ argument_specs:
         type: bool
 
       sap_general_preconfigure_size_of_tmpfs_gb:
-        default: "{{ ((0.75 * (ansible_memtotal_mb + ansible_swaptotal_mb)) / 1024) | round | int }}"
+        default: "{{ ((0.75 * (ansible_facts['memtotal_mb'] + ansible_facts['swaptotal_mb'])) / 1024) | round | int }}"
         description:
           - The size of the tmpfs in GB. The formula used here is mentioned in SAP note 941735.
         required: false
@@ -340,14 +340,14 @@ argument_specs:
         type: str
 
       sap_general_preconfigure_hostname:
-        default: "{{ ansible_hostname }}"
+        default: "{{ ansible_facts['hostname'] }}"
         description:
           - The hostname to be used for updating or checking `/etc/hosts` entries.
         required: false
         type: str
 
       sap_general_preconfigure_domain:
-        default: "{{ ansible_domain }}"
+        default: "{{ ansible_facts['domain'] }}"
         description:
           - The DNS domain name to be used for updating or checking `/etc/hosts` entries.
           - Mandatory parameter when `sap_general_preconfigure_modify_etc_hosts` is set to true.
@@ -355,7 +355,7 @@ argument_specs:
         type: str
 
       sap_general_preconfigure_ip:
-        default: "{{ ansible_default_ipv4.address }}"
+        default: "{{ ansible_facts['default_ipv4'].address }}"
         description:
           - The IPV4 address to be used for updating or checking `/etc/hosts` entries.
         required: false
