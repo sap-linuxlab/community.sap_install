@@ -46,14 +46,14 @@
     __sap_hana_preconfigure_uefi_boot_dir: /boot/efi/EFI/redhat/grub.cfg
   listen: __sap_hana_preconfigure_regenerate_grub2_conf_handler
   when:
-    - ansible_distribution == 'RedHat'
+    - ansible_facts['distribution'] == 'RedHat'
 
 - name: "Set the grub.cfg location SLES"
   ansible.builtin.set_fact:
     __sap_hana_preconfigure_uefi_boot_dir: /boot/efi/EFI/BOOT/grub.cfg
   listen: __sap_hana_preconfigure_regenerate_grub2_conf_handler
   when:
-    - ansible_distribution == 'SLES' or ansible_distribution == 'SLES_SAP'
+    - ansible_facts['distribution'] == 'SLES' or ansible_facts['distribution'] == 'SLES_SAP'
 
 - name: "Run grub-mkconfig (UEFI mode)"
   ansible.builtin.command:
@@ -104,7 +104,7 @@
   timeout: 30
   listen: __sap_hana_preconfigure_reboot_handler
   when:
-    - ansible_os_family == 'Suse'
+    - ansible_facts['os_family'] == 'Suse'
     - sap_hana_preconfigure_reboot_ok | d(false)
   changed_when: false
 

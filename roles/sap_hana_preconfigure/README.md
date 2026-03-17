@@ -396,7 +396,7 @@ List of interfaces for which the MTU size will be set to `9000`.<br>
 
 ### sap_hana_preconfigure_ppcle_tso_if
 - _Type:_ `list` with elements of type `str`
-- _Default:_ `'{{ ansible_interfaces | difference([''lo'']) }}'`
+- _Default:_ `'{{ ansible_facts['interfaces'] | difference([''lo'']) }}'`
 
 List of interfaces for which the tso flag will be set.<br>
 
