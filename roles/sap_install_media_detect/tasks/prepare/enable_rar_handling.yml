@@ -4,7 +4,7 @@
 - name: SAP Install Media Detect - Prepare - Install the unar package from EPEL
   when:
     - sap_install_media_detect_rar_package == 'EPEL'
-    - ansible_facts['os_family'] == 'RedHat'
+    - ansible_os_family == 'RedHat'
   block:
 
 # Reason for noqa: Too much effort for now to examine the output of the yum module for the presence of a package
@@ -33,12 +33,12 @@
 
 #        - name: SAP Install Media Detect - Prepare - EPEL - Set fact for the EPEL URL
 #          ansible.builtin.set_fact:
-#            sap_install_media_detect_epel_url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
+#            sap_install_media_detect_epel_url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
 
         - name: SAP Install Media Detect - Prepare - EPEL - Enable the EPEL repo
           ansible.builtin.package:
 #            name: "{{ sap_install_media_detect_epel_url }}"
-            name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
+            name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
             state: present
           retries: 10
 
@@ -60,7 +60,7 @@
 
 - name: SAP Install Media Detect - Prepare - Install the unar package (SLES)
   when:
-    - ansible_facts['os_family'] == 'Suse'
+    - ansible_os_family == 'Suse'
   block:
 
     # Requires SLES Basesystem_Module_* to obtain package

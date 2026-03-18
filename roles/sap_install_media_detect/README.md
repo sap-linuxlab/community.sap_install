@@ -167,7 +167,7 @@ Based on this setting, the commands for listing and extracting RAR files are bei
 ### sap_install_media_detect_epel_gpg_key_url
 
 - _Type:_ `str`
-- _Default:_ `https://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_facts['distribution_major_version'] }}`
+- _Default:_ `https://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}`
 
 URL for the EPEL GPG key
 
