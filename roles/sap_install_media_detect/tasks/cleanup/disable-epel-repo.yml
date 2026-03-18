@@ -4,7 +4,7 @@
 # Note: This file is only included from tasks/main.yml if the epel-release package had not been initially detected.
 
 - name: SAP Install Media Detect - Cleanup - Get all GPG keys
-  ansible.builtin.shell: set -o pipefail && rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}-%{RELEASE}\t%{SUMMARY}\n' | awk '/gpg/&&/Fedora/{gsub ("\\(epel", "EPEL "); gsub (" \\(", " "); if ($0 ~ /EPEL {{ ansible_facts['distribution_major_version'] }}/)print}'
+  ansible.builtin.shell: set -o pipefail && rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}-%{RELEASE}\t%{SUMMARY}\n' | awk '/gpg/&&/Fedora/{gsub ("\\(epel", "EPEL "); gsub (" \\(", " "); if ($0 ~ /EPEL {{ ansible_distribution_major_version }}/)print}'
   register: __sap_install_media_detect_register_rpm_q_gpg_pubkeys
   failed_when: false
   changed_when: false
@@ -30,7 +30,7 @@
     - __sap_install_media_detect_register_rpm_q_gpg_pubkeys.stdout_lines | length == 1
 
 - name: SAP Install Media Detect - Cleanup - Get the GPG keys for this OS version after removal, rpm -e
-  ansible.builtin.shell: set -o pipefail && rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}-%{RELEASE}\t%{SUMMARY}\n' | grep 'EPEL ({{ ansible_facts['distribution_major_version'] }})'
+  ansible.builtin.shell: set -o pipefail && rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}-%{RELEASE}\t%{SUMMARY}\n' | grep 'EPEL ({{ ansible_distribution_major_version }})'
   register: __sap_install_media_detect_register_rpm_q_gpg_pubkeys_after_removal
   changed_when: false
   failed_when: false
