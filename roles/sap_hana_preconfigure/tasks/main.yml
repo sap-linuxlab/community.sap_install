@@ -7,7 +7,7 @@
 
 - name: Examine the OS minor version
   ansible.builtin.set_fact:
-    __sap_hana_preconfigure_fact_ansible_distribution_minor_version: '{{ ansible_distribution_version.split(".")[1] }}'
+    __sap_hana_preconfigure_fact_ansible_distribution_minor_version: "{{ ansible_facts['distribution_version'].split('.')[1] }}"
 
 # Load variable files in the following order (example for SLES and SLES_SAP 15.6 and RHEL 9.2):
 # 1. Suse.yml    / RedHat.yml          - Specific to OS family.
@@ -24,14 +24,14 @@
   loop: "{{ __vars_files_major }}"
   vars:
     __vars_file_major: "{{ role_path }}/vars/{{ item }}"
-    __distribution_major: "{{ ansible_distribution ~ '_' ~ ansible_distribution_major_version }}"
+    __distribution_major: "{{ ansible_facts['distribution'] ~ '_' ~ ansible_facts['distribution_major_version'] }}"
     # Enables loading of shared vars between SLES and SLES_SAP
-    __distribution_split_major: "{{ ansible_distribution.split('_')[0] ~ '_' ~ ansible_distribution_major_version }}"
+    __distribution_split_major: "{{ ansible_facts['distribution'].split('_')[0] ~ '_' ~ ansible_facts['distribution_major_version'] }}"
     __vars_files_major: >-
       {{
         [
-          ansible_os_family ~ '.yml',
-          (ansible_distribution ~ '.yml') if ansible_distribution != ansible_os_family else None,
+          ansible_facts['os_family'] ~ '.yml',
+          (ansible_facts['distribution'] ~ '.yml') if ansible_facts['distribution'] != ansible_facts['os_family'] else None,
           (__distribution_split_major ~ '.yml') if __distribution_split_major != __distribution_major else None,
           __distribution_major ~ '.yml',
         ] | select('defined') | select('string') | list
@@ -48,8 +48,8 @@
       {%- set major_minor_plus = [] -%}
       {%- for minor_number in range(1, __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int + 1, 1) -%}
         {%- set _ = major_minor_plus.append(
-            ansible_distribution ~ '_' ~
-            ansible_distribution_major_version ~ '.' ~
+            ansible_facts['distribution'] ~ '_' ~
+            ansible_facts['distribution_major_version'] ~ '.' ~
             (minor_number | string) ~ '.plus' ~ '.yml')
         -%}
       {%- endfor -%}
@@ -58,7 +58,7 @@
       {{ __distribution_major_minor_plus_yml | list }}
   when:
     - __vars_file_plus is file
-    - ansible_distribution == 'RedHat'
+    - ansible_facts['distribution'] == 'RedHat'
 
 # Step 3: Include any vars files which are valid only for the OS minor release
 - name: Include OS minor specific vars
@@ -66,9 +66,9 @@
   loop: "{{ __vars_files_minor }}"
   vars:
     __vars_file_minor: "{{ role_path }}/vars/{{ item }}"
-    __distribution_major_minor: "{{ ansible_distribution ~ '_' ~ ansible_distribution_version }}"
+    __distribution_major_minor: "{{ ansible_facts['distribution'] ~ '_' ~ ansible_facts['distribution_version'] }}"
     # Enables loading of shared vars between SLES and SLES_SAP
-    __distribution_split_major_minor: "{{ ansible_distribution.split('_')[0] ~ '_' ~ ansible_distribution_version }}"
+    __distribution_split_major_minor: "{{ ansible_facts['distribution'].split('_')[0] ~ '_' ~ ansible_facts['distribution_version'] }}"
     __vars_files_minor: >-
       {{
         [
@@ -96,15 +96,15 @@
   ansible.builtin.include_tasks: '{{ item }}/{{ __sap_hana_preconfigure_fact_assert_filename_prefix }}installation.yml'
   when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_installation | d(false)
   with_first_found:
-    - '{{ ansible_distribution.split("_")[0] }}'
-    - '{{ ansible_distribution }}'
+    - "{{ ansible_facts['distribution'].split('_')[0] }}"
+    - "{{ ansible_facts['distribution'] }}"
 
 - name: Include configuration.yml
   ansible.builtin.include_tasks: '{{ item }}/{{ __sap_hana_preconfigure_fact_assert_filename_prefix }}configuration.yml'
   when: sap_hana_preconfigure_config_all | d(true) or sap_hana_preconfigure_configuration | d(false)
   with_first_found:
-    - '{{ ansible_distribution.split("_")[0] }}'
-    - '{{ ansible_distribution }}'
+    - "{{ ansible_facts['distribution'].split('_')[0] }}"
+    - "{{ ansible_facts['distribution'] }}"
 
 # allow a reboot at the end of the preconfigure role
 - name: Flush handlers

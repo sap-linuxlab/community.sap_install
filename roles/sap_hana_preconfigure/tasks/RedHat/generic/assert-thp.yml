@@ -29,10 +29,10 @@
         __sap_hana_preconfigure_fact_thp_boot_command_line_arg: "transparent_hugepage=never"
       when:
         - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
-        - ansible_distribution_major_version == '7' or
-          ansible_distribution_major_version == '8' or
-          ansible_distribution_version == '9.0' or
-          ansible_distribution_version == '9.1'
+        - ansible_facts['distribution_major_version'] == '7' or
+          ansible_facts['distribution_major_version'] == '8' or
+          ansible_facts['distribution_version'] == '9.0' or
+          ansible_facts['distribution_version'] == '9.1'
 
     - name: Set fact for THP, RHEL 9.2 and later
       ansible.builtin.set_fact:
@@ -40,8 +40,8 @@
         __sap_hana_preconfigure_fact_thp_boot_command_line_arg: "transparent_hugepage=madvise"
       when:
         - sap_hana_preconfigure_thp is undefined or sap_hana_preconfigure_thp | length == 0
-        - ansible_distribution_major_version | int >= 10 or
-          (ansible_distribution_major_version == '9' and
+        - ansible_facts['distribution_major_version'] | int >= 10 or
+          (ansible_facts['distribution_major_version'] == '9' and
             __sap_hana_preconfigure_fact_ansible_distribution_minor_version | int >= 2)
 
     # TODO: Replace with full validations for accepted values ['always', 'madvise', 'never']
