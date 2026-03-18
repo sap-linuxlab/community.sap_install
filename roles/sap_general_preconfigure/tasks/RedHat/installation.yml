@@ -34,7 +34,7 @@
            __sap_general_preconfigure_req_ha_repos | list }}"
       when:
         - sap_general_preconfigure_req_repos is undefined
-        - ansible_architecture != 's390x'
+        - ansible_facts['architecture'] != 's390x'
 
     - name: Set final list of repos, s390x, auto
       ansible.builtin.set_fact:
@@ -44,7 +44,7 @@
            __sap_general_preconfigure_req_ha_repos | list }}"
       when:
         - sap_general_preconfigure_req_repos is undefined
-        - ansible_architecture == 's390x'
+        - ansible_facts['architecture'] == 's390x'
 
     - name: Set final list of repos, manual
       ansible.builtin.set_fact:
@@ -106,21 +106,21 @@
     msg: "The RHEL minor release lock is set correctly to '{{ __sap_general_preconfigure_register_subscription_manager_release.stdout }}'."
   when:
     - sap_general_preconfigure_set_minor_release
-    - __sap_general_preconfigure_register_subscription_manager_release.stdout == ansible_distribution_version
+    - __sap_general_preconfigure_register_subscription_manager_release.stdout == ansible_facts['distribution_version']
 
 # Reason for noqa: Finding out if the minor release has already been set would require one more task.
 - name: Set the minor RHEL release # noqa no-changed-when
-  ansible.builtin.command: subscription-manager release --set="{{ ansible_distribution_version }}"
+  ansible.builtin.command: subscription-manager release --set="{{ ansible_facts['distribution_version'] }}"
   when:
     - sap_general_preconfigure_set_minor_release
-    - __sap_general_preconfigure_register_subscription_manager_release.stdout != ansible_distribution_version
+    - __sap_general_preconfigure_register_subscription_manager_release.stdout != ansible_facts['distribution_version']
   tags: molecule-idempotence-notest
 
 - name: Ensure that the required package groups are installed, RHEL except 8.1
   ansible.builtin.package:
     name: "{{ sap_general_preconfigure_packagegroups }}"
     state: present
-  when: ansible_distribution_version != '8.1'
+  when: ansible_facts['distribution_version'] != '8.1'
 
 # Note: We do not want package updates, see also Red Hat bug 1983749.
 #       Because the installation of an environment or package group is not guaranteed to avoid package updates,
@@ -130,7 +130,7 @@
 - name: Ensure that the required package groups are installed, RHEL 8.1 # noqa command-instead-of-module no-changed-when
   ansible.builtin.command: "yum install {{ sap_general_preconfigure_packagegroups | join(' ') }} --nobest --exclude=kernel* -y"
   register: __sap_general_preconfigure_register_yum_group_install
-  when: ansible_distribution_version == '8.1'
+  when: ansible_facts['distribution_version'] == '8.1'
   tags: molecule-idempotence-notest
 
 # possible replacement once we no longer need Ansible 2.9 compatibility:
@@ -140,7 +140,7 @@
 #    state: present
 #    nobest: true  # supported from Ansible 2.11
 #  register: __sap_general_preconfigure_register_yum_group_install
-#  when: ansible_distribution_major_version == '8' or ansible_distribution_major_version == '9'
+#  when: ansible_facts['distribution_major_version'] == '8' or ansible_facts['distribution_major_version'] == '9'
 
 - name: Ensure that the required packages are installed
   ansible.builtin.package:
@@ -153,7 +153,7 @@
     state: present
     disable_gpg_check: True
   when:
-    - ansible_architecture == "ppc64le"
+    - ansible_facts['architecture'] == "ppc64le"
     - sap_general_preconfigure_install_ibm_power_tools | d(true)
     - sap_general_preconfigure_add_ibm_power_repo | d(true)
 
@@ -161,7 +161,7 @@
   ansible.builtin.shell: LESS=+q /opt/ibm/lop/configure <<<'y'
   changed_when: true
   when:
-    - ansible_architecture == "ppc64le"
+    - ansible_facts['architecture'] == "ppc64le"
     - sap_general_preconfigure_install_ibm_power_tools | d(true)
     - sap_general_preconfigure_add_ibm_power_repo | d(true)
 
@@ -171,7 +171,7 @@
     state: latest
     name: "{{ __sap_general_preconfigure_required_ppc64le }}"
   when:
-    - ansible_architecture == "ppc64le"
+    - ansible_facts['architecture'] == "ppc64le"
     - sap_general_preconfigure_install_ibm_power_tools | d(true)
 
 - name: Ensure that the minimum required package versions are installed
@@ -243,20 +243,20 @@
 - name: "Set needs-restarting command in case of RHEL 7"
   ansible.builtin.set_fact:
     __sap_general_preconfigure_fact_needs_restarting_command: "needs-restarting -r"
-  when: ansible_distribution_major_version == '7'
+  when: ansible_facts['distribution_major_version'] == '7'
 
 - name: "Set needs-restarting command in case of RHEL 8 or greater, except RHEL 8.0"
   ansible.builtin.set_fact:
     __sap_general_preconfigure_fact_needs_restarting_command: "yum needs-restarting -r"
   when:
-    - ansible_distribution_major_version | int >= 8
-    - ansible_distribution_version != '8.0'
+    - ansible_facts['distribution_major_version'] | int >= 8
+    - ansible_facts['distribution_version'] != '8.0'
 
 - name: "Set customized needs-restarting command in case of RHEL 8.0"
   ansible.builtin.set_fact:
     __sap_general_preconfigure_fact_needs_restarting_command: "_IKRNL=$(rpm -q --last kernel | awk 'NR==1{sub(/kernel-/,\"\"); print $1}');
                                                        _CKRNL=$(uname -r); if [ ${_IKRNL} != ${_CKRNL} ]; then exit 1; else exit 0; fi"
-  when: ansible_distribution_version == '8.0'
+  when: ansible_facts['distribution_version'] == '8.0'
 
 - name: Display the command for checking a reboot requirement
   ansible.builtin.debug:
