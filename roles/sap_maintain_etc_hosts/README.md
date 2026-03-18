@@ -123,7 +123,7 @@ Following dictionary keys can be defined:
     - _Type:_ `string`
 
 - **node_domain**<br>
-    Domain name of the managed node. Defaults to `sap_domain` if set or `ansible_domain`.<br>
+    Domain name of the managed node. Defaults to `sap_domain` if set or `ansible_facts['domain']`.<br>
     **Required** for adding new entries to `/etc/hosts`.</br>
     _Optional_ for removing entries, when `node_name` is used.
 
