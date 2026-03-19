@@ -37,8 +37,8 @@
     - not sap_ha_pacemaker_cluster_ha_cluster is defined
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_ha_cluster:
-      node_name: "{{ ansible_hostname }}"
-      pcs_address: "{{ ansible_default_ipv4.address }}"
+      node_name: "{{ ansible_facts['hostname'] }}"
+      pcs_address: "{{ ansible_facts['default_ipv4'].address }}"
 
 
 # Combine following extra packages together:
@@ -61,7 +61,7 @@
       (sap_ha_pacemaker_cluster_zypper_patterns
       + __sap_ha_pacemaker_cluster_sap_zypper_patterns)
       | unique | select() }}"
-  when: ansible_os_family == 'Suse'
+  when: ansible_facts['os_family'] == 'Suse'
 
 # Combine following fence packages together:
 # __sap_ha_pacemaker_cluster_fence_agent_packages_minimal -> os default

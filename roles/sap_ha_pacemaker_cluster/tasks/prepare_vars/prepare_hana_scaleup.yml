@@ -72,7 +72,7 @@
           attrs:
             # SUSE recommended monitor interval is 60
             - name: interval
-              value: "{{ 60 if ansible_os_family == 'Suse' else 59 }}"
+              value: "{{ 60 if ansible_facts['os_family'] == 'Suse' else 59 }}"
             - name: role
               value: Master
             - name: timeout
@@ -116,7 +116,7 @@
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_hana_resource_clone_name: "{{ __sap_ha_pacemaker_cluster_hana_resource_clone_msl_name }}"
   when:
-    - ansible_os_family == 'Suse'
+    - ansible_facts['os_family'] == 'Suse'
 
 
 - name: "SAP HA Prepare Pacemaker - Add resource clone: SAP HANA DB"
@@ -142,7 +142,7 @@
               value: "true"
   when:
     - __clone_hana.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
-    - ansible_os_family != 'Suse'
+    - ansible_facts['os_family'] != 'Suse'
 
 - name: "SAP HA Prepare Pacemaker - Add master slave resource clone: SAP HANA DB"
   ansible.builtin.set_fact:
@@ -167,7 +167,7 @@
       ms: true
   when:
     - __clone_hana.resource_id not in (__sap_ha_pacemaker_cluster_resource_clones | map(attribute='resource_id'))
-    - ansible_os_family == 'Suse'
+    - ansible_facts['os_family'] == 'Suse'
 
 # First start Topology, then HANA (automatically stops in reverse order)
 - name: "SAP HA Prepare Pacemaker - Add order constraint: Topology starts before DB"

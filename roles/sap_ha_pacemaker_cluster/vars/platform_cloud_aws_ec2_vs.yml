@@ -110,7 +110,7 @@ __sap_ha_pacemaker_cluster_stonith_default_dict:
               - name: pcmk_delay_max
                 value: 45
               - name: tag
-                value: "pacemaker"  # tag instance with pacemaker: {{ ansible_hostname }}
+                value: "pacemaker"  # tag instance with pacemaker: {{ ansible_facts['hostname'] }}
               # Use AWS config profile if AWS credentials are used.
               # - name: profile
               #   value: cluster
@@ -146,7 +146,7 @@ __sap_ha_pacemaker_cluster_stonith_default_dict:
               - name: pcmk_delay_max
                 value: 30
               - name: tag
-                value: "pacemaker"  # tag instance with pacemaker: {{ ansible_hostname }}
+                value: "pacemaker"  # tag instance with pacemaker: {{ ansible_facts['hostname'] }}
               # Use AWS config profile if AWS credentials are used.
               # - name: profile
               #   value: cluster
@@ -240,7 +240,7 @@ __sap_ha_pacemaker_cluster_stonith_default_dict:
 
 # Set helper variables to simplify default stonith selection.
 __sap_ha_pacemaker_cluster_stonith_version:
-  "{{ ansible_distribution_major_version if ansible_os_family == 'Suse' else 'default' }}"
+  "{{ ansible_facts['distribution_major_version'] if ansible_facts['os_family'] == 'Suse' else 'default' }}"
 
 __sap_ha_pacemaker_cluster_stonith_type:
   "{{ 'hana' if (sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | list | length > 0) else 'nwas' }}"
@@ -249,7 +249,7 @@ __sap_ha_pacemaker_cluster_stonith_type:
 # This structure can be adjusted in future if more combinations are needed.
 # Current levels are: OS Family -> Major Version -> Type
 __sap_ha_pacemaker_cluster_stonith_default:
-  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict[ansible_os_family | lower][__sap_ha_pacemaker_cluster_stonith_version][__sap_ha_pacemaker_cluster_stonith_type] }}"
+  "{{ __sap_ha_pacemaker_cluster_stonith_default_dict[ansible_facts['os_family'] | lower][__sap_ha_pacemaker_cluster_stonith_version][__sap_ha_pacemaker_cluster_stonith_type] }}"
 
 
 # Default corosync options - Platform specific
@@ -285,9 +285,9 @@ __sap_ha_pacemaker_cluster_corosync_totem_platform_dict:
       clear_node_high_bit: 'yes'
 
 __sap_ha_pacemaker_cluster_corosync_totem_platform:
-  "{{ __sap_ha_pacemaker_cluster_corosync_totem_platform_dict[ansible_os_family | lower ~ '_hana']
+  "{{ __sap_ha_pacemaker_cluster_corosync_totem_platform_dict[ansible_facts['os_family'] | lower ~ '_hana']
     if sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0
-   else __sap_ha_pacemaker_cluster_corosync_totem_platform_dict[ansible_os_family | lower ~ '_nwas'] }}"
+   else __sap_ha_pacemaker_cluster_corosync_totem_platform_dict[ansible_facts['os_family'] | lower ~ '_nwas'] }}"
 
 
 # Dictionary with default platform specific cluster properties
