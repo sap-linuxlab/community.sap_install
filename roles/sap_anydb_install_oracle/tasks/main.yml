@@ -12,16 +12,16 @@
   loop: "{{ __var_files }}"
   vars:
     __vars_file: "{{ role_path }}/vars/{{ item }}"
-    __distribution_major: "{{ ansible_distribution ~ '_' ~ ansible_distribution_major_version }}"
-    __distribution_minor: "{{ ansible_distribution ~ '_' ~ ansible_distribution_version }}"
+    __distribution_major: "{{ ansible_facts['distribution'] ~ '_' ~ ansible_facts['distribution_major_version'] }}"
+    __distribution_minor: "{{ ansible_facts['distribution'] ~ '_' ~ ansible_facts['distribution_version'] }}"
     # Enables loading of shared vars between SLES and SLES_SAP
-    __distribution_major_split: "{{ ansible_distribution.split('_')[0] ~ '_' ~ ansible_distribution_major_version }}"
-    __distribution_minor_split: "{{ ansible_distribution.split('_')[0] ~ '_' ~ ansible_distribution_version }}"
+    __distribution_major_split: "{{ ansible_facts['distribution'].split('_')[0] ~ '_' ~ ansible_facts['distribution_major_version'] }}"
+    __distribution_minor_split: "{{ ansible_facts['distribution'].split('_')[0] ~ '_' ~ ansible_facts['distribution_version'] }}"
     __var_files: >-
       {{
         [
-          ansible_os_family ~ '.yml',
-          (ansible_distribution ~ '.yml') if ansible_distribution != ansible_os_family else None,
+          ansible_facts['os_family'] ~ '.yml',
+          (ansible_facts['distribution'] ~ '.yml') if ansible_facts['distribution'] != ansible_facts['os_family'] else None,
           (__distribution_major_split ~ '.yml') if __distribution_major_split != __distribution_major else None,
           (__distribution_minor_split ~ '.yml') if __distribution_minor_split != __distribution_minor else None,
           __distribution_major ~ '.yml',

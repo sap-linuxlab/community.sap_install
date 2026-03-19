@@ -3,7 +3,7 @@
 ##########
 # Creating a list of unused devices that match the requested filesystem sizes, using
 # - definition of unconfigured filesystems: __sap_storage_setup_fact_new_mounts
-# - ansible facts: ansible_devices
+# - ansible facts: ansible_facts['devices']
 #
 #########
 
@@ -11,7 +11,7 @@
   ansible.builtin.set_fact:
     __sap_storage_setup_fact_available_devices: |
       {%- set av_disks = [] -%}
-      {%- set all_disks = (ansible_devices | dict2items) -%}
+      {%- set all_disks = (ansible_facts['devices'] | dict2items) -%}
       {%- for disk in all_disks -%}
         {%- for fs in __sap_storage_setup_fact_new_mounts -%}
           {%- if disk.value.size | regex_search('.*TB$') -%}
@@ -33,7 +33,7 @@
 # !!
 # If the DISK MATCHING syntax has changed in the above, it must also
 # be adjusted in the next task.
-# As ansible_devices returns only human-readable format, handling
+# As ansible_facts['devices'] returns only human-readable format, handling
 # for TB is provided and default is GB; use of MB and PB will error.
 # !!
 
@@ -121,7 +121,7 @@
 # Sources:
 # - __sap_storage_setup_fact_new_mounts derived from extravars: sap_storage_setup_definition
 #   and is dynamically generated during runtime to list only unconfigured filesystems
-# - Ansible host facts: hostvars[host_node].ansible_devices
+# - Ansible host facts: hostvars[host_node].ansible_facts['devices']
 - name: SAP Storage Setup - Set fact for device to filesystem mapping
   when:
     - map_item.nfs_path is not defined

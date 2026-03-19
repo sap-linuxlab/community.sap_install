@@ -32,7 +32,7 @@
       - "hardware"
 
 # Similar to generic device discovery and fs mapping (main.yml), but using different
-# information from the ansible_devices facts to map the WWN instead of dynamic device names.
+# information from the ansible_facts['devices'] facts to map the WWN instead of dynamic device names.
 
 # Logic: Collect devices which have
 # - no "holders"
@@ -45,7 +45,7 @@
   ansible.builtin.set_fact:
     __sap_storage_setup_fact_available_devices_multipath: |
       {% set av_disks = [] %}
-      {% set all_disks = (ansible_devices | dict2items) %}
+      {% set all_disks = (ansible_facts['devices'] | dict2items) %}
       {% for disk in all_disks %}
         {%- if disk.value.wwn is defined
             and disk.value.links.uuids | length == 0

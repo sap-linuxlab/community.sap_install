@@ -10,14 +10,14 @@
   register: __sap_anydb_install_oracle_register_patterns
   changed_when: false
   ignore_errors: true
-  when: ansible_os_family == 'Suse'
+  when: ansible_facts['os_family'] == 'Suse'
 
 - name: Ensure that the required zypper patterns are installed
   ansible.builtin.command:
     cmd: zypper install -y -t pattern {{ item }}
   loop: "{{ __sap_anydb_install_oracle_patterns }}"
   when:
-    - ansible_os_family == 'Suse'
+    - ansible_facts['os_family'] == 'Suse'
     - item not in __sap_anydb_install_oracle_register_patterns.stdout
   changed_when: item not in __sap_anydb_install_oracle_register_patterns.stdout
 
