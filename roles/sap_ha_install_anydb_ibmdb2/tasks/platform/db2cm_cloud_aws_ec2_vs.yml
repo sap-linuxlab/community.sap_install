@@ -7,7 +7,7 @@
       - fence-agents-aws
       - awscli
     state: present
-  when: ansible_os_family == 'RedHat'
+  when: ansible_facts['os_family'] == 'RedHat'
 
 - name: SAP HA AnyDB - IBM Db2 HADR (AWS) - Fence Agent Packages for SLES
   ansible.builtin.package:
@@ -15,7 +15,7 @@
       - fence-agents
       - awscli
     state: present
-  when: ansible_os_family == 'Suse'
+  when: ansible_facts['os_family'] == 'Suse'
 
 # IBM Db2 HADR on AWS EC2 VS
 # www.ibm.com/support/pages/node/6829815
@@ -91,8 +91,8 @@
     export anydb_secondary="{{ sap_ha_install_anydb_ibmdb2_hostname_secondary }}"
 
     # Assume 1 OS Network Interface until improvements can be made
-    export anydb_primary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_primary].ansible_default_ipv4.interface }}"
-    export anydb_secondary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_secondary].ansible_default_ipv4.interface }}"
+    export anydb_primary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_primary].ansible_facts['default_ipv4'].interface }}"
+    export anydb_secondary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_secondary].ansible_facts['default_ipv4'].interface }}"
 
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -enable -all
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -enable -instance $ibmdb2_instance -host $anydb_primary -publicEthernet $anydb_primary_nic -host $anydb_secondary -publicEthernet $anydb_secondary_nic -remote_cmd "ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"

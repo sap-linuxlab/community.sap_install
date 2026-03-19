@@ -7,7 +7,7 @@
 #       - fence-agents-gce
 #       - resource-agents-gcp
 #     state: present
-#   when: ansible_os_family == 'RedHat'
+#   when: ansible_facts['os_family'] == 'RedHat'
 
 # - name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - Fence Agent Packages for SLES
 #   ansible.builtin.package:
@@ -15,7 +15,7 @@
 #       - fence-agents
 #       - resource-agents-gcp
 #     state: present
-#   when: ansible_os_family == 'Suse'
+#   when: ansible_facts['os_family'] == 'Suse'
 
 - name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - GCloud Repo Key
   ansible.builtin.rpm_key:
@@ -32,20 +32,20 @@
     gpgkey:
       - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
   when:
-    - ansible_os_family == "RedHat"
+    - ansible_facts['os_family'] == "RedHat"
 
 # Reasons for noqa:
 # - no-changed-when: SUSEConnect command will not perform changes if already exists
 - name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - GCloud Repo Add for SLES # noqa no-changed-when
   ansible.builtin.shell: |
-    SUSEConnect --product sle-module-public-cloud/{{ ansible_distribution_version }}/x86_64
-  when: ansible_os_family == 'Suse'
+    SUSEConnect --product sle-module-public-cloud/{{ ansible_facts['distribution_version'] }}/x86_64
+  when: ansible_facts['os_family'] == 'Suse'
 
 - name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - GCloud CLI Package for RHEL
   ansible.builtin.package:
     name: google-cloud-cli
     state: present
-  when: ansible_os_family == 'RedHat'
+  when: ansible_facts['os_family'] == 'RedHat'
 
 - name: SAP HA AnyDB - IBM Db2 HADR (Google Cloud) - GCloud CLI Package for SLES
   ansible.builtin.package:
@@ -54,7 +54,7 @@
       - google-guest-configs
       - google-guest-oslogin
     state: present
-  when: ansible_os_family == 'Suse'
+  when: ansible_facts['os_family'] == 'Suse'
 
 
 # IBM Db2 HADR on GCP CE VMs
@@ -140,8 +140,8 @@
     export anydb_secondary="{{ sap_ha_install_anydb_ibmdb2_hostname_secondary }}"
 
     # Assume 1 OS Network Interface until improvements can be made
-    export anydb_primary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_primary].ansible_default_ipv4.interface }}"
-    export anydb_secondary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_secondary].ansible_default_ipv4.interface }}"
+    export anydb_primary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_primary].ansible_facts['default_ipv4'].interface }}"
+    export anydb_secondary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_secondary].ansible_facts['default_ipv4'].interface }}"
 
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -enable -all
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -enable -instance $ibmdb2_instance -host $anydb_primary -publicEthernet $anydb_primary_nic -host $anydb_secondary -publicEthernet $anydb_secondary_nic -remote_cmd "ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"

@@ -20,7 +20,7 @@
 
     - name: SAP HA AnyDB - IBM Db2 HADR - List all IBM Db2 'Integrated Linux Pacemaker' RPMs in subdirectory
       ansible.builtin.find:
-        paths: "{{ (__sap_ha_install_anydb_ibmdb2_pcmk.files[0].path | dirname) + '/Linux/' + ('rhel' if ansible_os_family == 'RedHat' else 'suse' if ansible_os_family == 'Suse') }}"
+        paths: "{{ (__sap_ha_install_anydb_ibmdb2_pcmk.files[0].path | dirname) + '/Linux/' + ('rhel' if ansible_facts['os_family'] == 'RedHat' else 'suse' if ansible_facts['os_family'] == 'Suse') }}"
         recurse: true
         file_type: file
         patterns:
@@ -36,7 +36,7 @@
         name: "{{ __sap_ha_install_anydb_ibmdb2_pcmk_rpm_files.files | map(attribute='path') | list | sort }}"
         state: present
         disable_gpg_check: true
-      when: ansible_os_family == 'RedHat'
+      when: ansible_facts['os_family'] == 'RedHat'
 
     # For SLES 15, various Zypper errors will occur when 'Integrated Linux Pacemaker' RPMs attempt installation, such as:
     ### the installed cluster-glue-libs** obsoletes 'libglue2 < **' provided by the to be installed libglue2**.db2pcmk.**
@@ -64,7 +64,7 @@
         state: absent
         disable_gpg_check: true
       when:
-        - ansible_os_family == 'Suse'
+        - ansible_facts['os_family'] == 'Suse'
         - __sap_ha_install_anydb_ibmdb2_hadr_initial_status.stdout != "HADR_CONNECT_STATUS=CONNECTED" # Use to avoid removal of OS Package on re-run
 
     - name: SAP HA AnyDB - IBM Db2 HADR - Install all IBM Db2 'Integrated Linux Pacemaker' RPMs for SLES
@@ -72,7 +72,7 @@
         name: "{{ __sap_ha_install_anydb_ibmdb2_pcmk_rpm_files.files | map(attribute='path') | list | sort }}"
         state: present
         disable_gpg_check: true
-      when: ansible_os_family == 'Suse'
+      when: ansible_facts['os_family'] == 'Suse'
 
     # SAP Note 3100287 - DB6: Db2 Support for Pacemaker Cluster Software
     # Reasons for noqa:
@@ -160,8 +160,8 @@
         export anydb_secondary="{{ sap_ha_install_anydb_ibmdb2_hostname_secondary }}"
 
         # Assume 1 OS Network Interface until improvements can be made
-        export anydb_primary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_primary].ansible_default_ipv4.interface }}"
-        export anydb_secondary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_secondary].ansible_default_ipv4.interface }}"
+        export anydb_primary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_primary].ansible_facts['default_ipv4'].interface }}"
+        export anydb_secondary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_secondary].ansible_facts['default_ipv4'].interface }}"
 
         /db2/$ibmdb2_instance/sqllib/bin/db2cm -create -cluster -domain db2pcmkcluster -host $anydb_primary -publicEthernet $anydb_primary_nic -host $anydb_secondary -publicEthernet $anydb_secondary_nic -remote_cmd "ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       register: __sap_ha_install_anydb_ibmdb2_config1

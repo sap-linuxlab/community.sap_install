@@ -9,7 +9,7 @@
 
 - name: SAP Storage Setup - Include OS specific vars
   ansible.builtin.include_vars:
-    file: "{{ ansible_os_family }}.yml"
+    file: "{{ ansible_facts['os_family'] }}.yml"
 
 - name: SAP Storage Setup - Install additional OS packages
   when: __sap_storage_setup_extra_packages is defined
@@ -34,12 +34,12 @@
     - new_mounts_item.nfs_path is not defined
     - (
         new_mounts_item.mountpoint is defined
-        and new_mounts_item.mountpoint not in ansible_mounts | map(attribute="mount")
+        and new_mounts_item.mountpoint not in ansible_facts['mounts'] | map(attribute="mount")
       )
       or
       (
         new_mounts_item.filesystem_type == 'swap'
-        and ansible_swaptotal_mb < (new_mounts_item.disk_size * 1000)
+        and ansible_facts['swaptotal_mb'] < (new_mounts_item.disk_size * 1000)
       )
     # Calculating with 1000 instead of 1024, because existing swaptotal is likely to be
     # reported at a slightly reduced size due to volume/filesystem metadata.

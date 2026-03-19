@@ -7,7 +7,7 @@
       - fence-agents-azure-arm
       - socat
     state: present
-  when: ansible_os_family == 'RedHat'
+  when: ansible_facts['os_family'] == 'RedHat'
 
 - name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Fence Agent Packages for SLES
   ansible.builtin.package:
@@ -15,7 +15,7 @@
       - fence-agents
       - socat
     state: present
-  when: ansible_os_family == 'Suse'
+  when: ansible_facts['os_family'] == 'Suse'
 
 - name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Azure CLI Repo Key
   ansible.builtin.rpm_key:
@@ -27,16 +27,16 @@
     name: https://packages.microsoft.com/config/rhel/9.0/packages-microsoft-prod.rpm
     state: present
   when:
-    - ansible_os_family == "RedHat"
-    - ansible_distribution_major_version == "9"
+    - ansible_facts['os_family'] == "RedHat"
+    - ansible_facts['distribution_major_version'] == "9"
 
 - name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Azure CLI Repo Package for RHEL 8
   ansible.builtin.package:
     name: https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm
     state: present
   when:
-    - ansible_os_family == "RedHat"
-    - ansible_distribution_major_version == "8"
+    - ansible_facts['os_family'] == "RedHat"
+    - ansible_facts['distribution_major_version'] == "8"
 
 - name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Azure CLI Repo for SLES
   community.general.zypper_repository:
@@ -44,7 +44,7 @@
     repo: https://packages.microsoft.com/yumrepos/azure-cli
     state: present
     auto_import_keys: true
-  when: ansible_os_family == 'Suse'
+  when: ansible_facts['os_family'] == 'Suse'
 
 - name: SAP HA AnyDB - IBM Db2 HADR (MS Azure) - Azure CLI Package
   ansible.builtin.package:
@@ -128,8 +128,8 @@
     export anydb_secondary="{{ sap_ha_install_anydb_ibmdb2_hostname_secondary }}"
 
     # Assume 1 OS Network Interface until improvements can be made
-    export anydb_primary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_primary].ansible_default_ipv4.interface }}"
-    export anydb_secondary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_secondary].ansible_default_ipv4.interface }}"
+    export anydb_primary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_primary].ansible_facts['default_ipv4'].interface }}"
+    export anydb_secondary_nic="{{ hostvars[sap_ha_install_anydb_ibmdb2_hostname_secondary].ansible_facts['default_ipv4'].interface }}"
 
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -enable -all
     /db2/$ibmdb2_instance/sqllib/bin/db2cm -enable -instance $ibmdb2_instance -host $anydb_primary -publicEthernet $anydb_primary_nic -host $anydb_secondary -publicEthernet $anydb_secondary_nic -remote_cmd "ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
