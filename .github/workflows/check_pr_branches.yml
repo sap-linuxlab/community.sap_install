@@ -1,0 +1,25 @@
+name: Check PR branches
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+    types:
+      - opened
+      - synchronize
+      - reopened
+      # Ensure re-check when branch is switched after PR is opened:
+      - edited
+
+jobs:
+  check-pr-branches:
+    runs-on: ubuntu-latest
+    # Only run if it is not an edit OR if it is an edit to the base branch:
+    if: github.event.action != 'edited' || github.event.changes.base.ref.from != null
+    steps:
+      - name: Check if PR to main is from dev branch
+        if: github.base_ref == 'main' && github.head_ref != 'dev'
+        run: |
+          echo "PRs to the main branch are only allowed from the dev branch!"
+          exit 1
