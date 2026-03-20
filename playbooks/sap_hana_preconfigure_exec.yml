@@ -6,7 +6,7 @@
 # The minimum viable set of variables which need to be defined are:
 #
 # sap_hana_group: name of group in inventory - defaults to localhost if not set
-# sap_domain: SAP domain - defaults to ansible_domain if not set, but must not be empty
+# sap_domain: SAP domain - defaults to ansible_facts['domain'] if not set, but must not be empty
 #
 # For sap_general_preconfigure:
 # sap_general_preconfigure_modify_etc_hosts: defaults to true
@@ -30,9 +30,9 @@
       ansible.builtin.debug:
         msg: |-
           The SAP HANA preconfiguration runs with the following configuration:
-          - 'Hostname                : {{ sap_hostname | d(ansible_hostname) }}'
-          - 'IP Address              : {{ sap_ip | d(ansible_default_ipv4.address) }}'
-          - 'Domain                  : {{ (sap_domain | d('') | length > 0) | ternary(sap_domain, ansible_domain) }}'
+          - 'Hostname                : {{ sap_hostname | d(ansible_facts['hostname']) }}'
+          - 'IP Address              : {{ sap_ip | d(ansible_facts['default_ipv4'].address) }}'
+          - 'Domain                  : {{ (sap_domain | d('') | length > 0) | ternary(sap_domain, ansible_facts['domain']) }}'
           - 'Modify hosts            : {{ sap_general_preconfigure_modify_etc_hosts | d('false') }}'
           - 'Update OS               : {{ sap_hana_preconfigure_update | d('false') }}'
           - 'Auto Reboot             : {{ sap_hana_preconfigure_reboot_ok | d('false') }}'

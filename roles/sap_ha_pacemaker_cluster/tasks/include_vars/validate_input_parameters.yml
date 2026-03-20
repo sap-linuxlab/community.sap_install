@@ -143,16 +143,16 @@
     fail_msg: |
       Multiple interfaces are found on the system.
 
-      {{ ansible_interfaces | to_nice_yaml }}
+      {{ ansible_facts['interfaces'] | to_nice_yaml }}
 
       In this case 'sap_ha_pacemaker_cluster_vip_client_interface' must be defined.
   when:
-    - ansible_interfaces | length > 2
+    - ansible_facts['interfaces'] | length > 2
 
 - name: "SAP HA Prepare Pacemaker - Verify that the custom NIC name exists"
   ansible.builtin.assert:
     that:
-      - sap_ha_pacemaker_cluster_vip_client_interface in ansible_interfaces
+      - sap_ha_pacemaker_cluster_vip_client_interface in ansible_facts['interfaces']
     fail_msg: "The interface '{{ sap_ha_pacemaker_cluster_vip_client_interface }}' does not exist on this system!"
   when:
     - sap_ha_pacemaker_cluster_vip_client_interface | length > 0
