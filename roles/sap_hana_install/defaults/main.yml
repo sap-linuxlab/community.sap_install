@@ -128,6 +128,31 @@ sap_hana_install_recreate_tenant_database: false
 # If this not desired, set the following variable to `false`.
 sap_hana_install_configure_selinux: true
 
+# Enables/Disables/Keeps the Fast Restart Option (FRO) for SAP HANA.
+# When set to 'enabled', the role will configure tmpfs mounts for all NUMA nodes and set the corresponding HANA parameters.
+# When set to 'disabled', the role will remove any existing tmpfs mounts for FRO and unset the corresponding HANA parameters.
+# When set to 'unchanged', the role will not modify the FRO configuration.
+# NOTE: When enabling FRO the HANA database must be restarted for the changes to take effect. This is not done automatically by the role.
+# NOTE: When disabling FRO, the HANA database must be restarted. This is not handled automatically by the role.
+#   This means that the disabling will fail and will have to be executed twice!
+#   The flow is: 1) run disable (it will fail) 2) restart HANA manually 3) run disable again (it will succeed).
+#   This is a security precaution to avoid data loss and to allow the administrator to follow their own restart procedure.
+sap_hana_install_fro_state: 'unchanged'
+
+# When enabling FRO, this variable defines the percentage of the main memory per NUMA node to use for FRO tmpfs mounts.
+# Make sure you understand the implication of settings this and you have performed the necessary calculations to set this correctly.
+# Default value is 40% which is considered safe and a good starting point for testing (assuming your server was sized according
+#   to SAP HANA hardware sizing guidelines).
+# Setting this to 0 will make the tmpfs unlimited i.e. all available memory will be useable for FRO.
+#   This can lead to out of memory situations if the memory is not restricted using HANA parameters.
+# Setting this to 100 will use all memory at the point of execution of this role i.e. the size will be fixed to 100% as of today.
+#   This can lead to out of memory situations if the memory is not restricted using HANA parameters.
+# Setting this to any other number will set the size of the tmpfs to that percentage of the main memory of the NUMA node at the point of execution of this role.
+#   The calculation is done per each NUMA node and is rounded down (decimals are truncated) to the nearest gigabyte.
+#   For example, if you set this to 50 and you have a NUMA node with 383 GB of main memory, the tmpfs size will be set to 191 GB.
+#   Sensible values are probably somewhere between 40 and 60, but this really depends on your workload and on how much memory you have available.
+sap_hana_install_fro_mem_percent: 40
+
 ################
 # Parameters for hdblcm:
 ################
