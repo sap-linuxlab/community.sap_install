@@ -1,0 +1,235 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# SBD is different to custom fencing resource, because it has dedicated 'sbd' variables and Diskless mode.
+
+# Show warning and disable fencing if user STONITH resources are not defined.
+- name: Block when STONITH list is defined but empty
+  when:
+    - sap_ha_pacemaker_cluster_stonith_custom | d([]) | length == 0
+    # Custom STONITH resource must be empty for Diskless SBD.
+    - not sap_ha_pacemaker_cluster_sbd_devices | d([]) | length == 0
+  block:
+
+    # Ensure that property 'stonith-enabled' is set to 'false' if no Stonith resources are defined.
+    # STONITH property will be disabled only if 'sap_ha_pacemaker_cluster_cluster_properties' is not defined.
+    - name: "SAP HA Prepare Pacemaker - (STONITH) Set to disabled when no fencing resource is defined"
+      when:
+        - ha_cluster_cluster_properties is not defined  # We cannot append to defined variable due to precedence.
+        - sap_ha_pacemaker_cluster_cluster_properties is not defined
+      ansible.builtin.set_fact:
+        __sap_ha_pacemaker_cluster_cluster_properties:
+          "{{ __sap_ha_pacemaker_cluster_cluster_properties | combine({'stonith-enabled': false}) }}"
+
+    - name: "SAP HA Prepare Pacemaker - Warning when no STONITH resources are defined"
+      ansible.builtin.pause:
+        seconds: 5
+        prompt: |
+          WARNING: The variable 'sap_ha_pacemaker_cluster_stonith_custom' is defined, but empty!
+          {% if ha_cluster_cluster_properties is not defined and sap_ha_pacemaker_cluster_cluster_properties is not defined %}
+          No STONITH resources are defined and STONITH will be disabled!
+          The cluster property "stonith-enabled: false" will be configured to disable fencing.
+          {% else %}
+          No STONITH resources are defined!
+          {% endif %}
+
+          Please configure appropriate fencing resources for your environment by following steps:
+          - Add a STONITH resource(s) using the variable 'sap_ha_pacemaker_cluster_stonith_custom'.
+          - Add a cluster property "stonith-enabled: true" to 'sap_ha_pacemaker_cluster_cluster_properties'.
+
+
+- name: "SAP HA Prepare Pacemaker - Warning when pcmk_delay_max is missing"
+  when:
+    - sap_ha_pacemaker_cluster_stonith_custom | d([]) | length > 0
+    - sap_ha_pacemaker_cluster_stonith_custom | d([]) | map(attribute='instance_attrs', default=[]) | flatten
+        | map(attribute='attrs', default=[]) | flatten | selectattr('name', 'equalto', 'pcmk_delay_max') | length == 0
+  ansible.builtin.debug:
+    msg: |
+      WARNING: The STONITH resource is missing 'pcmk_delay_max'!
+
+      Without a delay, both cluster nodes may attempt to fence each other simultaneously
+      during a split-brain event ("Double STONITH"), leading to a total cluster outage.
+      Add pcmk_delay_max=15 (or similar) to STONITH resource defined in the variable 'sap_ha_pacemaker_cluster_stonith_custom'.
+
+
+# Prepare structure compatible with the variable 'ha_cluster_cluster_properties'.
+- name: "SAP HA Prepare Pacemaker - (STONITH) Define cluster properties"
+  when:
+    - ha_cluster_cluster_properties is not defined  # We cannot append to defined variable due to precedence.
+    - __sap_ha_pacemaker_cluster_cluster_properties | d({}) | length > 0
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_cluster_properties:
+      - attrs: |-
+          {% set attrs = [] -%}
+          {%- for default_cluster_properties in (__sap_ha_pacemaker_cluster_cluster_properties | dict2items) -%}
+            {% set role_attrs = attrs.extend([
+              {
+                'name': default_cluster_properties.key,
+                'value': default_cluster_properties.value
+              }
+            ]) -%}
+          {%- endfor %}
+          {{ attrs }}
+
+
+- name: Block for Diskless SBD
+  when: sap_ha_pacemaker_cluster_sbd_devices | d([]) | length == 0
+  block:
+
+    # Diskless SBD requires:
+    # - properties 'stonith-watchdog-timeout' or 'fencing-watchdog-timeout'
+    # - or QNetd host configured in 'sap_ha_pacemaker_cluster_qdevice_host'
+    # TODO: Add explanation and conditionals for 'fencing-watchdog-timeout' which is part of pacemaker 3.0.1 and later.
+    - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Fail if Diskless SBD configuration is insufficient"
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The variable 'sap_ha_pacemaker_cluster_sbd_devices' is not defined or empty,
+          which indicates Diskless SBD configuration.
+
+          Diskless SBD requires either of the following:
+          - Watchdog timeout property 'stonith-watchdog-timeout'
+            configured in the variable 'sap_ha_pacemaker_cluster_cluster_properties'.
+          - QNet host configured in the variable 'sap_ha_pacemaker_cluster_qdevice_host'.
+      when:
+        - not sap_ha_pacemaker_cluster_cluster_properties['stonith-watchdog-timeout'] is defined
+        # - not sap_ha_pacemaker_cluster_cluster_properties['fencing-watchdog-timeout'] is defined
+        - not sap_ha_pacemaker_cluster_qdevice_host | d('') | length > 0
+
+    # Diskless SBD cannot be configured on 2-node cluster without QDevice,
+    # because of the risk of split-brain due to simultaneous fencing without watchdog.
+    - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Fail if Diskless SBD configuration is missing QDevice on 2-node cluster"
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Diskless SBD is defined without QDevice configuration on 2-node cluster!
+          Two-node clusters require QNetD and QDevice configuration to maintain proper quorum.
+          - Set the variable `sap_ha_pacemaker_cluster_qdevice_enabled` to `true`.
+          - Ensure that you have host with QNetd prepared and defined in `sap_ha_pacemaker_cluster_qdevice_host` variable.
+      when:
+        - ansible_play_hosts | length == 2
+        - not (sap_ha_pacemaker_cluster_qdevice_enabled | d(false)
+            and sap_ha_pacemaker_cluster_qdevice_host | d('') | length > 0)
+
+    # Diskless SBD cannot be configured on 2-node cluster without QDevice,
+    # because of the risk of split-brain due to simultaneous fencing without watchdog.
+    - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Fail if Diskless SBD is in conflict with custom STONITH resource"
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Diskless SBD is defined but the variable 'sap_ha_pacemaker_cluster_stonith_custom' is also defined.
+          Diskless SBD is not compatible with STONITH resources.
+
+          Either:
+          - Define SBD devices in the variable 'sap_ha_pacemaker_cluster_sbd_devices' to continue with Disk based SBD.
+          - Or remove the variable 'sap_ha_pacemaker_cluster_stonith_custom' to continue with Diskless SBD.
+      when: sap_ha_pacemaker_cluster_stonith_custom | d([]) | length > 0
+
+
+- name: "SAP HA Prepare Pacemaker - (STONITH SBD) Set fact with sbd_options if defined"
+  when:
+    - ha_cluster_sbd_options is not defined
+    - sap_ha_pacemaker_cluster_sbd_options | d([]) | length > 0
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_sbd_options: "{{ sap_ha_pacemaker_cluster_sbd_options }}"
+
+
+# NOTE: These are recommended values and if needed, it can be turned into dictionary
+# and moved to vars/main or vars/OS files.
+- name: "SAP HA Prepare Pacemaker - (STONITH SBD) Set default SBD options for Disk based SBD"
+  when:
+    - ha_cluster_sbd_options is not defined
+    - sap_ha_pacemaker_cluster_sbd_options | d([]) | length == 0
+    - sap_ha_pacemaker_cluster_sbd_devices | d([]) | length > 0
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_sbd_options:
+      - name: startmode
+        value: "{{ 'clean' if sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0 else 'always' }}"
+      # # It's required that SBD_DELAY_START is set to 36
+      # - name: delay-start
+      #   value: 36
+
+- name: "SAP HA Prepare Pacemaker - (STONITH SBD) Set default SBD options for Diskless SBD"
+  when:
+    - ha_cluster_sbd_options is not defined
+    - sap_ha_pacemaker_cluster_sbd_options | d([]) | length == 0
+    - sap_ha_pacemaker_cluster_sbd_devices | d([]) | length == 0
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_sbd_options:
+      - name: startmode
+        value: "{{ 'clean' if sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0 else 'always' }}"
+      # It's required that SBD_DELAY_START is set to 36
+      - name: delay-start
+        value: 36
+
+
+# Create dictionary with SBD specific parameters for ha_cluster
+# Omit parameters if they are already present in provided dictionary sap_ha_pacemaker_cluster_ha_cluster
+# sbd_devices omits only if already defined, which allows for empty list for Diskless SBD configuration.
+- name: Block to set SBD parameters
+  vars:
+    # Detect if parameters were already provided in sap_ha_pacemaker_cluster_ha_cluster
+    __ha_cluster_sbd_devices_exists:
+      "{{ true if __sap_ha_pacemaker_cluster_ha_cluster.sbd_devices | d([]) | length > 0 else false }}"
+    __ha_cluster_sbd_watchdog_exists:
+      "{{ true if __sap_ha_pacemaker_cluster_ha_cluster.sbd_watchdog | d([]) | length > 0 else false }}"
+    __ha_cluster_sbd_watchdog_modules_exists:
+      "{{ true if __sap_ha_pacemaker_cluster_ha_cluster.sbd_watchdog_modules | d([]) | length > 0 else false }}"
+  block:
+    - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Fail if watchdog modules are not defined"
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Watchdog modules must be defined for SBD configuration!
+          Please define at least one watchdog module in the list variable 'sap_ha_pacemaker_cluster_sbd_watchdog_modules'.
+      when:
+        - sap_ha_pacemaker_cluster_sbd_watchdog_modules | d([]) | length == 0
+        - not __ha_cluster_sbd_watchdog_modules_exists
+
+    - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Create ha_cluster parameters for SBD"
+      ansible.builtin.set_fact:
+        __sap_ha_pacemaker_cluster_ha_cluster_stonith: >-
+          {{
+            dict(
+              sbd_devices=(sap_ha_pacemaker_cluster_sbd_devices | d([])
+                if not __ha_cluster_sbd_devices_exists
+                else omit),
+              sbd_watchdog=(sap_ha_pacemaker_cluster_sbd_watchdog
+                if sap_ha_pacemaker_cluster_sbd_watchdog | d([]) | length > 0 and not __ha_cluster_sbd_watchdog_exists
+                else omit),
+              sbd_watchdog_modules=(sap_ha_pacemaker_cluster_sbd_watchdog_modules
+                if sap_ha_pacemaker_cluster_sbd_watchdog_modules | d([]) | length > 0 and not __ha_cluster_sbd_watchdog_modules_exists
+                else omit)
+            )
+          }}
+
+
+- name: "SAP HA Prepare Pacemaker - (STONITH SBD) Include sbd fence agent"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_fence_agent_packages:
+      "{{ __sap_ha_pacemaker_cluster_fence_agent_packages + ['sbd'] }}"
+
+- name: "SAP HA Prepare Pacemaker - (STONITH SBD) Set fact with SBD enabled"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_sbd_enabled: true
+
+
+- name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resources from custom definition"
+  when:
+    - sap_ha_pacemaker_cluster_stonith_custom | d([]) | length > 0
+    - stonith_item.id | d('') | length > 0
+    - stonith_item.id not in (__sap_ha_pacemaker_cluster_stonith_resource | d([]) | map(attribute='id'))
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_stonith_resource:
+      "{{ __sap_ha_pacemaker_cluster_stonith_resource | d([]) + [stonith_item] }}"
+  loop: "{{ sap_ha_pacemaker_cluster_stonith_custom }}"
+  loop_control:
+    label: "{{ stonith_item.id }}"
+    loop_var: stonith_item
+
+
+# The STONITH resource is an element in the cluster_resource_primitives list
+- name: "SAP HA Prepare Pacemaker - (STONITH) Construct resources definition"
+  when:
+    - __sap_ha_pacemaker_cluster_stonith_resource is defined
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_resource_primitives:
+      "{{ __sap_ha_pacemaker_cluster_resource_primitives
+        + (__sap_ha_pacemaker_cluster_stonith_resource | d([]) | from_yaml) }}"
+  no_log: true  # stonith resources can contain secrets

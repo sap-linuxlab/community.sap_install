@@ -1,0 +1,66 @@
+---
+# Enforce branch policies for repository
+#
+# Allowed:
+#   dev -> main (release)
+#   main -> dev (mergeback)
+#   fork/branch -> dev (development, if branched from dev)
+#
+# Blocked:
+#   fork/branch -> main (must go through dev first)
+#   fork/branch -> dev (if branched from main instead of dev)
+
+name: Enforce PR Branch Policy
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+    types:
+      - opened
+      - synchronize
+      - reopened
+      # Ensure re-check when branch is switched after PR is opened:
+      - edited
+
+jobs:
+# Enforce branch policy: only dev branch can be merged into main.
+  enforce-branch-policy:
+    runs-on: ubuntu-latest
+    # Only run if it is not an edit OR if it is an edit to the base branch:
+    if: github.event.action != 'edited' || github.event.changes.base.ref.from != null
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # Need full history to check branch ancestry
+          ref: ${{ github.event.pull_request.head.sha }}  # Check out actual PR branch, not merge commit
+
+      - name: Enforce dev branch requirement for PRs to main
+        if: github.base_ref == 'main' && github.head_ref != 'dev'
+        run: |
+          echo "ERROR: Pull requests from this branch to main are not allowed!"
+          echo ""
+          echo "Only the dev branch can be merged into main."
+          echo "Please update your pull request to target the dev branch instead."
+          exit 1
+
+      - name: Ensure fork branches are created from dev, not main
+        if: |
+          github.base_ref == 'dev' &&
+          github.event.pull_request.head.repo.fork == true
+        run: |
+          git fetch origin main dev
+
+          # Find where the PR branch diverged from main
+          merge_base_main=$(git merge-base HEAD origin/main)
+
+          # Check if this point exists in dev's history
+          if ! git merge-base --is-ancestor $merge_base_main origin/dev; then
+            echo "ERROR: This branch was created from main instead of dev!"
+            echo ""
+            echo "Fork branches must be created from the dev branch, not main."
+            echo "Please recreate your branch from dev."
+            exit 1
+          fi

@@ -19,25 +19,29 @@ argument_specs:
           node_ip:
             type: str
             description:
-              - IP address of the node
-              - It is required for adding a node. When deleting a node use only when node_name and node_domain are not defined
+              - IP address of the host to manage, depending on 'state'.
+              - Required for 'state present'.
+              - Optional for 'state absent', where 'node_name' and 'node_domain' can be used instead.
           node_name:
             type: str
             description:
-              - Hostname of the node
-              - It is required for adding a node. When deleting a node use only when node_ip is not defined
+              - Hostname of the host to manage.
+              - Required for 'state present'.
+              - Optional for 'state absent', where 'node_ip' can be used instead.
           node_domain:
             type: str
             description:
-              - Domainname of the node
-              - _Optional. Defaults to sap_domain, if set, otherwise ansible_facts['domain'] is the default_
-              - _Optional. when deleting a node use only when node_name is defined_
+              - Domain name of the host to manage.
+              - Defaults to 'sap_maintain_etc_hosts_domain' or 'ansible_facts["domain"]'.
+              - Required for 'state present'.
+              - Optional for 'state absent' with 'node_name', where 'node_ip' can be used instead.
           aliases:
             type: list
             elements: str
             description:
-              - List of aliases for the node
-              - Not used when state is absent
+              - List of aliases of the host to manage.
+              - Optional for 'state present'.
+              - Not used in 'state absent'.
           alias_mode:
             type: str
             default: merge
@@ -45,22 +49,28 @@ argument_specs:
               - merge
               - overwrite
             description:
-              - merges or overwrites the aliases of the node
-              - Not used when state is absent
+              - Select method of managing aliases of the host.
+              - merge - merges the list of aliases with the exiting aliases of the host.
+              - overwrite - overwrites the aliases of the host.
+              - Optional for 'state present'.
+              - Not used in 'state absent'.
           node_comment:
             type: str
-            default: "managed by ansible sap_maintain_etc_hosts role"
+            default: "{{ sap_maintain_etc_hosts_comment }}"
             description:
-              - String which is appended to line in hosts after comment string
-              - Not used when state is absent
+              - String which is appended at end of line of the host to manage.
+              - Replaces existing comment, if present.
+              - Optional for 'state present'.
+              - Not used in 'state absent'.
           hana_site:
             type: str
             description:
-              - if set (e.g. for configuring cluster) it is appended to the comment
-              - Not used when state is absent
+              - Used by 'sap_ha_pacemaker_cluster' role and it is appended to 'node_comment'.
+              - Optional for 'state present'.
+              - Not used in 'state absent'.
           node_role:
             description:
-              - Not used. For compatibility reason only.
+              - Not used, but mentioned for compatibility reasons with 'sap_ha_pacemaker_cluster' role.
           state:
             type: str
             default: present
@@ -68,30 +78,39 @@ argument_specs:
               - present
               - absent
             description:
-              - Defines, if an entry is added or removed from /etc/hosts
+              - Select desired state of host item.
+              - present - Add new hosts entry.
+              - absent - Remove existing hosts entry.
+              - Optional for 'state present'.
+              - Required for 'state absent', because it defaults to 'present'.
         example:
           sap_maintain_etc_hosts_list:
-            - node_ip: 1.2.3.4
+            - node_ip: 10.10.10.10
               node_name: host1
               node_domain: abc.de
               aliases:
                 - alias1
                 - anotheralias2
-              node_comment: "Here comes text after hashsign"
+              node_comment: "This is a comment"
               state: present
-            - node_ip: 1.2.3.5
+            - node_ip: 10.10.10.11
               state: absent
             - node_name: host2
               state: absent
 
-      sap_maintain_etc_hosts_regexp_ipv4:
-        default: '^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$'
-        description:
-          - regex pattern for IPv4 address validation
+      sap_maintain_etc_hosts_delimiter:
         type: str
+        default: " "
+        description:
+          - Delimiter for '/etc/hosts' used to separate all elements on a line
+          - Changing delimiter will report as change, even if actual content did not change.
+        choices:
+          - " "
+          - "\t"
 
-      sap_maintain_etc_hosts_regexp_ipv6:
-        default: '^(?:[a-fA-F0-9]{0,4}:){7}[a-fA-F0-9]{0,4}$'
-        description:
-          - regex pattern for IPv6 address validation
+      sap_maintain_etc_hosts_comment:
         type: str
+        default: "managed by Ansible role sap_maintain_etc_hosts"
+        description:
+          - Comment to be appended, if comment is not defined in 'sap_maintain_etc_hosts_list'.
+          - Replaces existing comment, if present.

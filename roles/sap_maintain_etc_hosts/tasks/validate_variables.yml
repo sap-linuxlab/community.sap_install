@@ -1,0 +1,179 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Validate each item in list first before checking for duplicates.
+- name: SAP Maintain Hosts - Validate host item keys and values
+  ansible.builtin.include_tasks:
+    file: validate_host_item.yml
+  loop: "{{ sap_maintain_etc_hosts_list }}"
+  loop_control:
+    label: "{{ __sap_maintain_etc_hosts_item.node_name | d(__sap_maintain_etc_hosts_item.node_ip) | d('N/A') }}"
+    loop_var: __sap_maintain_etc_hosts_item
+
+
+# Validate structure first
+- name: SAP Maintain Hosts - Assert that 'node_ip' elements are unique
+  ansible.builtin.assert:
+    that: __defined_node_ips | length == __defined_node_ips | unique | length
+    fail_msg: |
+      FAIL: Duplicate values in 'node_ip' option were found:
+      {% for __node_ip in __defined_node_ips | unique %}
+      {% if __defined_node_ips | select('equalto', __node_ip) | list | length > 1 %}
+      - {{ __node_ip }} (appears {{ __defined_node_ips | select('equalto', __node_ip) | list | length }} times)
+      {% endif %}
+      {% endfor %}
+  vars:
+    __defined_node_ips:
+      "{{ sap_maintain_etc_hosts_list | map(attribute='node_ip', default='') | select | list }}"
+
+- name: SAP Maintain Hosts - Assert that 'node_name' values are unique
+  ansible.builtin.assert:
+    that: __defined_node_names | length == __defined_node_names | unique | length
+    fail_msg: |
+      FAIL: Duplicate 'node_name' values found:
+      {% for __node_name in __defined_node_names | unique %}
+      {% if __defined_node_names | select('equalto', __node_name) | list | length > 1 %}
+      - {{ __node_name }} (appears {{ __defined_node_names | select('equalto', __node_name) | list | length }} times)
+      {% endif %}
+      {% endfor %}
+  vars:
+    __defined_node_names:
+      "{{ sap_maintain_etc_hosts_list | map(attribute='node_name', default='') | select | list }}"
+
+- name: SAP Maintain Hosts - Assert that 'aliases' values are unique
+  ansible.builtin.assert:
+    that: __defined_aliases | length == __defined_aliases | unique | length
+    fail_msg: |
+      FAIL: Duplicate values in 'aliases' option were found:
+      {% for __aliases in __defined_aliases | unique %}
+      {% if __defined_aliases | select('equalto', __aliases) | list | length > 1 %}
+      - {{ __aliases }} (appears {{ __defined_aliases | select('equalto', __aliases) | list | length }} times)
+      {% endif %}
+      {% endfor %}
+  vars:
+    __defined_aliases:
+      "{{ sap_maintain_etc_hosts_list | map(attribute='aliases', default='') | select | flatten }}"
+
+- name: SAP Maintain Hosts - Assert that 'node_name' values do not appear in 'aliases'
+  ansible.builtin.assert:
+    that: __node_names_in_aliases | length == 0
+    fail_msg: |
+      FAIL: The following 'node_name' values also appear in 'aliases':
+      {% for __name in __node_names_in_aliases %}
+      - {{ __name }}
+      {% endfor %}
+  vars:
+    __defined_node_names:
+      "{{ sap_maintain_etc_hosts_list | map(attribute='node_name', default='') | select | list }}"
+    __defined_aliases:
+      "{{ sap_maintain_etc_hosts_list | map(attribute='aliases', default='') | select | flatten }}"
+    __node_names_in_aliases:
+      "{{ __defined_node_names | intersect(__defined_aliases) | list }}"
+
+
+# Create list of differences between previous two lists.
+- name: SAP Maintain Hosts - Set fact with a list of hostname mismatches between hosts file and 'sap_maintain_etc_hosts_list'
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_fact_ip_mismatches_hostnames: >-
+      {%- set mismatches = [] -%}
+      {%- for node in sap_maintain_etc_hosts_list if node.get('state', 'present') == 'present' and node.node_name is defined -%}
+        {%- for host in __sap_maintain_etc_hosts_fact_host_ip_list if host.get('state', 'present') == 'present' -%}
+          {%- if host.hostname == node.node_name and host.ip != node.node_ip -%}
+            {%- set _ = mismatches.append({
+              'hostname': node.node_name,
+              'defined_ip': node.node_ip,
+              'actual_ip': host.ip
+            }) -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endfor -%}
+      {{ mismatches }}
+
+- name: SAP Maintain Hosts - Assert that there are no IP address mismatches for hostnames
+  ansible.builtin.assert:
+    that: __sap_maintain_etc_hosts_fact_ip_mismatches_hostnames | length == 0
+    fail_msg: |
+      FAIL: IP address mismatches were found:
+      {% for mismatch in __sap_maintain_etc_hosts_fact_ip_mismatches_hostnames %}
+      - Hostname:   '{{ mismatch.hostname }}'
+        Defined IP: '{{ mismatch.defined_ip }}'
+        Actual IP:  '{{ mismatch.actual_ip }}'
+      {% endfor %}
+
+
+- name: SAP Maintain Hosts - Set fact with a list of IP address mismatches for FQDNs between hosts file and 'sap_maintain_etc_hosts_list'
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_fact_ip_mismatches_fqdn: >-
+      {%- set mismatches = [] -%}
+      {%- for node in sap_maintain_etc_hosts_list if node.get('state', 'present') == 'present' -%}
+        {%- set target_fqdn = node.node_name ~ '.' ~ (node.node_domain | d(sap_maintain_etc_hosts_domain) | d(ansible_facts['domain'])) -%}
+        {%- for host in __sap_maintain_etc_hosts_fact_host_ip_list -%}
+          {%- if host.hostname == target_fqdn and host.ip != node.node_ip -%}
+            {%- set _ = mismatches.append({'hostname': target_fqdn, 'defined_ip': node.node_ip, 'actual_ip': host.ip}) -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endfor -%}
+      {{ mismatches }}
+
+- name: SAP Maintain Hosts - Assert that there are no IP address mismatches for FQDNs
+  ansible.builtin.assert:
+    that: __sap_maintain_etc_hosts_fact_ip_mismatches_fqdn | length == 0
+    fail_msg: |
+      FAIL: FQDN IP address mismatches were found:
+      {% for mismatch in __sap_maintain_etc_hosts_fact_ip_mismatches_fqdn %}
+      - Hostname:   '{{ mismatch.hostname }}'
+        Defined IP: '{{ mismatch.defined_ip }}'
+        Actual IP:  '{{ mismatch.actual_ip }}'
+      {% endfor %}
+
+
+# Undefined state handling
+- name: SAP Maintain Hosts - Set fact with a list of hosts to be present with no state definition
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_fact_present:
+      "{{ sap_maintain_etc_hosts_list | selectattr('state', 'undefined') | list }}"
+
+- name: SAP Maintain Hosts - Add list of hosts with state present
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_fact_present:
+      "{{ __sap_maintain_etc_hosts_fact_present
+        + (sap_maintain_etc_hosts_list
+          | difference(__sap_maintain_etc_hosts_fact_present)
+          | selectattr('state', 'eq', 'present') | list)
+        }}"
+
+- name: SAP Maintain Hosts - Show list of hosts to be present
+  ansible.builtin.debug:
+    msg: "{{ __sap_maintain_etc_hosts_fact_present }}"
+    verbosity: 2
+
+
+# Present state handling
+- name: SAP Maintain Hosts - Set fact with hostnames or aliases with different IP addresses
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_fact_duplicate_hostnames: >-
+      {%- set duplicates = [] -%}
+      {%- for __host in __sap_maintain_etc_hosts_fact_present -%}
+        {%- set __configured_hostnames = [__host.node_name] -%}
+        {%- if __host.aliases is defined and __host.aliases is not none and __host.aliases | length > 0 -%}
+          {%- set _ = __configured_hostnames.extend(__host.aliases) -%}
+        {%- endif -%}
+        {%- for __hostname in __configured_hostnames -%}
+          {%- set existing = __sap_maintain_etc_hosts_fact_host_ip_list | selectattr('hostname', 'eq', __hostname) | list -%}
+          {%- if existing | length > 0 -%}
+            {%- for entry in existing -%}
+              {%- if entry.ip != __host.node_ip and __hostname not in duplicates -%}
+                {%- set _ = duplicates.append(__hostname) -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endfor -%}
+      {{ duplicates }}
+
+- name: SAP Maintain Hosts - Assert that no IP address conflicts for hostnames and aliases
+  ansible.builtin.assert:
+    that: __sap_maintain_etc_hosts_fact_duplicate_hostnames | length == 0
+    fail_msg: |
+      FAIL: IP address conflicts found for:
+      {{ __sap_maintain_etc_hosts_fact_duplicate_hostnames | join(', ') }}

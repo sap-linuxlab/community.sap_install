@@ -1,0 +1,201 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP Maintain Hosts - Present - Set fact with domain variable
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_fact_domain:
+      "{{ __sap_maintain_etc_hosts_item.node_domain
+        if __sap_maintain_etc_hosts_item.node_domain | d('') | trim | length > 0
+        else (sap_maintain_etc_hosts_domain
+          if sap_maintain_etc_hosts_domain | d('') | trim | length > 0
+          else ansible_facts['domain'] | d('')) }}"
+
+- name: SAP Maintain Hosts - Present - Assert that the DNS domain is available
+  ansible.builtin.assert:
+    that:
+      - __sap_maintain_etc_hosts_fact_domain is defined
+      - __sap_maintain_etc_hosts_fact_domain is string
+      - __sap_maintain_etc_hosts_fact_domain | trim | length > 0
+    fail_msg: |
+      FAIL: The DNS domain of this host is undefined or not non-empty String!
+      Configure the DNS domain appropriately in either:
+      - Parameter 'node_domain' for host specific domain.
+      - Variable 'sap_maintain_etc_hosts_domain' for role wide domain.
+
+
+- name: SAP Maintain Hosts - Present - Set initial facts for aliases from variables
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_fact_aliases: ''
+    __sap_maintain_etc_hosts_fact_existing_aliases: []
+    __sap_maintain_etc_hosts_fact_alias_mode:
+      "{{ __sap_maintain_etc_hosts_item.alias_mode | d('merge') }}"
+    __sap_maintain_etc_hosts_fact_comment: ''
+
+- name: SAP Maintain Hosts - Present - Set fact with comment from variables
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_fact_comment: >-
+      {{
+        (' # ' + __sap_maintain_etc_hosts_item.node_comment
+        if __sap_maintain_etc_hosts_item.node_comment | d('') | length > 0
+        else (__sap_maintain_etc_hosts_item.hana_site
+          if __sap_maintain_etc_hosts_item.hana_site | d('') | length > 0
+          else '')) | trim
+      }}
+  when:
+    - __sap_maintain_etc_hosts_item.node_comment | d('') | length > 0
+      or __sap_maintain_etc_hosts_item.hana_site | d('') | length > 0
+
+
+# Merge existing aliases with new alias list if IP address and hostname are unchanged
+- name: Block for alias merging
+  when: __sap_maintain_etc_hosts_fact_alias_mode != "overwrite"
+  block:
+    - name: SAP Maintain Hosts - Present - Check if IP and hostname exist in hosts file
+      ansible.builtin.set_fact:
+        __sap_maintain_etc_hosts_fact_ip_hostname_exists:
+          "{{ (__sap_maintain_etc_hosts_register_slurp['content'] | b64decode).split('\n')
+            | select('match', '^' ~ __sap_maintain_etc_hosts_item.node_ip ~ '\\s')
+            | map('regex_replace', '#.*$', '')
+            | map('split') | flatten
+            | select('equalto', __sap_maintain_etc_hosts_item.node_name)
+            | list | length > 0 }}"
+
+    - name: SAP Maintain Hosts - Present - Inform that aliases will not be preserved
+      ansible.builtin.debug:
+        msg: |
+          WARN: This host has set 'alias_mode: overwrite' and existing aliases will be overwritten.
+      when: __sap_maintain_etc_hosts_fact_ip_hostname_exists
+
+    - name: SAP Maintain Hosts - Present - Set fact with existing aliases from hosts file for {{ __sap_maintain_etc_hosts_item.node_ip | d('N/A') }}
+      ansible.builtin.set_fact:
+        __sap_maintain_etc_hosts_fact_existing_aliases:
+          "{{ (__sap_maintain_etc_hosts_register_slurp['content'] | b64decode).split('\n')
+            | select('match', '^' ~ __sap_maintain_etc_hosts_item.node_ip ~ '\\s')
+            | map('regex_replace', '#.*$', '')
+            | map('split') | flatten
+            | reject('equalto', __sap_maintain_etc_hosts_item.node_ip)
+            | reject('equalto', __sap_maintain_etc_hosts_item.node_name)
+            | reject('equalto', __sap_maintain_etc_hosts_item.node_name ~ '.' ~ __sap_maintain_etc_hosts_fact_domain)
+            | list }}"
+      when: __sap_maintain_etc_hosts_fact_ip_hostname_exists
+
+    - name: SAP Maintain Hosts - Present - Set fact with defined aliases
+      ansible.builtin.set_fact:
+        __sap_maintain_etc_hosts_fact_aliases:
+          "{{
+            (__sap_maintain_etc_hosts_fact_existing_aliases + (__sap_maintain_etc_hosts_item.aliases | d([], true)))
+            | unique
+            | join(sap_maintain_etc_hosts_delimiter)
+            | trim
+          }}"
+      when: __sap_maintain_etc_hosts_fact_ip_hostname_exists
+
+
+- name: SAP Maintain Hosts - Present - Set fact with overwrite existing aliases
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_fact_aliases:
+      "{{ __sap_maintain_etc_hosts_item.aliases | d([], true) | unique | join(sap_maintain_etc_hosts_delimiter) }}"
+  when:
+    - __sap_maintain_etc_hosts_fact_alias_mode == "overwrite"
+      or not __sap_maintain_etc_hosts_fact_ip_hostname_exists
+
+- name: SAP Maintain Hosts - Present - Summary of host details before the modification
+  ansible.builtin.debug:
+    msg: |
+      Following details will be applied in {{ __sap_maintain_etc_hosts_file }}:
+      hostname:   '{{ __sap_maintain_etc_hosts_item.node_name }}'
+      domain:     '{{ __sap_maintain_etc_hosts_fact_domain }}'
+      ip:         '{{ __sap_maintain_etc_hosts_item.node_ip }}'
+      comment:    '{{ __sap_maintain_etc_hosts_fact_comment }}'
+      aliases:    '{{ __sap_maintain_etc_hosts_fact_aliases }}'
+      alias mode: '{{ __sap_maintain_etc_hosts_fact_alias_mode }}'
+
+# Execute changes.
+- name: SAP Maintain Hosts - Present - Ensure that node_name is not part of the localhost entry
+  ansible.builtin.replace:
+    path: "{{ __sap_maintain_etc_hosts_file }}"
+    regexp: '^(127.0.0.1 .*)\s{{ line_item }}(\s.*)$'
+    replace: '\1\2'
+    backup: true
+  become_user: root
+  become: true
+  loop:
+    - "{{ __sap_maintain_etc_hosts_item.node_name }}.{{ __sap_maintain_etc_hosts_fact_domain }}"
+    - "{{ __sap_maintain_etc_hosts_item.node_name }}"
+  loop_control:
+    loop_var: line_item
+  when: not ansible_check_mode
+
+
+# This task prepares final line, but it is not very pretty or readable, because:
+# Each line would be considered as empty space, interfering with the delimiter.
+- name: SAP Maintain Hosts - Present - Set fact with formatted line for hosts file
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_fact_formatted_line: >-
+      {{ __sap_maintain_etc_hosts_item.node_ip }}{{ sap_maintain_etc_hosts_delimiter }}{{
+      __sap_maintain_etc_hosts_item.node_name }}.{{ __sap_maintain_etc_hosts_fact_domain }}{{ sap_maintain_etc_hosts_delimiter }}{{
+      __sap_maintain_etc_hosts_item.node_name }}{{ __aliases }}{{ __comment }}
+  vars:
+    __aliases: >-
+      {{ sap_maintain_etc_hosts_delimiter + __sap_maintain_etc_hosts_fact_aliases
+        if __sap_maintain_etc_hosts_fact_aliases | length > 0 else '' }}
+    __comment: >-
+      {{ sap_maintain_etc_hosts_delimiter + __sap_maintain_etc_hosts_fact_comment
+        if __sap_maintain_etc_hosts_fact_comment | length > 0 else '' }}
+
+
+- name: SAP Maintain Hosts - Present - Ensure that the entry for node_ip in hosts file is correct
+  ansible.builtin.lineinfile:
+    path: "{{ __sap_maintain_etc_hosts_file }}"
+    regexp: '^{{ __sap_maintain_etc_hosts_item.node_ip }}\s'
+    line: "{{ __sap_maintain_etc_hosts_fact_formatted_line }}"
+    backup: true
+  when: not ansible_check_mode
+  become_user: root
+  become: true
+
+
+# After all nodes are added or deleted, run the consistency check against the hosts file
+- name: SAP Maintain Hosts - Present - Get the content of hosts file for validation again
+  ansible.builtin.slurp:
+    src: "{{ __sap_maintain_etc_hosts_file }}"
+  register: __sap_maintain_etc_hosts_register_slurp_after
+
+- name: SAP Maintain Hosts - Present - Assert that changes were successfully applied to hosts file
+  ansible.builtin.assert:
+    that: >-
+      (__sap_maintain_etc_hosts_register_slurp_after['content'] | b64decode).split('\n')
+        | reject('match', '^#')
+        | select('search', '\\s' ~ __sap_maintain_etc_hosts_line_item ~ '(\\s|$)')
+        | length == 1
+    fail_msg: |
+      FAIL: Hostname or FQDN '{{ __sap_maintain_etc_hosts_line_item }}' is not exactly once in {{ __sap_maintain_etc_hosts_file }}!"
+    # Hide full content of loop item from output. Still visible in verbose mode.
+    quiet: true
+  loop:
+    - "{{ __sap_maintain_etc_hosts_item.node_name }}.{{ __sap_maintain_etc_hosts_fact_domain }}"
+    - "{{ __sap_maintain_etc_hosts_item.node_name }}"
+  loop_control:
+    loop_var: __sap_maintain_etc_hosts_line_item
+  when: not ansible_check_mode
+
+- name: SAP Maintain Hosts - Present - Set fact with the hosts file after changes for validation
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_fact_completeness_count:
+      "{{ (__sap_maintain_etc_hosts_register_slurp_after['content'] | b64decode).split('\n')
+        | reject('match', '^\\s*#')
+        | select('search', __sap_maintain_etc_hosts_item.node_ip)
+        | select('search', __sap_maintain_etc_hosts_item.node_name ~ '.' ~ __sap_maintain_etc_hosts_fact_domain)
+        | select('search', '\\s' ~ __sap_maintain_etc_hosts_item.node_name ~ '(\\s|$)')
+        | length }}"
+
+- name: SAP Maintain Hosts - Present - Assert that hosts file entry was maintained
+  ansible.builtin.assert:
+    that:
+      - __sap_maintain_etc_hosts_fact_completeness_count | int == 1
+    fail_msg: |
+      FAIL: Your server's ip4 address, FQDN, or hostname are not in {{ __sap_maintain_etc_hosts_file }}!
+      Expected:
+      {{ __sap_maintain_etc_hosts_item.node_ip }} {{ __sap_maintain_etc_hosts_item.node_name }}.{{
+        __sap_maintain_etc_hosts_fact_domain }} {{ __sap_maintain_etc_hosts_item.node_name }}
+  ignore_errors: "{{ ansible_check_mode }}"

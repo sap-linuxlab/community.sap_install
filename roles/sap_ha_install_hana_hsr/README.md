@@ -60,11 +60,13 @@ It is recommended to execute this role together with other roles in this collect
             node_ip: "10.10.10.10"
             node_role: primary
             hana_site: DC01
+            node_hsr_ip: "192.168.10.10"  # optional
 
           - node_name: h01hana1
             node_ip: "10.10.10.11"
             node_role: secondary
             hana_site: DC02
+            node_hsr_ip: "192.168.10.11"  # optional
 
         sap_ha_install_hana_hsr_sid: H01
         sap_ha_install_hana_hsr_instance_number: "01"
@@ -131,6 +133,11 @@ This can be inherited from the variable `sap_hana_cluster_nodes`.
     Available options: `primary`, `secondary`.<br>
 - **hana_site**<br>
     A unique logical site name (e.g., DC01, EU-WEST) (String).<br>
+- **node_hsr_ip** (optional)<br>
+    IP address of the dedicated replication network interface (String).<br>
+    When set, configures `[system_replication_hostname_resolution]` in `global.ini`
+    to map each peer's hostname to its replication IP.<br>
+    It must be defined for all nodes or none.<br>
 
 Example:
 
@@ -140,18 +147,20 @@ sap_ha_install_hana_hsr_cluster_nodes:
     node_ip: '192.168.1.11'
     node_role: 'primary'
     hana_site: 'DC01'
+    node_hsr_ip: '10.0.0.11'
 
   - node_name: 'node02'
     node_ip: '192.168.1.12'
     node_role: 'secondary'
     hana_site: 'DC02'
+    node_hsr_ip: '10.0.0.12'
 ```
 
 ### sap_ha_install_hana_hsr_hdbuserstore_system_backup_user
 - _Type:_ `string`
 - _Default:_ `HDB_SYSTEMDB`
 
-The hdbuserstore key used for connecting to the SYSTEMDB for administrative tasks like backups.
+The hdbuserstore key used for connecting to the SYSTEMDB for administrative tasks like backups or updating the global.ini.
 
 ### sap_ha_install_hana_hsr_db_system_password
 - _Type:_ `string`
@@ -238,5 +247,14 @@ The specified ports are opened directly and no service definition is created.<br
 
 Optional name of firewall zone where service or ports will be configured.<br>
 Default firewall zone, usually `public`, is used if this variable is undefined.
+
+### sap_ha_install_hana_hsr_listeninterface
+- _Type:_ `string`
+
+SAP HANA System Replication listen interface.<br>
+Controls which network interface HANA listens on for incoming replication connections.<br>
+Available values: `.internal`, `.global`.<br>
+When not set, listeninterface is not configured and HANA uses its default.<br>
+Setting `.internal` requires `node_hsr_ip` to be defined on all nodes.
 
 <!-- END Role Variables -->

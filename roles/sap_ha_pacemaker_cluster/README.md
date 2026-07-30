@@ -955,6 +955,21 @@ sap_ha_pacemaker_cluster_operation_defaults:
   timeout: 600
 ```
 
+### sap_ha_pacemaker_cluster_qdevice_enabled
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Set this variable to `true` to enable QDevice for the cluster.<br>
+Requires definition of `sap_ha_pacemaker_cluster_qdevice_host` variable with the hostname of the QNetD server.<br>
+Configuration can be further adjusted using `ha_cluster` role variable `ha_cluster_quorum`.<br>
+
+### sap_ha_pacemaker_cluster_qdevice_host
+- _Type:_ `str`
+
+Hostname of the QNetD server for the cluster QDevice configuration.<br>
+This host is not configured with this role, but it can be configured separately with `ha_cluster` Ansible Role beforehand.<br>
+Ensure that the cluster nodes can reach the QNetD server.<br>
+
 ### sap_ha_pacemaker_cluster_resource_defaults
 - _Type:_ `dict`
 - _Default:_ `{'migration-threshold': 5000, 'resource-stickiness': 3000}`
@@ -991,8 +1006,13 @@ Example for SAP HANA Scale-Up:<br>
 ### sap_ha_pacemaker_cluster_sbd_devices
 - _Type:_ `list`
 
-Required if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.<br>
+Required for setup of Disk-Based SBD if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.<br>
 Provide list of block devices for Stonith SBD agent<br>
+NOTEs for using Diskless SBD:<br>
+Leave this variable with empty list `[]`.<br>
+Two node clusters require QNetD and QDevice configuration.<br>
+Set the variable `sap_ha_pacemaker_cluster_qdevice_enabled` to `true`.<br>
+Ensure that you have host with QNetd prepared and defined in `sap_ha_pacemaker_cluster_qdevice_host` variable.<br>
 
 Example:
 ```yaml

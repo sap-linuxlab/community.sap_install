@@ -255,8 +255,14 @@ argument_specs:
       sap_ha_pacemaker_cluster_sbd_devices:
         type: list
         description:
-          - Required if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.
+          - Required for setup of Disk-Based SBD if `sap_ha_pacemaker_cluster_sbd_enabled` is enabled.
           - Provide list of block devices for Stonith SBD agent
+          - "NOTEs for using Diskless SBD:"
+          - Leave this variable with empty list `[]`.
+          - Two node clusters require QNetD and QDevice configuration.
+          - Set the variable `sap_ha_pacemaker_cluster_qdevice_enabled` to `true`.
+          - Ensure that you have host with QNetd prepared and defined in `sap_ha_pacemaker_cluster_qdevice_host` variable.
+
 
         example:
           sap_ha_pacemaker_cluster_sbd_devices:
@@ -289,6 +295,21 @@ argument_specs:
         example:
           sap_ha_pacemaker_cluster_sbd_watchdog_modules:
             - softdog
+
+      sap_ha_pacemaker_cluster_qdevice_enabled:
+        type: bool
+        default: false
+        description:
+          - Set this variable to `true` to enable QDevice for the cluster.
+          - Requires definition of `sap_ha_pacemaker_cluster_qdevice_host` variable with the hostname of the QNetD server.
+          - Configuration can be further adjusted using `ha_cluster` role variable `ha_cluster_quorum`.
+
+      sap_ha_pacemaker_cluster_qdevice_host:
+        type: str
+        description:
+          - Hostname of the QNetD server for the cluster QDevice configuration.
+          - This host is not configured with this role, but it can be configured separately with `ha_cluster` Ansible Role beforehand.
+          - Ensure that the cluster nodes can reach the QNetD server.
 
       sap_ha_pacemaker_cluster_cluster_properties:
         type: dict

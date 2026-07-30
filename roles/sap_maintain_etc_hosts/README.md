@@ -4,7 +4,7 @@
 
 ## Description
 <!-- BEGIN Description -->
-The Ansible role `sap_maintain_etc_hosts` is used to maintain the `/etc/hosts` file..
+The Ansible role `sap_maintain_etc_hosts` is used to maintain the `/etc/hosts` file.
 <!-- END Description -->
 
 <!-- BEGIN Dependencies -->
@@ -22,38 +22,40 @@ The Ansible role `sap_maintain_etc_hosts` is used to maintain the `/etc/hosts` f
 
 ### Execution Flow
 <!-- BEGIN Execution Flow -->
-1. Assert that required inputs were provided.
-2. Verify duplicate entries and conflicts;
+1. Assert and validate input variables.
+2. Verify duplicate entries and conflicts.
 3. Update `/etc/hosts` file.
 <!-- END Execution Flow -->
 
 ### Example
 <!-- BEGIN Execution Example -->
-Example playbook will update `/etc/hosts`:
+The example playbook will update `/etc/hosts`:
 
 - Remove node with IP `10.10.10.10`.
 - Remove node with name `host2`.
 - Add node with IP `10.10.10.11`, name `host1`, aliases `alias1, alias2` and comment `host1 comment`.
 ```yaml
-- name: Ansible Play for add entry in /etc/hosts
+- name: Ansible Play to manage entries in /etc/hosts
   hosts: all
   become: true
   tasks:
-    - name: Execute Ansible Role sap_sap_maintain_etc_hosts
+    - name: Execute Ansible Role sap_maintain_etc_hosts
       ansible.builtin.include_role:
-        name: community.sap_install.sap_sap_maintain_etc_hosts
+        name: community.sap_install.sap_maintain_etc_hosts
       vars:
         sap_maintain_etc_hosts_list:
         - node_ip: 10.10.10.10
           state: absent
+
         - node_name: host2
           state: absent
+
         - node_ip: 10.10.10.11
           node_name: host1
           aliases:
             - alias1
             - alias2
-          node_comment: "host1 comment"  # Comment is created after hash sign (defaults to hana_site)
+          node_comment: "host1 comment"
           state: present
 ```
 
@@ -63,9 +65,9 @@ Example playbook when executed together with [sap_ha_pacemaker_cluster](https://
   hosts: all
   become: true
   tasks:
-    - name: Execute Ansible Role sap_sap_maintain_etc_hosts
+    - name: Execute Ansible Role sap_maintain_etc_hosts
       ansible.builtin.include_role:
-        name: community.sap_install.sap_sap_maintain_etc_hosts
+        name: community.sap_install.sap_maintain_etc_hosts
       vars:
         sap_maintain_etc_hosts_list: "{{ sap_ha_pacemaker_cluster_cluster_nodes }}"
 ```
@@ -88,6 +90,7 @@ Apache 2.0
 <!-- BEGIN Maintainers -->
 - [Markus Koch](https://github.com/rhmk)
 - [Bernd Finger](https://github.com/berndfinger)
+- [Marcel Mamula](https://github.com/marcelmamula)
 <!-- END Maintainers -->
 
 ## Role Variables
@@ -96,12 +99,12 @@ Apache 2.0
 This role requires the dictionary `sap_maintain_etc_hosts_list` which contains the parameters for the `/etc/hosts` file.
 
 The default value is the definition of the cluster nodes like in the role [sap_ha_pacemaker_cluster](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_pacemaker_cluster).</br>
-If the value `sap_hana_cluster_nodes`or `sap_ha_pacemaker_cluster_cluster_nodes` is not defined, then the role creates a default value from `ansible_facts`.
+If the value `sap_hana_cluster_nodes` or `sap_ha_pacemaker_cluster_cluster_nodes` is not defined, then the role expects valid `sap_maintain_etc_hosts_list`.
 
-**NOTE: If you want to use this role to remove entries from /etc/hosts it is a good practice to do this before adding entries. The adding/removal is done in the order the entries are listed.**
+**NOTE: If you want to use this role to remove entries from /etc/hosts it is a good practice to do this before adding entries.**<br>
+**The adding/removal is done in the order the entries are listed.**
 
 ### sap_maintain_etc_hosts_list
-
 - _Type:_ `list` with elements of type `dict`
 
 Mandatory list of nodes in form of dictionaries to be added or removed in `/etc/hosts` file.
@@ -109,64 +112,92 @@ Mandatory list of nodes in form of dictionaries to be added or removed in `/etc/
 Following dictionary keys can be defined:
 
 - **node_ip**<br>
-    IP address of the managed node.<br>
-    **Required** for adding new entries to `/etc/hosts`.</br>
-    _Optional_ for removing entries, where `node_name` and `node_domain` can be used instead.
-
     - _Type:_ `string`
+
+    IP address of the host to manage, depending on `state`.<br>
+    **Required** for `state: present`.</br>
+    _Optional_ for `state: absent`, where `node_name` and `node_domain` can be used instead.
 
 - **node_name**<br>
-    Hostname of the managed node.<br>
-    **Required** for adding new entries to `/etc/hosts`.</br>
-    _Optional_ for removing entries, when `node_ip` is not used.
-
     - _Type:_ `string`
+
+    Hostname of the host to manage.<br>
+    **Required** for `state: present`.</br>
+    _Optional_ for `state: absent`, where `node_ip` can be used instead.
 
 - **node_domain**<br>
-    Domain name of the managed node. Defaults to `sap_domain` if set or `ansible_facts['domain']`.<br>
-    **Required** for adding new entries to `/etc/hosts`.</br>
-    _Optional_ for removing entries, when `node_name` is used.
-
     - _Type:_ `string`
-    - _Default:_ `sap_domain`
+    - _Default:_ `{{ sap_maintain_etc_hosts_domain }}`
+
+    Domain name of the host to manage.<br>
+    Defaults to `sap_maintain_etc_hosts_domain` or `ansible_facts['domain']`.<br>
+    **Required** for `state: present`.</br>
+    _Optional_ for `state: absent` with `node_name`, where `node_ip` can be used instead.
 
 - **aliases**<br>
-    List of aliases for the managed node.<br>
-    _Optional_ for adding new entries to `/etc/hosts`.
-
     - _Type:_ `list` with elements of type `string`
 
-- **alias_mode**<br>
-    Select method of updating `/etc/hosts` file:<br>
-        - `merge` : merges the list of aliases with the exiting aliases of the node.<br>
-        - `overwrite` : overwrites the aliases of the node. 
-    _Optional_ for adding new entries to `/etc/hosts`.
+    List of aliases of the host to manage.<br>
+    _Optional_ for `state: present`.<br>
+    Not used in `state: absent`.
 
+- **alias_mode**<br>
     - _Type:_ `string`
     - _Default:_ `merge`
 
-- **node_comment**<br>
-    Node comment is appended at end of line of managed node.<br>
-    _Optional_ for adding new entries to `/etc/hosts`.
+    Select method of managing aliases of the host.
 
+    - `merge` - merges the list of aliases with the exiting aliases of the host.
+    - `overwrite` - overwrites the aliases of the host.
+
+    _Optional_ for `state: present`.<br>
+    Not used in `state: absent`.
+
+- **node_comment**<br>
     - _Type:_ `string`
     - _Default:_ `managed by ansible sap_maintain_etc_hosts role`
 
-- **hana_site**<br>
-    Used by [sap_ha_pacemaker_cluster](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_pacemaker_cluster) and it is appended to `node_comment`<br>
-    _Optional_ for adding new entries to `/etc/hosts`.
+    String which is appended at end of line of the host to manage.<br>
+    Replaces existing comment, if present.<br>
+    _Optional_ for `state: present`.<br>
+    Not used in `state: absent`.
 
+- **hana_site**<br>
     - _Type:_ `string`
+
+    Used by [sap_ha_pacemaker_cluster](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_pacemaker_cluster) role and it is appended to `node_comment`<br>
+    _Optional_ for `state: present`.<br>
+    Not used in `state: absent`.
 
 - **node_role**<br>
-    Not used, but mentioned for compatibility reasons for [sap_ha_pacemaker_cluster](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_pacemaker_cluster) role.<br>
-
     - _Type:_ `string`
+
+    Not used, but mentioned for compatibility reasons with [sap_ha_pacemaker_cluster](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_pacemaker_cluster) role.<br>
 
 - **state**<br>
-    Select `present` for adding new entries, `absent` for removing them.<br>
-    **Required** for removing entries, otherwise default `present` is used.
-
     - _Type:_ `string`
     - _Default:_ `present`
+
+    Select desired state of host item.
+
+    - `present` - Add new hosts entry.
+    - `absent` - Remove existing hosts entry.
+
+    _Optional_ for `state: present`.<br>
+    **Required** for `state: absent`, because it defaults to `present`.</br>
+
+### sap_maintain_etc_hosts_delimiter
+- _Type:_ `str`
+- _Default:_ `' '`
+- _Choices:_ `' ', '/t'`
+
+Delimiter for `/etc/hosts` used to separate all elements on a line.</br>
+Changing delimiter will report as change, even if actual content did not change.</br>
+
+### sap_maintain_etc_hosts_comment
+- _Type:_ `str`
+- _Default:_ `managed by Ansible role sap_maintain_etc_hosts`
+
+Comment to be appended, if comment is not defined in `sap_maintain_etc_hosts_list`.
+Replaces existing comment, if present.<br>
 <!-- END Role Variables -->

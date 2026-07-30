@@ -1,0 +1,94 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Prepare variables for both defined or undefined sap_maintain_etc_hosts_list variable.
+
+- name: Block with valid sap_maintain_etc_hosts_list
+  when:
+    - sap_maintain_etc_hosts_list | d([]) | length > 0
+    - sap_maintain_etc_hosts_list | type_debug == 'list'
+  block:
+    - name: SAP Maintain Hosts - Set fact with a list of IP addresses and comments from hosts file
+      ansible.builtin.set_fact:
+        __sap_maintain_etc_hosts_fact_ip_comments_list: >-
+          {%- set result = [] -%}
+          {%- for line in (__sap_maintain_etc_hosts_register_slurp.content | b64decode).split('\n') -%}
+            {%- if line | regex_search('^\\s*[0-9]') -%}
+              {%- set ip = line | regex_replace('^\\s*([0-9.]+).*$', '\\1') -%}
+              {%- set comment = line | regex_replace('^.*#\\s*(.*)$', '\\1') if '#' in line else '' -%}
+              {%- set _ = result.append({'ip': ip, 'comment': comment}) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ result }}
+
+    - name: SAP Maintain Hosts - Set fact with a list hosts with comments
+      ansible.builtin.set_fact:
+        __sap_maintain_etc_hosts_fact_hosts_list: >-
+          {%- set result = [] -%}
+          {%- for __host in __sap_maintain_etc_hosts_fact_present -%}
+            {%- set host_copy = __host.copy() -%}
+            {%- if __host.node_comment is not defined or __host.node_comment | length == 0 -%}
+              {%- set existing_comment = (__sap_maintain_etc_hosts_fact_ip_comments_list
+              | selectattr('ip', 'equalto', __host.node_ip)
+              | map(attribute='comment') | first | d('')) or sap_maintain_etc_hosts_comment -%}
+              {%- set _ = host_copy.update({'node_comment': existing_comment}) -%}
+            {%- endif -%}
+            {%- set _ = result.append(host_copy) -%}
+          {%- endfor -%}
+          {{ result }}
+
+    # Absent list is appended after present hosts.
+    - name: SAP Maintain Hosts - Set fact with a combined list of present and absent hosts
+      ansible.builtin.set_fact:
+        __sap_maintain_etc_hosts_fact_hosts_list:
+          "{{ __sap_maintain_etc_hosts_fact_hosts_list
+            + (sap_maintain_etc_hosts_list
+              | selectattr('state', 'defined')
+              | selectattr('state', 'eq', 'absent') | list)
+            }}"
+
+
+# This block sets only state 'present' and it is not designed for removing default entry.
+- name: Block with undefined or invalid sap_maintain_etc_hosts_list
+  when:
+    - sap_maintain_etc_hosts_list | d([]) | length == 0
+      or sap_maintain_etc_hosts_list | type_debug != 'list'
+  block:
+    - name: SAP Maintain Hosts - Assert that system facts are available
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['default_ipv4'].address | d('') | length > 0
+          - ansible_facts['hostname'] | d('') | length > 0
+          - sap_maintain_etc_hosts_domain | d('') | length > 0
+            or ansible_facts['domain'] | d('') | length > 0
+        fail_msg: |
+          FAIL: Execution without valid 'sap_maintain_etc_hosts_list' variable
+          requires all system facts to be available either in:
+          - IP Address fact 'ansible_facts['default_ipv4'].address'.
+          - Hostname fact 'ansible_facts['hostname']'.
+          - Domain fact from either 'sap_maintain_etc_hosts_domain' variable or 'ansible_facts['domain']' fact.
+
+    - name: SAP Maintain Hosts - Set fact with preserved existing comment if present
+      ansible.builtin.set_fact:
+        __sap_maintain_etc_hosts_fact_comment:
+          "{{ (__sap_maintain_etc_hosts_register_slurp['content'] | b64decode).split('\n')
+            | select('match', '^' ~ ansible_facts['default_ipv4'].address ~ '\\s')
+            | map('regex_search', '#.*$')
+            | select('string')
+            | first
+            | regex_replace('^# ', '')
+            | d('') | trim }}"
+
+    # This undocumented scenario uses system facts and can result in failure.
+    - name: Hosts File - Set hosts list variable to defaults
+      ansible.builtin.set_fact:
+        __sap_maintain_etc_hosts_fact_hosts_list:
+          - node_ip: "{{ ansible_facts['default_ipv4'].address }}"
+            node_name: "{{ ansible_facts['hostname'] }}"
+            # Execution on empty host will not have domain in ansible_facts,
+            # therefore 'sap_maintain_etc_hosts_domain' is default and we fail during state_present.
+            node_domain: "{{ sap_maintain_etc_hosts_domain | d(ansible_facts['domain']) | d('') }}"
+            node_comment: "{{ __sap_maintain_etc_hosts_fact_comment
+              if __sap_maintain_etc_hosts_fact_comment | length > 0
+              else sap_maintain_etc_hosts_comment }}"
+            state: present

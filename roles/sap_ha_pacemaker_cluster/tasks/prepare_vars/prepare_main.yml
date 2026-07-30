@@ -8,16 +8,37 @@
   ansible.builtin.import_tasks: prepare_common.yml
   tags: pre_ha_cluster
 
-# STONITH tasks are split to allow for full user override using 'sap_ha_pacemaker_cluster_stonith_custom'.
+
+# STONITH tasks are split to simplify each task file.
+# The default STONITH configuration for platforms with predefined defaults.
 - name: "SAP HA Prepare Pacemaker - Include variable construction for default STONITH resources"
   ansible.builtin.import_tasks: prepare_stonith.yml
   tags: pre_ha_cluster
-  when: sap_ha_pacemaker_cluster_stonith_custom is not defined
+  when:
+    - sap_ha_pacemaker_cluster_stonith_custom is not defined
+    - not sap_ha_pacemaker_cluster_sbd_enabled | d(false)
 
+# The custom STONITH configuration if the user wants to use custom STONITH devices.
 - name: "SAP HA Prepare Pacemaker - Include variable construction for custom STONITH resources"
   ansible.builtin.import_tasks: prepare_stonith_custom.yml
   tags: pre_ha_cluster
-  when: sap_ha_pacemaker_cluster_stonith_custom is defined
+  when:
+    - sap_ha_pacemaker_cluster_stonith_custom is defined
+    - not sap_ha_pacemaker_cluster_sbd_enabled | d(false)
+
+# The SBD STONITH configuration if the user wants to use SBD as STONITH device.
+- name: "SAP HA Prepare Pacemaker - Include variable construction for SBD STONITH resources"
+  ansible.builtin.import_tasks: prepare_stonith_sbd.yml
+  tags: pre_ha_cluster
+  when: sap_ha_pacemaker_cluster_sbd_enabled | d(false)
+
+# The QDevice configuration if the user wants to use a QDevice in their cluster.
+- name: "SAP HA Prepare Pacemaker - Include variable construction for QDevice"
+  ansible.builtin.import_tasks:
+    file: prepare_qdevice.yml
+  tags: pre_ha_cluster
+  when: sap_ha_pacemaker_cluster_qdevice_enabled | d(false)
+
 
 - name: "SAP HA Prepare Pacemaker - Include variable construction for VIP resources"
   ansible.builtin.import_tasks: prepare_vip_resources.yml

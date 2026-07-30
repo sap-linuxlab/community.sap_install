@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+# Configure replication network settings at SYSTEM layer only. HOST layer overrides are not managed by this role.
+
+- name: SAP HSR - Check current system_replication_hostname_resolution in global.ini
+  become: true
+  become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+  ansible.builtin.shell:
+    cmd: |
+      /usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql \
+      -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
+      -m <<EOF
+      SELECT KEY, VALUE FROM M_INIFILE_CONTENTS
+        WHERE FILE_NAME = 'global.ini'
+        AND LAYER_NAME = 'SYSTEM'
+        AND SECTION = 'system_replication_hostname_resolution'
+        AND KEY = '{{ node_item.node_hsr_ip }}'
+        AND VALUE = '{{ node_item.node_name }}';
+      EOF
+  loop: "{{ sap_ha_install_hana_hsr_cluster_nodes }}"
+  loop_control:
+    label: "{{ node_item.node_hsr_ip | d('undefined') }} = {{ node_item.node_name }}"
+    loop_var: node_item
+  register: __sap_ha_install_hana_hsr_register_hostname_resolution
+  changed_when: false
+  failed_when: false
+  when: __sap_ha_install_hana_hsr_fact_replication_network
+
+- name: SAP HSR - Configure system_replication_hostname_resolution in global.ini
+  become: true
+  become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+  ansible.builtin.shell:
+    cmd: |
+      /usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql \
+      -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
+      -m <<EOF
+      ALTER SYSTEM ALTER CONFIGURATION('global.ini','SYSTEM')
+        SET ('system_replication_hostname_resolution','{{ node_item.node_item.node_hsr_ip }}')
+        = '{{ node_item.node_item.node_name }}' WITH RECONFIGURE;
+      EOF
+  loop: "{{ __sap_ha_install_hana_hsr_register_hostname_resolution.results }}"
+  loop_control:
+    label: "{{ node_item.node_item.node_hsr_ip | d('undefined') }} = {{ node_item.node_item.node_name }}"
+    loop_var: node_item
+  changed_when: true
+  when:
+    - __sap_ha_install_hana_hsr_fact_replication_network
+    - node_item.node_item.node_name not in node_item.stdout
+
+- name: SAP HSR - Check current listeninterface in global.ini
+  become: true
+  become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+  ansible.builtin.shell:
+    cmd: |
+      /usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql \
+      -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
+      -m <<EOF
+      SELECT VALUE FROM M_INIFILE_CONTENTS
+        WHERE FILE_NAME = 'global.ini'
+        AND LAYER_NAME = 'SYSTEM'
+        AND SECTION = 'system_replication_communication'
+        AND KEY = 'listeninterface'
+        AND VALUE = '{{ sap_ha_install_hana_hsr_listeninterface }}';
+      EOF
+  register: __sap_ha_install_hana_hsr_register_listeninterface
+  changed_when: false
+  failed_when: false
+  when: sap_ha_install_hana_hsr_listeninterface | d('') | length > 0
+
+- name: SAP HSR - Configure listeninterface in global.ini
+  become: true
+  become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+  ansible.builtin.shell:
+    cmd: |
+      /usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql \
+      -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
+      -m <<EOF
+      ALTER SYSTEM ALTER CONFIGURATION('global.ini','SYSTEM')
+        SET ('system_replication_communication','listeninterface')
+        = '{{ sap_ha_install_hana_hsr_listeninterface }}' WITH RECONFIGURE;
+      EOF
+  changed_when: true
+  when:
+    - sap_ha_install_hana_hsr_listeninterface | d('') | length > 0
+    - sap_ha_install_hana_hsr_listeninterface not in __sap_ha_install_hana_hsr_register_listeninterface.stdout

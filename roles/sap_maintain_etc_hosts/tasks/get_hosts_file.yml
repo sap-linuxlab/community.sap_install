@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Fail when hosts file does not exist.
+- name: SAP Maintain Hosts - Stat hosts file
+  ansible.builtin.stat:
+    path: "{{ __sap_maintain_etc_hosts_file }}"
+  register: __sap_maintain_etc_hosts_register_stat
+
+- name: SAP Maintain Hosts - Fail if hosts file does not exist
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Hosts file '{{ __sap_maintain_etc_hosts_file }}' does not exist on the target system!
+      This file is defined by internal variable '__sap_maintain_etc_hosts_file'.
+  when: not __sap_maintain_etc_hosts_register_stat.stat.exists
+
+- name: SAP Maintain Hosts - Get the content of hosts file
+  ansible.builtin.slurp:
+    src: "{{ __sap_maintain_etc_hosts_file }}"
+  register: __sap_maintain_etc_hosts_register_slurp
+
+
+# Create list of lists for each valid line in hosts file with IP and hostnames/aliases,
+# excluding comments and empty lines.
+- name: SAP Maintain Hosts - Set fact with valid contents of hosts file
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_fact_host_lines:
+      "{{
+        (__sap_maintain_etc_hosts_register_slurp.content | b64decode).split('\n')
+        | reject('search', '^\\s*$')
+        | reject('search', '^\\s*#')
+        | map('regex_replace', '\\s*#.*$', '')
+        | map('trim')
+        | select('match', '^[0-9]')
+        | map('split')
+        | list
+      }}"
+
+# Transform previous list into unique list of IP and hostnames, including aliases.
+- name: SAP Maintain Hosts - Set fact with a list of host names and their IP addresses
+  ansible.builtin.set_fact:
+    __sap_maintain_etc_hosts_fact_host_ip_list: >-
+      {%- set result = [] -%}
+      {%- for parts in __sap_maintain_etc_hosts_fact_host_lines -%}
+        {%- if parts | length > 1 -%}
+          {%- for hostname in parts[1:] -%}
+            {%- set _ = result.append({'ip': parts[0], 'hostname': hostname}) -%}
+          {%- endfor -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {{ result }}
+
+
+# Show output we are working with in readable format for debugging purposes.
+- name: SAP Maintain Hosts - Show list of hosts present in hosts file
+  ansible.builtin.debug:
+    msg: |
+      {% for line_parts in __sap_maintain_etc_hosts_fact_host_lines %}
+      {{ "%-15s" | format(line_parts[0]) }} {{ line_parts[1:] | join(' ') }}
+      {% endfor %}
+    verbosity: 2

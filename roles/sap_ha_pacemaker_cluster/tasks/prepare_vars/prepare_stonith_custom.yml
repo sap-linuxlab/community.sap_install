@@ -54,7 +54,7 @@
 - name: "SAP HA Prepare Pacemaker - (STONITH) Define cluster properties"
   when:
     - ha_cluster_cluster_properties is not defined  # We cannot append to defined variable due to precedence.
-    - sap_ha_pacemaker_cluster_cluster_properties is defined
+    - __sap_ha_pacemaker_cluster_cluster_properties | d({}) | length > 0
   ansible.builtin.set_fact:
     __sap_ha_pacemaker_cluster_cluster_properties:
       - attrs: |-
@@ -68,70 +68,6 @@
             ]) -%}
           {%- endfor %}
           {{ attrs }}
-
-
-# SBD Configuration is executed only when all conditions are met:
-# sap_ha_pacemaker_cluster_sbd_enabled is true
-# sap_ha_pacemaker_cluster_sbd_devices is defined, list and not empty
-# sap_ha_pacemaker_cluster_stonith_custom is defined, list and not empty
-# __sap_ha_pacemaker_cluster_sbd_enabled is not defined
-- name: "SAP HA Prepare Pacemaker - (STONITH SBD) Prepare SBD configuration"
-  when:
-    - ha_cluster_sbd_enabled is not defined or ha_cluster_sbd_enabled | bool  # We cannot overwrite due to precedence.
-    - sap_ha_pacemaker_cluster_sbd_enabled | d(false)
-    - sap_ha_pacemaker_cluster_sbd_devices | d([]) | length > 0
-    - sap_ha_pacemaker_cluster_stonith_custom | length > 0
-  block:
-    - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Create sbd_options"
-      when:
-        - ha_cluster_sbd_options is not defined
-      ansible.builtin.set_fact:
-        __sap_ha_pacemaker_cluster_sbd_options: >-
-          {%- if sap_ha_pacemaker_cluster_sbd_options | d([]) | length > 0 -%}
-            {{ sap_ha_pacemaker_cluster_sbd_options }}
-          {%- else -%}
-            {{ [{'name': 'startmode', 'value': __sbd_startmode}] }}
-          {%- endif -%}
-      vars:
-        __sbd_startmode: "{{ 'clean' if sap_ha_pacemaker_cluster_host_type | select('search', 'hana') | length > 0 else 'always' }}"
-
-
-    # Create dictionary with SBD specific parameters for ha_cluster
-    # Omit parameters if they are already present in provided dictionary sap_ha_pacemaker_cluster_ha_cluster
-    - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Create ha_cluster parameters for SBD"
-      ansible.builtin.set_fact:
-        __sap_ha_pacemaker_cluster_ha_cluster_stonith: >-
-          {{
-            dict(
-              sbd_devices=(sap_ha_pacemaker_cluster_sbd_devices
-                if sap_ha_pacemaker_cluster_sbd_devices | d([]) | length > 0 and not __ha_cluster_sbd_devices_exists
-                else omit),
-              sbd_watchdog=(sap_ha_pacemaker_cluster_sbd_watchdog
-                if sap_ha_pacemaker_cluster_sbd_watchdog | d([]) | length > 0 and not __ha_cluster_sbd_watchdog_exists
-                else omit),
-              sbd_watchdog_modules=(sap_ha_pacemaker_cluster_sbd_watchdog_modules
-                if sap_ha_pacemaker_cluster_sbd_watchdog_modules | d([]) | length > 0 and not __ha_cluster_sbd_watchdog_modules_exists
-                else omit)
-            )
-          }}
-      vars:
-        # Detect if parameters were already provided in sap_ha_pacemaker_cluster_ha_cluster
-        __ha_cluster_sbd_devices_exists:
-          "{{ true if __sap_ha_pacemaker_cluster_ha_cluster.sbd_devices | d([]) | length > 0 else false }}"
-        __ha_cluster_sbd_watchdog_exists:
-          "{{ true if __sap_ha_pacemaker_cluster_ha_cluster.sbd_watchdog | d([]) | length > 0 else false }}"
-        __ha_cluster_sbd_watchdog_modules_exists:
-          "{{ true if __sap_ha_pacemaker_cluster_ha_cluster.sbd_watchdog_modules | d([]) | length > 0 else false }}"
-
-
-    - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Include sbd fence agent"
-      ansible.builtin.set_fact:
-        __sap_ha_pacemaker_cluster_fence_agent_packages:
-          "{{ __sap_ha_pacemaker_cluster_fence_agent_packages + ['sbd'] }}"
-
-    - name: "SAP HA Prepare Pacemaker - (STONITH SBD) Set __sap_ha_pacemaker_cluster_sbd_enabled"
-      ansible.builtin.set_fact:
-        __sap_ha_pacemaker_cluster_sbd_enabled: true
 
 
 - name: "SAP HA Prepare Pacemaker - (STONITH) Assemble the resources from custom definition"

@@ -1,0 +1,64 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# QDevice is mandatory for Diskless SBD on 2-node clusters, but it can be used regardless.
+# It uses 'ha_cluster_quorum' which has no other purpose currently,
+# but it can be enhanced in the future if 'ha_cluster' role adds more quorum configuration options.
+
+- name: "SAP HA Prepare Pacemaker - (QDevice) Assert that QNetd host is provided"
+  ansible.builtin.assert:
+    that:
+      - sap_ha_pacemaker_cluster_qdevice_host is defined
+      - sap_ha_pacemaker_cluster_qdevice_host is string
+      - sap_ha_pacemaker_cluster_qdevice_host | trim | length > 0
+    fail_msg: |
+      FAIL: QDevice configuration is defined but no QNetd host is provided!
+      - Set the variable `sap_ha_pacemaker_cluster_qdevice_host` to the hostname or IP address of the QNetd host.
+
+
+# We do not import 'ha_cluster_quorum' due to its complexity and single purpose for QDevice configuration.
+# Structure is taken from LSR without transformation as we do not allow any customizations yet.
+- name: "SAP HA Prepare Pacemaker - (QDevice) Update Quorum definition"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_quorum:
+      device:
+        model: net  # Model is hardcoded as 'net', because that is only supported model.
+        model_options:
+          - name: host
+            value: "{{ sap_ha_pacemaker_cluster_qdevice_host }}"
+
+          # We can add algorithm variable in future. Current options:
+          # ffsplit: (DEFAULT) fifty-fifty split.
+          # - This provides exactly one vote to the partition with the highest number of active nodes.
+          # lms: last-man-standing.
+          # - If the node is the only one left in the cluster that can see the qnetd server, then it returns a vote.
+          - name: algorithm
+            value: ffsplit
+
+
+# Watchdog timeout must be configured for QDevice configuration.
+# SLES uses 'crm init' which calculates timeout dynamically. See: crm help TimeoutFormulas
+# RHEL does not have default, resulting in failure, when watchdog timeout is not set above 30.
+
+# From crm help TimeoutFormulas:
+# When adding diskless SBD and QDevice together from crm cluster init
+# - if SBD_WATCHDOG_TIMEOUT < 35s set SBD_WATCHDOG_TIMEOUT = 35s
+# When adding diskless SBD in a cluster with QDevice already
+# - if SBD_WATCHDOG_TIMEOUT < qdevice_sync_timeout set SBD_WATCHDOG_TIMEOUT = qdevice_sync_timeout + 5s
+# - qdevice_sync_timeout is by default '30', so default SBD_WATCHDOG_TIMEOUT of '5' will be updated to '35'
+# When adding QDevice in a cluster with diskless SBD already
+# - if SBD_WATCHDOG_TIMEOUT < 35s set SBD_WATCHDOG_TIMEOUT = 35s
+
+- name: "SAP HA Prepare Pacemaker - (QDevice) Update watchdog-timeout in SBD options"
+  ansible.builtin.set_fact:
+    __sap_ha_pacemaker_cluster_sbd_options: >-
+      {{ __sap_ha_pacemaker_cluster_sbd_options | d([]) + __insert_watchdog_timeout }}
+  vars:
+    __insert_watchdog_timeout:
+      - name: 'watchdog-timeout'
+        value: '35'
+  when:
+    - __sap_ha_pacemaker_cluster_sbd_options is not defined
+      or __sap_ha_pacemaker_cluster_sbd_options
+        | selectattr('name', 'equalto', 'watchdog-timeout') | list | length == 0
+    - ansible_facts['os_family'] == 'RedHat'

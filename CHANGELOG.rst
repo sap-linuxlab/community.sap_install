@@ -4,6 +4,28 @@ community.sap\_install Release Notes
 
 .. contents:: Topics
 
+v1.10.0
+=======
+
+Release Summary
+---------------
+
+Minimum Ansible version is 2.18, improvements for Clusters and HSR, bug fixes
+
+Minor Changes
+-------------
+
+- sap_ha_install_hana_hsr - Add dedicated replication network support (https://github.com/sap-linuxlab/community.sap_install/pull/1224)
+- sap_ha_pacemaker_cluster - Add QDevice and Diskless SBD (https://github.com/sap-linuxlab/community.sap_install/pull/1209)
+- sap_maintain_etc_hosts - Refactor role and implement improved handling from PR 1195 (https://github.com/sap-linuxlab/community.sap_install/pull/1212)
+
+Bugfixes
+--------
+
+- collection - Update PR branch policy workflow (https://github.com/sap-linuxlab/community.sap_install/pull/1217)
+- collection - Update min Ansible version and update workflows (https://github.com/sap-linuxlab/community.sap_install/pull/1227)
+- sap_general_preconfigure, sap_hana_preconfigure - Fixes for Ansible 2.19 (https://github.com/sap-linuxlab/community.sap_install/pull/1228)
+
 v1.9.2
 ======
 

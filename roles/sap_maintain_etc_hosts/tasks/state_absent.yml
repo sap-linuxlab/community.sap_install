@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Remove using 'node_ip'.
+- name: SAP Maintain Hosts - Absent - Manage all entries in hosts file with with IP {{ __sap_maintain_etc_hosts_item.node_ip | d('N/A') }}
+  ansible.builtin.lineinfile:
+    path: "{{ __sap_maintain_etc_hosts_file }}"
+    regexp: '^{{ __sap_maintain_etc_hosts_item.node_ip }}\s'
+    state: absent
+    backup: true
+  when:
+    - __sap_maintain_etc_hosts_item.node_ip | d('') | trim | length > 0
+    - __sap_maintain_etc_hosts_item.node_name is not defined
+    - not ansible_check_mode
+  become_user: root
+  become: true
+
+# Remove using 'node_name' without 'node_domain'.
+- name: SAP Maintain Hosts - Absent - Manage all entries in hosts file with name {{ __sap_maintain_etc_hosts_item.node_name | d('N/A') }}
+  ansible.builtin.lineinfile:
+    path: "{{ __sap_maintain_etc_hosts_file }}"
+    regexp: '^.*\s{{ __sap_maintain_etc_hosts_item.node_name }}\s'
+    state: absent
+    backup: true
+  when:
+    - __sap_maintain_etc_hosts_item.node_ip is not defined
+    - __sap_maintain_etc_hosts_item.node_name | d('') | trim | length > 0
+    - __sap_maintain_etc_hosts_item.node_domain | d('') | trim | length == 0
+    - not ansible_check_mode
+  become_user: root
+  become: true
+
+# Remove using 'node_name' with 'node_domain'.
+- name: SAP Maintain Hosts - Absent - Manage all entries in hosts file with the specified FQDN {{ __sap_maintain_etc_hosts_item.node_domain | d('N/A') }}
+  ansible.builtin.lineinfile:
+    path: "{{ __sap_maintain_etc_hosts_file }}"
+    regexp: '^.*\s{{ __sap_maintain_etc_hosts_item.node_name + "." + __sap_maintain_etc_hosts_item.node_domain }}\s'
+    state: absent
+    backup: true
+  when:
+    - __sap_maintain_etc_hosts_item.node_ip is not defined
+    - __sap_maintain_etc_hosts_item.node_name | d('') | trim | length > 0
+    - __sap_maintain_etc_hosts_item.node_domain is defined
+    - __sap_maintain_etc_hosts_item.node_domain is string
+    - __sap_maintain_etc_hosts_item.node_domain | d('') | trim | length > 0
+    - not ansible_check_mode
+  become_user: root
+  become: true

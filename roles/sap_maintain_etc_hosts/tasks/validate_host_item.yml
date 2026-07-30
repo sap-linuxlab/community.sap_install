@@ -1,0 +1,132 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# NOTE: argument_specs validates using lazy method, masking most of types as String.
+# We have to ensure that we validate for correct data type.
+
+# We need to ensure that role stops before we attempt to query any values, if they are None.
+- name: SAP Maintain Hosts - Fail if there are keys with null value
+  ansible.builtin.fail:
+    msg: |
+      FAIL: One or more keys for this host entry are null (None)!
+      Keys: {{ __sap_maintain_etc_hosts_item | dict2items | selectattr('value', 'none') | map(attribute='key') | list | join(', ') }}
+  loop: "{{ sap_maintain_etc_hosts_list }}"
+  when: none in __sap_maintain_etc_hosts_item.values()
+
+
+- name: Block for state present
+  when: __sap_maintain_etc_hosts_item.state | d('present') == 'present'
+  block:
+
+    # Ensure that required keys are defined and not empty.
+    - name: SAP Maintain Hosts - Present - Assert that requires keys are defined
+      ansible.builtin.assert:
+        that:
+          # node_ip
+          - __sap_maintain_etc_hosts_item.node_ip is defined
+          - __sap_maintain_etc_hosts_item.node_ip is string
+          - __sap_maintain_etc_hosts_item.node_ip | trim | length > 0
+
+          # node_name
+          - __sap_maintain_etc_hosts_item.node_name is defined
+          - __sap_maintain_etc_hosts_item.node_name is string
+          - __sap_maintain_etc_hosts_item.node_name | trim | length > 0
+        fail_msg: |
+          FAIL: Adding new hosts in state 'present' requires 'node_ip' and 'node_name' to be defined and not empty Strings.
+
+    - name: SAP Maintain Hosts - Present - Assert that 'node_name' key does not contain a dot
+      ansible.builtin.assert:
+        that: "'.' not in __sap_maintain_etc_hosts_item.node_name"
+        fail_msg: |
+          FAIL: node_name '{{ __sap_maintain_etc_hosts_item.node_name }}' contains a dot, which is not allowed!
+          Use 'node_domain' to define the domain part of the hostname instead.
+        # Hide full content of loop item from output. Still visible in verbose mode.
+        quiet: true
+
+    - name: SAP Maintain Hosts - Present - Assert that domain is defined
+      ansible.builtin.assert:
+        that:
+          - __sap_maintain_etc_hosts_item.node_domain | d('') | trim | length > 0
+            or sap_maintain_etc_hosts_domain | d('') | trim | length > 0
+            or ansible_facts['domain'] | d('') | trim | length > 0
+        fail_msg: |
+          FAIL: No domain found for host '{{ __sap_maintain_etc_hosts_item.node_name }}'.
+          Ensure one of the following is provided:
+          - 'node_domain' key in 'sap_maintain_etc_hosts_list'
+          - 'sap_maintain_etc_hosts_domain' variable
+          - 'ansible_facts["domain"]' fact (requires gathering facts)
+
+    # Ansible lazy validations for list will accept string, so we need dedicated validation.
+    - name: SAP Maintain Hosts - Present - Assert that 'aliases' is a list if defined
+      ansible.builtin.assert:
+        that:
+          - __sap_maintain_etc_hosts_item.aliases | type_debug == 'list'
+          - __sap_maintain_etc_hosts_item.node_ip | trim | length > 0
+        fail_msg: |
+          FAIL: The 'aliases' option is not a list or it is empty!
+        quiet: true
+      when: __sap_maintain_etc_hosts_item.aliases is defined
+
+
+- name: Block for state absent
+  when: __sap_maintain_etc_hosts_item.state | d('present') == 'absent'
+  block:
+
+    - name: SAP Maintain Hosts - Absent - Assert that requires keys are defined for 'node_ip'
+      ansible.builtin.assert:
+        that:
+          - __sap_maintain_etc_hosts_item.node_ip is string
+          - __sap_maintain_etc_hosts_item.node_ip | trim | length > 0
+          - __sap_maintain_etc_hosts_item.node_name is not defined
+        fail_msg: |
+          FAIL: Host in 'absent' state with defined key 'node_ip' requires:
+          - 'node_name' key to be undefined and 'node_ip' to be a non-empty String.
+      when: __sap_maintain_etc_hosts_item.node_ip is defined
+
+    - name: SAP Maintain Hosts - Absent - Assert that requires keys are defined for 'node_name'
+      ansible.builtin.assert:
+        that:
+          - __sap_maintain_etc_hosts_item.node_name is defined
+          - __sap_maintain_etc_hosts_item.node_name is string
+          - __sap_maintain_etc_hosts_item.node_name | trim | length > 0
+          - __sap_maintain_etc_hosts_item.node_ip is not defined
+        fail_msg: |
+          FAIL: Host in 'absent' state with defined key 'node_name' requires:
+          - 'node_ip' key to be undefined
+          - 'node_name' key to be a non-empty String.
+          Optionally, 'node_domain' can be defined as well to specify the domain of the hostname.
+      when:
+        - __sap_maintain_etc_hosts_item.node_ip is not defined
+        - __sap_maintain_etc_hosts_item.node_domain is not defined
+
+    - name: SAP Maintain Hosts - Absent - Assert that requires keys are defined for 'node_name' and 'node_domain'
+      ansible.builtin.assert:
+        that:
+          - __sap_maintain_etc_hosts_item.node_name is defined
+          - __sap_maintain_etc_hosts_item.node_name is string
+          - __sap_maintain_etc_hosts_item.node_name | trim | length > 0
+          - __sap_maintain_etc_hosts_item.node_ip is not defined
+          - __sap_maintain_etc_hosts_item.node_domain is string
+          - __sap_maintain_etc_hosts_item.node_domain | trim | length > 0
+        fail_msg: |
+          FAIL: Host in 'absent' state with defined key 'node_domain' requires:
+          - 'node_ip' key to be undefined
+          - 'node_name' key to be a non-empty String.
+          - 'node_domain' key to be a non-empty String.
+          Optionally, 'node_domain' can be unset to proceed with 'node_name' only.
+      when:
+        - __sap_maintain_etc_hosts_item.node_ip is not defined
+        - __sap_maintain_etc_hosts_item.node_domain is defined
+
+
+# Filter regex_search returns None if there is no match,
+# so we can use d('', true) to default it to empty string and check length.
+- name: SAP Maintain Hosts - Absent - Assert that variable node_ip is in the correct format
+  ansible.builtin.assert:
+    that:
+      - __sap_maintain_etc_hosts_item.node_ip | regex_search(__sap_maintain_etc_hosts_regexp_ipv4) | d('', true) | length > 0
+        or __sap_maintain_etc_hosts_item.node_ip | regex_search(__sap_maintain_etc_hosts_regexp_ipv6) | d('', true) | length > 0
+    fail_msg: |
+      FAIL: The IP address of this host does not have a correct format!
+      Configure the IP address appropriately in the parameter 'node_ip'.
+  when: __sap_maintain_etc_hosts_item.node_ip is defined
