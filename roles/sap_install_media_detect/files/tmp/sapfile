@@ -1,12 +1,12 @@
 #!/usr/bin/bash
-# sapfile: Determine and display SAP file type
+
+# Copyright (c) 2023-2026 The Project Contributors.
 #
-# Copyright 2023 Bernd Finger, Red Hat
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,6 +14,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# Copyright 2023 Bernd Finger, Red Hat
+# For a detailed list of copyright holders and contribution history,
+# please refer to the CONTRIBUTORS.md file in the project root.
+
+# sapfile: Determine and display SAP file type
+
+# ----------------------------------------------------------------------------------------
+# Development notes - internal only, not part of the help text.
+#
+# Role Dependency
+# - Any changes in this script must be replicated in the 'sap_install_media_detect' role.
+#
+# Design
+# - Classification runs in two passes, first file name then file contents.
+# - The 'file' command is called once for all files, instead of once per file.
+# - Awk commands were replaced by case and lists for easier maintenance and readability.
+#
+# Performance
+# - Listing an archive makes the helper program read it from storage, so a run is bound by
+#   I/O and not by this script.
+# - Cold and warm runs differ by orders of magnitude purely from the kernel page cache,
+#   nothing here caches anything. Examples:
+#   - 66 files took 1m13s cold and 2s on rerun.
+#   - 317 files took 4m32s cold and subsequent reruns dropped it down to 4.6s.
+# ----------------------------------------------------------------------------------------
 
 set -o nounset
 set -o pipefail
@@ -35,390 +60,632 @@ usage() {
    echo ""
    echo "Requires:"
    echo "- lsar (program to list the content of a RAR package, e.g. as part of the 'unar' package from the EPEL RHEL repo)"
-   echo "- zipinfo (contained in the unzip RHEL package)"
+   echo "- zipinfo (contained in the unzip package)"
    echo "- sapcar (SAP program to handle sapcar files; typical filename: SAPCAR_1115-70006178.EXE)"
+   echo ""
+   echo "Examples:"
+   echo "  sapfile -e --sapcar_file=/software/SAPCAR_1400-70007716.EXE SAPEXE_81-70008102.SAR"
+   echo "  sapfile -e 51050708_1.exe 51050708_2.rar"
 }
 
+# Function to show list of supported SAP file types reported by sapfile.
+# NOTE: List is no longer dynamic in order to provide better formatting,
+# while removing need to forcefully format code for dynamic extraction.
+# It therefore has to be updated by hand whenever a file type is added or renamed.
 show_file_types() {
-   awk '!/BEGIN/&&!/END/&&/_sap_file_type=/{gsub (" ", ""); gsub ("\\{_sap_file_type=\"", ": "); gsub ("\"\\}", ""); print $NF}' $0 | \
-     sort | uniq
+   echo "sapfile: Show supported SAP file types."
+   echo ""
+   echo "Databases:"
+   echo "- SAP HANA: saphana, saphana_backup, saphana_client, saphana_other, saphana_vch_afl"
+   echo "- DB2: ibmdb2, ibmdb2_client, ibmdb2_license"
+   echo "- Oracle DB: oracledb, oracledb_client, oracledb_tools"
+   echo "- MaxDB: sapmaxdb"
+   echo "- SAP ASE: sapase, sapase_client"
+   echo ""
+   echo "Applications:"
+   echo "- SAP Kernel: sap_kernel, sap_kernel_db_ada, sap_kernel_db_ase, sap_kernel_db_db6, sap_kernel_db_hdb, sap_kernel_db_ora"
+   echo "- SAP Installation Export: sap_export_bw4hana, sap_export_ecc, sap_export_ecc_ides, sap_export_nwas_abap, sap_export_nwas_java,"
+   echo "                           sap_export_s4hana, sap_export_solman_abap, sap_export_solman_java, sap_export_solman_lang"
+   echo "- SAP S/4HANA Language: sap_s4hana_lang"
+   echo "- SAP Web Dispatcher: sap_webdisp"
+   echo "- SAP Host Agent: sap_hostagent"
+   echo "- SAP IGS: sap_igs"
+   echo "- SAP JVM: sap_jvm"
+   echo ""
+   echo "Tools and Utilities:"
+   echo "- SAP SWPM: sap_swpm"
+   echo "- SAPCAR: sapcar"
+   echo "- SAP Maintenance Plan XML: sap_mp_xml"
+   echo "- Unreadable archive: format_error_in_header"
+   echo ""
+   echo "NOTE: The list above includes the most common SAP file types. Some specialized or less common types may not be listed."
+   echo "      File type 'sap_unknown' represents any SAP file type that is not explicitly listed above."
 }
 
-# defaults:
+# Script defaults.
 _DELIMITER=";"
-
-# option defaults:
 _DISPLAY_FILE_TYPE="n"
 _DISPLAY_ALL_INFO="n"
 _DISPLAY_HEADER="n"
-_SAPCAR_FILE='sapcar'
-_LSAR_FILE='lsar'
+_SAPCAR_FILE=""
+_LSAR_FILE=""
+_FILES=()
 
+# Early exit if no arguments are provided.
 if [[ ${#} == 0 ]]; then
    usage
    exit 1
 fi
 
-options=":leHsh-:"
-while getopts "$options" opt; do
-   case ${opt} in
-      -)
-         case "${OPTARG}" in
-            long)
-               _DISPLAY_FILE_TYPE="y"
-               ;;
-            extra-long)
-               _DISPLAY_ALL_INFO="y"
-               ;;
-            show-file-types)
-               show_file_types
-               exit 0
-               ;;
-            header)
-               _DISPLAY_HEADER="y"
-               ;;
-            lsar_file)
-               if [[ ${!OPTIND-x} == x ]]; then
-                  usage
-                  exit 0
-               fi
-               _LSAR_FILE="${!OPTIND}"
-               OPTIND=$(( OPTIND + 1 ))
-               ;;
-            lsar_file=*)
-               _LSAR_FILE=${OPTARG#*=}
-               opt=${OPTARG%="${_LSAR_FILE}"}
-               ;;
-            sapcar_file)
-               if [[ ${!OPTIND-x} == x ]]; then
-                  usage
-                  exit 0
-               fi
-               _SAPCAR_FILE="${!OPTIND}"
-               OPTIND=$(( OPTIND + 1 ))
-               ;;
-            sapcar_file=*)
-               _SAPCAR_FILE=${OPTARG#*=}
-               opt=${OPTARG%="${_SAPCAR_FILE}"}
-               ;;
-            help)
-               usage
-               exit 0
-               ;;
-            *)
-               if [[ "$OPTERR" = 1 ]] && [[ "${options:0:1}" != ":" ]]; then
-                  echo "Invalid option -${OPTARG}"
-                  usage
-               fi
-               exit 0
-               ;;
-         esac;;
-      l)
-         _DISPLAY_FILE_TYPE="y"
+# Use de-bundling arguments to handle combined short options like '-Hle'.
+while [[ $# -gt 0 ]]; do
+   # Expand bundled short options, so that '-Hle' behaves like '-H -l -e'.
+   # A long option starts with two dashes and is therefore never matched here.
+   if [[ $1 =~ ^-[A-Za-z]{2,}$ ]]; then
+      _bundle=${1#-}
+      shift
+      _expanded=()
+      for ((_i = 0; _i < ${#_bundle}; _i++)); do
+         _expanded+=("-${_bundle:_i:1}")
+      done
+      set -- "${_expanded[@]}" "$@"
+   fi
+
+   case $1 in
+      -l|--long)            _DISPLAY_FILE_TYPE="y" ;;
+      -e|--extra-long)      _DISPLAY_ALL_INFO="y" ;;
+      -H|--header)          _DISPLAY_HEADER="y" ;;
+      -s|--show-file-types) show_file_types; exit 0 ;;
+      -h|--help)            usage; exit 0 ;;
+      --lsar_file=*)        _LSAR_FILE=${1#*=} ;;
+      --sapcar_file=*)      _SAPCAR_FILE=${1#*=} ;;
+      --lsar_file)          shift; [[ $# -gt 0 ]] || { usage; exit 1; }; _LSAR_FILE=$1 ;;
+      --sapcar_file)        shift; [[ $# -gt 0 ]] || { usage; exit 1; }; _SAPCAR_FILE=$1 ;;
+      --)                   shift; _FILES+=("$@"); break ;;
+      -*)                   echo "Invalid option $1" >&2; usage; exit 1 ;;
+      *)                    _FILES+=("$1") ;;
+   esac
+   shift
+done
+
+# Early exit if no files are provided.
+if [[ ${#_FILES[@]} -eq 0 ]]; then
+   usage
+   exit 1
+fi
+
+
+### Analyze File Types
+# Lookup tables for all files, filled once below and read by everything that follows.
+# _DESCRIPTION is only ever reported for a directory, the other two drive the classification.
+declare -A _GENERIC=()      # file name -> generic archive type
+declare -A _DESCRIPTION=()  # file name -> description from the file command
+declare -A _PRESENT=()      # generic archive type -> 1, for the types that occur at all
+
+# Function to loop through all files and categorize them based on output from the 'file' command.
+# 'file -0 --' format is used to reliably separate the file name from its description,
+# even if the file name contains special characters.
+analyze_file_types() {
+   local _name _desc _type
+   while IFS= read -r -d '' _name && IFS= read -r _desc; do
+      _desc=${_desc#:}
+      _desc=${_desc#"${_desc%%[![:space:]]*}"}
+
+      case ${_desc} in
+         *"RAR self-extracting archive"*) _type="rarexe" ;;
+         *"RAR archive data"*)            _type="rar" ;;
+         *"Zip archive data"*)            _type="zip" ;;
+         *"SAPCAR archive data"*)         _type="sapcar" ;;
+         *XML*ASCII*|*ASCII*XML*)         _type="xml" ;;
+         *directory*)                     _type="dir" ;;
+         *)                               _type="other" ;;
+      esac
+
+      _GENERIC[${_name}]=${_type}
+      _DESCRIPTION[${_name}]=${_desc}
+      _PRESENT[${_type}]=1
+   done < <(file -0 -- "${_FILES[@]}" 2>/dev/null)
+
+   # A '.SAR' or '.sar' name is a SAP archive regardless of what 'file' reported, matching
+   # the original, which decided this from the extension alone and never called 'file' on it.
+   local _f
+   for _f in "${_FILES[@]}"; do
+      case $_f in
+         *.SAR|*.sar)
+            _GENERIC[${_f}]="sapcar"
+            _PRESENT[sapcar]=1
+            ;;
+      esac
+   done
+}
+
+analyze_file_types
+
+
+### ZIP Availability Check
+# There is nothing to prepare for a zip, zipinfo is called directly, so only its presence
+# is checked here.
+# NOTE: >&2 sends output to stderr instead of stdout.
+if [[ -v _PRESENT[zip] ]] && ! which zipinfo >/dev/null 2>&1; then
+   echo "sapfile: zipinfo not found, zip archives will be reported as 'sap_unknown'." >&2
+fi
+
+
+### RAR Command Preparation
+_LSAR_COMMAND=()
+
+# Default program to 'lsar', unless overridden by the _LSAR_FILE variable.
+# A missing program is reported, because an empty _LSAR_COMMAND makes list_content return
+# nothing, which would otherwise classify every RAR archive as 'sap_unknown' without a reason.
+resolve_lsar() {
+   local _program=${_LSAR_FILE:-lsar}
+   local _found=""
+
+   # A program named with a path is checked as it is, a bare name is looked up in PATH.
+   # 'which' is used to stay consistent with the original sapfile.
+   if [[ ${_program} == */* ]]; then
+      [[ -x ${_program} ]] && _found=${_program}
+   else
+      _found=$(which "${_program}" 2>/dev/null)
+      [[ -n ${_found} && -x ${_found} ]] || _found=""
+   fi
+
+   if [[ -z ${_found} ]]; then
+      echo "sapfile: RAR files were detected, but the '${_program}' command was not found." >&2
+      echo "sapfile: Please install the 'unar' package, or name a program with '--lsar_file'." >&2
+      echo "sapfile: RAR archives will be reported as 'sap_unknown'." >&2
+      return 1
+   fi
+
+   # 'unrar' needs the 'lb' subcommand to produce a bare listing, 'lsar' does not.
+   case ${_program} in
+      *unrar*) _LSAR_COMMAND=("${_found}" lb) ;;
+      *)       _LSAR_COMMAND=("${_found}") ;;
+   esac
+}
+
+# Execute only if RAR files were found and are present in the _PRESENT array.
+{ [[ -v _PRESENT[rar] ]] || [[ -v _PRESENT[rarexe] ]]; } && resolve_lsar
+
+
+### SAPCAR Command Preparation
+_SAPCAR_COMMAND=()
+
+# Function to analyze architecture of provided sapcar file and return the corresponding CPU architecture.
+get_sapcar_arch() {
+   local _desc
+   _desc=$(file -b -- "$1" 2>/dev/null) || return 1
+   case ${_desc} in
+      *x86-64*)                        echo "x86_64" ;;
+      *"64-bit PowerPC"*GNU/Linux*)    echo "ppc64le" ;;
+      *"64-bit PowerPC"*SYSV*)         echo "ppc64" ;;
+      *"IBM S/390"*)                   echo "s390x" ;;
+      *)                               return 1 ;;
+   esac
+}
+
+# Function to locate a usable SAPCAR program, in this order:
+# the file named with '--sapcar_file', then PATH, then a SAPCAR*EXE of the current directory
+# that matches the CPU architecture of the host.
+resolve_sapcar() {
+   local _arch _candidate
+   _arch=$(uname -m)
+
+   # Check if provided SAPCAR file is present and executable.
+   # A file which is unusable is reported, but is not fatal - the lookups below still apply.
+   if [[ -n ${_SAPCAR_FILE} ]]; then
+      if [[ -x ${_SAPCAR_FILE} ]]; then
+         _SAPCAR_COMMAND=("${_SAPCAR_FILE}" -tvf)
+         return 0
+      elif [[ -e ${_SAPCAR_FILE} ]]; then
+         echo "sapfile: '${_SAPCAR_FILE}' from '--sapcar_file' is not executable." >&2
+      else
+         echo "sapfile: '${_SAPCAR_FILE}' from '--sapcar_file' does not exist." >&2
+      fi
+   fi
+
+   # Check if SAPCAR is present in PATH, upper case first as installed by SWPM,
+   # then lower case as a fallback. 'which' is used to stay consistent with the original sapfile.
+   local _name
+   for _name in SAPCAR sapcar; do
+      _candidate=$(which "${_name}" 2>/dev/null)
+      if [[ -n ${_candidate} && -x ${_candidate} ]]; then
+         _SAPCAR_COMMAND=("${_candidate}" -tvf)
+         return 0
+      fi
+   done
+
+   # Attempt to find SAPCAR in the current directory, if it was neither provided nor found in PATH.
+   local _found=""
+   while IFS= read -r _candidate; do
+      [[ $(get_sapcar_arch "${_candidate}") == "${_arch}" ]] && _found=${_candidate}
+   done < <(ls -1tr ./SAPCAR*EXE 2>/dev/null)
+
+   if [[ -z ${_found} ]]; then
+      echo "sapfile: SAR files were detected, but SAPCAR command was not found." >&2
+      echo "sapfile: Please ensure SAPCAR is available either via '--sapcar_file', in PATH, or as SAPCAR*EXE in the current directory." >&2
+      echo "sapfile: SAP archives will be reported as 'sap_unknown'." >&2
+      return 1
+   fi
+
+   _SAPCAR_COMMAND=("${_found}" -tvf)
+}
+
+# Execute only if SAR files were found and are present in the _PRESENT array.
+[[ -v _PRESENT[sapcar] ]] && resolve_sapcar
+
+
+### Classification
+## 1. File Name Detection
+# Function to parse file name against list of known file name patterns for early classification.
+# If the file does not match any known patterns, it will proceed to further inspection.
+# Simpler case compared to content-based classification, as it relies solely on the file name.
+# NOTE: A Media CD archive is named with a string of numbers only, so it carries no keyword to
+# match here and is always left to the content rules.
+#
+# Special Cases:
+# - *MAXDB*.SAR is excluded, because it must be present in the 'sap_swpm_download_basket' directory for SWPM1.
+#   MAXDB Media CD archives are detected by content rule and processed as 'sapmaxdb'.
+#
+# Patterns are grouped by product family. Most of them do not overlap, so a group can be moved
+# as a whole, but the relative order inside these groups has to be kept:
+# - '*IMDB_SERVER*' and '*IMDB_CLIENT*' must stay ahead of the generic '*IMDB*', which would
+#   otherwise claim both of them as 'saphana_other'.
+# - '*VCH*.SAR' must stay behind '*IMDB*.SAR', so that an AFL delivered with 'IMDB' in its name
+#   keeps being reported as 'saphana_other'.
+# - '*S4*LANG*' must stay ahead of '*S4*EXPORT*', so that a name carrying both keywords is
+#   reported as a language and not as an export.
+classify_name() {
+   case $1 in
+      # SAPCAR
+      *SAPCAR*.EXE)              echo "sapcar" ;;
+
+      # SAP HANA
+      *IMDB_SERVER*.SAR)         echo "saphana" ;;
+      *IMDB_CLIENT*.SAR)         echo "saphana_client" ;;
+      *IMDB*.SAR|*HDB_LSS*.SAR)  echo "saphana_other" ;;
+      *VCH*.SAR)                 echo "saphana_vch_afl" ;;
+      *COMPLETE*)                echo "saphana_backup" ;;
+
+      # SAP ASE
+      *ASEBC*)                   echo "sapase_client" ;;
+
+      # SAP Kernel and runtime components
+      *SAPEXE_*)                 echo "sap_kernel" ;;
+      *SAPEXEDB_*)               echo "sap_kernel_db" ;;
+      *SAPJVM*)                  echo "sap_jvm" ;;
+      *igsexe*|*igshelper*)      echo "sap_igs" ;;
+      *SAPWEBDISP_*)             echo "sap_webdisp" ;;
+      *SAPHOSTAGENT*.SAR)        echo "sap_hostagent" ;;
+
+      # SAP SWPM
+      *SWPM*.SAR)                echo "sap_swpm" ;;
+
+      # SAP Installation Exports and languages
+      *S4*LANG*)                 echo "sap_s4hana_lang" ;;
+      *S4*EXPORT*)               echo "sap_export_s4hana" ;;
+      *BW4*EXPORT*)              echo "sap_export_bw4hana" ;;
+
+      *)                         echo "look_inside" ;;
+   esac
+}
+
+## 2. Content-Based Detection
+# Definition of known file names inside of archives, used for content-based classification.
+# Each row represents file type and pattern separated by pipe '|'.
+# If more patterns are required for same file type, new row can be added.
+#
+# Only rules that can match the same line of a listing compete with each other, and the first
+# of those in this list wins. Two pairs below are therefore order dependent, everything else
+# can be regrouped freely.
+_CONTENT_RULE=(
+   'sapase|BD_SYBASE_ASE'
+   'sapase_client|ASEBC'
+   'sapmaxdb|MaxDB_7\.9'
+   'oracledb|19cinstall\.sh'
+   'oracledb_client|OCL_LINUX_X86_64'
+   'oracledb_tools|brtools'
+   'ibmdb2|db2setup'
+   'ibmdb2_client|db6_update_client\.sh'
+   'ibmdb2_license|db2aese_c\.lic'
+
+   # Order dependent, both because 'EXP[0-9]' also matches the more specific patterns:
+   # - 'DATA_UNITS/EXPORT' must stay ahead of 'EXP[0-9]'.
+   # - 'DATA_UNITS/EXP[0-9]' must stay ahead of 'EXP[0-9]'.
+   'sap_export_nwas_java|DATA_UNITS/JAVA_EXPORT_JDMP'
+   'sap_export_ecc|DATA_UNITS/EXPORT'
+   'sap_export_nwas_abap|DATA_UNITS/EXP[0-9]'
+   'sap_export_ecc_ides|EXP[0-9]'
+
+   'sap_mp_xml|<sp-stacks'
+   'format_error_in_header|format error in header'
+)
+
+# The patterns alone, taken from the second column of _CONTENT_RULE above, so that they can be
+# handed to grep as one pattern file.
+_CONTENT_PATTERN=()
+
+create_content_patterns() {
+   local _rule
+   for _rule in "${_CONTENT_RULE[@]}"; do
+      _CONTENT_PATTERN+=("${_rule#*|}")
+   done
+}
+
+create_content_patterns
+
+# Function to list the content of an archive using command based on file type defined in _GENERIC.
+# 2>&1 is used to maintain output even for format errors to be caught by content rule.
+list_content() {
+   local _file=$1
+   case ${_GENERIC[${_file}]:-other} in
+      sapcar)
+         [[ ${#_SAPCAR_COMMAND[@]} -gt 0 ]] && "${_SAPCAR_COMMAND[@]}" "${_file}" 2>&1
          ;;
-      e)
-         _DISPLAY_ALL_INFO="y"
+      rar|rarexe)
+         [[ ${#_LSAR_COMMAND[@]} -gt 0 ]] && "${_LSAR_COMMAND[@]}" "${_file}" 2>&1
          ;;
-      s)
-         show_file_types
-         exit 0
+      zip)
+         zipinfo -1 "${_file}" 2>&1
          ;;
-      H)
-         _DISPLAY_HEADER="y"
-         ;;
-      h)
-         usage
-         exit 0
-         ;;
-      \?)
-         echo "Invalid option -$OPTARG"
-         usage
-         exit 0
+      xml)
+         cat -- "${_file}" 2>&1
          ;;
    esac
-done
-shift "$((OPTIND-1))"
+   return 0
+}
 
-if [[ "${_LSAR_FILE}" == *"lsar"* ]]; then
-   _LSAR_COMMAND="${_LSAR_FILE}"
-elif [[ "${_LSAR_FILE}" == *"unrar"* ]]; then
-   _LSAR_COMMAND="${_LSAR_FILE} lb"
-fi
+# Function to classify file content using function list_content and content rules defined above.
+# This runs in two steps: grep returns the first line of the listing that any pattern matches,
+# then the rules are walked in order to find out which of them claims that line.
+classify_content() {
+   local _line _rule
+   _line=$(list_content "$1" \
+      | grep -m1 -E -f <(printf '%s\n' "${_CONTENT_PATTERN[@]}") 2>/dev/null)
 
-# Identify sapcar: Try using sapcar in PATH or SAPCAR*EXE in current directory
-if [[ ${_SAPCAR_FILE}. == "sapcar." ]]; then
-   which sapcar >/dev/null 2>&1
-   RC1=$?
-   if [[ ${RC1} -eq 0 ]]; then
-      _SAPCAR_FILE=$(which sapcar)
-   else
-      _SAPCAR_TEST=$(set -o pipefail && ls -1tr ./SAPCAR*EXE 2>/dev/null)
-      RC2=$?
-      if [[ ${RC2} != 0 ]]; then
-         echo "No file with name SAPCAR*EXE in current directory found."
-         echo "Note: sapfile needs sapcar in PATH or SAPCAR*EXE in current directory - matching the system's CPU architecture - to function properly."
-         echo
-         usage
-         exit 1
-      else
-         _SAPCAR_ARCH=$(for sapcar_any in ${_SAPCAR_TEST}; do
-             file ${sapcar_any} | awk '{
-                split ($0, a, ":"); split (a[2], b, ","); sub ("^ ", "", b[2]);
-                sub ("x86-64", "x86_64", b[2]);
-                if (index (b[2], "64-bit PowerPC") > 0) {
-                   if ((index (b[3], "GNU/Linux") > 0)||(index (b[4], "GNU/Linux") > 0)) {sub ("64-bit PowerPC", "ppc64le", b[2])};
-                   if ((index (b[3], "SYSV") > 0)||(index (b[4], "SYSV") > 0)) {sub ("64-bit PowerPC", "ppc64", b[2])};
-                }
-                sub ("IBM S/390", "s390x", b[2]);
-                printf ("%s %s %s\n", a[1], b[2], b[3])}';
-             done | awk '/'$(uname -m)'/{print $1}' | tail -1)
-         if [[ ${_SAPCAR_ARCH}. == . ]]; then
-            echo "No file SAPCAR*EXE for the CPU architecture '$(uname -m)' in current directory found."
-            echo "Note: sapfile needs sapcar in PATH or SAPCAR*EXE in current directory - matching the system's CPU architecture - to function properly."
-            echo
-            usage
-            exit 1
-         else
-            _SAPCAR_FILE=${_SAPCAR_ARCH}
-         fi
+   if [[ -z ${_line} ]]; then
+      echo "sap_unknown"
+      return
+   fi
+
+   for _rule in "${_CONTENT_RULE[@]}"; do
+      if [[ ${_line} =~ ${_rule#*|} ]]; then
+         echo "${_rule%%|*}"
+         return
       fi
+   done
+   echo "sap_unknown"
+}
+
+## 3. Special Handling
+# SAPEXEDB is database dependent kernel and we need to determine the specific database type from its content.
+# Database type is part of filename 'exe_<db>.lst'.
+# Example: File SAPEXEDB_50-70008101.SAR contains 'exe_hdb.lst', which results in 'sap_kernel_db_hdb'.
+determine_kernel_db() {
+   local _line _database=""
+   while IFS= read -r _line; do
+      case ${_line} in
+         *exe_*.lst*)
+            _database=${_line##* }
+            _database=${_database#exe_}
+            _database=${_database%.lst}
+            ;;
+      esac
+   done < <(list_content "$1")
+   echo "sap_kernel_db_${_database}"
+}
+
+# Function to inspect Netweaver export files to find out if its Solution Manager or generic Netweaver.
+# Command unzip is executed to read the content of the specified identifying file within the zip file.
+# Returns the 4th argument when the pattern matches, and the 5th argument in every other case,
+# including a file that is not a zip at all.
+determine_solman() {
+   local _file=$1 _target=$2 _pattern=$3 _match=$4 _fallback=$5
+   if [[ ${_GENERIC[${_file}]:-other} != "zip" ]]; then
+      echo "${_fallback}"
+      return
    fi
-fi
-
-_GENERIC_FILE_TYPE="other"
-
-if [[ ${_DISPLAY_HEADER}. == "y." ]]; then
-   if [[ ${_DISPLAY_ALL_INFO}. == "y." ]]; then
-      printf "%s;%s;%s;%s;%s;%s;%s\n" "filename" "sap_file_type" "target_dir" "extraction_dir" "file_type" "extract" "copy"
+   if unzip -p "${_file}" "${_target}" 2>/dev/null | grep -qE "${_pattern}"; then
+      echo "${_match}"
    else
-      if [[ ${_DISPLAY_FILE_TYPE}. == "y." ]]; then
-         printf "%-40s %-24s %-6s\n" "filename:" "sap_file_type" "file_type"
-      else
-         printf "%-40s %-24s\n" "filename:" "sap_file_type"
+      echo "${_fallback}"
+   fi
+}
+
+# Last resort for a zip that did not match any content rule.
+scan_unknown_zip() {
+   local _file=$1 _line _total="" _number="" _product=""
+
+   if [[ ${_GENERIC[${_file}]:-other} != "zip" ]]; then
+      echo "sap_unknown"
+      return
+   fi
+
+   # Find manifest file and read its contents.
+   if unzip -t "${_file}" META-INF/SAPMANIFEST.MF >/dev/null 2>&1; then
+      while IFS= read -r _line; do
+         case ${_line} in
+            *total*)      _total=${_line##*=} ;;
+            *number*)     _number=${_line##*=} ;;
+            *product-id*) _product=${_line##*=} ;;
+         esac
+      done < <(unzip -p "${_file}" META-INF/SAPMANIFEST.MF 2>/dev/null)
+
+      # The product id carries the product between the first '4' and the first '1'.
+      # Example for known s4hana files: 's4fnd1' or 's4hanaop1'.
+      if [[ -n ${_total} && -n ${_number} && ${_product} =~ 4(fnd|hanaop)1 ]]; then
+         echo "sap_export_s4hana"
+         return
       fi
-   fi
-fi
-
-for _FILE in "$@"; do
-   if [[ (${_FILE##*.} == "SAR" || ${_FILE##*.} == "sar") ]]; then
-      _GENERIC_FILE_TYPE="sapcar"
-      _list_content="${_SAPCAR_FILE} -tvf"
-   else
-      _FILE_OUTPUT=$(file "${_FILE}" | sed 's,'"${_FILE}"': ,,')
-      _GENERIC_FILE_TYPE=$(echo "${_FILE_OUTPUT}" | awk '
-      BEGIN{_file_type="other"}
-      /RAR self-extracting archive/{_file_type="rarexe"; exit}
-      /RAR archive data/{_file_type="rar"; exit}
-      /Zip archive data/{_file_type="zip"; exit}
-      /SAPCAR archive data/{_file_type="sapcar"; exit}
-      /XML/&&/ASCII/{_file_type="xml"; exit}
-      /directory/{_file_type="dir"; exit}
-      END{print _file_type}')
-      if [[ ${_GENERIC_FILE_TYPE}. == "rarexe." ]]; then
-         _list_content="${_LSAR_COMMAND}"
-      elif [[ ${_GENERIC_FILE_TYPE}. == "rar." ]]; then
-         _list_content="${_LSAR_COMMAND}"
-      elif [[ ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
-         _list_content="zipinfo -1"
-      elif [[ ${_GENERIC_FILE_TYPE}. == "sapcar." ]]; then
-         _list_content="${_SAPCAR_FILE} -tvf"
-      elif [[ ${_GENERIC_FILE_TYPE}. == "xml." ]]; then
-         _list_content="cat"
-      elif [[ ${_GENERIC_FILE_TYPE}. == "dir." ]]; then
-         _list_content=""
-      fi
-   fi
-   if [[ ${_DISPLAY_ALL_INFO}. == "y." ]]; then
-      printf "%s%s" "${_FILE}" "${_DELIMITER}"
-   else
-      printf "%-40s " "${_FILE}":
+      echo "sap_unknown"
+      return
    fi
 
-   if [[ ! -e "${_FILE}" ]]; then
-      echo "No such file or directory."
-      exit 1
-   fi
-
-   SAP_FILE_TYPE_FROM_FILENAME=$(echo "${_FILE}" | awk '
-   BEGIN{_sap_file_type="look_inside"}
-   /SAPCAR/&&/\.EXE/{_sap_file_type="sapcar"; exit}
-   /IMDB_SERVER/&&/\.SAR/{_sap_file_type="saphana"; exit}
-   /IMDB_CLIENT/&&/\.SAR/{_sap_file_type="saphana_client"; exit}
-   !/IMDB_SERVER/&&!/IMDB_CLIENT/&&(/IMDB/||/HDB_LSS/)&&/\.SAR/{_sap_file_type="saphana_other"; exit}
-   /SWPM/&&/\.SAR/{_sap_file_type="sap_swpm"; exit}
-   /SAPHOSTAGENT/&&/\.SAR/{_sap_file_type="sap_hostagent"; exit}
-   /SAPEXE_/{_sap_file_type="sap_kernel"; exit}
-   /SAPEXEDB_/{_sap_file_type="sap_kernel_db"; exit}
-   /igsexe/||/igshelper/{_sap_file_type="sap_igs"; exit}
-   /SAPWEBDISP_/{_sap_file_type="sap_webdisp"; exit}
-   /SAPJVM/{_sap_file_type="sap_jvm"; exit}
-   /ASEBC/{_sap_file_type="sapase_client"; exit}
-   /COMPLETE/{_sap_file_type="saphana_backup"; exit}
-   /S4/&&/LANG/{_sap_file_type="sap_s4hana_lang"; exit}
-   /S4/&&/EXPORT/{_sap_file_type="sap_export_s4hana"; exit}
-   /BW4/&&/EXPORT/{_sap_file_type="sap_export_bw4hana"; exit}
-   /VCH/&&/\.SAR/{_sap_file_type="saphana_vch_afl"; exit}
-   END{print _sap_file_type}')
-   if [[ ${SAP_FILE_TYPE_FROM_FILENAME}. == "sap_kernel_db." ]]; then
-      SAP_FILE_TYPE_FROM_FILENAME=$(eval "${_list_content}" "'${_FILE}'" | awk '
-      /exe_/&&/\.lst/{gsub ("exe_", ""); gsub ("\\.lst", ""); db_type=$NF}
-      END{printf ("sap_kernel_db_%s\n", db_type)}')
-   fi
-
-   if [[ ${SAP_FILE_TYPE_FROM_FILENAME}. != "look_inside." ]]; then
-      _SAP_FILE_TYPE=${SAP_FILE_TYPE_FROM_FILENAME}
-   else
-      if [[ ${_GENERIC_FILE_TYPE}. == "dir." ]]; then
-         _SAP_FILE_TYPE=${_FILE_OUTPUT}
-      elif [[ ${_GENERIC_FILE_TYPE}. == "rarexe." ||
-              ${_GENERIC_FILE_TYPE}. == "rar." ||
-              ${_GENERIC_FILE_TYPE}. == "zip." ||
-              ${_GENERIC_FILE_TYPE}. == "sapcar." ||
-              ${_GENERIC_FILE_TYPE}. == "xml." ]]; then
-         _SAP_FILE_TYPE=$(eval "${_list_content}" "'${_FILE}'" | awk '
-         BEGIN{_sap_file_type="sap_unknown"}
-         /BD_SYBASE_ASE/{_sap_file_type="sapase"; exit}
-         /ASEBC/{_sap_file_type="sapase_client"; exit}
-         /MaxDB_7.9/{_sap_file_type="sapmaxdb"; exit}
-         /19cinstall.sh/{_sap_file_type="oracledb"; exit}
-         /OCL_LINUX_X86_64/{_sap_file_type="oracledb_client"; exit}
-         /brtools/{_sap_file_type="oracledb_tools"; exit}
-         /db2setup/{_sap_file_type="ibmdb2"; exit}
-         /db6_update_client.sh/{_sap_file_type="ibmdb2_client"; exit}
-         /db2aese_c.lic/{_sap_file_type="ibmdb2_license"; exit}
-         /DATA_UNITS\/JAVA_EXPORT_JDMP/{_sap_file_type="sap_export_nwas_java"; exit}
-         /DATA_UNITS\/EXPORT/{_sap_file_type="sap_export_ecc"; exit}
-         /DATA_UNITS\/EXP[0-9]/{_sap_file_type="sap_export_nwas_abap"; exit}
-         /EXP[0-9]/{_sap_file_type="sap_export_ecc_ides"; exit}
-         /<sp-stacks/{_sap_file_type="sap_mp_xml"; exit}
-         /format error in header/{_sap_file_type="format_error_in_header"; exit}
-         END{print _sap_file_type}')
-         if [[ ${_SAP_FILE_TYPE}. == "sap_export_nwas_abap." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
-            _SAP_FILE_TYPE=$(unzip -p "${_FILE}" LABEL.ASC | awk '
-            BEGIN{_sap_file_type="sap_export_nwas_abap"}
-            /SAP SOLUTION MANAGER/{_sap_file_type="sap_export_solman_abap"}
-            END{print _sap_file_type}')
-         elif [[ ${_SAP_FILE_TYPE}. == "sap_export_nwas_java." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
-            _SAP_FILE_TYPE=$(unzip -p "${_FILE}" DATA_UNITS/LABELIDX.ASC | awk '
-            BEGIN{_sap_file_type="sap_export_nwas_java"}
-            /^SOLMAN/&&/_JAVA/{_sap_file_type="sap_export_solman_java"}
-            END{print _sap_file_type}')
-         elif [[ ${_SAP_FILE_TYPE}. == "sap_unknown." && ${_GENERIC_FILE_TYPE}. == "zip." ]]; then
-            unzip -t "${_FILE}" META-INF/SAPMANIFEST.MF >/dev/null 2>&1
-            _RC1=$?
-            if [[ ${_RC1} -eq 0 ]]; then
-               _SAP_FILE_TYPE=$(unzip -p "${_FILE}" META-INF/SAPMANIFEST.MF | awk '
-               BEGIN{FS="="; _sap_file_type="sap_unknown"}
-               /total/{total=$NF}
-               /number/{number=$NF}
-               /product-id/{
-                  product_id=$NF; if (length(total)>0 && length(number)>0) {
-                     a=substr(product_id, index(product_id, "4")+1, index(product_id, "1")-(index(product_id, "4")+1));
-                     if (a=="fnd" || a=="hanaop"){_sap_file_type="sap_export_s4hana"}
-                  }
-               }
-               END{print _sap_file_type}')
-            else
-               unzip -t "${_FILE}" CDLABEL.ASC >/dev/null 2>&1
-               _RC2=$?
-               if [[ ${_RC2} -eq 0 ]]; then
-                  _SAP_FILE_TYPE=$(unzip -p "${_FILE}" CDLABEL.ASC | awk '
-                  BEGIN{FS="="; _sap_file_type="sap_unknown"}
-                  /SAP Solution Manager/&&/Language/{_sap_file_type="sap_export_solman_lang"}
-                  END{print _sap_file_type}')
-               fi
-            fi
-         fi
-      else
-         _SAP_FILE_TYPE="sap_unknown"
+   # Fallback to CD Media label file.
+   if unzip -t "${_file}" CDLABEL.ASC >/dev/null 2>&1; then
+      # Known Solution Manager language media.
+      if unzip -p "${_file}" CDLABEL.ASC 2>/dev/null \
+         | grep 'SAP Solution Manager' | grep -q 'Language'; then
+         echo "sap_export_solman_lang"
+         return
       fi
    fi
 
-   _TARGET_DIRECTORY=${_SAP_FILE_TYPE}
-   _EXTRACTION_DIRECTORY=${_SAP_FILE_TYPE}_extracted
-   _EXTRACT="y"
-   _COPY="n"
+   echo "sap_unknown"
+}
 
-   case ${_SAP_FILE_TYPE} in
-      directory)
-         _EXTRACT="n"
-         _EXTRACTION_DIRECTORY="none"
+
+## 4. Main Classification Function
+classify() {
+   local _file="$1"
+   local _generic="${_GENERIC[$1]:-other}"
+   local _type
+
+   _type=$(classify_name "${_file}")
+
+   if [[ ${_type} == "sap_kernel_db" ]]; then
+      determine_kernel_db "${_file}"
+      return
+   fi
+
+   # Type was determined using file name.
+   if [[ ${_type} != "look_inside" ]]; then
+      echo "${_type}"
+      return
+   fi
+
+   # A directory reports the description of the file command as its SAP file type.
+   if [[ ${_generic} == "dir" ]]; then
+      echo "${_DESCRIPTION[${_file}]:-directory}"
+      return
+   fi
+
+   # File content validation is applicable only to specific file types.
+   case ${_generic} in
+      rarexe|rar|zip|sapcar|xml) ;;
+      *) echo "sap_unknown"; return ;;
+   esac
+
+   _type=$(classify_content "${_file}")
+
+   case ${_type} in
+      sap_export_nwas_abap)
+         determine_solman "${_file}" "LABEL.ASC" \
+            'SAP SOLUTION MANAGER' "sap_export_solman_abap" "sap_export_nwas_abap"
          ;;
-      sapcar)
-         _TARGET_DIRECTORY="auto"
-         _EXTRACTION_DIRECTORY="none"
-         _EXTRACT="n"
-         _COPY="y"
+      sap_export_nwas_java)
+         determine_solman "${_file}" "DATA_UNITS/LABELIDX.ASC" \
+            '^SOLMAN.*_JAVA' "sap_export_solman_java" "sap_export_nwas_java"
          ;;
-      sap_hostagent)
-         _TARGET_DIRECTORY="auto"
-         _EXTRACTION_DIRECTORY="none"
-         _EXTRACT="n"
-         _COPY="y"
-         ;;
-      saphana_client)
-         _TARGET_DIRECTORY="auto"
-         _EXTRACTION_DIRECTORY="sap_hana_client_extracted"
-         _EXTRACT="y"
-         _COPY="y"
-         ;;
-      sapase|sapase_client)
-         _TARGET_DIRECTORY="sapase"
-         ;;
-      sapmaxdb)
-         ;;
-      oracledb|oracledb_client)
-         _TARGET_DIRECTORY="oracledb"
-         ;;
-      oracledb_tools)
-         _TARGET_DIRECTORY="sap_swpm_download_basket"
-         _EXTRACTION_DIRECTORY="none"
-         _EXTRACT="n"
-         ;;
-      ibmdb2|ibmdb2_client|ibmdb2_license)
-         _TARGET_DIRECTORY="ibmdb2"
-         ;;
-      saphana|saphana_other|saphana_vch_afl)
-         _TARGET_DIRECTORY="sap_hana"
-         _EXTRACTION_DIRECTORY="sap_hana_extracted"
-         _EXTRACT="y"
-         ;;
-      sap_swpm)
-         _TARGET_DIRECTORY="sap_swpm"
-         _EXTRACTION_DIRECTORY="none"
-         _EXTRACT="n"
-         ;;
-      sap_kernel*|sap_igs|sap_webdisp|sap_jvm)
-         _TARGET_DIRECTORY="sap_swpm_download_basket"
-         _EXTRACTION_DIRECTORY="none"
-         _EXTRACT="n"
-         ;;
-      sap_export_s4hana|sap_export_bw4hana)
-         _TARGET_DIRECTORY="sap_swpm_download_basket"
-         _EXTRACTION_DIRECTORY="none"
-         _EXTRACT="n"
-         ;;
-      sap_mp_xml)
-         _TARGET_DIRECTORY="sap_swpm_download_basket"
-         _EXTRACTION_DIRECTORY="none"
-         _EXTRACT="n"
-         ;;
-      sap_export*)
+      sap_unknown)
+         scan_unknown_zip "${_file}"
          ;;
       *)
-         _TARGET_DIRECTORY="sap_swpm_download_basket"
-         _EXTRACTION_DIRECTORY="none"
-         _EXTRACT="n"
+         echo "${_type}"
          ;;
    esac
+}
 
-   if [[ ${_DISPLAY_ALL_INFO}. == "y." ]]; then
-      printf "%s%s%s%s%s%s%s%s%s%s%s\n" "${_SAP_FILE_TYPE}" "${_DELIMITER}" "${_TARGET_DIRECTORY}" "${_DELIMITER}" "${_EXTRACTION_DIRECTORY}" "${_DELIMITER}" "${_GENERIC_FILE_TYPE}" "${_DELIMITER}" "${_EXTRACT}" "${_DELIMITER}" "${_COPY}"
+
+## 5. Handling Strategy
+# Function to define how files should be handled by the Ansible Role.
+# Case items are SAP file types and their corresponding handling instructions, given as a
+# single row of four fields separated by a pipe '|':
+# - target directory
+# - extraction directory
+# - extract flag
+# - copy flag
+# NOTE:
+# - 'auto' means the role decides the target directory automatically.
+# - 'none' means the file is not extracted at all.
+# - '=' is a placeholder that is resolved at the end of this function.
+get_file_type_strategy() {
+   local _row
+   case $1 in
+      # Handled by the role automatically, not extracted but copied.
+      sapcar|sap_hostagent)
+         _row="auto|none|n|y" ;;
+
+      # Handled by the role automatically, extracted and copied.
+      saphana_client)
+         _row="auto|sap_hana_client_extracted|y|y" ;;
+
+      # Moved into dedicated directory and extracted into its own extraction directory.
+      saphana|saphana_other|saphana_vch_afl)
+         _row="sap_hana|sap_hana_extracted|y|n" ;;
+      sapase|sapase_client)
+         _row="sapase|=|y|n" ;;
+      oracledb|oracledb_client)
+         _row="oracledb|=|y|n" ;;
+      ibmdb2|ibmdb2_client|ibmdb2_license)
+         _row="ibmdb2|=|y|n" ;;
+
+      # Handled by the role automatically, not extracted and not copied.
+      sap_swpm|directory)
+         _row="=|none|n|n" ;;
+
+      # Copied into dedicated directory and extracted into its own extraction directory.
+      # File is based on its SAP file type.
+      sapmaxdb|sap_export_ecc|sap_export_ecc_ides|sap_export_nwas_abap|sap_export_nwas_java|\
+      sap_export_solman_abap|sap_export_solman_java|sap_export_solman_lang)
+         _row="=|=|y|n" ;;
+
+      # Everything else is moved to the 'sap_swpm_download_basket' directory.
+      # NOTE: S/4HANA and BW/4HANA installation exports are SAR files meant for the SWPM basket.
+      *)
+         _row="sap_swpm_download_basket|none|n|n" ;;
+   esac
+
+   # Special symbol '=' enables automatic derivation of the target or extraction directory from the SAP file type itself.
+   # First column '=' is replaced with the SAP file type itself.
+   # Second column '=' is replaced with the SAP file type itself with '_extracted' suffix.
+   _row=${_row/#=|/$1|}
+   _row=${_row/|=|/|${1}_extracted|}
+   echo "${_row}"
+}
+
+
+### Main
+# Prepare output headers.
+if [[ ${_DISPLAY_HEADER} == "y" ]]; then
+   if [[ ${_DISPLAY_ALL_INFO} == "y" ]]; then
+      printf "%s${_DELIMITER}%s${_DELIMITER}%s${_DELIMITER}%s${_DELIMITER}%s${_DELIMITER}%s${_DELIMITER}%s\n" \
+         "filename" "sap_file_type" "target_dir" "extraction_dir" "file_type" "extract" "copy"
+   elif [[ ${_DISPLAY_FILE_TYPE} == "y" ]]; then
+      printf "%-40s %-24s %-6s\n" "filename:" "sap_file_type" "file_type"
    else
-      if [[ ${_DISPLAY_FILE_TYPE}. == "y." ]]; then
-         printf "%-24s %-6s\n" "${_SAP_FILE_TYPE}" "${_GENERIC_FILE_TYPE}"
-      else
-         printf "%-24s\n" "${_SAP_FILE_TYPE}"
-      fi
+      printf "%-40s %-24s\n" "filename:" "sap_file_type"
+   fi
+fi
+
+# One line of output per file, in the format selected by the display options.
+for _FILE in "${_FILES[@]}"; do
+   if [[ ! -e ${_FILE} ]]; then
+      # Continue with remaining files without stopping on first failed.
+      echo "sapfile: ${_FILE}: No such file or directory." >&2
+      continue
+   fi
+
+   _GENERIC_FILE_TYPE=${_GENERIC[${_FILE}]:-other}
+   _SAP_FILE_TYPE=$(classify "${_FILE}")
+
+   IFS='|' read -r _TARGET_DIRECTORY _EXTRACTION_DIRECTORY _EXTRACT _COPY \
+      <<<"$(get_file_type_strategy "${_SAP_FILE_TYPE}")"
+
+   if [[ ${_DISPLAY_ALL_INFO} == "y" ]]; then
+      # The delimiter is part of the format, so that the number of conversions can never
+      # drift away from the number of arguments.
+      printf "%s${_DELIMITER}%s${_DELIMITER}%s${_DELIMITER}%s${_DELIMITER}%s${_DELIMITER}%s${_DELIMITER}%s\n" \
+         "${_FILE}" \
+         "${_SAP_FILE_TYPE}" \
+         "${_TARGET_DIRECTORY}" \
+         "${_EXTRACTION_DIRECTORY}" \
+         "${_GENERIC_FILE_TYPE}" \
+         "${_EXTRACT}" \
+         "${_COPY}"
+   elif [[ ${_DISPLAY_FILE_TYPE} == "y" ]]; then
+      printf "%-40s %-24s %-6s\n" "${_FILE}:" "${_SAP_FILE_TYPE}" "${_GENERIC_FILE_TYPE}"
+   else
+      printf "%-40s %-24s\n" "${_FILE}:" "${_SAP_FILE_TYPE}"
    fi
 done
