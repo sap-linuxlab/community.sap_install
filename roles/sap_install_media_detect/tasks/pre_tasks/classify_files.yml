@@ -1,0 +1,223 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# NOTE: Any changes in sapfile utility must be reflected in this task file,
+# because all the logic of this task file is based on the output of sapfile utility.
+#
+# The sapfile utility determines what an installation media file actually is using known patterns of file contents.
+# It is called against the source directory, because that is where the installation media is at this point.
+
+
+# The selected components control behavior during classification and extraction.
+# We will create list of components based on the role variables to be used to validate found files.
+# These list items are based on matrix defined in the vars/main.yml file.
+# NOTE: Boolean components are included as is, but String components are added only if they have a non-empty value.
+- name: SAP Install Media Detect - Classify - Set fact with the selected components - Boolean
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_wanted_components:
+      "{{ (['swpm'] if sap_install_media_detect_swpm | d(false) else [])
+          + (['hostagent'] if sap_install_media_detect_hostagent | d(false) else [])
+          + (['igs'] if sap_install_media_detect_igs | d(false) else [])
+          + (['webdisp'] if sap_install_media_detect_webdisp | d(false) else [])
+          + (['mpstack'] if sap_install_media_detect_mpstack | d(false) else [])
+          + (['kernel'] + __kernel_db_component if sap_install_media_detect_kernel | d(false) else [])
+          + (['db_' ~ __db] if __db | length > 0 else [])
+          + (['db_client_' ~ __db_client] if __db_client | length > 0 else [])
+          + (['export_' ~ __export] if __export | length > 0 else []) }}"
+  vars:
+    # Variable validation ensures that a String variable holds an expected value or is empty,
+    # so the value is appended to the component key as it is.
+    __db: "{{ sap_install_media_detect_db | d('') }}"
+    __db_client: "{{ sap_install_media_detect_db_client | d('') }}"
+    __export: "{{ sap_install_media_detect_export | d('') }}"
+    # Kernel DB is added only if the 'sap_install_media_detect_kernel' is 'true'.
+    __kernel_db: "{{ sap_install_media_detect_kernel_db | d('') }}"
+    __kernel_db_component:
+      "{{ ['kernel_db_' ~ __kernel_db] if __kernel_db | length > 0 else ['kernel_db_any'] }}"
+
+
+# NOTE: This task will trigger only if component matrix was modified without updating the task above.
+- name: SAP Install Media Detect - Classify - Fail if a role parameter does not name a known component
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Inconsistency between the role and component matrix was detected.
+      The following component types are not recognized: {{ __unknown_components | join(', ') }}
+      The supported values are listed with the parameters in the defaults/main.yml file.
+  vars:
+    __unknown_components:
+      "{{ __sap_install_media_detect_fact_wanted_components
+          | reject('in', __sap_install_media_detect_component_file_types) | list }}"
+  when: __unknown_components | length > 0
+
+# Component matrix is transformed into a list, then filtered only for wanted components.
+# Since types are lists, they need to be flattened after filtering.
+- name: SAP Install Media Detect - Classify - Set fact with the SAP file types to keep
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_wanted_file_types:
+      "{{ (__sap_install_media_detect_generic_file_types + __component_file_types) | unique | sort }}"
+  vars:
+    __component_file_types:
+      "{{ __sap_install_media_detect_component_file_types | dict2items
+          | selectattr('key', 'in', __sap_install_media_detect_fact_wanted_components)
+          | map(attribute='value') | flatten }}"
+
+
+# The 'batch' filter is used to avoid exceeding the maximum command line length of the execution environment,
+# while still avoiding looping over every file individually.
+# An empty list produces no batch at all, so the task is skipped without an extra condition.
+# The 'chdir' is the last place that sapfile looks for the SAPCAR program, which only applies when
+# the argument below is empty, and it is where the installation media is in every scenario anyway.
+- name: SAP Install Media Detect - Classify - Determine the SAP file type of all files
+  ansible.builtin.command:
+    cmd: >-
+      {{ __sap_install_media_detect_fact_sapfile_path | quote }}
+      --extra-long
+      {{ __sapcar_argument }}
+      {{ __lsar_argument }}
+      {{ batch_item | map('quote') | join(' ') }}
+    chdir: "{{ __sap_install_media_detect_fact_main_directory }}"
+  register: __sap_install_media_detect_register_sapfile
+  changed_when: false
+  loop: "{{ __sap_install_media_detect_fact_source_files
+            | batch(__sap_install_media_detect_command_batch_size) | list }}"
+  loop_control:
+    loop_var: batch_item
+    label: "{{ batch_item | map('basename') | join(', ') }}"
+  vars:
+    # The program that was proven to run on this host, see 'provide_sapcar.yml'. Naming it makes
+    # the classification use the same program as the extraction, instead of letting sapfile repeat
+    # the lookup and possibly land on another one. The fact is empty when the scan found no SAP
+    # archive, and then sapfile does not need SAPCAR at all.
+    __sapcar_argument:
+      "{{ '--sapcar_file=' ~ (__sap_install_media_detect_fact_sapcar_path | quote)
+          if __sap_install_media_detect_fact_sapcar_path | length > 0 else '' }}"
+
+    # sapfile appends the argument that makes the program list the archive content on its own.
+    # The program is only installed when the scan found a RAR file, see 'enable_archive_handling.yml',
+    # so without one the argument would name a program that is not on the host.
+    __lsar_argument:
+      "{{ '--lsar_file=' ~ (__sap_install_media_detect_fact_rar_list.split(' ')[0] | quote)
+          if sap_install_media_detect_rar_handling and __sap_install_media_detect_fact_rar_files_present
+          else '' }}"
+
+# sapfile prints one line per file, with 7 fields separated by a semicolon.
+# Only a line with exactly that shape is a result, anything else is a message of a program that sapfile calls.
+# NOTE: This is another hard dependency on sapfile output and must be adjusted if sapfile is updated or its output format changes.
+- name: SAP Install Media Detect - Classify - Set fact with the result lines of the sapfile utility
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_sapfile_lines:
+      "{{ __sap_install_media_detect_register_sapfile.results | d([])
+          | map(attribute='stdout_lines') | flatten(levels=1)
+          | select('match', '^/[^;]*(;[^;]*){6}$') | list }}"
+
+# The list is built by appending to it, so it has to be initialized explicitly.
+- name: SAP Install Media Detect - Classify - Initialize the fact with the classification of all files
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_files_identified: []
+
+# The fields are named here, so that everything downstream works with a dictionary per file instead of a position.
+# Current sapfile utility outputs 'y' and 'n' instead of true boolean
+# and we transform it to boolean for ease of use (applies to keys 'extract' and 'copy').
+# NOTE: This is mandatory loop, because we need to create a dictionary for each file based on the sapfile output.
+- name: SAP Install Media Detect - Classify - Set fact with the classification of all files
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_files_identified:
+      "{{ __sap_install_media_detect_fact_files_identified + [__new_dict] }}"
+  loop: "{{ __sap_install_media_detect_fact_sapfile_lines }}"
+  loop_control:
+    loop_var: file_item
+    label: "{{ file_item.split(';')[0] | basename }}"
+  vars:
+    __field: "{{ file_item.split(';') }}"
+    __new_dict:
+      path: "{{ __field[0] }}"
+      dir: "{{ __field[0] | dirname }}"
+      file: "{{ __field[0] | basename }}"
+      sap_file_type: "{{ __field[1] }}"
+      target_dir: "{{ __field[2] }}"
+      extraction_dir: "{{ __field[3] }}"
+      archive_type: "{{ __field[4] }}"
+      extract: "{{ __field[5] == 'y' }}"
+      copy: "{{ __field[6] == 'y' }}"
+
+- name: SAP Install Media Detect - Classify - Fail if a file could not be classified
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The sapfile utility has failed to classify {{ __unclassified_count }} files.
+      Re-run the role with '-vv' to see the output of the utility.
+  vars:
+    __unclassified_count:
+      "{{ (__sap_install_media_detect_fact_source_files | length)
+          - (__sap_install_media_detect_fact_files_identified | length) }}"
+  when: __unclassified_count | int > 0
+
+
+# Everything the role parameters did not ask for is dropped here, so that no later step has to
+# repeat that decision. The dropped files are kept in a fact of their own for the summary.
+- name: SAP Install Media Detect - Classify - Set facts for the files to process
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_wanted_files: "{{ __wanted }}"
+    __sap_install_media_detect_fact_files_ignored:
+      "{{ __sap_install_media_detect_fact_files_identified
+          | rejectattr('sap_file_type', 'in', __sap_install_media_detect_fact_wanted_file_types) | list }}"
+    __sap_install_media_detect_fact_files_to_extract: "{{ __wanted | selectattr('extract') | list }}"
+    __sap_install_media_detect_fact_files_to_copy: "{{ __wanted | selectattr('copy') | list }}"
+    # The directories that the processing of the installation media has to create.
+    # A target directory of 'auto' means that the file stays in the main directory.
+    # An extraction directory of 'none' means that the file is not extracted at all.
+    __sap_install_media_detect_fact_target_directories:
+      "{{ __wanted | map(attribute='target_dir') | reject('equalto', 'auto') | unique | sort }}"
+    __sap_install_media_detect_fact_extraction_directories:
+      "{{ __wanted | selectattr('extract')
+          | map(attribute='extraction_dir')
+          | reject('equalto', 'none') | unique | sort }}"
+  vars:
+    __wanted:
+      "{{ __sap_install_media_detect_fact_files_identified
+          | selectattr('sap_file_type', 'in', __sap_install_media_detect_fact_wanted_file_types) | list }}"
+
+
+# The sapfile utility serves as a definitive source for identifying the SAP file types present in the installation media.
+# We can use its output to ensure that required SAP file types are present in the installation media.
+# Doing it here enables fast fail instead in 'locate' post_tasks.
+#
+# Only the presence of a component is checked, not how many files.
+- name: SAP Install Media Detect - Classify - Fail if the installation media of a requested component is missing
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The installation media holds no file of the following requested components:
+      {% for component_item in __missing_components %}
+        {{ component_item }} (SAP file types: {{
+           __sap_install_media_detect_component_file_types[component_item] | join(', ') }})
+      {% endfor %}
+
+      Disable the parameter that requests the component or provide its installation media.
+      The parameters and the components they select are listed in the defaults/main.yml file.
+  vars:
+    # The SAP file types that the classification has found.
+    __found_file_types:
+      "{{ __sap_install_media_detect_fact_wanted_files
+        | map(attribute='sap_file_type') | unique | list }}"
+
+    # The requested components, each with the list of SAP file types it selects.
+    # Components with an empty list are dropped, they cannot be missing.
+    # Example: SAP MaxDB has no separate client media.
+    __required_components:
+      "{{ __sap_install_media_detect_component_file_types | dict2items
+          | selectattr('key', 'in', __sap_install_media_detect_fact_wanted_components)
+          | rejectattr('value', 'equalto', []) | list }}"
+
+    # A component is missing when none of the SAP file types it selects was found.
+    # Each component name is paired with the SAP file types found for it, and the empty pairs are kept,
+    # because Jinja cannot filter a list by an expression evaluated over each of its items.
+    __missing_components:
+      "{{ __required_components | map(attribute='key')
+          | zip(__required_components | map(attribute='value')
+          | map('intersect', __found_file_types))
+          | selectattr(1, 'equalto', []) | map(attribute=0) | list }}"
+  when: __missing_components | length > 0
+
+
+- name: SAP Install Media Detect - Summary - Set the progress fact for the classification
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_is_classified: true
