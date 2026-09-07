@@ -1,0 +1,169 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Dedicated task file for generating the summary of the role.
+# All the facts are defaulted in the code to avoid issues with re-running the role.
+#
+# Every section is tied to a progress fact, which the task file behind the section sets as its last task,
+# so a section is part of the summary when the step that fills it has completed.
+# The progress facts are initialized by the first task of 'pre_tasks/validate_variables.yml'.
+#
+# This file runs from the 'always' section of the role, so the progress facts also decide the
+# summary of a run which reported only a part of the steps:
+# - A tag which limits the run, for example 'sap_install_media_detect_reset'.
+# - A source directory without a single file, which 'tasks/main.yml' warns about.
+# - A failure halfway through the role.
+#
+# The organization is the only section which is reported when its step did not complete, because
+# the classification already determined what the organization would do with the installation media.
+
+# NOTE: Current design covers all fact defaults in the code, not in the summary.
+#       Any future additions to code or tags must ensure that defaults are set,
+#       and that a new section is covered by a progress fact of its own.
+
+# The file type breakdown names the files of every SAP file type, and a type of more than 3 files is
+# broken out into one line per numbered set of parts. The set is found by cutting the name at the last
+# underscore, extension included, because a RAR set is numbered across '.exe' and '.rar'. So an
+# installation export of 34 parts is one line, a second export of the same SAP file type stays visible
+# next to it, and installation media without a numbering is listed file by file.
+
+
+- name: SAP Install Media Detect - Summary - Show the result of the role execution
+  ansible.builtin.debug:
+    msg: |
+      SAP Install Media Detect - Summary
+      ==========================================================================
+      Source directory: {{ __sap_install_media_detect_fact_source_directory }}{{
+        ' (Read Only)' if __sap_install_media_detect_fact_use_target_dir else '' }}
+      Main directory:   {{ __sap_install_media_detect_fact_main_directory }}
+      {% if __sap_install_media_detect_fact_is_main_directory_reset %}
+
+      Reset of the main directory
+        Files moved back out of subdirectories: {{ __sap_install_media_detect_fact_files_to_move | length }}
+        Subdirectories of a previous run removed: {{ __sap_install_media_detect_fact_previous_subdirs | length }}
+      {% endif %}
+      {% if __sap_install_media_detect_fact_is_media_scanned %}
+
+      Installation media
+        Files found: {{ __sap_install_media_detect_fact_source_files | length }}
+      {% if __sap_install_media_detect_fact_is_media_copied %}
+        Copied from the source directory into the main directory, which can already hold files of its own.
+      {% endif %}
+      {% if not __sap_install_media_detect_fact_is_deduplicated %}
+        Duplicate file names were not resolved, so names which differ only in case are counted twice.
+      {% endif %}
+      {% if __sap_install_media_detect_fact_is_deduplicated
+            and __sap_install_media_detect_fact_files_duplicate_skipped | length > 0 %}
+        Duplicate file names left in place: {{
+          __sap_install_media_detect_fact_files_duplicate_skipped | length }}
+      {% endif %}
+      {% if __sap_install_media_detect_fact_is_deduplicated
+            and __sap_install_media_detect_fact_files_duplicate_removed | length > 0 %}
+        Duplicate files removed: {{ __sap_install_media_detect_fact_files_duplicate_removed | length }}
+      {% endif %}
+      {% if __sap_install_media_detect_fact_is_file_types_scanned %}
+        Files without extension: {{ __sap_install_media_detect_fact_files_without_extension | length }}
+      {% endif %}
+      {% if __sap_install_media_detect_fact_is_renamed %}
+        File extension added: {{ __sap_install_media_detect_fact_files_renamed | length }}
+      {% if __sap_install_media_detect_fact_unidentified_files_without_extension | length > 0 %}
+        File extension was not added for unidentified file types.
+      {% endif %}
+      {% if __sap_install_media_detect_fact_files_rename_skipped | length > 0 %}
+        File extension was not added for {{
+          __sap_install_media_detect_fact_files_rename_skipped | length }} files with an existing target name.
+      {% endif %}
+      {% if __sap_install_media_detect_fact_files_rename_replaced | length > 0 %}
+        Files replaced because they already carried the new name: {{
+          __sap_install_media_detect_fact_files_rename_replaced | length }}
+      {% endif %}
+      {% endif %}
+      {% endif %}
+      {% if __sap_install_media_detect_fact_is_file_types_scanned %}
+
+      Archive handling
+        RAR archives present: {{ 'yes' if __sap_install_media_detect_fact_rar_files_present else 'no' }}
+        SAP archives present: {{ 'yes' if __sap_install_media_detect_fact_sar_files_present else 'no' }}
+      {% if __sap_install_media_detect_fact_is_sapcar_provided %}
+        SAPCAR files used by sapfile utility: {{
+          __sap_install_media_detect_fact_sapcar_files
+          | map('basename') | join(', ') | d('none', true) }}
+      {% endif %}
+      {% endif %}
+      {% if __sap_install_media_detect_fact_is_classified %}
+
+      Classification
+        Components requested by the role parameters: {{ __wanted_components | join(', ') | d('none', true) }}
+        Files classified: {{ __sap_install_media_detect_fact_files_identified | length }}
+        Files matching the requested components: {{ __sap_install_media_detect_fact_wanted_files | length }}
+        Files not requested and therefore ignored: {{ __sap_install_media_detect_fact_files_ignored | length }}
+      {% if __sap_install_media_detect_fact_is_organized %}
+
+      Organization of the installation media
+      {% if not sap_install_media_detect_extract_archives %}
+        Archives were not extracted, because 'sap_install_media_detect_extract_archives' is 'false'.
+      {% else %}
+        Archives extracted: {{ __zip_count | int + __sapcar_count | int
+          + (__rar_count | int if sap_install_media_detect_rar_handling else 0) }}
+          ZIP archives: {{ __zip_count }}
+          SAP archives: {{ __sapcar_count }}
+      {% if sap_install_media_detect_rar_handling %}
+          RAR archives: {{ __rar_count }}
+      {% elif __rar_count | int > 0 %}
+        {{ __rar_count }} RAR archives were not extracted, because 'sap_install_media_detect_rar_handling' is 'false'.
+      {% endif %}
+        Extraction subdirectories: {{
+          __sap_install_media_detect_fact_extraction_directories | join(', ') | d('none', true) }}
+      {% endif %}
+      {% if not sap_install_media_detect_move_or_copy_archives %}
+        Files stayed in the main directory, because 'sap_install_media_detect_move_or_copy_archives' is 'false'.
+      {% else %}
+        Files moved into their component subdirectory: {{
+          __sap_install_media_detect_fact_wanted_files | rejectattr('copy') | list | length }}
+        Files copied into every component subdirectory: {{
+          __sap_install_media_detect_fact_files_to_copy | length
+          * __sap_install_media_detect_fact_auto_directories | length }}
+        Component subdirectories: {{
+          (__sap_install_media_detect_fact_target_directories
+           + __sap_install_media_detect_fact_auto_directories)
+          | unique | sort | join(', ') | d('none', true) }}
+      {% endif %}
+      {% endif %}
+
+      Requested files per SAP file type
+      {% for __type in __wanted_types | unique | sort %}
+      {# Materialized, because the sort below needs the same list as both of its arguments. #}
+      {% set __unsorted = __sap_install_media_detect_fact_wanted_files
+                      | selectattr('sap_file_type', 'equalto', __type)
+                      | map(attribute='file') | list %}
+      {# Sorted by name length first, so that numbered parts read in numeric order and not as 1, 10, 2. #}
+      {% set __files = __unsorted | map('length') | zip(__unsorted) | sort | map(attribute=1) | list %}
+      {# A few files fit next to the SAP file type, more than that are listed underneath it. #}
+      {% if __files | length <= 3 %}
+      {{ '  %-24s %-4s %s' | format(__type, __files | length, __files | join(', ')) }}
+      {% else %}
+      {{ '  %-24s %s' | format(__type, __files | length) }}
+      {# Cut at the last underscore, extension included, so that a numbered set of parts is one key. #}
+      {% set __keys = __files | map('regex_replace', '_([0-9]+)[^_]*$', '_*') | list %}
+      {% for __key in __keys | unique | list %}
+      {# The files which produced the key, reported as the first and the last part of the set. #}
+      {% set __member = __keys | zip(__files) | selectattr(0, 'equalto', __key) | map(attribute=1) | list %}
+      {{ '      %s' | format(__member | first if __member | length == 1
+         else __member | first ~ ' ... ' ~ __member | last) }}
+      {% endfor %}
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+  vars:
+    # The component of a run without 'sap_install_media_detect_kernel_db' accepts every database
+    # dependent kernel, which is spelled out here because the user did not name a database.
+    __wanted_components:
+      "{{ __sap_install_media_detect_fact_wanted_components | sort
+          | map('replace', 'kernel_db_any', 'kernel_db (any database)') | list }}"
+
+    __wanted_types: "{{ __sap_install_media_detect_fact_wanted_files | map(attribute='sap_file_type') | list }}"
+    __archive_types: "{{ __sap_install_media_detect_fact_files_to_extract | map(attribute='archive_type') | list }}"
+    __zip_count: "{{ __archive_types | select('equalto', 'zip') | list | length }}"
+    __rar_count: "{{ __archive_types | select('equalto', 'rarexe') | list | length }}"
+    __sapcar_count: "{{ __archive_types | select('equalto', 'sapcar') | list | length }}"
+  when: __sap_install_media_detect_fact_is_directory_checked

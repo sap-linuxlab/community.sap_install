@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# All post tasks are executed in the 'always' part of block.
+
+- name: SAP Install Media Detect - Post Tasks - Remove the temporary directory
+  ansible.builtin.include_tasks:
+    file: remove_temporary_directory.yml
+
+- name: SAP Install Media Detect - Post Tasks - Remove the EPEL repository
+  ansible.builtin.include_tasks:
+    file: epel_repo.yml
+  when:
+    - ansible_facts['os_family'] == 'RedHat'
+    - __sap_install_media_detect_fact_epel_enabled_by_role | d(false)
+
+# The organization is what produces the paths, so a run that failed before it has nothing to hand
+# over. This is the only post task with such a condition, because the other three have to run after
+# a failure as well.
+- name: SAP Install Media Detect - Post Tasks - Set the variables for the consuming roles
+  ansible.builtin.include_tasks:
+    file: set_global_vars.yml
+  when: __sap_install_media_detect_fact_is_organized | d(false)
+
+- name: SAP Install Media Detect - Post Tasks - Show the summary of the role
+  ansible.builtin.include_tasks:
+    file: show_summary.yml
