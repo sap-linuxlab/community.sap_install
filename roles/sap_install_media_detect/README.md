@@ -7,32 +7,52 @@
 <!-- BEGIN Description -->
 The Ansible Role `sap_install_media_detect` is used to detect and extract SAP installation media.
 
-This role searches provided source directory, sorts files based on type and extracts them to target directory.<br>
-Extraction can be further adjusted to create individual folders based on defined inputs.
+This role scans the source directory, classifies the files by their SAP file type, and extracts and sorts them into subdirectories.</br>
+The `sapfile` utility decides which files are extracted, and the role parameters select which components are detected.
 
-Detection of supported installation media is available for SAP HANA and wide range of SAP Applications like:
+Detection of compatible installation media is available for a wide range of SAP applications, such as:
 
 - SAP S/4HANA
 - SAP BW/4HANA
 - SAP ECC
-- SAP BW
-- SAP WebDispatcher
+- SAP Solution Manager
+- SAP Web Dispatcher
 - SAP Business Applications based upon SAP NetWeaver
 - Other SAP products based on SAP NetWeaver
 <!-- END Description -->
 
 <!-- BEGIN Dependencies -->
+## Dependencies
+- **Optional:** Installing the `ansible.posix` Ansible collection on the Ansible Control node will improve copy performance when the `sap_install_media_detect_target_directory` variable is used, on the first execution as well as on every re-execution.
 <!-- END Dependencies -->
 
 <!-- BEGIN Prerequisites -->
 ## Prerequisites
 Managed nodes:
 
-- Directory with SAP Installation media is present and `sap_install_media_detect_source_directory` updated. Download can be completed using [community.sap_launchpad](https://github.com/sap-linuxlab/community.sap_launchpad) Ansible Collection.
+- A directory with SAP installation media is present and the variable `sap_install_media_detect_source_directory` is set.
+  > Files can be downloaded using [community.sap_launchpad](https://github.com/sap-linuxlab/community.sap_launchpad) Ansible Collection.
 <!-- END Prerequisites -->
 
 ## Execution
 <!-- BEGIN Execution -->
+This role covers the following scenarios, which are detected automatically from the state of the source and target directories.
+
+| Scenario | Source directory | Target directory | Main directory | Result |
+| :--- | :--- | :--- | :--- | :--- |
+| **A** | writable | not defined | source directory | runs |
+| **B** | writable | defined | target directory | runs |
+| **C** | read only | defined | target directory | runs |
+| **D** | read only | not defined | - | **fails** |
+
+Scenario breakdown:
+
+- **A** - All tasks are executed in the source directory.
+- **B** - The installation media is copied from the source directory into the target directory, and all remaining tasks are executed there. The source directory is left unchanged.
+- **C** - Same as **B**. The read-only source directory is only ever read from.
+- **D** - The role fails immediately, because it cannot rename, extract or move anything in a read-only source directory. Set `sap_install_media_detect_target_directory` to a writable directory to turn this into scenario **C**.
+
+> **NOTE:** The **main directory** is the directory where all the files reside before classification and organization.
 <!-- END Execution -->
 
 <!-- BEGIN Execution Recommended -->
@@ -46,9 +66,9 @@ It is recommended to execute this role together with other roles in this collect
 5. [sap_ha_install_hana_hsr](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_install_hana_hsr) - High Availability specific
 6. [sap_ha_pacemaker_cluster](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_pacemaker_cluster) - High Availability specific
 
-#### SAP Netweaver
+#### SAP NetWeaver
 1. [sap_general_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_general_preconfigure)
-2. [sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_netweaver_preconfigure) 
+2. [sap_netweaver_preconfigure](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_netweaver_preconfigure)
 3. *`sap_install_media_detect`*
 4. [sap_swpm](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_swpm)
 5. [sap_ha_pacemaker_cluster](https://github.com/sap-linuxlab/community.sap_install/tree/main/roles/sap_ha_pacemaker_cluster) - High Availability specific
@@ -56,84 +76,220 @@ It is recommended to execute this role together with other roles in this collect
 
 ### Execution Flow
 <!-- BEGIN Execution Flow -->
-1. At the beginning of the execution of the role, a new tool `sapfile` is pushed to a temporary directory on the managed node.
-2. Also a package which contains a command for extracting and listing content of files of type `RAR` is installed.
-3. The next step is to check if source and/or target directories exist. If role parameter `sap_install_media_detect_target_directory` is defined, files will later be copied from `sap_install_media_detect_source_directory`. This is the `remote_dir` case.
-4. If the system on which the `sap_install_media_detect_source_directory` is not writable, the role would normally fail because one or both of the following conditions are not met:
-    - The SAPCAR EXE file is not executable.
-    - There are one or more `ZIP` or `RAR` files without extension.
-5. In this `remote_dir` case, to make sure the role does not fail, it needs to be run first on the node on which `sap_install_media_detect_source_directory` is writable, with role parameter `sap_install_media_detect_file_server_only` set to `true` so the role will not perform and further file detection activities.
-6. After the SAPCAR EXE file is executable and there are no more `ZIP` or `RAR` files without extension, the role can be called on a managed node where `sap_install_media_detect_source_directory` is not writable.
-7. A new list of all files with the correct final file names will then be created, and for each of the files, the SAP file types are determined using the `sapfile` tool, either using the file names or - if this information is not sufficient - from information inside the file.
-8. We then assert that there is at least (or exactly, depending on the file type) one file available for each of the `sap_install_media_detect_*` parameters. For example, if `sap_install_media_detect_kernel_db` is set to `saphana`, then there must be one SAP Kernel DB dependent file for SAP HANA.
-9. In case of `remote_dir`, the next step is to copy all files from `sap_install_media_detect_source_directory` to `sap_install_media_detect_target_directory`.
-10. Then we extract files which are configured in `sapfile` to be extracted, and copy or move files which are configured in `sapfile` to be copied or moved. Certain files like `SAPCAR*.EXE` and the SAP Host Agent will be copied to two different directories.
-11. Once all necessary files have been extracted and all files are copied or moved to where we want them to be, we are using the Ansible find module to identify the different file types by using file or directory name patterns.
-12. The last step is to fill all required `sap_swpm` parameters from the result of the previous find step, and display all the variables.
-    - Once detection (e.g. using `zipinfo -1` and `unrar lb`) and extraction are completed, the file paths are shown and stored as variables for subsequent use by other Ansible Tasks.
+Pre-task steps:
 
-#### (Red Hat) Additional steps for RAR files
+1. Assert and validate provided role variables.
+2. Detect provided directories and set the path to the main directory.
+3. Reset the subdirectories of the main directory.
+4. Scan files available in the source directory.
+5. Copy files to the target directory if `sap_install_media_detect_target_directory` was provided.
+6. Deduplicate files depending on the `sap_install_media_detect_rename_target_file_exists` variable.
+7. Scan files available in the main directory and categorize them using the `file` command.
+8. Rename files without extension using categorization results from the previous step.
+9. Deploy the `sapfile` utility to the managed node.
+10. Ensure that programs for handling ZIP and RAR are installed, if required.
+11. Ensure that `SAPCAR` is provided and executable, if required.
+12. Execute the `sapfile` utility against the list of available files and process its results.
+    - Components selected by the role variables are validated here, so a component whose installation media is missing fails before anything is extracted or moved into a subdirectory.
 
-RAR files can be either handled by the unar package from EPEL or by another package which can list the contents of, and extract files from, RAR files.<br>
-See the comments and examples for the RAR file handling in `defaults/main.yml`.
+Organization steps:
 
-- If the EPEL repo had been enabled at the time when the role was run, it will remain enabled.
-- If the EPEL repo was not present, the associated GPG key will be removed and the EPEL repo will be disabled as the last task.
+13. Create directories in the main directory based on the results from the `sapfile` utility classification.
+    - Permissions and ownership are applied based on the variables (e.g. `sap_install_media_detect_directory_owner`).
+14. Execute commands to unarchive files marked for extraction by the `sapfile` utility classification.
+15. Distribute files into subdirectories based on the results from the `sapfile` utility classification.
+16. Locate all files in the SWPM basket subdirectory `sap_swpm_download_basket` and validate them against components selected by the role variables.
+    - Example: Ensure that `igsexe_*.SAR` and `igshelper_*.SAR` files are present when `sap_install_media_detect_igs` is set to `true`.
+17. Locate all files in the extraction subdirectories and validate them against components selected by the role variables.
+    - Example: Ensure that `.*DATA_UNITS.*` directories are present when `sap_install_media_detect_export` is set to `sapecc`.
+
+Post-task steps:
+
+18. Remove the temporary directory created for the `sapfile` utility handling.
+19. Disable the `EPEL` repository and remove its GPG key on Red Hat hosts, if it was configured by this role.
+20. Set the variables for `sap_swpm`, `sap_hana_install` and `sap_anydb_install_oracle` Ansible roles from this collection.
+    - This removes the need to define all variables for those roles and lets them be defined from the detection results instead.
+21. Show a summary of the role execution with a detailed breakdown of all completed steps.
 <!-- END Execution Flow -->
 
 ### Example
 <!-- BEGIN Execution Example -->
-Example playbook to extract SAP Installation media for SAP ASCS Netweaver.
+Example playbook to extract SAP installation media for an SAP S/4HANA system.
+
 ```yaml
 ---
-- name: Ansible Play for SAP NetWeaver ASCS - Extract SAP Installation media
-  hosts: nwas_ascs
+- name: Ansible Play for SAP S/4HANA system
+  hosts: all
   become: true
-  any_errors_fatal: true
-  max_fail_percentage: 0
   tasks:
 
     - name: Execute Ansible Role sap_install_media_detect
       ansible.builtin.include_role:
         name: community.sap_install.sap_install_media_detect
       vars:
+        sap_install_media_detect_source_directory: '/software'
         sap_install_media_detect_swpm: true
         sap_install_media_detect_hostagent: true
         sap_install_media_detect_igs: true
         sap_install_media_detect_kernel: true
-        sap_install_media_detect_webdisp: false
+        sap_install_media_detect_kernel_db: 'saphana'
+        sap_install_media_detect_db: 'saphana'
+        sap_install_media_detect_db_client: 'saphana'
+        sap_install_media_detect_export: 'saps4hana'
+```
+
+Example playbook to extract SAP installation media for an SAP HANA database located in the `/software_source/sap_hana_2_sps08` directory and prepare it in the `/software` directory.
+> **NOTE:** This example shows scenario **C**, where the source directory on a shared filesystem can be used along with read-only permissions.
+
+```yaml
+---
+- name: Ansible Play for SAP HANA database
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Execute Ansible Role sap_install_media_detect
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_install_media_detect
+      vars:
+        sap_install_media_detect_source_directory: '/software_source/sap_hana_2_sps08'
+        sap_install_media_detect_target_directory: '/software'
+        sap_install_media_detect_hostagent: true
+        sap_install_media_detect_db: 'saphana'
 ```
 <!-- END Execution Example -->
 
+<!-- BEGIN Execution Summary -->
+### Summary
+Example of the role summary for a run of scenario **B** or **C** without a tag against SAP S/4HANA system files.
+
+```bash
+ok: [s02pas] =>
+    msg: |-
+        SAP Install Media Detect - Summary
+        ==========================================================================
+        Source directory: /software_source/sap_s4hana_2023 (Read Only)
+        Main directory:   /software_target
+
+        Reset of the main directory
+          Files moved back out of subdirectories: 0
+          Subdirectories of a previous run removed: 0
+
+        Installation media
+          Files found: 42
+          Copied from the source directory into the main directory, which can already hold files of its own.
+          Files without extension: 0
+          File extension added: 0
+
+        Archive handling
+          RAR archives present: no
+          SAP archives present: yes
+          SAPCAR files used by sapfile utility: SAPCAR_1300-70007716.EXE
+
+        Classification
+          Components requested by the role parameters: db_client_saphana, db_saphana, export_saps4hana, hostagent, igs, kernel, kernel_db (any database), swpm
+          Files classified: 42
+          Files matching the requested components: 42
+          Files not requested and therefore ignored: 0
+
+        Organization of the installation media
+          Archives extracted: 4
+            ZIP archives: 0
+            SAP archives: 4
+            RAR archives: 0
+          Extraction subdirectories: sap_hana_client_extracted, sap_hana_extracted
+          Files moved into their component subdirectory: 39
+          Files copied into every component subdirectory: 6
+          Component subdirectories: sap_hana, sap_swpm, sap_swpm_download_basket
+
+        Requested files per SAP file type
+          sap_export_s4hana        30
+              S4CORE108_INST_EXPORT_1.zip ... S4CORE108_INST_EXPORT_30.zip
+          sap_hostagent            1    SAPHOSTAGENT67_67-80004822.SAR
+          sap_igs                  2    igsexe_4-70005417.sar, igshelper_17-10010245.sar
+          sap_kernel               1    SAPEXE_51-70007807.SAR
+          sap_kernel_db_hdb        1    SAPEXEDB_51-70007806.SAR
+          sap_s4hana_lang          1    S4HANAOP108_ERP_LANG_EN.SAR
+          sap_swpm                 1    SWPM20SP23_1-80003424.SAR
+          sapcar                   1    SAPCAR_1300-70007716.EXE
+          saphana                  1    IMDB_SERVER20_079_8-80002031.SAR
+          saphana_client           1    IMDB_CLIENT20_028_17-80002082.SAR
+          saphana_other            2    IMDB_AFL20_079P_800-80001894.SAR, IMDB_LCAPPS_2079P_801-20010426.SAR
+```
+
+Example of the role summary for a run with the `sap_install_media_detect_reset` tag.
+
+```bash
+ok: [s02pas] =>
+    msg: |-
+        SAP Install Media Detect - Summary
+        ==========================================================================
+        Source directory: /software
+        Main directory:   /software
+
+        Reset of the main directory
+          Files moved back out of subdirectories: 39
+          Subdirectories of a previous run removed: 5
+```
+<!-- END Execution Summary -->
+
 <!-- BEGIN Role Tags -->
 ### Role Tags
-With the following tags, the role can be called to perform certain activities only:
+The role can be limited to a part of its workflow with the following tags. Each tag runs the workflow from the beginning up to a defined point, so a tag is never an entry point into the middle of the role. Running the role without a tag performs all steps.
 
-- tag `sap_install_media_detect_zip_handling`: Only perform the task for enabling the listing and extracting of files of type `ZIP`.
-- tag `sap_install_media_detect_rar_handling`: Only perform the tasks for enabling the listing and extracting of files of type `RAR`. This
-  includes enabling and disabling the EPEL repo for RHEL systems, if desired.
-- tag `sap_install_media_detect_add_file_extension`: Add file name extensions to any files in `sap_install_media_detect_source_directory` which are of type `RAR` or `ZIP` and have no ending. Needs to be used with tag `sap_install_media_detect_create_file_list_phase_1`.
-- tag `sap_install_media_detect_check_directories`: Find out if the directory `sap_install_media_detect_target_directory` or `sap_install_media_detect_source_directory` is writable.
-- tag `sap_install_media_detect_provide_sapfile_utility `: Provides the sapfile utility on the managed node. This tool is required for determining the SAP file type.
-- tag `sap_install_media_detect_create_file_list_phase_1`: Create a list of all files in `sap_install_media_detect_source_directory`, and create a list of any files which have no ending and are of type `RAR`.
-- tag `sap_install_media_detect_create_file_list_phase_2`: Create a final list of all required files in `sap_install_media_detect_source_directory` or `sap_install_media_detect_target_directory` (if that one is defined)
-- tag `sap_install_media_detect_organize_files`: Copies all required files from `sap_install_media_detect_source_directory` or `sap_install_media_detect_target_directory` (if that one is defined) and extracts all required files into the target directories if specified by the output of the sapfile command.
-- tag `sap_install_media_detect_move_files_to_main_directory`: Move SAP archive files from level 1 subdirectories (where they might reside after the role has been used initially) back to the main software directory. Those subdirectories will afterwards be removed. This is to make sure the role will produce the same result no matter how often it is executed (= idempotency). The directories with pattern `*_extracted` will remain in place.
-- tag `sap_install_media_detect_find_files_after_extraction`: Finds all required files after they have been extracted so the final variables can be filled in the next step.
-- tag `sap_install_media_detect_set_global_vars`: Set all final variables for later use by Ansible roles or tasks.
+| Tag | Runs | Writes to the main directory |
+| :--- | :--- | :--- |
+| `sap_install_media_detect_reset` | Validation, Detection and Reset | **Yes** |
+| `sap_install_media_detect_prepare` | Validation, Detection, Scan and File types | No |
+| `sap_install_media_detect_classify` | Preparation, `sapfile` utility, `SAPCAR` and Classification | Permissions of `SAPCAR` only |
+| none | All steps | **Yes** |
 
-**Note:** After running the role with the following four tags, the SAP archive files will be in the same place as before running the role the first time.<br>
-The directories with pattern `*_extracted` will remain in place.
+Tag breakdown:
 
-- `sap_install_media_detect_provide_sapfile_utility`
-- `sap_install_media_detect_check_directories`
-- `sap_install_media_detect_create_file_list_phase_1`
-- `sap_install_media_detect_move_files_to_main_directory`
+- `sap_install_media_detect_reset` - Moves the SAP archive files out of the subdirectories of a previous run back into the main directory and removes those subdirectories afterwards, so the installation media is in the same place as before the role was executed for the first time. Directories with the pattern `*_extracted` are removed as well, because they are recreated during extraction.
+- `sap_install_media_detect_prepare` - Reports what the source directory holds without copying, renaming, moving or removing a single file. Programs for handling `ZIP` and `RAR` files are installed if the installation media requires them.
+- `sap_install_media_detect_classify` - Adds the classification on top of the preparation, so the summary also reports which SAP file types the installation media holds. It only reads the installation media and completes in a fraction of the time of a full run.
+
+> **NOTE:** The summary is shown for every run, including a run that is limited to a tag.
 <!-- END Role Tags -->
 
 <!-- BEGIN Further Information -->
 ## Further Information
 For more examples on how to use this role in different installation scenarios, refer to the [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
+
+### Multiple files of the same component
+The SAP IGS files and the SAP Maintenance Planner stack file resolve to the newest file when the installation media holds more than one of them, which is determined by the modification time.</br>
+The SAP kernel and the SAP Web Dispatcher fail instead, because handing over the wrong file makes the later installation fail rather than this role.
+
+> **NOTE:** The SAP kernel is checked on the number of files. The role does not compare versions, so it does not verify that the `SAPEXE` and the `SAPEXEDB` file belong to the same SAP kernel patch level.
+
+### Variables set for other roles
+The role hands the detection results over to the roles of this collection that consume the SAP installation media, so those variables do not have to be defined by hand. Only the variables of the detected components are set, and the role prints the ones it set at the end of its execution.
+
+| Variable | Consuming role | Set when |
+| :--- | :--- | :--- |
+| `sap_hana_install_software_directory` | `sap_hana_install` | `sap_install_media_detect_db` is `saphana` |
+| `sap_hana_install_software_extract_directory` | `sap_hana_install` | `sap_install_media_detect_db` is `saphana` and `sap_install_media_detect_extract_archives` is `true` |
+| `sap_anydb_install_oracle_extract_path` | `sap_anydb_install_oracle` | An Oracle database is detected |
+| `sap_swpm_software_path` | `sap_swpm` | Always |
+| `sap_swpm_path` | `sap_swpm` | `sap_install_media_detect_swpm` is `true` |
+| `sap_swpm_sapcar_path` | `sap_swpm` | `SAPCAR` is detected |
+| `sap_swpm_sapcar_file_name` | `sap_swpm` | `SAPCAR` is detected |
+| `sap_swpm_cd_rdbms_path` | `sap_swpm` | An SAP HANA client is detected |
+| `sap_swpm_cd_sapase_path` | `sap_swpm` | An SAP ASE database is detected |
+| `sap_swpm_cd_sapase_client_path` | `sap_swpm` | An SAP ASE client is detected |
+| `sap_swpm_cd_sapmaxdb_path` | `sap_swpm` | An SAP MaxDB database is detected |
+| `sap_swpm_cd_ibmdb2_path` | `sap_swpm` | An IBM Db2 database is detected |
+| `sap_swpm_cd_ibmdb2_client_path` | `sap_swpm` | An IBM Db2 client is detected |
+| `sap_swpm_cd_oracle_path` | `sap_swpm` | An Oracle database is detected |
+| `sap_swpm_cd_oracle_client_path` | `sap_swpm` | An Oracle client is detected |
+| `sap_swpm_cd_export_path` | `sap_swpm` | An installation export is detected |
+| `sap_swpm_cd_export_pt1_path` | `sap_swpm` | The SAP ECC IDES or the SAP Solution Manager ABAP export is detected |
+| `sap_swpm_cd_export_pt2_path` | `sap_swpm` | The SAP ECC IDES or the SAP Solution Manager ABAP export is detected |
+| `sap_swpm_mp_stack_path` | `sap_swpm` | `sap_install_media_detect_mpstack` is `true` |
+| `sap_swpm_mp_stack_file_name` | `sap_swpm` | `sap_install_media_detect_mpstack` is `true` |
+
+> **NOTE:** The SAP kernel, the SAP IGS and the SAP Web Dispatcher are not handed over through a variable. They are placed in the directory of `sap_swpm_software_path`, where the `sap_swpm` role picks them up.
 <!-- END Further Information -->
 
 ## License
@@ -144,125 +300,69 @@ Apache 2.0
 ## Maintainers
 <!-- BEGIN Maintainers -->
 - [Bernd Finger](https://github.com/berndfinger)
+- [Marcel Mamula](https://github.com/marcelmamula)
 <!-- END Maintainers -->
 
 ## Role Variables
 <!-- BEGIN Role Variables -->
-### sap_install_media_detect_rar_handling
-
-- _Type:_ `bool`
-- _Default:_ `True`
-
-Set this parameter to `false` for skipping the handling of RAR files. In this case, also no `unar` or other RAR handling software will be installed.
-
-
-### sap_install_media_detect_rar_package
-
-- _Type:_ `str`
-- _Default:_ `EPEL`
-
-Set this parameter to use either the `unar` package from `EPEL` or another software package for handling RAR files.</br>
-Based on this setting, the commands for listing and extracting RAR files are being set in tasks/prepare/enable_rar_handling.yml
-
-### sap_install_media_detect_epel_gpg_key_url
-
-- _Type:_ `str`
-- _Default:_ `https://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_facts['distribution_major_version'] }}`
-
-URL for the EPEL GPG key
-
-### sap_install_media_detect_use_rpm_key_module_for_removing_the_key
-
-- _Type:_ `bool`
-- _Default:_ `True`
-
-The `EPEL` GPG key can be removed with the rpm_key module and the URL for the key, or by using the `rpm -e` command.</br>
-For using the rpm -e command, set this variable to 'false'.
-
-### sap_install_media_detect_file_server_only
-
-- _Type:_ `bool`
-- _Default:_ `False`
-
-If this role is running on a file server on which the SAP software is not to be installed, set the following to true.</br>
-If this role is running on a system on which the SAP software is to be installed, set the following to false.
-
-### sap_install_media_detect_rar_list
-
-- _Type:_ `str`
-- _Default:_ `/usr/bin/unrar lb`
-
-Fully qualified path to the program for listing RAR files, including the argument for listing files.</br>
-If not specified, the `lsar` program (or a link with the name `lsar`, pointing to the actual `lsar` program) is expected to be located in one of the PATH directories.</br>
-If sap_install_media_detect_rar_package is set to `EPEL`, this variable is not used.
-
-### sap_install_media_detect_rar_extract
-
-- _Type:_ `str`
-- _Default:_ `/usr/bin/unrar x`
-
-Fully qualified path to the program for extracting RAR files, including the argument for extracting files.</br>
-If not specified, the `unar` program (or a link with the name `unar`, pointing to the actual `unar` program) is expected to be located in one of the PATH directories.</br>
-If sap_install_media_detect_rar_package is set to `EPEL`, this variable is not used.
-
-### sap_install_media_detect_rar_extract_directory_argument
-
-- _Type:_ `str`
-
-Fully qualified path to an additional argument to the program for extracting RAR files, for specifying the directory into which the archive is to be extracted.</br>
-Needs to be empty or start with a space character.</br>
-If sap_install_media_detect_rar_package is set to 'EPEL', this variable is not used.
-
 ### sap_install_media_detect_source_directory
 
 - _Type:_ `str`
 - _Default:_ `/software`
 
-Directory where the SAP software is located
+Path to the directory that holds the SAP installation media.
 
 ### sap_install_media_detect_target_directory
 
 - _Type:_ `str`
 
-Directory where the SAP software is located after the role is run, if different from `sap_install_media_detect_source_directory`
+Path to the directory into which the SAP installation media is copied and where it is prepared.</br>
+Use it only if the installation media should be prepared in a different directory than `sap_install_media_detect_source_directory`, which is required when the source directory is read only.</br>
+See the scenarios in the [Execution](#execution) section.
 
 ### sap_install_media_detect_create_target_directory
 
 - _Type:_ `bool`
 - _Default:_ `True`
 
-Create target directory if it does not yet exist. If set to false, perform a check only
-
-### sap_install_media_detect_rename_target_file_exists
-
-- _Type:_ `str`
-- _Default:_ `skip`
-
-If there are two files of the same RAR or ZIP type, one with and one without suffix, the following parameter will determine what the role will do for such a file:</br>
-- `skip` the file renaming.
-- `fail` execution.
-- `overwrite` the file with the suffix by the file without suffix.
+Create the target directory if it does not yet exist. If set to `false`, the role only checks that the directory is present.
 
 ### sap_install_media_detect_extract_archives
 
 - _Type:_ `bool`
 - _Default:_ `True`
 
-If you want the role to not extract archives which have the extract flag set, set the following parameter to `false`.
+Extract the archives of the SAP installation media. Set to `false` if the archives should not be extracted.
 
 ### sap_install_media_detect_move_or_copy_archives
 
 - _Type:_ `bool`
 - _Default:_ `True`
 
-If you want the role to not move or copy archive files to the `target_dir` subdirectories, set the following parameter to `false`.
+Move or copy the SAP installation media into the component subdirectories.</br>
+Set to `false` if all files should stay in one directory.
 
-### sap_install_media_detect_assert_after_sapfile
+### sap_install_media_detect_rename_target_file_exists
 
-- _Type:_ `bool`
-- _Default:_ `True`
+- _Type:_ `str`
+- _Default:_ `skip`
 
-By default, the presence of at least one file for each file type according to the configured role parameters is asserted. Set the following parameter to 'false' to skip this step.
+Behavior when a file without a file name extension is renamed and a file of the new name already exists:</br>
+- `skip` - The renaming is skipped and the existing file is used instead.
+- `fail` - The role fails.
+- `overwrite` - The existing file is removed and replaced by the renamed file.
+
+The name is matched case insensitively, so both `file.SAR` and `file.sar` are an existing file for the new name `file.SAR`.</br>
+> **NOTE:** When a target directory is used and the source directory holds the same installation media once with and once without its file extension, `overwrite` removes the renamed file and copies both source files again on every run.
+> Remove the duplicate from the source directory to avoid that.
+
+### sap_install_media_detect_sapcar_path
+
+- _Type:_ `str`
+
+(Optional) Fully qualified path to the `SAPCAR` program.</br>
+If it is not defined, the role uses the `SAPCAR*.EXE` file of the SAP installation media.</br>
+> **NOTE:** Ensure that `SAPCAR` is compatible with the CPU architecture of the managed node.
 
 ### sap_install_media_detect_db
 
@@ -278,60 +378,186 @@ Available values: `saphana`, `sapase`, `sapmaxdb`, `oracledb`, `ibmdb2`
 Select which database client to detect.</br>
 Available values: `saphana`, `sapase`, `sapmaxdb`, `oracledb`, `ibmdb2`
 
+### sap_install_media_detect_kernel
+
+- _Type:_ `bool`
+- _Default:_ `False`
+
+Enable to detect the SAP kernel files, which are the database independent `SAPEXE` and the database dependent `SAPEXEDB`.
+
+### sap_install_media_detect_kernel_db
+
+- _Type:_ `str`
+
+Select which database the database dependent SAP kernel (`SAPEXEDB`) belongs to.</br>
+Available values: `saphana`, `sapase`, `sapmaxdb`, `oracledb`, `ibmdb2`</br>
+Only used together with `sap_install_media_detect_kernel` set to `true`, and only necessary if the SAP installation media holds more than one `SAPEXEDB` file.
+
+### sap_install_media_detect_export
+
+- _Type:_ `str`
+
+Select which installation export to detect.</br>
+Available values: `saps4hana`, `sapbw4hana`, `sapecc`, `sapecc_ides`, `sapnwas_abap`, `sapnwas_java`, `sapsolman_abap`, `sapsolman_java`
+
 ### sap_install_media_detect_swpm
 
 - _Type:_ `bool`
 - _Default:_ `False`
 
-Enable to detect SWPM.
+Enable to detect the SAP Software Provisioning Manager (SWPM) files.
 
 ### sap_install_media_detect_hostagent
 
 - _Type:_ `bool`
 - _Default:_ `False`
 
-Enable to detect SAP Hostagent.
+Enable to detect the SAP Host Agent files.
 
 ### sap_install_media_detect_igs
 
 - _Type:_ `bool`
 - _Default:_ `False`
 
-Enable to detect SAP IGS.
-
-### sap_install_media_detect_kernel
-
-- _Type:_ `bool`
-- _Default:_ `False`
-
-Enable to detect SAP Kernel files.
-
-### sap_install_media_detect_kernel_db
-
-- _Type:_ `str`
-
-Select which database kernel to detect.</br>
-Available values: `saphana`, `sapase`, `sapmaxdb`, `oracledb`, `ibmdb2`</br>
-Only necessary if there is more than one SAPEXEDB file in the source directory
+Enable to detect the SAP IGS files, which are the IGS program and its helper.
 
 ### sap_install_media_detect_webdisp
 
 - _Type:_ `bool`
 - _Default:_ `False`
 
-Enable to detect SAP Web Dispatcher.
+Enable to detect the SAP Web Dispatcher files.
 
 ### sap_install_media_detect_mpstack
 
 - _Type:_ `bool`
 - _Default:_ `False`
 
-Enable to detect SAP Maintenance Planner stack file.
+Enable to detect the SAP Maintenance Planner stack file.
 
-### sap_install_media_detect_export
+### sap_install_media_detect_rar_handling
+
+- _Type:_ `bool`
+- _Default:_ `True`
+
+Handle RAR files. Set to `false` to skip the handling of RAR files, in which case no program for listing and extracting them is installed.
+
+### sap_install_media_detect_rar_use_unar
+
+- _Type:_ `bool`
+- _Default:_ `True`
+
+Use the `unar` package, which the role installs, for handling RAR files.</br>
+Set to `false` to use another program instead, which is then defined by `sap_install_media_detect_rar_list`, `sap_install_media_detect_rar_extract` and `sap_install_media_detect_rar_extract_directory_argument`.</br>
+Operating system specific behavior:
+- Red Hat: This also enables the `EPEL` and `CRB` repositories. `EPEL` is disabled again at the end of the role, if the role enabled it.
+- SUSE: The package comes from the Basesystem module, which has to be enabled beforehand.
+
+### sap_install_media_detect_epel_gpg_key_url
+
+- _Type:_ `str`
+- _Default:_ `https://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_facts['distribution_major_version'] }}`
+
+(Red Hat specific) URL of the `EPEL` GPG key, used when `sap_install_media_detect_rar_use_unar` is set to `true`.</br>
+The key is imported with the `rpm_key` module, which requires the URL to be specified.
+
+### sap_install_media_detect_use_rpm_key_module_for_removing_the_key
+
+- _Type:_ `bool`
+- _Default:_ `True`
+
+(Red Hat specific) Remove the `EPEL` GPG key with the `rpm_key` module and the URL of the key.</br>
+Set to `false` to use the `rpm -e` command instead.
+
+### sap_install_media_detect_rar_list
 
 - _Type:_ `str`
 
-Select which database export to detect.</br>
-Available values: `saps4hana`, `sapbw4hana`, `sapecc`, `sapecc_ides`, `sapnwas_abap`, `sapnwas_java`, `sapsolman_abap`, `sapsolman_java`
+Fully qualified path to the program that lists the contents of a RAR file, including the argument that makes it list.</br>
+The role appends the path of the RAR file, so the value has to end with that argument. Example for `unrar`: `/usr/bin/unrar lb`</br>
+Only used when `sap_install_media_detect_rar_use_unar` is set to `false`. The role does not install this program, it only executes it.
+
+### sap_install_media_detect_rar_extract
+
+- _Type:_ `str`
+
+Fully qualified path to the program that extracts a RAR file, including the argument that makes it extract.</br>
+The role appends the path of the RAR file, so the value has to end with that argument. Example for `unrar`: `/usr/bin/unrar x`</br>
+Only used when `sap_install_media_detect_rar_use_unar` is set to `false`. The role does not install this program, it only executes it.
+
+### sap_install_media_detect_rar_extract_directory_argument
+
+- _Type:_ `str`
+
+Argument of the extraction program that specifies the directory to extract into.</br>
+The role appends this argument and then the directory, so the value has to start with a space character.</br>
+Set it to an empty string if the program takes the directory as a bare argument, which is the case for `unrar`.</br>
+Only used when `sap_install_media_detect_rar_use_unar` is set to `false`.
+
+### sap_install_media_detect_directory_owner
+
+- _Type:_ `str`
+- _Default:_ `root`
+
+Owner of the component subdirectories created by this role.
+
+### sap_install_media_detect_directory_group
+
+- _Type:_ `str`
+- _Default:_ `root`
+
+Group of the component subdirectories created by this role.
+
+### sap_install_media_detect_directory_mode
+
+- _Type:_ `str`
+- _Default:_ `0755`
+
+Permissions of the component subdirectories created by this role.</br>
+> **NOTE:** The value has to be a quoted octal string, because an unquoted `0755` is read as a decimal number.
+
+### sap_install_media_detect_files_owner
+
+- _Type:_ `str`
+- _Default:_ `root`
+
+Owner of the SAP installation media files.
+
+### sap_install_media_detect_files_group
+
+- _Type:_ `str`
+- _Default:_ `root`
+
+Group of the SAP installation media files.
+
+### sap_install_media_detect_files_mode
+
+- _Type:_ `str`
+- _Default:_ `0644`
+
+Permissions of the SAP installation media files.</br>
+> **NOTE:** The value has to be a quoted octal string, because an unquoted `0644` is read as a decimal number.
+
+### sap_install_media_detect_sapcar_owner
+
+- _Type:_ `str`
+- _Default:_ `root`
+
+Owner of the `SAPCAR` program.
+
+### sap_install_media_detect_sapcar_group
+
+- _Type:_ `str`
+- _Default:_ `root`
+
+Group of the `SAPCAR` program.
+
+### sap_install_media_detect_sapcar_mode
+
+- _Type:_ `str`
+- _Default:_ `0755`
+
+Permissions of the `SAPCAR` program.</br>
+The value has to keep the program executable, because the roles that consume the SAP installation media call it to extract the SAP archives.</br>
+> **NOTE:** The value has to be a quoted octal string, because an unquoted `0755` is read as a decimal number.
 <!-- END Role Variables -->

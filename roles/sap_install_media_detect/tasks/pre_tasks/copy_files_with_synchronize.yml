@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# The module is a wrapper around 'rsync', which it expects to be installed on the Managed node.
+- name: SAP Install Media Detect - Copy - Ensure the presence of the 'rsync' package
+  ansible.builtin.package:
+    name: 'rsync'
+    state: present
+
+# Files are taken as-is from the source directory, including files without extensions.
+- name: SAP Install Media Detect - Copy - Synchronize the installation media into the main directory
+  ansible.posix.synchronize:
+    src: "{{ file_item }}"
+    dest: "{{ __sap_install_media_detect_fact_main_directory }}/{{ file_item | basename }}"
+    checksum: false
+    # Preserve modification time.
+    archive: true
+    # Ownership is updated in the 'organize/main.yml' task file.
+    owner: false
+    group: false
+  delegate_to: "{{ inventory_hostname }}"
+  loop: "{{ __sap_install_media_detect_fact_source_files }}"
+  loop_control:
+    loop_var: file_item
+    label: "{{ file_item | basename }}"

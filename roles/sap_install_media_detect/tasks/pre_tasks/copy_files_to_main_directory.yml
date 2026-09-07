@@ -1,0 +1,90 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Scenario B and C assemble the installation media in the target directory, which is the main directory.
+# Everything the scan found is copied there before classification and organization can happen.
+
+# NOTE: Different modules are used for copying files.
+# - 'ansible.builtin.copy' reads source and destination files multiple times to determine if copying is necessary.
+#   Reading SHA1 and MD5 checksums can take as much time as actual copy of files.
+#   Example: 44GB of S/4HANA files takes 12 minutes to find out that data is already copied.
+#
+# - 'ansible.posix.synchronize' uses 'rsync' command which utilizes its own validation to decide if copy is required.
+#   Posix module requires the 'ansible.posix' collection to be installed on the Control node.
+#   Package 'rsync' has to be installed on the Managed node.
+#
+# The collection 'ansible.posix' is not hard dependency, because when it is not available on the Control node,
+# the role can fall back to using the slower 'ansible.builtin.copy' module instead.
+
+
+# Ansible Role is executed on the Control node so 'ansible-galaxy' command is available.
+- name: SAP Install Media Detect - Copy - Check availability of the ansible.posix collection on Control node
+  ansible.builtin.command:
+    cmd: ansible-galaxy collection list
+  register: __sap_install_media_detect_register_collection_list
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  become: false  # Enables usage of Python VENV
+
+- name: SAP Install Media Detect - Copy - Set fact if the collection 'ansible.posix' is available
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_synchronize_available:
+      "{{ __sap_install_media_detect_register_collection_list.stdout_lines | d([])
+          | select('search', 'ansible.posix') | length > 0 }}"
+
+- name: SAP Install Media Detect - Copy - Show warning about potential slowness when copying files
+  ansible.builtin.debug:
+    msg: |
+      INFO: The collection 'ansible.posix' is not installed on the Ansible Control node,
+      so the installation media is copied with the module 'ansible.builtin.copy',
+      which is slower when the files are already present in the destination directory.
+
+      Install the collection to have the role copy with 'rsync' instead:
+      'ansible-galaxy collection install ansible.posix'
+  when: not __sap_install_media_detect_fact_synchronize_available
+
+
+# We have to run 'ansible.posix' module in dedicated task file, because Ansible validates module availability during
+# the parsing of the task file, not at runtime. If it was part of this task file, the role would never detect 'ansible.posix'
+# unavailability and fall back to copy module.
+- name: SAP Install Media Detect - Copy - Synchronize the installation media into the main directory
+  ansible.builtin.include_tasks:
+    file: copy_files_with_synchronize.yml
+  when: __sap_install_media_detect_fact_synchronize_available
+
+# Files are taken as-is from the source directory, including files without extensions.
+- name: SAP Install Media Detect - Copy - Copy the installation media into the main directory
+  ansible.builtin.copy:
+    src: "{{ file_item }}"
+    dest: "{{ __sap_install_media_detect_fact_main_directory }}/{{ file_item | basename }}"
+    remote_src: true
+    mode: preserve
+  loop: "{{ __sap_install_media_detect_fact_source_files }}"
+  loop_control:
+    loop_var: file_item
+    label: "{{ file_item | basename }}"
+  when: not __sap_install_media_detect_fact_synchronize_available
+
+
+# The copy is additive, because the target directory can already hold the installation media of an
+# earlier run of the role, and it can hold files which the source directory does not have at all.
+- name: SAP Install Media Detect - Copy - Find all files in the main directory
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_fact_main_directory }}"
+    patterns: '*'
+    file_type: file
+    recurse: false
+  register: __sap_install_media_detect_register_scan_main_directory
+
+# Everything after this point works in the main directory, so the files that the scan found in the
+# source directory are replaced by the files that are now in the main directory.
+- name: SAP Install Media Detect - Copy - Set fact with all files found in the main directory
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_source_files:
+      "{{ __sap_install_media_detect_register_scan_main_directory.files | map(attribute='path') | list }}"
+
+
+- name: SAP Install Media Detect - Summary - Set the progress fact for the copy
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_is_media_copied: true

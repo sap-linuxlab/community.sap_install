@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# The subdirectories of the main directory which hold the installation media of one component,
+# and the subdirectories which the archives are extracted into.
+#
+# Both lists come from the classification and hold only what a file actually asked for.
+# The placeholder 'auto' (file that stays in the main directory)
+# and the placeholder 'none' (file that is not extracted) are already removed,
+# so an empty list means that there is nothing to create and the task is skipped without an extra condition.
+
+# NOTE: The extraction directories are removed by the reset at the start of the role, see
+# 'pre_tasks/move_files_to_main_directory.yml', so they are always created empty.
+
+
+# The directories that 'auto' resolves to are added here, because they are a destination of the
+# distribution without any file naming them as its target directory, see 'main.yml'.
+- name: SAP Install Media Detect - Organize - Create the target directories
+  ansible.builtin.file:
+    path: "{{ __sap_install_media_detect_fact_main_directory }}/{{ dir_item }}"
+    state: directory
+    owner: "{{ sap_install_media_detect_directory_owner }}"
+    group: "{{ sap_install_media_detect_directory_group }}"
+    mode: "{{ sap_install_media_detect_directory_mode }}"
+  loop: "{{ (__sap_install_media_detect_fact_target_directories
+             + __sap_install_media_detect_fact_auto_directories) | unique | sort }}"
+  loop_control:
+    loop_var: dir_item
+  when: sap_install_media_detect_move_or_copy_archives
+
+- name: SAP Install Media Detect - Organize - Create the extraction directories
+  ansible.builtin.file:
+    path: "{{ __sap_install_media_detect_fact_main_directory }}/{{ dir_item }}"
+    state: directory
+    owner: "{{ sap_install_media_detect_directory_owner }}"
+    group: "{{ sap_install_media_detect_directory_group }}"
+    mode: "{{ sap_install_media_detect_directory_mode }}"
+  loop: "{{ __sap_install_media_detect_fact_extraction_directories }}"
+  loop_control:
+    loop_var: dir_item
+  when: sap_install_media_detect_extract_archives
