@@ -1,0 +1,335 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# The progress facts record how far the role got, so that 'post_tasks/show_summary.yml' reports
+# only the sections whose facts are set. They are initialized in the first task of the first task
+# file of the role, and they are re-set on every run, because the role can run multiple times in
+# the same playbook run with different parameters.
+#
+# The failure facts are the same idea for the task which ended the run. They are filled by the
+# rescue section of 'tasks/main.yml' and turn the summary into the failure report of the run.
+- name: SAP Install Media Detect - Summary - Initialize the progress and failure facts
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_failed_task: ''
+    __sap_install_media_detect_fact_failed_message: ''
+
+    __sap_install_media_detect_fact_is_directory_checked: false
+    __sap_install_media_detect_fact_is_main_directory_reset: false
+    __sap_install_media_detect_fact_is_media_scanned: false
+    __sap_install_media_detect_fact_is_media_copied: false
+    __sap_install_media_detect_fact_is_deduplicated: false
+    __sap_install_media_detect_fact_is_file_types_scanned: false
+    __sap_install_media_detect_fact_is_renamed: false
+    __sap_install_media_detect_fact_is_sapcar_provided: false
+    __sap_install_media_detect_fact_is_classified: false
+    __sap_install_media_detect_fact_is_organized: false
+
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_source_directory' is defined as non-empty string
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_source_directory is defined
+      - sap_install_media_detect_source_directory is string
+      - sap_install_media_detect_source_directory | trim | length > 0
+    fail_msg: |
+      The variable 'sap_install_media_detect_source_directory' is undefined, empty or invalid.
+      It should be the path to the directory with the SAP installation media.
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_target_directory' is defined as non-empty string
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_target_directory is string
+      - sap_install_media_detect_target_directory | trim | length > 0
+    fail_msg: |
+      The variable 'sap_install_media_detect_target_directory' is undefined, empty or invalid.
+      It should be the path to the directory where the SAP installation media will be moved after extraction.
+  when: sap_install_media_detect_target_directory is defined
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_create_target_directory' is defined as boolean
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_create_target_directory is defined
+      - sap_install_media_detect_create_target_directory is boolean
+    fail_msg: |
+      The variable 'sap_install_media_detect_create_target_directory' is undefined or invalid.
+      It should be a boolean describing if the role should create the target directory.
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_rename_target_file_exists' is defined as valid string
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_rename_target_file_exists is defined
+      - sap_install_media_detect_rename_target_file_exists is string
+      - sap_install_media_detect_rename_target_file_exists in ['skip', 'fail', 'overwrite']
+    fail_msg: |
+      The variable 'sap_install_media_detect_rename_target_file_exists' is undefined or invalid.
+      It should be one of: 'skip', 'fail', 'overwrite'.
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_extract_archives' is defined as boolean
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_extract_archives is defined
+      - sap_install_media_detect_extract_archives is boolean
+    fail_msg: |
+      The variable 'sap_install_media_detect_extract_archives' is undefined or invalid.
+      It should be a boolean describing if the role should extract archives.
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_move_or_copy_archives' is defined as boolean
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_move_or_copy_archives is defined
+      - sap_install_media_detect_move_or_copy_archives is boolean
+    fail_msg: |
+      The variable 'sap_install_media_detect_move_or_copy_archives' is undefined or invalid.
+      It should be a boolean describing if the role should move or copy files to the component based subdirectories.
+
+
+# Component Detection - Boolean.
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_swpm' is defined as boolean
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_swpm is boolean
+    fail_msg: |
+      The variable 'sap_install_media_detect_swpm' is undefined or invalid.
+      It should be a boolean describing if the role should enable SWPM detection.
+  when: sap_install_media_detect_swpm is defined
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_hostagent' is defined as boolean
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_hostagent is boolean
+    fail_msg: |
+      The variable 'sap_install_media_detect_hostagent' is undefined or invalid.
+      It should be a boolean describing if the role should enable Host Agent detection.
+  when: sap_install_media_detect_hostagent is defined
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_igs' is defined as boolean
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_igs is boolean
+    fail_msg: |
+      The variable 'sap_install_media_detect_igs' is undefined or invalid.
+      It should be a boolean describing if the role should enable IGS detection.
+  when: sap_install_media_detect_igs is defined
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_kernel' is defined as boolean
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_kernel is boolean
+    fail_msg: |
+      The variable 'sap_install_media_detect_kernel' is undefined or invalid.
+      It should be a boolean describing if the role should enable Kernel detection.
+  when: sap_install_media_detect_kernel is defined
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_webdisp' is defined as boolean
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_webdisp is boolean
+    fail_msg: |
+      The variable 'sap_install_media_detect_webdisp' is undefined or invalid.
+      It should be a boolean describing if the role should enable Web Dispatcher detection.
+  when: sap_install_media_detect_webdisp is defined
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_mpstack' is defined as boolean
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_mpstack is boolean
+    fail_msg: |
+      The variable 'sap_install_media_detect_mpstack' is undefined or invalid.
+      It should be a boolean describing if the role should enable MP Stack detection.
+  when: sap_install_media_detect_mpstack is defined
+
+
+# Component Detection - Valid values.
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_db' is defined as valid string
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_db is string
+      - sap_install_media_detect_db in ['', 'saphana', 'sapase', 'sapmaxdb', 'oracledb', 'ibmdb2']
+    fail_msg: |
+      The variable 'sap_install_media_detect_db' is undefined or invalid.
+      It should be one of: 'saphana', 'sapase', 'sapmaxdb', 'oracledb', 'ibmdb2'.
+      NOTE: Setting the value to an empty string disables the detection for the database type.
+  when: sap_install_media_detect_db is defined
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_db_client' is defined as valid string
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_db_client is string
+      - sap_install_media_detect_db_client in ['', 'saphana', 'sapase', 'sapmaxdb', 'oracledb', 'ibmdb2']
+    fail_msg: |
+      The variable 'sap_install_media_detect_db_client' is undefined or invalid.
+      It should be one of: 'saphana', 'sapase', 'sapmaxdb', 'oracledb', 'ibmdb2'.
+      NOTE: Setting the value to an empty string disables the detection for the database client type.
+  when: sap_install_media_detect_db_client is defined
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_kernel_db' is defined as valid string
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_kernel_db is string
+      - sap_install_media_detect_kernel_db in ['', 'saphana', 'sapase', 'sapmaxdb', 'oracledb', 'ibmdb2']
+    fail_msg: |
+      The variable 'sap_install_media_detect_kernel_db' is undefined or invalid.
+      It should be one of: 'saphana', 'sapase', 'sapmaxdb', 'oracledb', 'ibmdb2'.
+      NOTE: Setting the value to an empty string disables the detection for the database type.
+      NOTE: This is required only if there is more than one SAPEXEDB file in the source directory.
+  when: sap_install_media_detect_kernel_db is defined
+
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_export' is defined as valid string
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_export is string
+      - sap_install_media_detect_export in
+        ['', 'saps4hana', 'sapbw4hana', 'sapecc', 'sapecc_ides', 'sapnwas_abap', 'sapnwas_java', 'sapsolman_abap', 'sapsolman_java']
+    fail_msg: |
+      The variable 'sap_install_media_detect_export' is undefined or invalid.
+      It should be one of: 'saps4hana', 'sapbw4hana', 'sapecc', 'sapecc_ides',
+        'sapnwas_abap', 'sapnwas_java', 'sapsolman_abap', 'sapsolman_java'.
+      NOTE: Setting the value to an empty string disables the detection for the export type.
+  when: sap_install_media_detect_export is defined
+
+
+# RAR handling variables.
+- name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_rar_handling' is defined as boolean
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_rar_handling is defined
+      - sap_install_media_detect_rar_handling is boolean
+    fail_msg: |
+      The variable 'sap_install_media_detect_rar_handling' is undefined or invalid.
+      It should be a boolean describing if the role should enable the handling of RAR files.
+
+- name: Block for RAR handling variables
+  when: sap_install_media_detect_rar_handling
+  block:
+
+    - name: SAP Install Media Detect - Validation - Assert that the variable 'sap_install_media_detect_rar_use_unar' is defined as boolean
+      ansible.builtin.assert:
+        that:
+          - sap_install_media_detect_rar_use_unar is defined
+          - sap_install_media_detect_rar_use_unar is boolean
+        fail_msg: |
+          The variable 'sap_install_media_detect_rar_use_unar' is undefined or invalid.
+          It should be a boolean describing if RAR files are handled by the 'unar' package, which is installed by this role.
+
+    # The 'unar' package is obtained from EPEL on Red Hat, which requires the GPG key of the
+    # repository to be imported. Both variables are only used on that platform.
+    - name: SAP Install Media Detect - Validation - Assert that the variables for the EPEL repository are defined
+      ansible.builtin.assert:
+        that:
+          - sap_install_media_detect_epel_gpg_key_url is defined
+          - sap_install_media_detect_epel_gpg_key_url is string
+          - sap_install_media_detect_epel_gpg_key_url | trim | length > 0
+
+          - sap_install_media_detect_use_rpm_key_module_for_removing_the_key is defined
+          - sap_install_media_detect_use_rpm_key_module_for_removing_the_key is boolean
+        fail_msg: |
+          The variables for the EPEL repository are undefined, empty or invalid.
+          The variable 'sap_install_media_detect_epel_gpg_key_url' should be the URL of the EPEL GPG key,
+          and the variable 'sap_install_media_detect_use_rpm_key_module_for_removing_the_key' should be a
+          boolean describing if the key is removed with the 'rpm_key' module instead of the 'rpm -e' command.
+      when:
+        - sap_install_media_detect_rar_use_unar
+        - ansible_facts['os_family'] == 'RedHat'
+
+    # These commands are only used when the role does not install the 'unar' package (default).
+    - name: SAP Install Media Detect - Validation - Assert that the commands for handling RAR files are defined as non-empty strings
+      ansible.builtin.assert:
+        that:
+          - sap_install_media_detect_rar_list is defined
+          - sap_install_media_detect_rar_list is string
+          - sap_install_media_detect_rar_list | trim | length > 0
+
+          - sap_install_media_detect_rar_extract is defined
+          - sap_install_media_detect_rar_extract is string
+          - sap_install_media_detect_rar_extract | trim | length > 0
+        fail_msg: |
+          The variable 'sap_install_media_detect_rar_use_unar' is set to 'false', but the commands for listing and
+          extracting RAR files are undefined, empty or invalid.
+          Define 'sap_install_media_detect_rar_list' and 'sap_install_media_detect_rar_extract' with the
+          program and the argument that makes it list or extract, for example '/usr/bin/unrar lb'.
+      when: not sap_install_media_detect_rar_use_unar
+
+    - name: SAP Install Media Detect - Validation - Assert that the argument for the extraction directory is defined as string
+      ansible.builtin.assert:
+        that:
+          - sap_install_media_detect_rar_extract_directory_argument is defined
+          - sap_install_media_detect_rar_extract_directory_argument is string
+        fail_msg: |
+          The variable 'sap_install_media_detect_rar_use_unar' is false, but the argument for the
+          extraction directory is undefined or invalid.
+          Define 'sap_install_media_detect_rar_extract_directory_argument' with the argument that the
+          extraction program uses to specify the target directory, starting with a space character.
+          Set it to an empty string if the program takes the directory as a bare argument.
+      when: not sap_install_media_detect_rar_use_unar
+
+
+# File ownership variables
+- name: SAP Install Media Detect - Validation - Assert that the file ownership variables are defined as non-empty strings
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_directory_owner is defined
+      - sap_install_media_detect_directory_owner is string
+      - sap_install_media_detect_directory_owner | trim | length > 0
+
+      - sap_install_media_detect_directory_group is defined
+      - sap_install_media_detect_directory_group is string
+      - sap_install_media_detect_directory_group | trim | length > 0
+
+      - sap_install_media_detect_files_owner is defined
+      - sap_install_media_detect_files_owner is string
+      - sap_install_media_detect_files_owner | trim | length > 0
+
+      - sap_install_media_detect_files_group is defined
+      - sap_install_media_detect_files_group is string
+      - sap_install_media_detect_files_group | trim | length > 0
+
+    fail_msg: |
+      The file ownership variables are undefined, empty or invalid.
+      Ensure that following variables are all defined as non-empty strings.
+      - 'sap_install_media_detect_directory_owner'
+      - 'sap_install_media_detect_directory_group'
+      - 'sap_install_media_detect_files_owner'
+      - 'sap_install_media_detect_files_group'
+
+# The value has to be a string, because YAML reads an unquoted 0755 as the number 493, which the
+# 'file' and 'copy' modules then apply as the mode 0755 of a decimal number.
+- name: SAP Install Media Detect - Validation - Assert that the file permission variables are defined as octal strings
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_directory_mode is defined
+      - sap_install_media_detect_directory_mode is string
+      - sap_install_media_detect_directory_mode is match('^0[0-7]{3,4}$')
+
+      - sap_install_media_detect_files_mode is defined
+      - sap_install_media_detect_files_mode is string
+      - sap_install_media_detect_files_mode is match('^0[0-7]{3,4}$')
+
+    fail_msg: |
+      The file permission variables are undefined, empty or invalid.
+      Ensure that following variables are all defined as quoted octal strings, for example '0755'.
+      - 'sap_install_media_detect_directory_mode'
+      - 'sap_install_media_detect_files_mode'
+
+
+- name: SAP Install Media Detect - Validation - Get details about available users
+  ansible.builtin.getent:
+    database: passwd
+
+- name: SAP Install Media Detect - Validation - Get details about available groups
+  ansible.builtin.getent:
+    database: group
+
+- name: SAP Install Media Detect - Validation - Fail if file ownership user or group does not exist
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The user or group defined in file ownership variables are not present on this host.
+      Ensure that following users and groups are present on this host.
+      - Directory owner: '{{ sap_install_media_detect_directory_owner }}'
+      - Directory group: '{{ sap_install_media_detect_directory_group }}'
+      - Files owner: '{{ sap_install_media_detect_files_owner }}'
+      - Files group: '{{ sap_install_media_detect_files_group }}'
+  when:
+    - ansible_facts["getent_passwd"][sap_install_media_detect_directory_owner] is not defined
+      or ansible_facts["getent_passwd"][sap_install_media_detect_files_owner] is not defined
+      or ansible_facts["getent_group"][sap_install_media_detect_directory_group] is not defined
+      or ansible_facts["getent_group"][sap_install_media_detect_files_group] is not defined

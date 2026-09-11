@@ -1,0 +1,125 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Initial file type detection using the 'file' command.
+
+# NOTE: The sapfile utility does not support files without extension,
+# so we have to use the 'file' command to determine the type of a file without extension.
+# This validates only how files were created, not the content of the file or intent behind it!
+#
+# NOTE: A SAP archive is only identified by the 'file' command starting with version 5.46,
+# an older version reports the generic 'data' for it, which is not conclusive.
+# Such a file stays unidentified and has to get the extension '.SAR' added manually.
+
+
+# Get list of files without extension.
+- name: SAP Install Media Detect - Scan - Set fact with all files without extension
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_files_without_extension:
+      "{{ __sap_install_media_detect_fact_source_files | reject('search', '\\.[^/]+$') | list }}"
+
+# The 'file' command is part of base operating system packages, so it is available on all supported platforms.
+# The 'batch' filter is used to avoid exceeding the maximum command line length of the execution environment,
+# while still avoiding looping over every file individually.
+# An empty list produces no batch at all, so the task is skipped without an extra condition.
+- name: SAP Install Media Detect - Scan - Determine the type of all files without extension
+  ansible.builtin.command:
+    cmd: "file {{ file_item | map('quote') | join(' ') }}"
+  register: __sap_install_media_detect_register_file_types
+  changed_when: false
+  loop: "{{ __sap_install_media_detect_fact_files_without_extension
+            | batch(__sap_install_media_detect_command_batch_size) | list }}"
+  loop_control:
+    loop_var: file_item
+    label: "{{ file_item | map('basename') | join(', ') }}"
+
+
+# Every output line is '<file name>: <description>', and a file name never contains a colon, so
+# the name is everything up to the first one and the description is the rest.
+# The keyword is searched in the description only, so that a file name can never match a keyword itself.
+- name: SAP Install Media Detect - Scan - Set facts with the type of all files without extension
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_zip_files_without_extension:
+      "{{ __output_lines | select('search', ':.*(' ~ __matrix['zip'] | join('|') ~ ')')
+          | map('regex_replace', __file_name_regex, '\\1') | list }}"
+
+    __sap_install_media_detect_fact_rar_files_without_extension:
+      "{{ __output_lines | select('search', ':.*(' ~ __matrix['rar'] | join('|') ~ ')')
+          | map('regex_replace', __file_name_regex, '\\1') | list }}"
+
+    __sap_install_media_detect_fact_exe_files_without_extension:
+      "{{ __output_lines | select('search', ':.*(' ~ __matrix['exe'] | join('|') ~ ')')
+          | map('regex_replace', __file_name_regex, '\\1') | list }}"
+
+    __sap_install_media_detect_fact_sapcar_files_without_extension:
+      "{{ __output_lines | select('search', ':.*(' ~ __matrix['EXE'] | join('|') ~ ')')
+          | map('regex_replace', __file_name_regex, '\\1') | list }}"
+
+    __sap_install_media_detect_fact_sar_files_without_extension:
+      "{{ __output_lines | select('search', ':.*(' ~ __matrix['SAR'] | join('|') ~ ')')
+          | map('regex_replace', __file_name_regex, '\\1') | list }}"
+  vars:
+    __matrix: "{{ __sap_install_media_detect_file_extension_matrix }}"
+    # Only a line that starts with a file name is a result. Anything else is a continuation of
+    # a long description and carries no file name, so it must not be matched against the keywords.
+    __output_lines:
+      "{{ __sap_install_media_detect_register_file_types.results | d([])
+          | map(attribute='stdout_lines') | flatten(levels=1)
+          | select('match', '^[^:\\s]+:\\s') | list }}"
+    __file_name_regex: '^([^:]+):\s+.*$'
+
+
+# Create list of all files without extension that could not be identified by the 'file' command.
+- name: SAP Install Media Detect - Scan - Set fact with all files of an unidentified type
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_unidentified_files_without_extension:
+      "{{ __sap_install_media_detect_fact_files_without_extension
+          | difference(__sap_install_media_detect_fact_zip_files_without_extension)
+          | difference(__sap_install_media_detect_fact_rar_files_without_extension)
+          | difference(__sap_install_media_detect_fact_exe_files_without_extension)
+          | difference(__sap_install_media_detect_fact_sapcar_files_without_extension)
+          | difference(__sap_install_media_detect_fact_sar_files_without_extension) }}"
+
+- name: SAP Install Media Detect - Scan - Warn about all files of an unidentified type
+  ansible.builtin.debug:
+    msg: |
+      WARN: Unable to determine the type of the following files without extension.
+      {% for __name in __sap_install_media_detect_fact_unidentified_files_without_extension %}
+      - {{ __name }}
+      {% endfor %}
+      Add the extension '.SAR' manually if any of them are a SAP archives, which is required
+      when the 'file' command is older than version 5.46 and does not know them yet.
+  when: __sap_install_media_detect_fact_unidentified_files_without_extension | length > 0
+
+- name: SAP Install Media Detect - Scan - Show the extension which is added to the files without extension
+  ansible.builtin.debug:
+    msg: |
+      INFO: The following files have no extension and the extension below is added to them,
+      so that the sapfile utility can classify them:
+      - .zip: {{ __sap_install_media_detect_fact_zip_files_without_extension | join(', ') }}
+      - .rar: {{ __sap_install_media_detect_fact_rar_files_without_extension | join(', ') }}
+      - .exe: {{ __sap_install_media_detect_fact_exe_files_without_extension | join(', ') }}
+      - .EXE: {{ __sap_install_media_detect_fact_sapcar_files_without_extension | join(', ') }}
+      - .SAR: {{ __sap_install_media_detect_fact_sar_files_without_extension | join(', ') }}
+  when: __sap_install_media_detect_fact_files_without_extension | length > 0
+
+
+# The role did not install any packages yet, only moved files to the main directory.
+# We can use results of the scan to determine if the RAR or SAPCAR are required.
+# This is useful, because it avoids configuring the EPEL on Red Hat to install 'unar'.
+- name: SAP Install Media Detect - Scan - Set facts for the presence of RAR and SAP archives
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_rar_files_present:
+      "{{ (__sap_install_media_detect_fact_source_files
+           | select('search', '(?i)\\.(rar|exe)$') | reject('search', 'SAPCAR') | list | length > 0)
+          or (__sap_install_media_detect_fact_rar_files_without_extension | length > 0)
+          or (__sap_install_media_detect_fact_exe_files_without_extension | length > 0) }}"
+
+    __sap_install_media_detect_fact_sar_files_present:
+      "{{ (__sap_install_media_detect_fact_source_files
+           | select('search', '(?i)\\.sar$') | list | length > 0)
+          or (__sap_install_media_detect_fact_sar_files_without_extension | length > 0) }}"
+
+- name: SAP Install Media Detect - Summary - Set the progress fact for the scan of the file types
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_is_file_types_scanned: true

@@ -1,0 +1,134 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Determines which of the supported directory layouts applies, and is the only place that does.
+# Breakdown of all supported scenarios is available in the role 'main.yml' file.
+# NOTE: The variable 'sap_install_media_detect_file_server_only' was deprecated.
+
+
+# Derived from a variable only, so it is available before any check below.
+# It is re-set on every run, because the role can run multiple times in the same
+# playbook run with different parameters.
+- name: SAP Install Media Detect - Directory - Set fact for usage of target directory
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_use_target_dir:
+      "{{ true if sap_install_media_detect_target_directory is defined else false }}"
+
+
+# Source directory validation.
+- name: SAP Install Media Detect - Directory - Stat the source directory
+  ansible.builtin.stat:
+    path: "{{ sap_install_media_detect_source_directory }}"
+  register: __sap_install_media_detect_register_source_dir_stat
+
+- name: SAP Install Media Detect - Directory - Fail if the source directory does not exist as a directory
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The path '{{ sap_install_media_detect_source_directory }}' does not exist or is not a directory.
+      Please ensure that the SAP Install Media Detect source directory is correct and accessible.
+  when: not (__sap_install_media_detect_register_source_dir_stat.stat.exists
+          and __sap_install_media_detect_register_source_dir_stat.stat.isdir)
+
+# Listing a directory requires both read and execute permission, so both are checked.
+- name: SAP Install Media Detect - Directory - Fail if the source directory is not readable
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The path '{{ sap_install_media_detect_source_directory }}' is not readable by the execution user.
+      Please ensure that the execution user has read and execute permission on the source directory.
+  when: not (__sap_install_media_detect_register_source_dir_stat.stat.readable
+          and __sap_install_media_detect_register_source_dir_stat.stat.executable)
+
+# Unsupported combination, which fails here before any target directory is created.
+- name: SAP Install Media Detect - Directory - Fail if the source directory is not writable and no target directory is defined
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The path '{{ sap_install_media_detect_source_directory }}' is not writable by the execution user
+      and the variable 'sap_install_media_detect_target_directory' is not defined.
+      The role has no directory to work in, because all detection steps move, rename and extract files.
+
+      Define 'sap_install_media_detect_target_directory' with a writable path, for example a local directory.
+      The installation media is then read from the source directory and copied into the target directory,
+      and the source directory is never written to. This is the intended way to use installation media
+      on a read-only file server share.
+  when:
+    - not __sap_install_media_detect_fact_use_target_dir
+    - not __sap_install_media_detect_register_source_dir_stat.stat.writeable
+
+
+- name: Block for write access to the source directory
+  when: not __sap_install_media_detect_fact_use_target_dir
+  block:
+
+    - name: SAP Install Media Detect - Directory - Set facts for usage of the source directory
+      ansible.builtin.set_fact:
+        __sap_install_media_detect_fact_source_directory:
+          "{{ sap_install_media_detect_source_directory | regex_replace('\\/$', '') }}"
+        __sap_install_media_detect_fact_main_directory:
+          "{{ sap_install_media_detect_source_directory | regex_replace('\\/$', '') }}"
+
+
+# Target directory validation.
+- name: Block for write access to the target directory
+  when: __sap_install_media_detect_fact_use_target_dir
+  block:
+
+    - name: SAP Install Media Detect - Directory - Stat the target directory
+      ansible.builtin.stat:
+        path: "{{ sap_install_media_detect_target_directory }}"
+      register: __sap_install_media_detect_register_target_dir_stat
+
+    - name: SAP Install Media Detect - Directory - Create the target directory
+      ansible.builtin.file:
+        path: "{{ sap_install_media_detect_target_directory }}"
+        state: directory
+        owner: 'root'
+        group: 'root'
+        mode: '0755'
+      when:
+        - not __sap_install_media_detect_register_target_dir_stat.stat.exists
+        - sap_install_media_detect_create_target_directory
+
+    # The stat above is taken before the creation attempt, so it has to be repeated.
+    - name: SAP Install Media Detect - Directory - Stat the target directory after the creation attempt
+      ansible.builtin.stat:
+        path: "{{ sap_install_media_detect_target_directory }}"
+      register: __sap_install_media_detect_register_target_dir_stat_retry
+
+    - name: SAP Install Media Detect - Directory - Fail if the target directory is not usable
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The path '{{ sap_install_media_detect_target_directory }}' does not exist, is not a directory,
+          or is not writable by the execution user.
+
+          Please ensure that the SAP Install Media Detect target directory is correct and accessible.
+          {% if not sap_install_media_detect_create_target_directory
+                and not __sap_install_media_detect_register_target_dir_stat_retry.stat.exists %}
+          The directory can be created by the role by setting 'sap_install_media_detect_create_target_directory' to true.
+          {% endif %}
+      when: not (__sap_install_media_detect_register_target_dir_stat_retry.stat.exists
+              and __sap_install_media_detect_register_target_dir_stat_retry.stat.isdir
+              and __sap_install_media_detect_register_target_dir_stat_retry.stat.writeable)
+
+    - name: SAP Install Media Detect - Directory - Set facts for usage of the target directory
+      ansible.builtin.set_fact:
+        __sap_install_media_detect_fact_source_directory:
+          "{{ sap_install_media_detect_source_directory | regex_replace('\\/$', '') }}"
+        __sap_install_media_detect_fact_main_directory:
+          "{{ sap_install_media_detect_target_directory | regex_replace('\\/$', '') }}"
+
+
+- name: SAP Install Media Detect - Directory - Show the source and main directories
+  ansible.builtin.debug:
+    msg: |
+      INFO: SAP installation media will be using the following directories:
+      Source: '{{ __sap_install_media_detect_fact_source_directory }}'
+      Main:   '{{ __sap_install_media_detect_fact_main_directory }}'
+      {% if not __sap_install_media_detect_fact_use_target_dir %}
+      All tasks will be executed in the source directory.
+      {% else %}
+      All tasks will be executed in the target directory, after copying files from source directory.
+      {% endif %}
+
+- name: SAP Install Media Detect - Summary - Set the progress fact for the directories
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_is_directory_checked: true

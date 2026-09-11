@@ -1,0 +1,83 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# A Linux file system can hold multiple files with same name, but different case in the same directory.
+# Example: 'igsexe_0-70008564.SAR' and 'igsexe_0-70008564.sar'.
+# The sapfile utility classifies them identically, so both are placed in the same target directory for SWPM to handle.
+#
+# Names which differ in more than the case are left alone, because a different file extension is a
+# different name and can be a different file.
+
+# NOTE: This is deduplication that occurs before the files are renamed.
+
+
+# The name is compared without its directory, the same way the scan removes duplicates, because the
+# installation media is in a single directory at this point.
+- name: SAP Install Media Detect - Deduplicate - Set facts with the files to keep and the duplicates
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_source_files: "{{ __kept_names | sort }}"
+    __sap_install_media_detect_fact_files_duplicate_skipped:
+      "{{ [] if __overwrite else __duplicate_names }}"
+    __sap_install_media_detect_fact_files_duplicate_removed:
+      "{{ __duplicate_names if __overwrite else [] }}"
+  vars:
+    __overwrite: "{{ sap_install_media_detect_rename_target_file_exists == 'overwrite' }}"
+
+    # Reverse case sensitive search is used to prioritize upper case extensions over lower case ones.
+    # Example: 'igsexe_0-70008564.SAR' and 'igsexe_0-70008564.sar'. The upper case extension will be prioritized.
+    __sorted_names:
+      "{{ __sap_install_media_detect_fact_source_files | sort(reverse=true, case_sensitive=true) }}"
+
+    # Filter 'zip' creates dictionary with the basename as the key and the full path as the value.
+    # Followed by 'dict2items' and 'map(attribute='value')' to extract the full paths of the files as a list.
+    # Basename as key ensures that only one file with the same name is kept, with the last occurrence taking precedence.
+    __kept_names:
+      "{{ dict(__sorted_names | map('basename') | map('lower') | zip(__sorted_names))
+          | dict2items | map(attribute='value') | list }}"
+
+    # List of files that were marked as duplicates and skipped based on the deduplication logic.
+    __duplicate_names:
+      "{{ __sap_install_media_detect_fact_source_files | reject('in', __kept_names) | list }}"
+
+
+# The role parameter decides what happens to installation media which is present twice.
+- name: SAP Install Media Detect - Deduplicate - Fail if the same file name is used more than once
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The following files use a name which another file already uses in a different case:
+      {% for __name in __sap_install_media_detect_fact_files_duplicate_skipped %}
+      - {{ __name }}
+      {% endfor %}
+      Set the role parameter 'sap_install_media_detect_rename_target_file_exists' to 'skip' to keep
+      them, or to 'overwrite' to remove them.
+  when:
+    - __sap_install_media_detect_fact_files_duplicate_skipped | length > 0
+    - sap_install_media_detect_rename_target_file_exists == 'fail'
+
+- name: SAP Install Media Detect - Deduplicate - Warn about the duplicates which are left in place
+  ansible.builtin.debug:
+    msg: |
+      WARN: The following files use a name which another file already uses in a different case:
+      {% for __name in __sap_install_media_detect_fact_files_duplicate_skipped %}
+      - {{ __name }}
+      {% endfor %}
+      Only the other file is processed, so that the same installation media is not classified twice
+      and does not end up twice in the same target directory. The files above are left in place.
+  when: __sap_install_media_detect_fact_files_duplicate_skipped | length > 0
+
+
+# The role parameter 'overwrite' resolves the duplicate by removing the file which is not kept.
+# In scenario A the main directory is the source directory, so this removes a file the source
+# directory came with, which 'overwrite' already does for the files it replaces during renaming.
+- name: SAP Install Media Detect - Deduplicate - Remove the duplicate files
+  ansible.builtin.file:
+    path: "{{ file_item }}"
+    state: absent
+  loop: "{{ __sap_install_media_detect_fact_files_duplicate_removed }}"
+  loop_control:
+    loop_var: file_item
+    label: "{{ file_item | basename }}"
+
+- name: SAP Install Media Detect - Summary - Set the progress fact for the deduplication
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_is_deduplicated: true

@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Tempfile is used only for sapfile utility.
+- name: SAP Install Media Detect - Provide Sapfile - Create temporary directory for role execution
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: sap_install_media_detect_
+  register: __sap_install_media_detect_register_tempfile
+
+- name: SAP Install Media Detect - Provide Sapfile - Set fact with path to sapfile utility
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_sapfile_path:
+      "{{ __sap_install_media_detect_register_tempfile.path }}/sapfile"
+
+- name: SAP Install Media Detect - Provide Sapfile - Copy the sapfile utility to temporary directory
+  ansible.builtin.copy:
+    src: tmp/sapfile
+    dest: "{{ __sap_install_media_detect_fact_sapfile_path }}"
+    mode: '0755'

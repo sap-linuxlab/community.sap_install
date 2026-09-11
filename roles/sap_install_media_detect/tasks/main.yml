@@ -1,109 +1,104 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# The sapcar (SAPCAR.EXE) program is required for the detection of the SAP file types. It is detected in create_file_list_phase_1.yml
-#- name: SAP Install Media Detect - Prepare - Set fact for the sapcar program
-#  ansible.builtin.set_fact:
-#    __sap_install_media_detect_fact_sapcar_path_for_sapfile: "{{ sap_install_media_detect_sapcar_path | d('sapcar') }}"
+### Scenarios
+# Removal of the 'sap_install_media_detect_file_server_only' variable offers a detection based approach,
+# instead of single purpose variable that requires role re-execution.
 
-- name: SAP Install Media Detect - Prepare - Provide sapfile utility
-  ansible.builtin.include_tasks:
-    file: prepare/provide_sapfile_utility.yml
-    apply:
-      tags: sap_install_media_detect_provide_sapfile_utility
-  tags: sap_install_media_detect_provide_sapfile_utility
+# The state of source and target directories is used to determine the scenario as follows:
+# +----------+------------------+------------------+--------------------+--------+
+# | Scenario | Source directory | Target directory | Main directory     | Result |
+# +----------+------------------+------------------+--------------------+--------+
+# | A        | writable         | not defined      | source directory   | runs   |
+# | B        | writable         | defined          | target directory   | runs   |
+# | C        | read only        | defined          | target directory   | runs   |
+# | D        | read only        | not defined      | -                  | fails  |
+# +----------+------------------+------------------+--------------------+--------+
 
-- name: SAP Install Media Detect - Prepare - Enable zip handling
-  ansible.builtin.include_tasks:
-    file: prepare/enable_zip_handling.yml
-    apply:
-      tags: sap_install_media_detect_zip_handling
-  tags: sap_install_media_detect_zip_handling
+# Summary of the scenarios:
+# A - The source directory is writable, and no target directory is defined.
+#     All tasks are executed in the source directory.
+# B - The source directory is writable, but a target directory is defined.
+#     All tasks are executed in the target directory.
+# C - The source directory is read-only, but a target directory is defined.
+#     All tasks are executed in the target directory.
+# D - The source directory is read-only, and no target directory is defined.
+#     Fail is triggered because the role cannot perform any tasks in a read-only source directory.
 
-- name: SAP Install Media Detect - Prepare - Enable rar handling
-  ansible.builtin.include_tasks:
-    file: prepare/enable_rar_handling.yml
-    apply:
-      tags: sap_install_media_detect_rar_handling
-  when: sap_install_media_detect_rar_handling
-  tags: sap_install_media_detect_rar_handling
+# Scenarios are determined in the 'pre_tasks/check_directories.yml' task file based on directory detection.
 
-- name: SAP Install Media Detect - Prepare - Check directories
-  ansible.builtin.include_tasks:
-    file: prepare/check_directories.yml
-    apply:
-      tags: sap_install_media_detect_check_directories
-  tags: sap_install_media_detect_check_directories
 
-- name: SAP Install Media Detect - Create a list of all files, phase 1
-  ansible.builtin.include_tasks:
-    file: prepare/create_file_list_phase_1.yml
-    apply:
-      tags: sap_install_media_detect_create_file_list_phase_1
-  tags: sap_install_media_detect_create_file_list_phase_1
+### Tags
+# - 'sap_install_media_detect_reset' - Reset of the main directory.
+# - 'sap_install_media_detect_prepare' - Prepare the host and read the installation media
+#    but do not move, rename or remove a single file of it.
+# - 'sap_install_media_detect_classify' - Adds the sapfile utility and the classification on top
+#    of the preparation, so that the summary reports what the installation media holds without changing it.
+# An untagged task file is part of a run without a tag only.
 
-- name: SAP Install Media Detect - Detect and if necessary rename zip and rar files without extension
-  ansible.builtin.include_tasks:
-    file: rename/add_file_extension.yml
-    apply:
-      tags: sap_install_media_detect_add_file_extension
-  tags: sap_install_media_detect_add_file_extension
 
-- name: SAP Install Media Detect - Move any files from subdirectories to main directory
-  ansible.builtin.include_tasks:
-    file: prepare/move_files_to_main_directory.yml
-    apply:
-      tags: sap_install_media_detect_move_files_to_main_directory
-  tags: sap_install_media_detect_move_files_to_main_directory
-  when: not sap_install_media_detect_file_server_only
+# NOTE: 'tags: always' cannot be used here, because it would use 'apply' on every task.
+#       This is difference between 'tags' on task level and 'tags' on block level.
+#       Organize tasks should be skipped for certain tags, which this would not allow.
+- name: Block for always running cleanup tasks
+  block:
 
-- name: SAP Install Media Detect - Create a list of all required files, phase 2
-  ansible.builtin.include_tasks:
-    file: prepare/create_file_list_phase_2.yml
-    apply:
-      tags: sap_install_media_detect_create_file_list_phase_2
-  tags: sap_install_media_detect_create_file_list_phase_2
-  when: not sap_install_media_detect_file_server_only
+    - name: SAP Install Media Detect - Prepare
+      ansible.builtin.include_tasks:
+        file: pre_tasks/main.yml
+      tags: always
 
-- name: SAP Install Media Detect - Organize files
-  ansible.builtin.include_tasks:
-    file: organize_files.yml
-    apply:
-      tags: sap_install_media_detect_organize_files
-  tags: sap_install_media_detect_organize_files
-  when: not sap_install_media_detect_file_server_only
+    # Conditional execution based on the scan results.
+    - name: SAP Install Media Detect - Organize
+      ansible.builtin.include_tasks:
+        file: organize/main.yml
+      when:
+        - __sap_install_media_detect_fact_is_media_scanned
+        - __sap_install_media_detect_fact_source_files | length > 0
+      tags: always
 
-- name: SAP Install Media Detect - Find files after extraction
-  ansible.builtin.include_tasks:
-    file: find_files_after_extraction.yml
-    apply:
-      tags: sap_install_media_detect_find_files_after_extraction
-  tags: sap_install_media_detect_find_files_after_extraction
-  when: not sap_install_media_detect_file_server_only
+  rescue:
 
-- name: SAP Install Media Detection Completed - Set global vars for subsequent Ansible tasks or roles
-  ansible.builtin.include_tasks:
-    file: set_global_vars.yml
-    apply:
-      tags: sap_install_media_detect_set_global_vars
-  tags: sap_install_media_detect_set_global_vars
-  when: not sap_install_media_detect_file_server_only
+    # The failed task is recorded to show clear fail task after summary.
+    # Without this, the failure is printed before the summary and scrolls out of view behind it.
+    - name: SAP Install Media Detect - Summary - Set the facts of the failed task
+      ansible.builtin.set_fact:
+        __sap_install_media_detect_fact_failed_task: "{{ ansible_failed_task.name | d('unknown task') }}"
+        __sap_install_media_detect_fact_failed_message: "{{ ansible_failed_result.msg | d('') }}"
+      tags: always
 
-- name: SAP Install Media Detection Completed - Cleanup - Disable the EPEL repo if necessary
-  ansible.builtin.include_tasks:
-    file: cleanup/disable-epel-repo.yml
-    apply:
-      tags: sap_install_media_detect_rar_handling
-  tags: sap_install_media_detect_rar_handling
-  when:
-    - sap_install_media_detect_rar_handling
-    - sap_install_media_detect_rar_package == 'EPEL'
-    - ansible_facts['os_family'] == 'RedHat'
-    - __sap_install_media_detect_register_rpm_q_epel.stdout != 'epel-release'
+  always:
 
-- name: SAP Install Media Detect - Cleanup - Remove sapfile utility
-  ansible.builtin.include_tasks:
-    file: cleanup/remove_sapfile_utility.yml
-    apply:
-      tags: sap_install_media_detect_provide_sapfile_utility
-  tags: sap_install_media_detect_provide_sapfile_utility
+    # Apply 'always' ensures every post task is executed, regardless of the tags used in the run.
+    # NOTE: Future additions to post tasks must be aware of this behavior.
+    - name: SAP Install Media Detect - Cleanup
+      ansible.builtin.include_tasks:
+        file: post_tasks/main.yml
+        apply:
+          tags: always
+      tags: always
+
+    # Conditional execution based on the scan results.
+    # Execution on empty source directory will still show summary, but this warning informs the user for better clarity.
+    - name: SAP Install Media Detect - Summary - Warn if the source directory is empty
+      ansible.builtin.debug:
+        msg: |
+          WARN: No file was found in the source directory '{{ __sap_install_media_detect_fact_source_directory }}'.
+          All remaining steps of this role were skipped, as there is no installation media to detect.
+
+          If this is not intended, ensure that the variable 'sap_install_media_detect_source_directory'
+          points to the directory that holds the installation media.
+      when:
+        - __sap_install_media_detect_fact_is_media_scanned
+        - __sap_install_media_detect_fact_source_files | length == 0
+      tags: always
+
+    # Fail based on the facts set in the rescue block section.
+    # NOTE: Summary will still produce output and its flag facts will allow to show what was completed before failure.
+    - name: SAP Install Media Detect - Summary - Fail if the role did not complete
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The role failed in the task '{{ __sap_install_media_detect_fact_failed_task }}'.
+          {{ __sap_install_media_detect_fact_failed_message }}
+      when: __sap_install_media_detect_fact_failed_task | length > 0
+      tags: always

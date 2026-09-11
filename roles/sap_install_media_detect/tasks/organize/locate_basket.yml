@@ -1,0 +1,246 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Locates the installation media files located in SWPM basket.
+# Each component is split into dedicated block to improve readability and allow for skip logic.
+
+# Default to current main directory if the 'sap_install_media_detect_move_or_copy_archives' variable is 'false',
+# or to the SWPM download basket if the variable is 'true'.
+- name: SAP Install Media Detect - Locate - Set fact with the directory of the SWPM installation media
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_swpm_directory:
+      "{{ __sap_install_media_detect_fact_main_directory
+          ~ ('/sap_swpm_download_basket'
+              if sap_install_media_detect_move_or_copy_archives else '') }}"
+
+- name: SAP Install Media Detect - Locate - Find all files of the SWPM installation media directory
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_fact_swpm_directory }}"
+    patterns: '*'
+    file_type: file
+    recurse: false
+  register: __sap_install_media_detect_register_locate_files
+
+
+# The dictionary with file basenames as keys and their full paths as values.
+# Files are sorted using 'matime' (modification time) so that the newest file can be easily selected with 'last'.
+# Filter 'zip' creates dictionary with the basename as the key and the full path as the value.
+- name: SAP Install Media Detect - Locate - Set fact with the files of the SWPM installation media directory
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_basket_files:
+      "{{ dict(__paths | map('basename') | zip(__paths))
+        | dict2items(key_name='file', value_name='path') }}"
+    __sap_install_media_detect_fact_located_files: {}
+  vars:
+    __paths:
+      "{{ __sap_install_media_detect_register_locate_files.files | d([])
+          | sort(attribute='mtime') | map(attribute='path') | list }}"
+
+
+# The SAP kernel requires both SAPEXE and SAPEXEDB to be present, but only one version of each is allowed.
+# We are not validating if correct version is across both files.
+- name: Block for the SAP kernel
+  when: "'kernel' in __sap_install_media_detect_fact_wanted_components"
+  vars:
+    # The lists of SAPEXE and SAPEXEDB file name paths, regardless of database type.
+    __kernel_names:
+      "{{ __sap_install_media_detect_fact_wanted_files
+          | selectattr('sap_file_type', 'equalto', 'sap_kernel')
+          | map(attribute='file') | list }}"
+    __kernel_db_names:
+      "{{ __sap_install_media_detect_fact_wanted_files
+          | selectattr('sap_file_type', 'match', 'sap_kernel_db')
+          | map(attribute='file') | list }}"
+
+    # The names of newest files of SAPEXE and SAPEXEDB files.
+    __kernel:
+      "{{ __sap_install_media_detect_fact_basket_files
+          | selectattr('file', 'in', __kernel_names)
+          | map(attribute='path') | list | last | d('') }}"
+    __kernel_db:
+      "{{ __sap_install_media_detect_fact_basket_files
+          | selectattr('file', 'in', __kernel_db_names)
+          | map(attribute='path') | list | last | d('') }}"
+  block:
+
+    - name: SAP Install Media Detect - Locate - Fail when the SAP kernel is not one SAPEXE and one SAPEXEDB
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The installation media does not hold exactly one SAPEXE and one SAPEXEDB file.
+          SAP system installation requires both files to be present.
+
+          Database independent SAP kernel files ('SAPEXE_*'):  {{ __kernel_names | length }}
+          Database dependent SAP kernel files ('SAPEXEDB_*'): {{ __kernel_db_names | length }}
+
+          Disable kernel handling by setting 'sap_install_media_detect_kernel' to 'false'
+          or prepare exactly one SAPEXE and one SAPEXEDB file.
+
+          NOTE: This role does not validate if both files have same version.
+      when: __kernel_names | length != 1 or __kernel_db_names | length != 1
+
+    # This dictionary key is not used, because 'sap_swpm' role does not consume it directly.
+    # - name: SAP Install Media Detect - Locate - Set fact with the located SAP kernel files
+    #   ansible.builtin.set_fact:
+    #     __sap_install_media_detect_fact_located_files:
+    #       "{{ __sap_install_media_detect_fact_located_files
+    #           | combine({'kernel_independent': __kernel, 'kernel_dependent': __kernel_db}) }}"
+
+
+# The sapfile utility reports the SAP IGS program and its helper as one SAP file type, so the two
+# are told apart by the file name, as the utility itself does.
+- name: Block for the SAP IGS
+  when: "'igs' in __sap_install_media_detect_fact_wanted_components"
+  vars:
+    # The list of SAP IGS file names, split into the program and its helper by the file name.
+    __igs_names:
+      "{{ __sap_install_media_detect_fact_wanted_files
+          | selectattr('sap_file_type', 'equalto', 'sap_igs') | map(attribute='file') | list }}"
+    __igs_program_names: "{{ __igs_names | select('search', '(?i)igsexe') | list }}"
+    __igs_helper_names: "{{ __igs_names | select('search', '(?i)igshelper') | list }}"
+
+    # The names of the newest SAP IGS program and helper files.
+    __igs:
+      "{{ __sap_install_media_detect_fact_basket_files
+          | selectattr('file', 'in', __igs_program_names)
+          | map(attribute='path') | list | last | d('') }}"
+    __igs_helper:
+      "{{ __sap_install_media_detect_fact_basket_files
+          | selectattr('file', 'in', __igs_helper_names)
+          | map(attribute='path') | list | last | d('') }}"
+  block:
+
+    - name: SAP Install Media Detect - Locate - Fail when the SAP IGS installation media is missing
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The installation media does not hold the SAP IGS files.
+
+          SAP IGS program ('igsexe_*'):   {{ __igs_program_names | length }}
+          SAP IGS helper ('igshelper_*'): {{ __igs_helper_names | length }}
+
+          Disable IGS handling by setting 'sap_install_media_detect_igs' to 'false'
+          or prepare both 'igsexe_*' and 'igshelper_*' files.
+      when: __igs_program_names | length == 0 or __igs_helper_names | length == 0
+
+    # This dictionary key is not used, because 'sap_swpm' role does not consume it directly.
+    # - name: SAP Install Media Detect - Locate - Set fact with the located SAP IGS files
+    #   ansible.builtin.set_fact:
+    #     __sap_install_media_detect_fact_located_files:
+    #       "{{ __sap_install_media_detect_fact_located_files
+    #           | combine({'igs': __igs, 'igs_helper': __igs_helper}) }}"
+
+
+- name: Block for the SAP Web Dispatcher
+  when: "'webdisp' in __sap_install_media_detect_fact_wanted_components"
+  vars:
+    # The list of SAP Web Dispatcher file names.
+    __webdisp_names:
+      "{{ __sap_install_media_detect_fact_wanted_files
+          | selectattr('sap_file_type', 'equalto', 'sap_webdisp') | map(attribute='file') | list }}"
+
+    # The name of the newest SAP Web Dispatcher file.
+    __webdisp:
+      "{{ __sap_install_media_detect_fact_basket_files | selectattr('file', 'in', __webdisp_names)
+          | map(attribute='path') | list | last | d('') }}"
+  block:
+
+    - name: SAP Install Media Detect - Locate - Fail when the SAP Web Dispatcher is not exactly one file
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The installation media does not hold exactly one SAP Web Dispatcher file.
+
+          SAP Web Dispatcher files ('SAPWEBDISP_*'): {{ __webdisp_names | length }}
+
+          Disable Web Dispatcher handling by setting 'sap_install_media_detect_webdisp' to 'false'
+          or prepare exactly one 'SAPWEBDISP_*' file.
+      when: __webdisp_names | length != 1
+
+    # This dictionary key is not used, because 'sap_swpm' role does not consume it directly.
+    # - name: SAP Install Media Detect - Locate - Set fact with the located SAP Web Dispatcher file
+    #   ansible.builtin.set_fact:
+    #     __sap_install_media_detect_fact_located_files:
+    #       "{{ __sap_install_media_detect_fact_located_files | combine({'webdisp': __webdisp}) }}"
+
+
+- name: Block for the SAP Maintenance Planner stack XML
+  when: "'mpstack' in __sap_install_media_detect_fact_wanted_components"
+  vars:
+    # The list of SAP Maintenance Planner stack XML file names.
+    __mpstack_names:
+      "{{ __sap_install_media_detect_fact_wanted_files
+          | selectattr('sap_file_type', 'equalto', 'sap_mp_xml') | map(attribute='file') | list }}"
+
+    # The name of the newest SAP Maintenance Planner stack XML file.
+    __mpstack:
+      "{{ __sap_install_media_detect_fact_basket_files | selectattr('file', 'in', __mpstack_names)
+          | map(attribute='path') | list | last | d('') }}"
+  block:
+
+    - name: SAP Install Media Detect - Locate - Fail when the SAP Maintenance Planner stack XML is missing
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The installation media does not hold the SAP Maintenance Planner stack XML file.
+
+          Disable Maintenance Planner stack XML handling by setting 'sap_install_media_detect_mpstack' to 'false'
+          or prepare the stack XML file.
+      when: __mpstack_names | length == 0
+
+    - name: SAP Install Media Detect - Locate - Set fact with the located SAP Maintenance Planner stack XML
+      ansible.builtin.set_fact:
+        __sap_install_media_detect_fact_located_files:
+          "{{ __sap_install_media_detect_fact_located_files | combine({'mpstack': __mpstack}) }}"
+
+
+# The SAP S/4HANA and the SAP BW/4HANA installation exports are not extracted,
+# delivered as SAR files inside of SWPM basket directory.
+# All SAR files are located inside the SWPM basket directory, so we can directly reference that directory for the exports.
+
+- name: Block for the SAP S/4HANA installation export
+  when: "'export_saps4hana' in __sap_install_media_detect_fact_wanted_components"
+  vars:
+    # The list of SAP S/4HANA installation export file names.
+    __s4hana_names:
+      "{{ __sap_install_media_detect_fact_wanted_files
+          | selectattr('sap_file_type', 'equalto', 'sap_export_s4hana')
+          | map(attribute='file') | list }}"
+  block:
+
+    - name: SAP Install Media Detect - Locate - Fail when the SAP S/4HANA installation export is missing
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The installation media does not hold the SAP S/4HANA installation export files ('*S4*EXPORT*').
+
+          Disable export handling by setting 'sap_install_media_detect_export' to an empty string
+          or prepare all parts of the SAP S/4HANA installation export.
+      when: __s4hana_names | length == 0
+
+    - name: SAP Install Media Detect - Locate - Set fact with the located SAP S/4HANA installation export
+      ansible.builtin.set_fact:
+        __sap_install_media_detect_fact_located_files:
+          "{{ __sap_install_media_detect_fact_located_files
+            | combine({'export_s4hana': __sap_install_media_detect_fact_swpm_directory}) }}"
+
+
+- name: Block for the SAP BW/4HANA installation export
+  when: "'export_sapbw4hana' in __sap_install_media_detect_fact_wanted_components"
+  vars:
+    # The list of SAP BW/4HANA installation export file names.
+    __bw4hana_names:
+      "{{ __sap_install_media_detect_fact_wanted_files
+          | selectattr('sap_file_type', 'equalto', 'sap_export_bw4hana')
+          | map(attribute='file') | list }}"
+  block:
+
+    - name: SAP Install Media Detect - Locate - Fail when the SAP BW/4HANA installation export is missing
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The installation media does not hold the SAP BW/4HANA installation export files ('*BW4*EXPORT*').
+
+          Disable export handling by setting 'sap_install_media_detect_export' to an empty string
+          or prepare all parts of the SAP BW/4HANA installation export.
+      when: __bw4hana_names | length == 0
+
+    - name: SAP Install Media Detect - Locate - Set fact with the located SAP BW/4HANA installation export
+      ansible.builtin.set_fact:
+        __sap_install_media_detect_fact_located_files:
+          "{{ __sap_install_media_detect_fact_located_files
+            | combine({'export_bw4hana': __sap_install_media_detect_fact_swpm_directory}) }}"
