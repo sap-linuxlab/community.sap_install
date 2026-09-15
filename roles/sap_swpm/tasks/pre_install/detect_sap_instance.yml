@@ -2,14 +2,6 @@
 ---
 
 ### This is a dedicated file to perform per-instance detection checks.
-- name: SAP SWPM Pre Install - Detect - Reset detection facts before checks
-  ansible.builtin.set_fact:
-    __sap_swpm_fact_detect_saphostctrl_instance_found: false
-    __sap_swpm_fact_detect_sapcontrol_instance_found: false
-    __sap_swpm_fact_detect_instance_files: false
-    __sap_swpm_fact_detect_instance_sapservices_found: false
-    __sap_swpm_fact_detect_instance_profiles_found: false
-
 
 # Check 4: Detect 'saphostctrl' and search for SID and instance number in 'ListInstances' output.
 # saphostctrl can return non-zero exit code when sapstartsrv process is not running.
@@ -110,11 +102,6 @@
           {{ __sap_swpm_fact_detect_sapcontrol_sid_match
             and __sap_swpm_fact_detect_sapcontrol_instance_name | d('') in instance_item.names }}
 
-    - name: SAP SWPM Pre Install - Detect - Show sapcontrol command output in verbose mode
-      ansible.builtin.debug:
-        var: __sap_swpm_register_sapcontrol_instance_properties
-      when: ansible_verbosity >= 2
-
 
 # Check 6: Check presence of files in directories.
 # Filter directories that match this instance's names.
@@ -193,22 +180,22 @@
   ansible.builtin.debug:
     msg: |
       INFO: Detection results for instance {{ instance_item.number }} ({{ instance_item.names | join(', ') }}):
-      {% if __sap_swpm_fact_detect_saphostctrl_instance_found | d(false) %}
+      {% if __sap_swpm_fact_detect_saphostctrl_instance_found %}
       - Found in saphostctrl output (ListInstances).
       {% endif %}
-      {% if __sap_swpm_fact_detect_sapcontrol_instance_found | d(false) %}
+      {% if __sap_swpm_fact_detect_sapcontrol_instance_found %}
       - Found in sapcontrol output (GetInstanceProperties).
       {% endif %}
-      {% if __sap_swpm_fact_detect_instance_files | d(false) %}
+      {% if __sap_swpm_fact_detect_instance_files %}
       - Found files in instance directories (/usr/sap/{{ __sap_swpm_sid }}/):
-      {% for dir in __sap_swpm_register_detect_instance_files_found.results if dir.matched is defined and dir.matched > 0 %}
+      {% for dir in __sap_swpm_register_detect_instance_files_found.results | d([]) if dir.matched is defined and dir.matched > 0 %}
         '{{ dir.dir_item.path }}': {{ dir.matched }} files.
       {% endfor %}
       {% endif %}
-      {% if __sap_swpm_fact_detect_instance_sapservices_found | d(false) %}
+      {% if __sap_swpm_fact_detect_instance_sapservices_found %}
       - Found in SAP services file (/usr/sap/sapservices).
       {% endif %}
-      {% if __sap_swpm_fact_detect_instance_profiles_found | d(false) %}
+      {% if __sap_swpm_fact_detect_instance_profiles_found %}
       - Found in profile files (/sapmnt/{{ __sap_swpm_sid }}/profile/).
       {% endif %}
       {% if not __any_checks_true %}
@@ -216,23 +203,23 @@
       {% endif %}
   vars:
     __any_checks_true: >-
-       {{ __sap_swpm_fact_detect_saphostctrl_instance_found | d(false)
-          or __sap_swpm_fact_detect_sapcontrol_instance_found | d(false)
-          or __sap_swpm_fact_detect_instance_files | d(false)
-          or __sap_swpm_fact_detect_instance_sapservices_found | d(false)
-          or __sap_swpm_fact_detect_instance_profiles_found | d(false) }}
+       {{ __sap_swpm_fact_detect_saphostctrl_instance_found
+          or __sap_swpm_fact_detect_sapcontrol_instance_found
+          or __sap_swpm_fact_detect_instance_files
+          or __sap_swpm_fact_detect_instance_sapservices_found
+          or __sap_swpm_fact_detect_instance_profiles_found }}
   when: __any_checks_true
 
 
 - name: SAP SWPM Pre Install - Detect - Set fact with detection results - {{ instance_item.number | d('') }}
   ansible.builtin.set_fact:
-    __sap_swpm_instance_results: "{{ __sap_swpm_instance_results | d([]) + [__current_result] }}"
+    __sap_swpm_fact_detect_instance_results: "{{ __sap_swpm_fact_detect_instance_results + [__current_result] }}"
   vars:
     __current_result:
       number: "{{ instance_item.number }}"
       names: "{{ instance_item.names }}"
-      saphostctrl: "{{ __sap_swpm_fact_detect_saphostctrl_instance_found | d(false) }}"
-      sapcontrol: "{{ __sap_swpm_fact_detect_sapcontrol_instance_found | d(false) }}"
-      files: "{{ __sap_swpm_fact_detect_instance_files | d(false) }}"
-      sapservices: "{{ __sap_swpm_fact_detect_instance_sapservices_found | d(false) }}"
-      profiles: "{{ __sap_swpm_fact_detect_instance_profiles_found | d(false) }}"
+      saphostctrl: "{{ __sap_swpm_fact_detect_saphostctrl_instance_found }}"
+      sapcontrol: "{{ __sap_swpm_fact_detect_sapcontrol_instance_found }}"
+      files: "{{ __sap_swpm_fact_detect_instance_files }}"
+      sapservices: "{{ __sap_swpm_fact_detect_instance_sapservices_found }}"
+      profiles: "{{ __sap_swpm_fact_detect_instance_profiles_found }}"
