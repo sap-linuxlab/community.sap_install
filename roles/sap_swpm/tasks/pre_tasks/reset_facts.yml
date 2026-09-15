@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Ansible retains facts for the duration of the playbook run, so we need to reset them before running the tasks.
+# This ensures that facts set by a previous invocation of this role do not interfere with the current play.
+# Example: The deployment scenario 'sap_s4hana_distributed_ha' in the 'ansible.playbooks_for_sap' repository.
+#          1. Database Load (NW_ABAP_DB) is executed on PAS host.
+#          2. PAS instance installation (NW_ABAP_CI) is executed on PAS host.
+#
+# Documentation: https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/set_fact_module.html#synopsis
+# Quote: "These variables will be available to subsequent plays during an ansible-playbook run via the host they were set on."
+
+
+- name: SAP SWPM - Reset Ansible facts set by this role
+  ansible.builtin.set_fact:
+    # SAP Product ID prefix, extracted in pre_install.yml from 'sap_swpm_product_catalog_id'.
+    # NOTE: This can be removed when tags are reviewed to ensure that both the setting and consuming tasks are properly tagged.
+    __sap_swpm_fact_product_prefix: ''
+
+    # Install type detection facts, set in 'install_type.yml'.
+    # NOTE: The header is reset to the default text, which is overwritten only for non-standard install types.
+    __sap_swpm_fact_installation_type: ''
+    __sap_swpm_fact_installation_header: 'Standard installation of SAP Software'
+
+    # Command generation facts.
+    __sap_swpm_fact_command_virtual_hostname: ''
+    __sap_swpm_fact_command_mp_stack: ''
+
+    # SAP detection facts - Boolean.
+    __sap_swpm_fact_sap_detected: false
+    __sap_swpm_fact_detect_saphostctrl_instance_found: false
+    __sap_swpm_fact_detect_sapcontrol_instance_found: false
+    __sap_swpm_fact_detect_instance_files: false
+    __sap_swpm_fact_detect_instance_sapservices_found: false
+    __sap_swpm_fact_detect_instance_profiles_found: false
+
+    # SAP detection facts - Lists.
+    # Lists without reset would result in adding items to the existing list rather than overwriting it.
+    __sap_swpm_fact_detect_instances: []
+    __sap_swpm_fact_detect_instance_results: []
+    __sap_swpm_fact_parsed_swpm_list: []
+
+    # Set conditionally in 'pre_install/software/sapcar.yml'.
+     # The other file name facts need no reset: they are set unconditionally in 'prepare_variables.yml'.
+    __sap_swpm_fact_sapcar_file_name: ''
+
+    # Virtual IP resolved from the 'sap_swpm_virtual_hostname' parameter, for HA installations.
+    __sap_swpm_fact_virtual_ip: ''
+
+
+# NOTE: Not every fact of this role is reset here.
+# A fact needs an entry above only if a code path exists where a consumer of the fact runs,
+# but the task setting the fact does not. This happens in three cases:
+#   1. The setting task, or a block containing it, has a 'when' condition.
+#   2. The task file containing it is not included, or is included with an empty loop.
+#   3. The setting task is excluded by tags, while a consumer is not.
+# If none of these apply, the fact is overwritten on every run and needs no reset.
+#
+# Example: '__sap_swpm_fact_detect_instance_dirs_matching' is not reset.
+# - It is set unconditionally in 'pre_install/detect_sap_instance.yml', which is only ever
+#   included after the setting task, so every consumer sees a value from the current run.
+# - Stale input is handled at the point of use instead, with the default filter on
+#   '__sap_swpm_register_instance_dirs_find.files'.
