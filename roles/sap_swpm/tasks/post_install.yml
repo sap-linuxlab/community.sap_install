@@ -26,7 +26,7 @@
 - name: SAP SWPM Post Install - Check for SAP HANA Client hdbuserstore
   ansible.builtin.stat:
     path: /usr/sap/{{ sap_swpm_sid }}/hdbclient/hdbuserstore
-  register: __sap_swpm_post_install_register_hdbuserstore_exists
+  register: __sap_swpm_register_hdbuserstore_exists
 
 - name: SAP SWPM Post Install - Enforce Connection Info in SAP HANA Client hdbuserstore
   ansible.builtin.shell: |
@@ -41,9 +41,9 @@
   when:
     - sap_swpm_install_saphostagent is defined
     - sap_swpm_install_saphostagent
-    - __sap_swpm_post_install_register_hdbuserstore_exists.stat.exists
-  register: __sap_swpm_post_install_register_hdbuserstore_connection
-  changed_when: __sap_swpm_post_install_register_hdbuserstore_connection is succeeded
+    - __sap_swpm_register_hdbuserstore_exists.stat.exists
+  register: __sap_swpm_register_hdbuserstore_connection
+  changed_when: __sap_swpm_register_hdbuserstore_connection is succeeded
 
 
 # Restart saphostctrl process to ensure it loads information about newly installed SAP system.
@@ -54,7 +54,7 @@
   when:
     - sap_swpm_install_saphostagent | d(true)
     # Restart only for freshly installed SAP system.
-    - not __sap_swpm_sap_detected | d(false) or sap_swpm_force | d(false)
+    - not __sap_swpm_fact_sap_detected or sap_swpm_force | d(false)
   # Restart can be always considered changed.
   changed_when: true
 
@@ -65,7 +65,7 @@
   ansible.builtin.debug:
     msg: |
       SAP System or Instance is deployed.
-      {% if __sap_swpm_sap_detected | d(false) and not sap_swpm_force | d(false) %}
+      {% if __sap_swpm_fact_sap_detected and not sap_swpm_force | d(false) %}
 
       NOTE: SAP Instance(s) were detected before installation.
       SWPM installation steps were skipped to avoid potential issues with existing installation.
@@ -73,7 +73,7 @@
       If you intend to proceed with the installation despite this warning,
       set 'sap_swpm_force' variable to 'true' and execute this Ansible Role again.
       {% endif %}
-      {% if __sap_swpm_sap_detected | d(false) and sap_swpm_force | d(false) %}
+      {% if __sap_swpm_fact_sap_detected and sap_swpm_force | d(false) %}
 
       NOTE: SAP Instance(s) were detected before installation.
       SWPM installation steps were executed regardless,
@@ -98,4 +98,4 @@
     - not __sap_swpm_fact_observer_mode
     - "'NW_ABAP_CI:' in sap_swpm_product_catalog_id | string or
        'NW_ABAP_OneHost:' in sap_swpm_product_catalog_id | string"
-    - not __sap_swpm_sap_detected | d(false) or sap_swpm_force | d(false)
+    - not __sap_swpm_fact_sap_detected or sap_swpm_force | d(false)

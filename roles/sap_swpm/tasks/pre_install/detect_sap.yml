@@ -168,11 +168,6 @@
       or (__sap_swpm_register_saphostctrl_list_instances.rc is defined
         and __sap_swpm_register_saphostctrl_list_instances.rc != 0)
 
-- name: SAP SWPM Pre Install - Detect - Show saphostctrl command output in verbose mode
-  ansible.builtin.debug:
-    var: __sap_swpm_register_saphostctrl_list_instances
-  when: ansible_verbosity >= 2
-
 
 # Check 5: Use 'sapcontrol' and search for SID and instance number in 'GetInstanceProperties' output.
 # The `sapcontrol` command from SAP kernel files can be used to obtain instance information.
@@ -252,34 +247,30 @@
 - name: SAP SWPM Pre Install - Detect - Include tasks for each instance
   ansible.builtin.include_tasks:
     file: detect_sap_instance.yml
-  loop: "{{ __sap_swpm_detect_instances }}"
+  loop: "{{ __sap_swpm_fact_detect_instances }}"
   loop_control:
     loop_var: instance_item
     label: "{{ instance_item.number }}"
-  when: __sap_swpm_detect_instances is defined
+  when: __sap_swpm_fact_detect_instances | length > 0
 
 
 ### Decision section based on collected facts.
-- name: SAP SWPM Pre Install - Detect - Show detection results in verbose mode
-  ansible.builtin.debug:
-    var: __sap_swpm_instance_results
-  when: ansible_verbosity >= 2
 
 # Set boolean facts for easier decision making in the next steps, based on collected results for all instances.
 - name: SAP SWPM Pre Install - Detect - Set fact with results for all instances
   ansible.builtin.set_fact:
     # SKIP should run only if all expected instances are detected.
     __sap_swpm_fact_detect_saphostctrl_all_found: >-
-      {{ __sap_swpm_instance_results | selectattr('saphostctrl', 'equalto', true) | list | length == __sap_swpm_detect_instances | length }}
+      {{ __sap_swpm_fact_detect_instance_results | selectattr('saphostctrl', 'equalto', true) | list | length == __sap_swpm_fact_detect_instances | length }}
     __sap_swpm_fact_detect_sapcontrol_all_found: >-
-      {{ __sap_swpm_instance_results | selectattr('sapcontrol', 'equalto', true) | list | length == __sap_swpm_detect_instances | length }}
+      {{ __sap_swpm_fact_detect_instance_results | selectattr('sapcontrol', 'equalto', true) | list | length == __sap_swpm_fact_detect_instances | length }}
     # FAIL should run if any of the indicators is found, but SKIP is not triggered.
     __sap_swpm_fact_detect_files_any_found: >-
-      {{ __sap_swpm_instance_results | selectattr('files', 'equalto', true) | list | length > 0 }}
+      {{ __sap_swpm_fact_detect_instance_results | selectattr('files', 'equalto', true) | list | length > 0 }}
     __sap_swpm_fact_detect_sapservices_any_found: >-
-      {{ __sap_swpm_instance_results | selectattr('sapservices', 'equalto', true) | list | length > 0 }}
+      {{ __sap_swpm_fact_detect_instance_results | selectattr('sapservices', 'equalto', true) | list | length > 0 }}
     __sap_swpm_fact_detect_profiles_any_found: >-
-      {{ __sap_swpm_instance_results | selectattr('profiles', 'equalto', true) | list | length > 0 }}
+      {{ __sap_swpm_fact_detect_instance_results | selectattr('profiles', 'equalto', true) | list | length > 0 }}
 
 
 # 3. FAIL - 'root' saphostctrl check does not find the desired SID and instance number, and any other indicators are found
@@ -288,13 +279,13 @@
   ansible.builtin.fail:
     msg: |
       FAIL: Potential existing SAP System installation detected based on the presence of identifiable indicators.
-      {% if __sap_swpm_fact_detect_files_any_found | d(false) %}
+      {% if __sap_swpm_fact_detect_files_any_found %}
       - Existence of files in '/usr/sap/{{ __sap_swpm_sid }}/' directory.
       {% endif %}
-      {% if __sap_swpm_fact_detect_sapservices_any_found | d(false) %}
+      {% if __sap_swpm_fact_detect_sapservices_any_found %}
       - Existence of instance entries in /usr/sap/sapservices file.
       {% endif %}
-      {% if __sap_swpm_fact_detect_profiles_any_found | d(false) %}
+      {% if __sap_swpm_fact_detect_profiles_any_found %}
       - Existence of profile files in '/sapmnt/{{ __sap_swpm_sid }}/profile/' directory.
       {% endif %}
       These checks trigger failure only when 'saphostctrl' and 'sapcontrol' fail to detect all instances.
@@ -303,11 +294,11 @@
       If you want to proceed with the installation regardless, please set 'sap_swpm_force' variable to true.
   when:
     - not sap_swpm_force | d(false)
-    - not __sap_swpm_fact_detect_saphostctrl_all_found | d(false)
-    - not __sap_swpm_fact_detect_sapcontrol_all_found | d(false)
-    - __sap_swpm_fact_detect_files_any_found | d(false)
-      or __sap_swpm_fact_detect_sapservices_any_found | d(false)
-      or __sap_swpm_fact_detect_profiles_any_found | d(false)
+    - not __sap_swpm_fact_detect_saphostctrl_all_found
+    - not __sap_swpm_fact_detect_sapcontrol_all_found
+    - __sap_swpm_fact_detect_files_any_found
+      or __sap_swpm_fact_detect_sapservices_any_found
+      or __sap_swpm_fact_detect_profiles_any_found
 
 
 # 1. SKIP - 'root' saphostctrl check finds the desired SID and instance number.
@@ -321,7 +312,7 @@
   block:
     - name: SAP SWPM Pre Install - Detect - Set fact if installation was detected
       ansible.builtin.set_fact:
-        __sap_swpm_sap_detected: true
+        __sap_swpm_fact_sap_detected: true
 
     - name: SAP SWPM Pre Install - Detect - Inform that installation was detected
       ansible.builtin.debug:
@@ -354,8 +345,8 @@
       - SAP services file (/usr/sap/sapservices)
       - Profile files (/sapmnt/{{ __sap_swpm_sid }}/profile/)
   when:
-    - not __sap_swpm_fact_detect_saphostctrl_all_found | d(false)
-    - not __sap_swpm_fact_detect_sapcontrol_all_found | d(false)
-    - not __sap_swpm_fact_detect_files_any_found | d(false)
-    - not __sap_swpm_fact_detect_sapservices_any_found | d(false)
-    - not __sap_swpm_fact_detect_profiles_any_found | d(false)
+    - not __sap_swpm_fact_detect_saphostctrl_all_found
+    - not __sap_swpm_fact_detect_sapcontrol_all_found
+    - not __sap_swpm_fact_detect_files_any_found
+    - not __sap_swpm_fact_detect_sapservices_any_found
+    - not __sap_swpm_fact_detect_profiles_any_found

@@ -22,7 +22,7 @@
     - name: SAP SWPM Pre Install, existing inifile - Search inifile for des25
       ansible.builtin.shell: |
         set -o pipefail && awk 'BEGIN{a=0}!/^#/&&/des25\(/{a++}END{print a}' {{ __sap_swpm_register_tmpdir.path }}/inifile.params
-      register: sap_swpm_inifile_count_des25
+      register: __sap_swpm_register_inifile_count_des25
       changed_when: false
 
     - name: SAP SWPM Pre Install, existing inifile - Ensure that des25 is not present in inifile
@@ -30,7 +30,7 @@
         msg:
           - "Inifile '{{ sap_swpm_inifile_directory }}/inifile.params' cannot be reused because it contains des25 encrypted data."
           - "See also SAP note 2609804."
-      when: sap_swpm_inifile_count_des25.stdout != '0'
+      when: __sap_swpm_register_inifile_count_des25.stdout != '0'
 
     - name: SAP SWPM Pre Install - Detect Variables
       ansible.builtin.import_tasks:
