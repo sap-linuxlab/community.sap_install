@@ -43,7 +43,7 @@
     - name: SAP SWPM - Firewall - Set fact with instance numbers for firewall configuration
       ansible.builtin.set_fact:
         # Combine ASCS, SCS, ERS into one list, if they are defined and their respective sections are in 'sap_swpm_inifile_sections_list'
-        __sap_swpm_firewall_inst_nrs_cs: >-
+        __sap_swpm_fact_firewall_inst_nrs_cs: >-
           {{
             [ (sap_swpm_ascs_instance_nr if (sap_swpm_ascs_instance_nr | d('') | length > 0 and
                 ('nw_config_central_services_abap' in sap_swpm_inifile_sections_list
@@ -58,7 +58,7 @@
           }}
 
         # Combine PAS, AAS, WD into one list, if they are defined and their respective sections are in 'sap_swpm_inifile_sections_list'
-        __sap_swpm_firewall_inst_nrs_app: >-
+        __sap_swpm_fact_firewall_inst_nrs_app: >-
           {{
             [ (sap_swpm_pas_instance_nr if (sap_swpm_pas_instance_nr | d('') | length > 0 and
                 'nw_config_primary_application_server_instance' in sap_swpm_inifile_sections_list) else []),
@@ -73,7 +73,7 @@
 
 
     - name: Block for central service instances
-      when: __sap_swpm_firewall_inst_nrs_cs | d([]) | length > 0
+      when: __sap_swpm_fact_firewall_inst_nrs_cs | d([]) | length > 0
       block:
         - name: SAP SWPM - Firewall - Generate service file from template for central service instances
           ansible.builtin.template:
@@ -82,7 +82,7 @@
             owner: 'root'
             group: 'root'
             mode: '0640'
-          loop: "{{ __sap_swpm_firewall_inst_nrs_cs }}"
+          loop: "{{ __sap_swpm_fact_firewall_inst_nrs_cs }}"
           loop_control:
             loop_var: instance_item
           vars:
@@ -103,14 +103,14 @@
               {% endif %}
               --permanent
               --add-service={{ __sap_swpm_firewall_service_name_cs }}-{{ instance_item }}
-          loop: "{{ __sap_swpm_firewall_inst_nrs_cs }}"
+          loop: "{{ __sap_swpm_fact_firewall_inst_nrs_cs }}"
           loop_control:
             loop_var: instance_item
           changed_when: true
 
 
     - name: Block for application instances
-      when: __sap_swpm_firewall_inst_nrs_app | d([]) | length > 0
+      when: __sap_swpm_fact_firewall_inst_nrs_app | d([]) | length > 0
       block:
         - name: SAP SWPM - Firewall - Generate service file from template for application instances
           ansible.builtin.template:
@@ -119,7 +119,7 @@
             owner: 'root'
             group: 'root'
             mode: '0640'
-          loop: "{{ __sap_swpm_firewall_inst_nrs_app }}"
+          loop: "{{ __sap_swpm_fact_firewall_inst_nrs_app }}"
           loop_control:
             loop_var: instance_item
           vars:
@@ -140,7 +140,7 @@
               {% endif %}
               --permanent
               --add-service={{ __sap_swpm_firewall_service_name_app }}-{{ instance_item }}
-          loop: "{{ __sap_swpm_firewall_inst_nrs_app }}"
+          loop: "{{ __sap_swpm_fact_firewall_inst_nrs_app }}"
           loop_control:
             loop_var: instance_item
           changed_when: true
@@ -167,8 +167,8 @@
 - name: Block for reloading firewall
   when:
     - (sap_swpm_firewall_ports | d([]) | length > 0)
-      or (__sap_swpm_firewall_inst_nrs_cs | d([]) | length > 0)
-      or (__sap_swpm_firewall_inst_nrs_app | d([]) | length > 0)
+      or (__sap_swpm_fact_firewall_inst_nrs_cs | d([]) | length > 0)
+      or (__sap_swpm_fact_firewall_inst_nrs_app | d([]) | length > 0)
   block:
 
     - name: SAP SWPM - Firewall - Reload firewalld after applying changes

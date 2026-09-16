@@ -25,7 +25,7 @@
 # Call sapinst synchronously
 # Reason for noqa: This command installs software, so it will change things
 # - name: SAP SWPM - {{ __sap_swpm_fact_installation_header }} # noqa no-changed-when
-#   ansible.builtin.command: "{{ __sap_swpm_sapinst_command }}"
+#   ansible.builtin.command: "{{ __sap_swpm_fact_sapinst_command }}"
 #   register: __sap_swpm_register_sapinst
 #   args:
 #     chdir: "{{ __sap_swpm_fact_sapinst_path }}"
@@ -39,7 +39,7 @@
 # Reason for noqa: This command installs software, so it will change things
 - name: SAP SWPM - {{ __sap_swpm_fact_installation_header }} # noqa no-changed-when
   ansible.builtin.shell: |
-    {{ __sap_swpm_sapinst_command }}
+    {{ __sap_swpm_fact_sapinst_command }}
   register: __sap_swpm_register_sapinst_async_job
   args:
     chdir: "{{ __sap_swpm_fact_sapinst_path }}"
@@ -115,7 +115,7 @@
 - name: SAP SWPM - Display status from sapcontrol file/s
   ansible.builtin.debug:
     msg: "{{ ['GetInstanceProperties'] + file_output.stdout_lines }}"
-  loop: "{{ __sap_swpm_register_sapcontrol_file_contents.results }}"
+  loop: "{{ __sap_swpm_register_sapcontrol_file_contents.results | d([]) }}"
   loop_control:
     loop_var: file_output
     label: "{{ file_output.line_item }}"
