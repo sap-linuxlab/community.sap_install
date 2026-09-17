@@ -1,0 +1,227 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Paths and mount points are stripped from a trailing '/', because the '/' is added explicitly to the constructed paths.
+# Generic mount point elif also covers SAP specific mount points: '/usr/sap/trans', '/hana/*', '/lss/shared'.
+# Resulting list length can be:
+# - 0 if mount point is in the forbidden paths list.
+# - 1 if a valid mount point was defined, SAP or non-SAP specific.
+# - 1+ if /usr/sap was defined and multiple subdirectories were created based on the host type.
+- name: SAP Storage Setup - NFS - Set facts with the NFS mount options and the directories
+  ansible.builtin.set_fact:
+    __sap_storage_setup_fact_nfs_server:
+      "{{ __sap_storage_setup_nfs_item['nfs_server'] | d(sap_storage_setup_nfs_server) | regex_replace('/$', '') }}"
+
+    # The filesystem type and the mount options are resolved once,
+    # because both the temporary mount and the mount of the entry have to use the same values.
+    __sap_storage_setup_fact_nfs_filesystem_type:
+      "{{ __sap_storage_setup_nfs_item['nfs_filesystem_type'] | d(sap_storage_setup_nfs_filesystem_type) }}"
+
+    __sap_storage_setup_fact_nfs_mount_options:
+      "{{ __sap_storage_setup_nfs_item['nfs_mount_options'] | d(sap_storage_setup_nfs_mount_options) }}"
+
+    __sap_storage_setup_fact_related_directories: |
+      {% set mount_list = [] %}
+      {%- set clean_mount_src = __sap_storage_setup_nfs_item['nfs_path'] | regex_replace('/$', '') -%}
+      {%- set clean_mountpoint = __sap_storage_setup_nfs_item['mountpoint'] | regex_replace('/$', '') -%}
+
+      {%- if clean_mountpoint == '/sapmnt' -%}
+        {%- set add_sapmnt = mount_list.extend([
+          {
+            'mount_src': clean_mount_src,
+            'mountpoint': clean_mountpoint,
+            'dir_only': '/' + __sap_storage_setup_sid,
+          }
+        ]) %}
+
+      {%- elif clean_mountpoint == '/usr/sap' -%}
+        {%- for common in __sap_storage_setup_nfs_dirs_usr_sap['all'] %}
+          {%- set add_all_usrsap = mount_list.extend([
+            {
+             'mount_src': clean_mount_src + '/' + common,
+             'mountpoint': clean_mountpoint + '/' + common,
+            }
+          ]) %}
+        {%- endfor %}
+
+        {%- for type in __sap_storage_setup_fact_host_types %}
+          {%- for dir in __sap_storage_setup_nfs_dirs_usr_sap[type] | d([]) %}
+            {%- set dirs = mount_list.extend([
+              {
+                'mount_src': clean_mount_src + '/' + dir,
+                'mountpoint': clean_mountpoint + '/' + dir,
+              }
+            ]) %}
+          {%- endfor %}
+        {%- endfor %}
+
+      {%- elif clean_mountpoint not in __sap_storage_setup_nfs_forbidden_paths -%}
+        {%- set add_other_nfs = mount_list.extend([
+          {
+            'mount_src': clean_mount_src,
+            'mountpoint': clean_mountpoint,
+          }
+        ]) %}
+
+      {%- endif %}
+      {{ mount_list }}
+
+
+- name: SAP Storage Setup - NFS - Show warning for mount points that are not allowed
+  ansible.builtin.debug:
+    msg: >
+      WARN: Provided NFS mount point '{{ __sap_storage_setup_nfs_item['mountpoint'] }}'
+      will be skipped, because it is in the forbidden paths list:
+      {{ __sap_storage_setup_nfs_forbidden_paths | map('quote') | join(', ') }}.
+  when:
+    # Only run this if the list is empty.
+    - __sap_storage_setup_fact_related_directories | length == 0
+
+
+- name: SAP Storage Setup - NFS - Show information for mount points that are not SAP specific
+  ansible.builtin.debug:
+    msg: |
+      INFO: Non-SAP specific mount point was detected: {{ __non_sap_mounts[0] }}
+      The mount point will be mounted, but no SAP specific subdirectories will be created.
+  vars:
+    # List of expected SAP mounts based on task above.
+    __sap_mount_regex: "^(/sapmnt|/usr/sap/trans|/lss/shared|/hana/.*|/software)$"
+
+    __non_sap_mounts: >-
+      {{ __sap_storage_setup_fact_related_directories
+         | rejectattr('mountpoint', 'search', __sap_mount_regex)
+         | map(attribute='mountpoint')
+         | list }}
+  when:
+    # Only run this if the list wasn't expanded (ignoring the complex /usr/sap logic)
+    - __sap_storage_setup_fact_related_directories | length == 1
+    - __non_sap_mounts | length > 0
+
+
+# The temporary mount is only needed to create directories that are missing on the NFS server.
+# A mount point that is already mounted proves that its directory exists, so it is excluded and
+# the temporary mount is skipped completely when all directories of the entry are mounted.
+#
+# The mount point and the source are compared together, because the same mount point can be
+# mounted from a different NFS server or from a different path of the same server.
+#
+# An empty 'nfs_path' leaves a trailing '/' on the source, which the mounted filesystems do not report,
+# so it is removed on both sides of the compare.
+- name: SAP Storage Setup - NFS - Set fact with the directories that are not mounted yet
+  ansible.builtin.set_fact:
+    __sap_storage_setup_fact_nfs_pending_directories: |
+      {% set pending = [] %}
+      {% for entry in __sap_storage_setup_fact_related_directories %}
+      {%- set source = (__sap_storage_setup_fact_nfs_server + '/'
+        + entry['mount_src'] | regex_replace('^/', '')) | regex_replace('/$', '') -%}
+      {%- set mounted_sources = ansible_facts['mounts']
+        | selectattr('mount', '==', entry['mountpoint'])
+        | map(attribute='device') | map('regex_replace', '/$', '') | list -%}
+      {%- if source not in mounted_sources -%}
+        {%- set add_to_list = pending.append(entry) -%}
+      {%- endif %}
+      {%- endfor %}
+      {{ pending }}
+
+
+# Put temporary tasks inside a block which will make sure
+# that even in case of failure the temporary mountpoint will be removed
+- name: SAP Storage Setup - Temporary steps for NFS directory structure
+  # Stop execution of tasks after this block for any host, if one host failed a task in this block.
+  any_errors_fatal: true
+  # Don't execute temporary mount tasks if all valid NFS mount points are already mounted.
+  when: __sap_storage_setup_fact_nfs_pending_directories | length > 0
+  block:
+
+    - name: SAP Storage Setup - NFS - Create directory as temporary mount point
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: sap_storage_setup_nfs_
+      register: __sap_storage_setup_register_nfs_tempdir
+
+    - name: SAP Storage Setup - NFS - Attach NFS host root for subdirectory verification
+      throttle: 1   # avoid NFS request flooding and silent timeout failures (observed on MS Azure Files)
+      ansible.posix.mount:
+        path: "{{ __sap_storage_setup_register_nfs_tempdir.path }}"
+        src: "{{ __sap_storage_setup_fact_nfs_server }}"
+        fstype: "{{ __sap_storage_setup_fact_nfs_filesystem_type }}"
+        opts: "{{ __sap_storage_setup_fact_nfs_mount_options }}"
+        state: mounted
+      when: __sap_storage_setup_register_nfs_tempdir.path is defined
+
+    # The temporary mount point holds the root of the NFS server, so the paths below it are
+    # the paths of the server from the key 'mount_src', not the mount points of this host.
+    - name: SAP Storage Setup - NFS - Check if directories exist on NFS share
+      ansible.builtin.stat:
+        path: "{{ __sap_storage_setup_register_nfs_tempdir.path }}{{ stat_item['mount_src'] }}{{ stat_item['dir_only'] | d('') }}"
+      register: __sap_storage_setup_register_stat_nfs_dirs
+      loop: "{{ __sap_storage_setup_fact_nfs_pending_directories }}"
+      loop_control:
+        loop_var: stat_item
+        label: "{{ stat_item['mount_src'] }}{{ stat_item['dir_only'] | d('') }}"
+      when: __sap_storage_setup_register_nfs_tempdir.path is defined
+
+
+    - name: SAP Storage Setup - NFS - Create directories if missing
+      ansible.builtin.file:
+        path: "{{ __sap_storage_setup_register_nfs_tempdir.path }}{{ dir_item['stat_item']['mount_src'] }}{{ dir_item['stat_item']['dir_only'] | d('') }}"
+        mode: '0777'
+        recurse: true
+        state: directory
+      loop: "{{ __sap_storage_setup_register_stat_nfs_dirs.results }}"
+      loop_control:
+        loop_var: dir_item
+        label: "{{ dir_item['stat_item']['mount_src'] }}{{ dir_item['stat_item']['dir_only'] | d('') }}"
+      when:
+        - __sap_storage_setup_register_nfs_tempdir.path is defined
+        - dir_item['stat'] is defined
+        - not dir_item['stat']['exists']
+
+  # Always execute cleanup.
+  always:
+
+    - name: SAP Storage Setup - NFS - Remove temporary NFS mount
+      throttle: 1  # avoid NFS request flooding and silent timeout failures (observed on MS Azure Files)
+      ansible.posix.mount:
+        path: "{{ __sap_storage_setup_register_nfs_tempdir.path }}"
+        state: absent
+      when: __sap_storage_setup_register_nfs_tempdir.path is defined
+
+    # If the mount failed, it will not clean up the temp directory through the mount module.
+    - name: SAP Storage Setup - NFS - Remove temporary NFS mount directory
+      ansible.builtin.file:
+        path: "{{ __sap_storage_setup_register_nfs_tempdir.path }}"
+        state: absent
+      when: __sap_storage_setup_register_nfs_tempdir.path is defined
+
+
+# An entry that is already mounted is not part of the temporary mount workflow,
+# but the subdirectory of the key 'dir_only' can still be missing.
+# It is created directly on the mounted filesystem, which does not need the root of the NFS server.
+- name: SAP Storage Setup - NFS - Create missing subdirectories on mounted filesystems
+  ansible.builtin.file:
+    path: "{{ mounted_item['mountpoint'] }}{{ mounted_item['dir_only'] }}"
+    mode: '0777'
+    state: directory
+  loop: "{{ __sap_storage_setup_fact_related_directories
+    | rejectattr('mountpoint', 'in', __sap_storage_setup_fact_nfs_pending_directories
+      | map(attribute='mountpoint'))
+    | selectattr('dir_only', 'defined') | list }}"
+  loop_control:
+    loop_var: mounted_item
+    label: "{{ mounted_item['mountpoint'] }}{{ mounted_item['dir_only'] }}"
+
+
+# The module is idempotent, so all entries are processed to maintain '/etc/fstab' including already mounted.
+- name: SAP Storage Setup - NFS - Mount the NFS filesystems
+  throttle: 1  # avoid NFS request flooding and silent timeout failures (observed on MS Azure Files)
+  ansible.posix.mount:
+    path: "{{ mount_item['mountpoint'] }}"
+    src: "{{ __sap_storage_setup_fact_nfs_server }}/{{ mount_item['mount_src'] | regex_replace('^/', '') }}"
+    fstype: "{{ __sap_storage_setup_fact_nfs_filesystem_type }}"
+    opts: "{{ __sap_storage_setup_fact_nfs_mount_options }}"
+    state: mounted
+  loop: "{{ __sap_storage_setup_fact_related_directories }}"
+  loop_control:
+    loop_var: mount_item
+    label: "{{ mount_item['mountpoint'] }}"
