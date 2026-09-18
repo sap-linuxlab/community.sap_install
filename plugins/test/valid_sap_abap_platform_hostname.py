@@ -3,6 +3,10 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+from ansible_collections.community.sap_install.plugins.plugin_utils.sap_abap_platform_hostname import (
+    validate_sap_abap_platform_hostname,
+)
+
 DOCUMENTATION = """
     name: valid_sap_abap_platform_hostname
     short_description: Test if a string is a valid SAP hostname
@@ -41,31 +45,14 @@ _result:
 
 def valid_sap_abap_platform_hostname(value):
     """
-    Test if value is a valid hostname according to specified criteria:
-    1. Must be a string
-    2. Must be 13 characters or less
-    3. Must not start with a number
-    4. Does not contain any characters other than alpha characters, digits and the hyphen character,
-    5. Must not contain a dot
+    Test if value is a valid hostname.
+
+    Shares its criteria with the 'validate_sap_abap_platform_hostname' filter,
+    which reports which of them failed.
 
     Returns True if valid, False if invalid
     """
-    if not isinstance(value, str):
-        return False
-
-    if len(value) > 13:
-        return False
-
-    if value and value[0].isdigit():
-        return False
-
-    if value and not value.replace('-', 'x').isalnum():
-        return False
-
-    if value and str(value).find('.') != -1:
-        return False
-
-    return True
+    return validate_sap_abap_platform_hostname(value)['valid']
 
 
 class TestModule(object):
