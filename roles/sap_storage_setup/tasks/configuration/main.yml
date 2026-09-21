@@ -1,0 +1,153 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Skip filter - entries that are already configured are removed before the mapping stage.
+# The LVM modules are idempotent, but the mapping stage matches entries against unused disks,
+# and an already configured filesystem must not be able to claim a spare disk of the same size.
+- name: SAP Storage Setup - Configuration - Set fact with block disks that are not configured yet
+  ansible.builtin.set_fact:
+    __sap_storage_setup_block_disks_pending:
+      "{{ __sap_storage_setup_block_disks | rejectattr('mountpoint', 'in', __mounted_paths) | list }}"
+
+    # The counterpart of the pending list, limited to entries that request striping.
+    # It is the only definition key that cannot be applied to an existing volume afterwards.
+    __sap_storage_setup_block_disks_skipped_striped:
+      "{{ __sap_storage_setup_block_disks
+        | selectattr('mountpoint', 'in', __mounted_paths)
+        | selectattr('lvm_lv_stripes', 'defined') | list }}"
+  vars:
+    __mounted_paths: "{{ ansible_facts['mounts'] | map(attribute='mount') | list }}"
+
+
+# A skipped entry is not evaluated at all, so an edited definition has no effect and the run
+# reports no difference. The stripe count is compared explicitly, because LVM cannot restripe an
+# existing logical volume, which makes it the one change that can never be applied by a re-run.
+- name: SAP Storage Setup - Configuration - Get the stripe count of the existing logical volumes
+  ansible.builtin.command:
+    cmd: lvs --noheadings --separator ',' -o vg_name,lv_name,stripes
+  register: __sap_storage_setup_register_lvs
+  changed_when: false
+  check_mode: false
+  failed_when: false
+  when: __sap_storage_setup_block_disks_skipped_striped | length > 0
+
+- name: SAP Storage Setup - Configuration - Set fact with skipped entries that have a different stripe count
+  ansible.builtin.set_fact:
+    __sap_storage_setup_fact_stripe_mismatch: |
+      {%- set mismatch = [] -%}
+      {%- for entry in __sap_storage_setup_block_disks_skipped_striped -%}
+        {%- set vg = entry['lvm_vg_name'] | d('vg_' + entry['name']) -%}
+        {%- set lv = entry['lvm_lv_name'] | d('lv_' + entry['name']) -%}
+        {%- set requested = entry['lvm_lv_stripes'] | int -%}
+        {%- for line in __sap_storage_setup_register_lvs['stdout_lines'] | d([]) -%}
+          {%- set fields = line | split(',') | map('trim') | list -%}
+          {%- if fields[0] == vg and fields[1] == lv and fields[2] | int != requested -%}
+            {%- set add = mismatch.append({
+              'name': entry['name'],
+              'current': fields[2],
+              'requested': requested,
+            }) -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endfor -%}
+      {{ mismatch }}
+  when: __sap_storage_setup_block_disks_skipped_striped | length > 0
+
+- name: SAP Storage Setup - Configuration - Show warning for existing volumes with a different stripe count
+  ansible.builtin.debug:
+    msg: |
+      WARN: The following storage definition entries are already in place and are left unchanged,
+      but their volume uses a different number of stripes than the key 'lvm_lv_stripes' requests:
+      {% for entry in __sap_storage_setup_fact_stripe_mismatch %}
+      - {{ entry['name'] }}: {{ entry['current'] }} stripe(s) in place, {{ entry['requested'] }} requested
+      {% endfor %}
+
+      LVM cannot restripe an existing volume. The data has to be backed up, the volume removed
+      and the entry configured again.
+  when: __sap_storage_setup_fact_stripe_mismatch | d([]) | length > 0
+
+
+# A swap disk has no mount point, so the filter above cannot be used for it. The logical volume
+# is the equivalent state: if it exists, the disk was configured by an earlier run and must not
+# be mapped again. Without this, the entry claims another unused disk and the LVM task reduces
+# the existing volume group to that disk, which fails while the volume is in use.
+- name: SAP Storage Setup - Configuration - Check if the volumes of the swap disks exist
+  ansible.builtin.stat:
+    path: "/dev/{{ swap_item['lvm_vg_name'] | d('vg_' + swap_item['name']) }}/{{
+      swap_item['lvm_lv_name'] | d('lv_' + swap_item['name']) }}"
+    get_attributes: false
+    get_checksum: false
+    get_mime: false
+  register: __sap_storage_setup_register_stat_swap_volumes
+  loop: "{{ __sap_storage_setup_swap_disks }}"
+  loop_control:
+    loop_var: swap_item
+    label: "{{ swap_item['name'] }}"
+
+- name: SAP Storage Setup - Configuration - Set fact with swap disks that are not configured yet
+  ansible.builtin.set_fact:
+    __sap_storage_setup_swap_disks_pending:
+      "{{ __sap_storage_setup_register_stat_swap_volumes['results'] | d([])
+        | rejectattr('stat.exists')
+        | map(attribute='swap_item') | list }}"
+
+
+# Create list of volumes accepted by LVM/LVG tasks: Block and Swap disks.
+# The key 'disk_size_gb' is added as helper key with normalized disk size in GB.
+- name: SAP Storage Setup - Configuration - Set fact with volumes to be configured with LVM
+  ansible.builtin.set_fact:
+    __sap_storage_setup_lvm_volumes:
+      "{{ __sap_storage_setup_lvm_volumes + [lvm_item | combine({'disk_size_gb': __size_gb})] }}"
+  vars:
+    # Strip size unit suffixes and convert it to integer.
+    __size_number: "{{ lvm_item['disk_size'] | string | regex_replace('[GTgt]$', '') | int }}"
+
+    # Multiply size by 1024 if TB was used.
+    __size_gb: "{{ __size_number | int * 1024
+      if lvm_item['disk_size'] | string is match('.*[Tt]$')
+      else __size_number | int }}"
+  loop: "{{ __sap_storage_setup_block_disks_pending + __sap_storage_setup_swap_disks_pending }}"
+  loop_control:
+    loop_var: lvm_item
+    label: "{{ lvm_item['name'] }}"
+
+
+# Executed before any single disk processing to ensure multipathing is configured correctly.
+# Precedence ensures that multipathing is configured before any single disk processing occurs.
+- name: SAP Storage Setup - Configuration - Configure multipathing
+  ansible.builtin.include_tasks:
+    file: configure_multipathing.yml
+  when:
+    - sap_storage_setup_multipath_enable_and_detect
+    - __sap_storage_setup_lvm_volumes | length > 0
+
+- name: SAP Storage Setup - Configuration - Set filesystem mapping facts
+  ansible.builtin.include_tasks:
+    file: set_filesystem_mapping.yml
+  when: __sap_storage_setup_lvm_volumes | length > 0
+
+- name: SAP Storage Setup - Configuration - Configure Volume groups and Logical volumes
+  ansible.builtin.include_tasks:
+    file: configure_lvg_lvm.yml
+  when: __sap_storage_setup_fact_volume_map | d([]) | length > 0
+
+- name: SAP Storage Setup - Configuration - Configure Swap disk
+  ansible.builtin.include_tasks:
+    file: configure_swap_disk.yml
+  when: __sap_storage_setup_swap_disks | length > 0
+
+- name: SAP Storage Setup - Configuration - Configure Swap file
+  ansible.builtin.include_tasks:
+    file: configure_swap_file.yml
+  loop: "{{ __sap_storage_setup_swap_files }}"
+  loop_control:
+    loop_var: __sap_storage_setup_swap_item
+    label: "{{ __sap_storage_setup_swap_item['name'] }}"
+
+- name: SAP Storage Setup - Configuration - Configure NFS mounts
+  ansible.builtin.include_tasks:
+    file: configure_nfs_mount.yml
+  loop: "{{ __sap_storage_setup_nfs_mounts }}"
+  loop_control:
+    loop_var: __sap_storage_setup_nfs_item
+    label: "{{ __sap_storage_setup_nfs_item['name'] }}"

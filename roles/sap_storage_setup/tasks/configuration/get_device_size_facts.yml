@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Dedicated task file to convert device sizes from Ansible facts into usable numerical string.
+# Unit type suffixes (GB, TB) are stripped (e.g. '100.00 GB' becomes 100).
+# Default size is in GB, so additional handling for TB is included.
+#
+# This file must be included after every refresh of the device facts,
+# because the normalized sizes are derived from 'ansible_facts.devices'.
+
+# The unit is removed without the leading space, because the 'float' filter ignores the whitespace that is left over.
+# A size reported without the space would keep the unit and be converted to 0,
+# which silently excludes the device from the size matching.
+# Original code assumed a space between the number and the unit (e.g. ' TB').
+#
+# Reason for noqa: Jinja2 spacing forces collapsed lines without indentation.
+- name: SAP Storage Setup - Device Sizes - Set fact with the size of every device in GB  # noqa jinja[spacing]
+  ansible.builtin.set_fact:
+    __sap_storage_setup_fact_device_size_gb: |
+      {% set device_sizes = {} %}
+      {% for disk in ansible_facts['devices'] | dict2items %}
+        {%- if disk.value.size | regex_search('.*TB$') -%}
+          {%- set size_gb = ((( disk.value.size | replace('TB', '') | float * 1024) /8) | round(0, 'ceil') * 8) | int -%}
+        {%- else -%}
+          {%- set size_gb = disk.value.size | regex_replace('(\.\d+\s*)', '') | replace('GB', '') | int -%}
+        {%- endif -%}
+        {%- set add_to_dict = device_sizes.update({disk.key: size_gb}) -%}
+      {%- endfor %}
+      {{ device_sizes }}

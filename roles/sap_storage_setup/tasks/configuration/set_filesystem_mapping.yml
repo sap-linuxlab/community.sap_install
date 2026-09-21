@@ -1,0 +1,185 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# NOTE: If the criteria for filesystem matching change, both tasks must be updated accordingly.
+
+
+- name: SAP Storage Setup - Filesystem Mapping - Get device size facts
+  ansible.builtin.include_tasks:
+    file: get_device_size_facts.yml
+
+# Devices named "dm-" are excluded, because they are mappings of disks created by multipathing or LVM, not single disks.
+# Multipath devices are discovered separately in 'configure_multipathing.yml' and are addressed by their WWN.
+- name: SAP Storage Setup - Filesystem Mapping - Set fact with a list of unused disk devices of the requested sizes
+  ansible.builtin.set_fact:
+    __sap_storage_setup_fact_available_devices: |
+      {%- set unused_disks = [] -%}
+      {%- set all_disks = (ansible_facts['devices'] | dict2items) -%}
+      {%- for disk in all_disks -%}
+        {%- set disk_size_gb = __sap_storage_setup_fact_device_size_gb[disk.key] -%}
+        {%- for fs in __sap_storage_setup_lvm_volumes -%}
+          {%- if not disk.key.startswith('dm-')
+              and disk.value.links.uuids | length == 0
+              and disk.value.partitions | length == 0
+              and disk.value.holders | length == 0
+              and ((disk_size_gb-8) <= fs['disk_size_gb'] <= (disk_size_gb+8)) -%}
+            {%- set add_to_list = unused_disks.append(disk) -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endfor -%}
+      {{ unused_disks | items2dict }}
+
+
+# If multipathing is enabled, the mapping will include multipath devices already, thus retaining precedence.
+#
+# First pass assigns disks based on exact size, for all entries.
+# Second pass assigns disks based on approximate size -8GB and +8GB, only for entries that are
+# still short of their stripe count.
+#
+# Both passes cover all entries before the next one starts, so that an approximate match of an
+# earlier entry cannot claim the disk that a later entry matches exactly.
+# With the passes nested inside the entry loop, the definition order alone decided which entry got the disk.
+- name: SAP Storage Setup - Filesystem Mapping - Set fact for target filesystem device mapping
+  ansible.builtin.set_fact:
+    __sap_storage_setup_fact_filesystem_device_map:
+      "{{ __sap_storage_setup_fact_filesystem_device_map | d([]) + __single_disk_to_fs_device_map }}"
+  vars:
+    __single_disk_to_fs_device_map: |
+      {% set device_map = [] %}
+      {% set unused_dev = (__sap_storage_setup_fact_available_devices | dict2items) %}
+      {% set assigned_dev = [] %}
+      {% set matched_dev = {} %}
+
+      {#- Entries that the multipath stage already mapped are excluded from both passes -#}
+      {#- matched_dev does not contain all keys so __sap_storage_setup_lvm_volumes is still needed for passes -#}
+      {%- for fs in __sap_storage_setup_lvm_volumes -%}
+        {%- if fs['name'] not in __sap_storage_setup_fact_filesystem_device_map | d([]) | map(attribute="name") -%}
+          {%- set init = matched_dev.update({fs['name']: []}) -%}
+        {%- endif -%}
+      {%- endfor -%}
+
+      {#- First pass, exact size check for all volumes -#}
+      {%- for fs in __sap_storage_setup_lvm_volumes -%}
+        {%- if fs['name'] in matched_dev -%}
+          {%- for dev in unused_dev -%}
+            {%- if __sap_storage_setup_fact_device_size_gb[dev.key] == fs['disk_size_gb']
+                and dev.key not in assigned_dev
+                and dev.value.holders | length == 0
+                and matched_dev[fs['name']] | length < (fs['lvm_lv_stripes'] | d('1') | int) -%}
+                {%- set assigned = assigned_dev.append(dev.key) -%}
+                {%- set add = matched_dev[fs['name']].append('/dev/' + dev.key) -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+      {%- endfor -%}
+
+      {#- Second pass, approximate size check for all remaining volumes -#}
+      {%- for fs in __sap_storage_setup_lvm_volumes -%}
+        {%- if fs['name'] in matched_dev
+            and matched_dev[fs['name']] | length < (fs['lvm_lv_stripes'] | d('1') | int) -%}
+          {%- for dev in unused_dev -%}
+            {%- set disk_size_gb = __sap_storage_setup_fact_device_size_gb[dev.key] -%}
+            {%- if (disk_size_gb-8) <= fs['disk_size_gb'] <= (disk_size_gb+8)
+                and dev.key not in assigned_dev
+                and dev.value.holders | length == 0
+                and matched_dev[fs['name']] | length < (fs['lvm_lv_stripes'] | d('1') | int) -%}
+
+                {%- set assigned = assigned_dev.append(dev.key) -%}
+                {%- set add = matched_dev[fs['name']].append('/dev/' + dev.key) -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+      {%- endfor -%}
+
+      {#- The map is built in definition order, entries without a device are left out -#}
+      {%- for fs in __sap_storage_setup_lvm_volumes -%}
+        {%- if fs['name'] in matched_dev and matched_dev[fs['name']] | length > 0 -%}
+          {%- set extend = device_map.extend([
+            {
+              'device': matched_dev[fs['name']] | join(','),
+              'name': fs['name'],
+            }
+          ]) -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {{ device_map }}
+
+
+# An entry without a matching device is skipped by the volume map task below, which means that
+# no filesystem is created for it. This is not handled as a failure, because the remaining
+# entries can still be configured and the missing disk can be attached later.
+- name: SAP Storage Setup - Filesystem Mapping - Show warning for entries without a matching device
+  ansible.builtin.debug:
+    msg: |
+      WARN: Storage definitions without unused device were skipped:
+      {% for entry in __unmapped_entries %}
+      - {{ entry }}
+      {% endfor %}
+
+      Ensure that the disks are attached and that they are not partitioned or already in use.
+  vars:
+    __unmapped_entries: "{{ __sap_storage_setup_lvm_volumes
+      | rejectattr('name', 'in', __sap_storage_setup_fact_filesystem_device_map | d([]) | map(attribute='name'))
+      | map(attribute='name') | list }}"
+  when: __unmapped_entries | length > 0
+
+
+# The number of mapped devices must match the requested number of stripes,
+# otherwise 'lvcreate' fails after the volume group was already created with an incomplete list of devices.
+- name: SAP Storage Setup - Filesystem Mapping - Fail if less devices than stripes were mapped
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The storage definition entry '{{ map_item['name'] }}' requests {{ __requested_stripes }}
+      stripes with the key 'lvm_lv_stripes', but only {{ __mapped_devices | length }} unused
+      device(s) of the requested size were found:
+      {{ __mapped_devices | join('\n') }}
+  vars:
+    __requested_stripes: "{{ map_item['lvm_lv_stripes'] | d(1) | int }}"
+    __mapped_devices: "{{ __sap_storage_setup_fact_filesystem_device_map
+      | selectattr('name', '==', map_item['name'])
+      | map(attribute='device') | join(',') | split(',') }}"
+  loop: "{{ __sap_storage_setup_lvm_volumes }}"
+  loop_control:
+    label: "{{ map_item['name'] }}"
+    loop_var: map_item
+  when:
+    - map_item['name'] in __sap_storage_setup_fact_filesystem_device_map | d([]) | map(attribute='name')
+    - __mapped_devices | length < __requested_stripes | int
+
+
+# Create new mapping list for volumes using previously set filesystem mapping.
+- name: SAP Storage Setup - Filesystem Mapping - Set fact for device to filesystem mapping
+  ansible.builtin.set_fact:
+    __sap_storage_setup_fact_volume_map:
+      "{{ __sap_storage_setup_fact_volume_map | d([]) + volume_element }}"
+  vars:
+    volume_element:
+      - filesystem_type: "{{ map_item['filesystem_type'] | d(sap_storage_setup_local_filesystem_type) }}"
+        mountpoint: "{{ map_item['mountpoint'] | d('') }}"
+        volume_group: "{{ map_item['lvm_vg_name'] | d('vg_' + map_item['name']) }}"
+        volume_name: "{{ map_item['lvm_lv_name'] | d('lv_' + map_item['name']) }}"
+        device: "{{ __sap_storage_setup_fact_filesystem_device_map
+          | selectattr('name', '==', map_item['name']) | map(attribute='device') | first }}"
+        pesize: "{{ map_item['lvm_vg_physical_extent_size'] | d('4') }}"
+        pv_opts: "{{ map_item['lvm_pv_options'] | d('') }}"
+        vg_opts: "{{ map_item['lvm_vg_options'] | d('') }}"
+        lv_opts: |-
+          {%- set lvopts = [] -%}
+          {%- if map_item['lvm_lv_stripes'] is defined and
+                 map_item['lvm_lv_stripes'] | int > 0 -%}
+            {%- set addopt = lvopts.append('--stripes ' + map_item['lvm_lv_stripes'] | string) -%}
+          {%- endif -%}
+          {%- if map_item['lvm_lv_stripe_size'] is defined and
+                 map_item['lvm_lv_stripe_size'] | length > 0 -%}
+            {%- set addopt = lvopts.append('--stripesize ' + map_item['lvm_lv_stripe_size']) -%}
+          {%- endif -%}
+          {{ lvopts | join(' ') }}
+
+  loop: "{{ __sap_storage_setup_lvm_volumes }}"
+  loop_control:
+    label: "{{ map_item['name'] }}"
+    loop_var: map_item
+  when:
+    # An entry that found no unused disk is omitted from the device map and must be skipped here,
+    # otherwise the volume group would be created with an empty device list.
+    - map_item['name'] in __sap_storage_setup_fact_filesystem_device_map | d([]) | map(attribute='name')
