@@ -1,0 +1,109 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Prepare lists of instance names and numbers for detection based on provided variables and product catalog ID.
+
+# Prepare lists of instance names and numbers for detection.
+# Lists based on Product ID.
+# Regex is used to remove items with empty values.
+- name: SAP SWPM Pre Install - Detect - Set fact with lists for detection using product ID
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_detect_instances:
+      "{{ __sap_swpm_product_sections_dict[__sap_swpm_fact_product_prefix]['instances'] }}"
+  when:
+    - __sap_swpm_product_sections_dict[__sap_swpm_fact_product_prefix] is defined
+    - __sap_swpm_product_sections_dict[__sap_swpm_fact_product_prefix]['instances'] is defined
+
+
+# Lists based on sections list if Product ID cannot be used.
+# NOTE: Defaults before 'unique' do not serve any purpose, because when already validates it,
+# but it is required for linting to pass.
+# Falling back to Ansible unique filter as Jinja2 one failed: 'sap_swpm_ascs_instance_nr' is undefined
+- name: Block to fall back on sections if product ID is not in dictionary
+  when:
+    - __sap_swpm_fact_product_prefix not in (
+        __sap_swpm_product_sections_dict.keys() | list
+        + __sap_swpm_product_detection_unavailable.skip | d([]))
+  block:
+
+    - name: SAP SWPM Pre Install - Detect - Set fact with lists for ASCS detection
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_detect_instances:
+          "{{ __sap_swpm_fact_detect_instances + __ascs_instances }}"
+      vars:
+        __ascs_instances:
+          - number: "{{ sap_swpm_ascs_instance_nr }}"
+            names:
+              - "{{ 'ASCS' ~ sap_swpm_ascs_instance_nr }}"
+      when:
+        - sap_swpm_ascs_instance_nr | d('') | length > 0
+        - "'nw_config_central_services_abap' in sap_swpm_inifile_sections_list"
+
+    - name: SAP SWPM Pre Install - Detect - Set fact with lists for SCS detection
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_detect_instances:
+          "{{ __sap_swpm_fact_detect_instances + __scs_instances }}"
+      vars:
+        __scs_instances:
+          - number: "{{ sap_swpm_java_scs_instance_nr }}"
+            names:
+              - "{{ 'SCS' ~ sap_swpm_java_scs_instance_nr }}"
+      when:
+        - sap_swpm_java_scs_instance_nr | d('') | length > 0
+        - "'nw_config_central_services_java' in sap_swpm_inifile_sections_list"
+
+    - name: SAP SWPM Pre Install - Detect - Set fact with lists for ERS detection
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_detect_instances:
+          "{{ __sap_swpm_fact_detect_instances + __ers_instances }}"
+      vars:
+        __ers_instances:
+          - number: "{{ sap_swpm_ers_instance_nr }}"
+            names:
+              - "{{ 'ERS' ~ sap_swpm_ers_instance_nr }}"
+      when:
+        - sap_swpm_ers_instance_nr | d('') | length > 0
+        - "'nw_config_ers' in sap_swpm_inifile_sections_list"
+
+    # Since 'nw_config_primary_application_server_instance' is not ABAP specific,
+    # we need to check for both ABAP and JAVA.
+    - name: SAP SWPM Pre Install - Detect - Set fact with lists for PAS detection
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_detect_instances:
+          "{{ __sap_swpm_fact_detect_instances + __pas_instances }}"
+      vars:
+        __pas_instances:
+          - number: "{{ sap_swpm_pas_instance_nr }}"
+            names:
+              - "{{ 'D' ~ sap_swpm_pas_instance_nr }}"
+              # DVEBMGS is used as fallback to legacy instance name.
+              - "{{ 'DVEBMGS' ~ sap_swpm_pas_instance_nr }}"
+              - "{{ 'J' ~ sap_swpm_pas_instance_nr }}"
+      when:
+        - sap_swpm_pas_instance_nr | d('') | length > 0
+        - "'nw_config_primary_application_server_instance' in sap_swpm_inifile_sections_list"
+
+    - name: SAP SWPM Pre Install - Detect - Set fact with lists for AAS detection
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_detect_instances:
+          "{{ __sap_swpm_fact_detect_instances + __aas_instances }}"
+      vars:
+        __aas_instances:
+          - number: "{{ sap_swpm_aas_instance_nr }}"
+            names:
+              - "{{ 'D' ~ sap_swpm_aas_instance_nr }}"
+              - "{{ 'J' ~ sap_swpm_aas_instance_nr }}"
+      when:
+        - sap_swpm_aas_instance_nr | d('') | length > 0
+        - "'nw_config_additional_application_server_instance' in sap_swpm_inifile_sections_list"
+
+
+# We cannot reliably detect some products,
+# but we want to inform the user about that fact and potential risks of proceeding without detection.
+- name: SAP SWPM Pre Install - Detect - Inform about products with limited detection capabilities
+  ansible.builtin.pause:
+    seconds: "{{ 30 if not sap_swpm_force | d(false) else 5 }}"
+    prompt: |
+      WARN: SAP Product {{ sap_swpm_product_catalog_id }} cannot be reliably detected by this role,
+      but its execution is considered safe to proceed.
+  when: __sap_swpm_fact_product_prefix in __sap_swpm_product_detection_unavailable.skip | d([])

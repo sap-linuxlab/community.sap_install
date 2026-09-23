@@ -1,0 +1,319 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Table with valid combinations for deciding keys
+#
+# True = must be defined | False = must not be defined | Any = not evaluated by the role
+#
+# | id | workflow   | filesystem_type     | disk_size | mountpoint | nfs_server | nfs_path | swap_path |
+# | -- | ---------- | ------------------- | --------- | ---------- | ---------- | -------- | --------- |
+# | A  | nfs mount  | Any                 | False     | True       | True (1)   | True     | False     |
+# | B  | swap_file  | swap                | True      | Any        | False      | False    | True      |
+# | C  | swap_disk  | swap                | True      | Any (2)    | False      | False    | False     |
+# | D  | block disk | not (swap or *nfs*) | True      | True       | False      | False    | False     |
+#
+# (1) Optional if the role-level 'sap_storage_setup_nfs_server' is defined.
+# (2) Ignored - the mount task is skipped for swap.
+
+
+# NOTE: The 'fail' module is used instead of 'assert' to hide internal facts from logs.
+
+
+# Ensure that the entry is a dictionary before any key is queried.
+- name: SAP Storage Setup - Validation - Fail if the storage definition entry is not a dictionary
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Entry of 'sap_storage_setup_definition' is not a dictionary:
+      {{ __sap_storage_setup_definition_item }}
+  when: not __sap_storage_setup_definition_item | type_debug == 'dict'
+
+# The argument spec rejects a null value only for keys that are required or have a default, like 'lvm_lv_stripes'.
+# Every other key is skipped by it and keeps the null value, so it is caught here.
+# Keys of type string with a default are converted to an empty string instead and are caught by the validation of empty values below.
+- name: SAP Storage Setup - Validation - Fail if any key of the storage definition entry is null
+  ansible.builtin.fail:
+    msg: |
+      FAIL: One or more keys of this storage definition entry are null (None)!
+      Keys: {{ __sap_storage_setup_definition_item | dict2items | selectattr('value', 'none')
+        | map(attribute='key') | list | join(', ') }}
+      Either define a value for these keys or remove them from the definition.
+  when: none in __sap_storage_setup_definition_item.values()
+
+- name: SAP Storage Setup - Validation - Fail if the storage definition entry has unknown keys
+  ansible.builtin.fail:
+    msg: |
+      FAIL: This storage definition entry contains unknown keys: {{ __unknown_keys | join(', ') }}
+      Supported keys are: {{ __sap_storage_setup_definition_keys_all | sort | join(', ') }}
+  vars:
+    __unknown_keys:
+      "{{ __sap_storage_setup_definition_item.keys() | list
+        | difference(__sap_storage_setup_definition_keys_all) }}"
+  when: __unknown_keys | length > 0
+
+
+# Type and empty value validation of all keys that are defined.
+# Keys which are not defined are skipped, defaults are applied by the role.
+
+# The key 'nfs_path' is the exception, an empty value is a valid definition.
+# It selects the root of the directory that the key 'nfs_server' already points to,
+# so the mount point is mounted as it is and no subdirectory is created on the NFS server.
+- name: SAP Storage Setup - Validation - Fail if defined string keys are not non-empty strings
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The key '{{ __sap_storage_setup_key_item }}' of this storage definition entry is not a non-empty string.
+      Current value: '{{ __sap_storage_setup_definition_item[__sap_storage_setup_key_item] }}'
+      Current type:  '{{ __sap_storage_setup_definition_item[__sap_storage_setup_key_item] | type_debug }}'
+  loop: "{{ __sap_storage_setup_definition_keys_str }}"
+  loop_control:
+    loop_var: __sap_storage_setup_key_item
+  when:
+    - __sap_storage_setup_key_item in __sap_storage_setup_definition_item
+    - __sap_storage_setup_definition_item[__sap_storage_setup_key_item] is not string
+      or (__sap_storage_setup_key_item not in __sap_storage_setup_definition_keys_str_empty
+        and __sap_storage_setup_definition_item[__sap_storage_setup_key_item] | trim | length == 0)
+
+- name: SAP Storage Setup - Validation - Fail if defined integer keys are not positive integers
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The key '{{ __sap_storage_setup_key_item }}' of this storage definition entry is not a positive integer.
+      Current value: '{{ __sap_storage_setup_definition_item[__sap_storage_setup_key_item] }}'
+      Current type:  '{{ __sap_storage_setup_definition_item[__sap_storage_setup_key_item] | type_debug }}'
+  loop: "{{ __sap_storage_setup_definition_keys_int }}"
+  loop_control:
+    loop_var: __sap_storage_setup_key_item
+  when:
+    - __sap_storage_setup_key_item in __sap_storage_setup_definition_item
+    - __sap_storage_setup_definition_item[__sap_storage_setup_key_item] is not integer
+      or __sap_storage_setup_definition_item[__sap_storage_setup_key_item] | int <= 0
+
+# Accepted are positive integers like 100 and strings with an optional unit suffix, like '100' or '2T'.
+# Only 'G' and 'T' are allowed, because the device mapping is done in GB with a fallback to TB.
+- name: SAP Storage Setup - Validation - Fail if defined string or integer keys are not positive numbers
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The key '{{ __sap_storage_setup_key_item }}' of this storage definition entry is not a positive number.
+      Current value: '{{ __sap_storage_setup_definition_item[__sap_storage_setup_key_item] }}'
+      Current type:  '{{ __sap_storage_setup_definition_item[__sap_storage_setup_key_item] | type_debug }}'
+
+      Allowed are digits only, with an optional unit suffix 'G' or 'T'.
+      A value without a suffix is handled as GB.
+  loop: "{{ __sap_storage_setup_definition_keys_str_int }}"
+  loop_control:
+    loop_var: __sap_storage_setup_key_item
+  vars:
+    __key_value: "{{ __sap_storage_setup_definition_item[__sap_storage_setup_key_item] | d('') }}"
+  when:
+    - __sap_storage_setup_key_item in __sap_storage_setup_definition_item
+    - not (__key_value is integer or __key_value is string)
+      or __key_value | string is not match('^[0-9]+[GTgt]?$')
+      or __key_value | string | regex_replace('[GTgt]$', '') | int <= 0
+
+
+# Required keys, depending on the type of the storage definition entry.
+# Key 'name' is marked as required in argument spec and it will be caught by Ansible before this validation task runs.
+# Task is kept in case there are incompatible changes in argument spec.
+- name: SAP Storage Setup - Validation - Fail if the key 'name' is not defined
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The required key 'name' is missing in this storage definition entry:
+      {{ __sap_storage_setup_definition_item }}
+  when: __sap_storage_setup_definition_item['name'] is not defined
+
+
+# LVM accepts letters, digits and the characters '+', '_', '.', '-' in volume group
+# and logical volume names, which must not start with '-'.
+# The role derives both names from the 'name' key, so the same restriction applies to it.
+# The length limit of LVM names is 127 characters, reduced by the 'vg_' and 'lv_' prefixes.
+- name: SAP Storage Setup - Validation - Fail if keys used for LVM names have invalid values
+  ansible.builtin.fail:
+    msg: |
+      FAIL: One or more keys of this storage definition entry cannot be used as LVM names.
+      - Key 'name':        '{{ __sap_storage_setup_definition_item['name'] }}'
+      - Key 'lvm_vg_name': '{{ __sap_storage_setup_definition_item['lvm_vg_name'] | d('') }}'
+      - Key 'lvm_lv_name': '{{ __sap_storage_setup_definition_item['lvm_lv_name'] | d('') }}'
+
+      Allowed are letters, digits and the characters '+', '_', '.', '-'.
+      The value must not start with '-' and must not be longer than 124 characters.
+  vars:
+    __lvm_names:
+      - "{{ __sap_storage_setup_definition_item['name'] }}"
+      - "{{ __sap_storage_setup_definition_item['lvm_vg_name'] | d('') }}"
+      - "{{ __sap_storage_setup_definition_item['lvm_lv_name'] | d('') }}"
+  # Select filter removes empty values before applying the regex match.
+  # NOTE: Regex could be moved to 'vars/main.yml', but it is used only once.
+  when: __lvm_names | select | reject('match', '^[a-zA-Z0-9+_.][a-zA-Z0-9+_.-]{0,123}$') | list | length > 0
+
+
+# The paths are used in shell commands like 'swapon <path>', where whitespace separates the
+# arguments and would break the command. The 'mount' module escapes whitespace as '\040' on its
+# own, so '/etc/fstab' is not affected.
+# Relative paths are rejected, because the entries of '/etc/fstab' are resolved without a
+# working directory.
+#
+# The regex '^/\S*$' requires the value to start with '/' and to contain
+# no whitespace up to the end of the value.
+- name: SAP Storage Setup - Validation - Fail if keys used as paths have invalid values
+  ansible.builtin.fail:
+    msg: |
+      FAIL: One or more keys of this storage definition entry cannot be used as paths.
+      - Key 'mountpoint': '{{ __sap_storage_setup_definition_item['mountpoint'] | d('') }}'
+      - Key 'nfs_path':   '{{ __sap_storage_setup_definition_item['nfs_path'] | d('') }}'
+      - Key 'swap_path':  '{{ __sap_storage_setup_definition_item['swap_path'] | d('') }}'
+
+      The value must be an absolute path and must not contain whitespace.
+  vars:
+    __paths:
+      - "{{ __sap_storage_setup_definition_item['mountpoint'] | d('') }}"
+      - "{{ __sap_storage_setup_definition_item['nfs_path'] | d('') }}"
+      - "{{ __sap_storage_setup_definition_item['swap_path'] | d('') }}"
+  # Select filter removes empty values before applying the regex match.
+  when: __paths | select | reject('match', '^/\S*$') | list | length > 0
+
+
+# The value is concatenated into the arguments of 'lvcreate' in 'set_filesystem_mapping.yml',
+# so a value containing whitespace would add arbitrary options to the command.
+# LVM accepts a number with an optional unit suffix, where 'K' is the smallest usable size.
+- name: SAP Storage Setup - Validation - Fail if the key 'lvm_lv_stripe_size' has an invalid value
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The key 'lvm_lv_stripe_size' of this storage definition entry is not a valid size.
+      Current value: '{{ __sap_storage_setup_definition_item['lvm_lv_stripe_size'] }}'
+
+      Allowed are digits only, with an optional unit suffix 'K', 'M' or 'G'.
+  when:
+    - __sap_storage_setup_definition_item['lvm_lv_stripe_size'] is defined
+    - __sap_storage_setup_definition_item['lvm_lv_stripe_size'] is not match('^[0-9]+[KMGkmg]?$')
+
+
+# NOTE: Rules for detecting scenario:
+# - Block conditions are built so that follow up blocks can execute only if previous blocks were skipped.
+# - Set fact are without conditions, because passing block and fail conditionals is enough for validation.
+
+
+# A scenario will add item to NFS list based on following conditions.
+# | id | workflow   | filesystem_type     | disk_size | mountpoint | nfs_server | nfs_path | swap_path |
+# | -- | ---------- | ------------------- | --------- | ---------- | ---------- | -------- | --------- |
+# | A  | nfs        | Any                 | False     | True       | True (1)   | True     | False     |
+#
+- name: Block for NFS
+  when: __sap_storage_setup_definition_item['nfs_path'] is defined
+  block:
+
+    - name: SAP Storage Setup - Validation - Fail if NFS mount is missing mandatory variables
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The storage definition entry '{{
+            __sap_storage_setup_definition_item['name'] }}' was detected as NFS mount, because:
+          - Key 'nfs_path' is defined.
+
+          Ensure that all the variables are set:
+          - Key 'nfs_server' in the storage definition entry,
+            or the variable 'sap_storage_setup_nfs_server'.
+      when:
+        - __sap_storage_setup_definition_item['nfs_server'] is not defined
+        - sap_storage_setup_nfs_server is not defined
+
+    - name: SAP Storage Setup - Validation - Add definition item to the list of NFS mounts
+      ansible.builtin.set_fact:
+        __sap_storage_setup_nfs_mounts:
+          "{{ __sap_storage_setup_nfs_mounts + [__sap_storage_setup_definition_item] }}"
+
+
+# B scenario will add item to Swap file list based on following conditions.
+# | id | workflow   | filesystem_type     | disk_size | mountpoint | nfs_server | nfs_path | swap_path |
+# | -- | ---------- | ------------------- | --------- | ---------- | ---------- | -------- | --------- |
+# | B  | swap_file  | swap                | True      | Any        | False      | False    | True      |
+#
+# NOTE: This is only scenario, where the 'filesystem_type' key is not used for block condition,
+# because it is only scenario accepting the 'swap_path'.
+- name: Block for Swap file
+  when:
+    - __sap_storage_setup_definition_item['nfs_path'] is not defined
+    - __sap_storage_setup_definition_item['swap_path'] is defined
+  block:
+
+    - name: SAP Storage Setup - Validation - Fail if Swap file is missing mandatory variables
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The storage definition entry '{{
+            __sap_storage_setup_definition_item['name'] }}' was detected as Swap file, because:
+          - Key 'swap_path' is defined.
+
+          Ensure that all the variables are set:
+          - Key 'filesystem_type' in the storage definition entry set to 'swap'.
+          - Key 'disk_size' in the storage definition entry.
+      when:
+        - __sap_storage_setup_definition_item['filesystem_type'] | d('') != 'swap'
+          or __sap_storage_setup_definition_item['disk_size'] is not defined
+
+    - name: SAP Storage Setup - Validation - Add definition item to the list of Swap files
+      ansible.builtin.set_fact:
+        __sap_storage_setup_swap_files:
+          "{{ __sap_storage_setup_swap_files + [__sap_storage_setup_definition_item] }}"
+
+
+# C scenario will add item to Swap disk list based on following conditions.
+# | id | workflow   | filesystem_type     | disk_size | mountpoint | nfs_server | nfs_path | swap_path |
+# | -- | ---------- | ------------------- | --------- | ---------- | ---------- | -------- | --------- |
+# | C  | swap_disk  | swap                | True      | Any (2)    | False      | False    | False     |
+#
+# NOTE: Similar to scenario D, but 'filesystem_type' is set to 'swap'.
+- name: Block for Swap disk
+  when:
+    - __sap_storage_setup_definition_item['nfs_path'] is not defined
+    - __sap_storage_setup_definition_item['swap_path'] is not defined
+    - __sap_storage_setup_definition_item['filesystem_type'] | d('') == 'swap'
+  block:
+
+    - name: SAP Storage Setup - Validation - Fail if Swap disk is missing mandatory variables
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The storage definition entry '{{
+            __sap_storage_setup_definition_item['name'] }}' was detected as Swap disk, because:
+          - Key 'filesystem_type' is set to 'swap'.
+          - Key 'swap_path' is not defined.
+
+          Ensure that all the variables are set:
+          - Key 'disk_size' in the storage definition entry.
+      when:
+        - __sap_storage_setup_definition_item['disk_size'] is not defined
+
+    - name: SAP Storage Setup - Validation - Add definition item to the list of Swap disks
+      ansible.builtin.set_fact:
+        __sap_storage_setup_swap_disks:
+          "{{ __sap_storage_setup_swap_disks + [__sap_storage_setup_definition_item] }}"
+
+
+# D scenario will add item to Block disk list based on following conditions.
+# | id | workflow   | filesystem_type     | disk_size | mountpoint | nfs_server | nfs_path | swap_path |
+# | -- | ---------- | ------------------- | --------- | ---------- | ---------- | -------- | --------- |
+# | D  | block      | not (swap or *nfs*) | True      | True       | False      | False    | False     |
+#
+- name: Block for Block disks
+  when:
+    - __sap_storage_setup_definition_item['nfs_path'] is not defined
+    - __sap_storage_setup_definition_item['swap_path'] is not defined
+    - __sap_storage_setup_definition_item['filesystem_type'] | d('') != 'swap'
+    - "'nfs' not in __sap_storage_setup_definition_item['filesystem_type'] | d('')"
+  block:
+
+    - name: SAP Storage Setup - Validation - Fail if Block disk is missing mandatory variables
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The storage definition entry '{{
+            __sap_storage_setup_definition_item['name'] }}' was detected as Block disk, because:
+          - Key 'nfs_path' is not defined.
+          - Key 'swap_path' is not defined.
+          - Key 'filesystem_type' is not a swap or NFS type.
+
+          Ensure that all the variables are set:
+          - Key 'disk_size' in the storage definition entry.
+          - Key 'mountpoint' in the storage definition entry.
+      when:
+        - __sap_storage_setup_definition_item['disk_size'] is not defined
+          or __sap_storage_setup_definition_item['mountpoint'] is not defined
+
+    - name: SAP Storage Setup - Validation - Add definition item to the list of Block disks
+      ansible.builtin.set_fact:
+        __sap_storage_setup_block_disks:
+          "{{ __sap_storage_setup_block_disks + [__sap_storage_setup_definition_item] }}"

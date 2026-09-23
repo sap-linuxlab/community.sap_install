@@ -1,0 +1,68 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Locates the installation media files which was extracted in separate directories.
+# CD Media files have dedicated SWPM inifile parameters pointing towards their extraction directories.
+#
+# Unlike 'locate_basket.yml' this needs no block per component: every component is searched the
+# same way and differs only in the subdirectory and the pattern, both of which the matrix holds.
+
+
+# Only the requested components are searched, and each search is scoped to the extraction directory
+# of its own component, so no search walks the whole main directory.
+- name: SAP Install Media Detect - Locate - Find the directories of the extracted installation media
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_fact_main_directory }}/{{ directory_item['value']['subdirectory'] }}"
+    patterns: "{{ directory_item['value']['pattern'] }}"
+    use_regex: true
+    file_type: directory
+    recurse: true
+  register: __sap_install_media_detect_register_locate_directories
+  loop: "{{ __sap_install_media_detect_extracted_directory_matrix | dict2items
+            | selectattr('key', 'in', __sap_install_media_detect_fact_wanted_components) | list }}"
+  loop_control:
+    loop_var: directory_item
+    label: "{{ directory_item['value']['subdirectory'] }}"
+  when: sap_install_media_detect_extract_archives
+
+# The paths are sorted, because 'find' returns them in the order of the directory tree.
+# The SAP ECC IDES and the SAP Solution Manager exports are delivered in more than one part,
+# and the consuming tasks expects them in a fixed order.
+# Filter 'zip' creates dictionary with the basename as the key and the full path as the value.
+- name: SAP Install Media Detect - Locate - Set fact with the located directories
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_located_extracted:
+      "{{ dict(__results | map(attribute='directory_item.key')
+               | zip(__results | map(attribute='files')
+               | map('map', attribute='path') | map('sort'))) }}"
+  vars:
+    __results:
+      "{{ __sap_install_media_detect_register_locate_directories.results | d([])
+          | selectattr('files', 'defined') | list }}"
+
+# A component that was requested but not extracted is a failure of the installation that follows,
+# so it is reported here, where the directory it was expected in is still known.
+#
+# A component whose archive is not part of the installation media at all was already reported by the
+# classification, see 'pre_tasks/classify_files.yml', so what is left here is media that was extracted
+# into a directory structure which the pattern of the matrix does not match.
+- name: SAP Install Media Detect - Locate - Fail when the installation media of a requested component was not extracted
+  ansible.builtin.fail:
+    msg: |
+      FAIL: No extracted directory was found for the following components:
+      {% for component_item in __empty %}
+        {{ __sap_install_media_detect_fact_main_directory }}/{{
+           __sap_install_media_detect_extracted_directory_matrix[component_item]['subdirectory'] }} matching '{{
+           __sap_install_media_detect_extracted_directory_matrix[component_item]['pattern'] }}'
+      {% endfor %}
+
+      Either the installation media does not hold the archive of the component, or the extracted
+      directory structure does not match the pattern above.
+
+      Disable related component variable checking by disabling or setting to 'false' (e.g. 'sap_install_media_detect_db')
+      or provide valid SAP installation media for the component.
+  when: __empty | length > 0
+  vars:
+    __empty:
+      "{{ __sap_install_media_detect_fact_located_extracted | dict2items
+          | selectattr('value', 'equalto', []) | map(attribute='key') | list }}"

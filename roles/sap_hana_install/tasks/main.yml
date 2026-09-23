@@ -45,23 +45,34 @@
       tags: always
   tags: always
 
+
+# Process all hosts in play and define flag facts based on their intended role during installation.
+# - Detect Scale-Out and Addhosts operations.
+# - Set host identification flags
+# - Validate addhosts list against hosts in the play.
+- name: SAP HANA - Main - Identify hosts in play
+  ansible.builtin.include_tasks:
+    file: pre_tasks/identify_hosts.yml
+
+
 # SAP HANA presence has to be validated for both new system and adding new hosts.
+# - Detection is executed even in force mode, but fails are skipped to allow execution of the role.
+# - Host identification flags are used to ignore /hana/shared file detection check for Scale-Out addhosts hosts.
 - name: SAP HANA - Main - Validate presence of existing SAP HANA database
   ansible.builtin.include_tasks:
-    file: pre_tasks/hana_exists.yml
+    file: pre_tasks/detect_hana.yml
     apply:
       tags:
         - sap_hana_install_check_hana_exists
-  when:
-    - (sap_hana_install_new_system and not sap_hana_install_force)
-      or not sap_hana_install_new_system
   tags:
     - sap_hana_install_check_hana_exists
 
 
-- name: SAP HANA - Main - Identify hosts in play based on addhosts
+# Validate detected SAP installations against allowed Scale-Out scenarios.
+- name: SAP HANA - Main - Validate hosts in play
   ansible.builtin.include_tasks:
-    file: pre_tasks/identify_hosts.yml
+    file: pre_tasks/validate_hosts.yml
+  when: __sap_hana_install_fact_is_scaleout
 
 
 - name: SAP HANA - Main - Ensure SAP HANA is running for existing systems or addhosts operations
@@ -77,10 +88,18 @@
 # - Configuration - Run always to ensure idempotent outcome.
 
 - name: Block for Installation tasks
-  when: sap_hana_install_new_system or
-    ('sap_hana_install_create_configfile' in ansible_run_tags | d([])) or
-    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([]))
+  # Stop execution of remaining tasks in the role, if any task in the block failed on any host.
+  # This ensures that the role does not proceed skipping failed host, but fails the entire role execution.
+  # 'any_errors_fatal' is not documented to work on task level, therefore we use simple block.
+  # http://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_error_handling.html#aborting-on-the-first-error-any-errors-fatal
+  # Runs on all hosts in Scale-Out scenario, but allows independent failures for single host installations.
+  any_errors_fatal: "{{ true if __sap_hana_install_fact_is_scaleout else false }}"
+  when:
+    - sap_hana_install_new_system
+      or (ansible_run_tags | d([])
+        | intersect(['sap_hana_install_create_configfile', 'sap_hana_install_hdblcm_commandline'])) | length > 0
   block:
+    # Task file contains pseudo-idempotency checks and cannot be skipped for installed system.
     - name: SAP HANA - Install - Pre-Tasks
       ansible.builtin.include_tasks:
         file: pre_install.yml
@@ -91,9 +110,9 @@
     - name: SAP HANA - Install
       ansible.builtin.include_tasks:
         file: hana_install.yml
-      when: >
-        (not __sap_hana_install_fact_is_installed and __sap_hana_install_fact_is_main_host) or
-        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([]))
+      when:
+        - (not __sap_hana_install_fact_is_installed and __sap_hana_install_fact_is_main_host)
+          or (ansible_run_tags | d([]) | intersect(['sap_hana_install_hdblcm_commandline'])) | length > 0
       tags: sap_hana_install_hdblcm_commandline
 
     - name: SAP HANA - Install - Post-tasks
@@ -102,20 +121,26 @@
 
 
 - name: Block for Addhosts tasks
-  when: >
-    not sap_hana_install_new_system and
-    ((__sap_hana_install_fact_is_scaleout and __sap_hana_install_fact_is_installed) or
-    ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([])) or
-    ('sap_hana_install_create_configfile' in ansible_run_tags | d([])))
+  # Stop execution of remaining tasks in the role, if any task in the block failed on any host.
+  # This ensures that the role does not proceed skipping failed host, but fails the entire role execution.
+  # 'any_errors_fatal' is not documented to work on task level, therefore we use simple block.
+  # http://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_error_handling.html#aborting-on-the-first-error-any-errors-fatal
+  # Runs on all hosts in addhosts scenario.
+  any_errors_fatal: true
+  when:
+    - not sap_hana_install_new_system
+      and (__sap_hana_install_fact_is_scaleout
+        or (ansible_run_tags | d([])
+          | intersect(['sap_hana_install_create_configfile', 'sap_hana_install_hdblcm_commandline'])) | length > 0)
   block:
     # Execute only if new hosts are to be added.
     - name: SAP HANA - Addhosts - Pre-Tasks
       ansible.builtin.include_tasks:
         file: pre_addhosts.yml
-      when: >
-        (__sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0) or
-        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([])) or
-        ('sap_hana_install_create_configfile' in ansible_run_tags | d([]))
+      when:
+        - __sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0
+          or (ansible_run_tags | d([])
+            | intersect(['sap_hana_install_create_configfile', 'sap_hana_install_hdblcm_commandline'])) | length > 0
       tags:
         - sap_hana_install_hdblcm_commandline
         - sap_hana_install_create_configfile
@@ -124,9 +149,9 @@
       ansible.builtin.include_tasks:
         file: hana_addhosts.yml
       when:
-        (__sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0 and __sap_hana_install_fact_is_main_host) or
-        ('sap_hana_install_hdblcm_commandline' in ansible_run_tags | d([])) or
-        ('sap_hana_install_create_configfile' in ansible_run_tags | d([]))
+        - (__sap_hana_install_fact_addhosts_hosts_new | d([]) | length > 0 and __sap_hana_install_fact_is_main_host)
+          or (ansible_run_tags | d([])
+            | intersect(['sap_hana_install_create_configfile', 'sap_hana_install_hdblcm_commandline'])) | length > 0
       tags:
         - sap_hana_install_hdblcm_commandline
         - sap_hana_install_create_configfile
@@ -148,7 +173,7 @@
         gsub ("^\\s*hosts?: ", ""); gsub (", ", ","); print; a=0}
       }'
   args:
-    chdir: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/hdblcm"
+    chdir: "{{ __sap_hana_install_shared_path }}/hdblcm"
   register: __sap_hana_install_register_completion_result
   changed_when: false
   when:
@@ -164,11 +189,6 @@
       SID              -       {{ sap_hana_install_sid }}
       NR               -       {{ sap_hana_install_number }}
 
-      {% if sap_hana_install_new_system and __sap_hana_install_fact_is_installed and __sap_hana_install_fact_addhosts_hosts_new | length > 0 %}
-      The new hosts defined in the variable 'sap_hana_install_addhosts' were not added: {{ __sap_hana_install_fact_addhosts_hosts_new | join(', ') }}.
-      Execute this role with the variable 'sap_hana_install_new_system' set to false to add new hosts.
-      {% endif %}
-
       {% if sap_hana_install_configure_firewall %}
       Firewall is enabled and SAP HANA ports are open.
       {% endif %}
@@ -179,8 +199,8 @@
       Fapolicyd is configured for SAP folders ({{ sap_hana_install_directories | map('quote') | join(', ') }}).
       {% endif %}
   vars:
-    __sap_hana_install_fact_hana_version: "{{ __sap_hana_install_register_completion_result.stdout.split(';')[0] }}"
-    __sap_hana_install_fact_hana_hosts: "{{ __sap_hana_install_register_completion_result.stdout.split(';')[1] }}"
+    __sap_hana_install_fact_hana_version: "{{ __sap_hana_install_register_completion_result.stdout.split(';')[0] | d('N/A') }}"
+    __sap_hana_install_fact_hana_hosts: "{{ __sap_hana_install_register_completion_result.stdout.split(';')[1] | d('N/A') }}"
   when:
     - not ansible_check_mode
     - __sap_hana_install_fact_is_main_host

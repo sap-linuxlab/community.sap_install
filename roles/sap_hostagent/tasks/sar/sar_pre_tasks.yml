@@ -1,0 +1,129 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Validation
+- name: SAP Host Agent - SAR - Assert that the variable 'sap_hostagent_sar_file_name' is defined as String and not empty
+  ansible.builtin.assert:
+    that:
+      - sap_hostagent_sar_file_name is defined
+      - sap_hostagent_sar_file_name is string
+      - sap_hostagent_sar_file_name | trim | length > 0
+    fail_msg: |
+      FAIL: The variable 'sap_hostagent_sar_file_name' is undefined, not a String or empty.
+
+- name: SAP Host Agent - SAR - Assert that the variable 'sap_hostagent_sapcar_file_name' is defined as String and not empty
+  ansible.builtin.assert:
+    that:
+      - sap_hostagent_sapcar_file_name is defined
+      - sap_hostagent_sapcar_file_name is string
+      - sap_hostagent_sapcar_file_name | trim | length > 0
+    fail_msg: |
+      FAIL: The variable 'sap_hostagent_sapcar_file_name' is undefined, not a String or empty.
+
+
+- name: Block for installation type sar local
+  when: not __sap_hostagent_sar_remote
+  block:
+
+    - name: SAP Host Agent - SAR - Assert that the variable 'sap_hostagent_sar_local_path' is defined as String and not empty
+      ansible.builtin.assert:
+        that:
+          - sap_hostagent_sar_local_path is defined
+          - sap_hostagent_sar_local_path is string
+          - sap_hostagent_sar_local_path | trim | length > 0
+        fail_msg: |
+          FAIL: The variable 'sap_hostagent_sar_local_path' is undefined, not a String or empty.
+
+    - name: SAP Host Agent - SAR - Assert that the variable 'sap_hostagent_sapcar_local_path' is defined as String and not empty
+      ansible.builtin.assert:
+        that:
+          - sap_hostagent_sapcar_local_path is defined
+          - sap_hostagent_sapcar_local_path is string
+          - sap_hostagent_sapcar_local_path | trim | length > 0
+        fail_msg: |
+          FAIL: The variable 'sap_hostagent_sapcar_local_path' is undefined, not a String or empty.
+
+    - name: SAP Host Agent - SAR - Set fact with full local file paths
+      ansible.builtin.set_fact:
+        __sap_hostagent_fact_sar_local_path:
+          "{{ sap_hostagent_sar_local_path | regex_replace('\\/$', '') }}/{{ sap_hostagent_sar_file_name }}"
+        __sap_hostagent_fact_sapcar_local_path:
+          "{{ sap_hostagent_sapcar_local_path | regex_replace('\\/$', '') }}/{{ sap_hostagent_sapcar_file_name }}"
+
+    - name: SAP Host Agent - SAR - Stat local SAR file
+      ansible.builtin.stat:
+        path: "{{ __sap_hostagent_fact_sar_local_path }}"
+      # Delegate back to Control Node for local SAR file.
+      delegate_to: localhost
+      register: __sap_hostagent_register_sar_local_stat
+
+    - name: SAP Host Agent - SAR - Fail if the local SAR file does not exist
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The local SAR file '{{ __sap_hostagent_fact_sar_local_path }}' does not exist.
+      when: not __sap_hostagent_register_sar_local_stat.stat.exists
+
+    - name: SAP Host Agent - SAR - Stat local SAPCAR file
+      ansible.builtin.stat:
+        path: "{{ __sap_hostagent_fact_sapcar_local_path }}"
+      # Delegate back to Control Node for local SAPCAR file.
+      delegate_to: localhost
+      register: __sap_hostagent_register_sapcar_local_stat
+
+    - name: SAP Host Agent - SAR - Fail if the local SAPCAR file does not exist
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The local SAPCAR file '{{ __sap_hostagent_fact_sapcar_local_path }}' does not exist.
+      when: not __sap_hostagent_register_sapcar_local_stat.stat.exists
+
+
+- name: Block for installation type sar remote
+  when: __sap_hostagent_sar_remote
+  block:
+
+    - name: SAP Host Agent - SAR - Assert that the variable 'sap_hostagent_sar_remote_path' is defined as String and not empty
+      ansible.builtin.assert:
+        that:
+          - sap_hostagent_sar_remote_path is defined
+          - sap_hostagent_sar_remote_path is string
+          - sap_hostagent_sar_remote_path | trim | length > 0
+        fail_msg: |
+          FAIL: The variable 'sap_hostagent_sar_remote_path' is undefined, not a String or empty.
+
+    - name: SAP Host Agent - SAR - Assert that the variable 'sap_hostagent_sapcar_remote_path' is defined as String and not empty
+      ansible.builtin.assert:
+        that:
+          - sap_hostagent_sapcar_remote_path is defined
+          - sap_hostagent_sapcar_remote_path is string
+          - sap_hostagent_sapcar_remote_path | trim | length > 0
+        fail_msg: |
+          FAIL: The variable 'sap_hostagent_sapcar_remote_path' is undefined, not a String or empty.
+
+    - name: SAP Host Agent - SAR - Set fact with full remote file paths
+      ansible.builtin.set_fact:
+        __sap_hostagent_fact_sar_remote_path:
+          "{{ sap_hostagent_sar_remote_path | regex_replace('\\/$', '') }}/{{ sap_hostagent_sar_file_name }}"
+        __sap_hostagent_fact_sapcar_remote_path:
+          "{{ sap_hostagent_sapcar_remote_path | regex_replace('\\/$', '') }}/{{ sap_hostagent_sapcar_file_name }}"
+
+    - name: SAP Host Agent - SAR - Stat remote SAR file
+      ansible.builtin.stat:
+        path: "{{ __sap_hostagent_fact_sar_remote_path }}"
+      register: __sap_hostagent_register_sar_remote_stat
+
+    - name: SAP Host Agent - SAR - Fail if the remote SAR file does not exist
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The remote SAR file '{{ __sap_hostagent_fact_sar_remote_path }}' does not exist.
+      when: not __sap_hostagent_register_sar_remote_stat.stat.exists
+
+    - name: SAP Host Agent - SAR - Stat remote SAPCAR file
+      ansible.builtin.stat:
+        path: "{{ __sap_hostagent_fact_sapcar_remote_path }}"
+      register: __sap_hostagent_register_sapcar_remote_stat
+
+    - name: SAP Host Agent - SAR - Fail if the remote SAPCAR file does not exist
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The remote SAPCAR file '{{ __sap_hostagent_fact_sapcar_remote_path }}' does not exist.
+      when: not __sap_hostagent_register_sapcar_remote_stat.stat.exists

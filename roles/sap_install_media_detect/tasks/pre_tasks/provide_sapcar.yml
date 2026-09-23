@@ -1,0 +1,167 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# SAPCAR is needed for sapfile utility and extraction, if a SAR files are present.
+# The path to SAPCAR file is set in the following order:
+# 1. User defined in the variable 'sap_install_media_detect_sapcar_path'
+# 2. In the installation media itself
+#
+# The PATH of the host is not a candidate, although the sapfile utility falls back to it.
+# The consuming roles build the program from a directory and a file name, so it must be a full path.
+
+
+# The facts are re-set on every run, because the role can run multiple times in the same
+# playbook run with different parameters.
+- name: SAP Install Media Detect - SAPCAR - Initialize the facts of the SAPCAR program
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_sapcar_files: []
+    __sap_install_media_detect_fact_sapcar_path: ''
+
+
+- name: SAP Install Media Detect - SAPCAR - Assert that the SAPCAR file ownership variables are defined as non-empty strings
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_sapcar_owner is defined
+      - sap_install_media_detect_sapcar_owner is string
+      - sap_install_media_detect_sapcar_owner | trim | length > 0
+
+      - sap_install_media_detect_sapcar_group is defined
+      - sap_install_media_detect_sapcar_group is string
+      - sap_install_media_detect_sapcar_group | trim | length > 0
+
+    fail_msg: |
+      The SAPCAR file ownership variables are undefined, empty or invalid.
+      Ensure that following variables are all defined as non-empty strings.
+      - 'sap_install_media_detect_sapcar_owner'
+      - 'sap_install_media_detect_sapcar_group'
+
+# The value has to be a string, because YAML reads an unquoted 0755 as the number 493, which the
+# 'file' and 'copy' modules then apply as the mode 0755 of a decimal number.
+- name: SAP Install Media Detect - SAPCAR - Assert that the SAPCAR file permission variable is defined as octal string
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_sapcar_mode is defined
+      - sap_install_media_detect_sapcar_mode is string
+      - sap_install_media_detect_sapcar_mode is match('^0[0-7]{3,4}$')
+
+      # The SAPCAR program is executed by this role and by the roles which consume the installation
+      # media, so the mode has to keep the execute bit of the owner, which is the odd digit.
+      - sap_install_media_detect_sapcar_mode[-3] | int % 2 == 1
+    fail_msg: |
+      The variable 'sap_install_media_detect_sapcar_mode' is undefined, empty or invalid.
+      It should be a quoted octal string which keeps the SAPCAR program executable, for example '0755'.
+
+# The role parameter names a single SAPCAR program and is the first candidate of the resolution below.
+- name: SAP Install Media Detect - SAPCAR - Assert that the variable 'sap_install_media_detect_sapcar_path' is defined as non-empty string
+  ansible.builtin.assert:
+    that:
+      - sap_install_media_detect_sapcar_path is string
+      - sap_install_media_detect_sapcar_path | trim | length > 0
+
+      # A bare program name is rejected, because the consuming roles are handed a directory and a
+      # file name separately and cannot resolve one against the PATH of the host.
+      - sap_install_media_detect_sapcar_path is match('^/')
+    fail_msg: |
+      The variable 'sap_install_media_detect_sapcar_path' is empty or invalid.
+      It should be the fully qualified path to the SAPCAR program.
+      NOTE: Leave the variable undefined to let the role detect the SAPCAR program.
+  when: sap_install_media_detect_sapcar_path is defined
+
+- name: SAP Install Media Detect - SAPCAR - Fail if file ownership user or group does not exist
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The user or group defined in SAPCAR file ownership variables are not present on this host.
+      Ensure that following users and groups are present on this host.
+      - SAPCAR owner: '{{ sap_install_media_detect_sapcar_owner }}'
+      - SAPCAR group: '{{ sap_install_media_detect_sapcar_group }}'
+  when:
+    - ansible_facts["getent_passwd"][sap_install_media_detect_sapcar_owner] is not defined
+      or ansible_facts["getent_group"][sap_install_media_detect_sapcar_group] is not defined
+
+
+# Only a SAP archive needs SAPCAR, so nothing below the initialization runs without one.
+- name: Block for a source directory that holds a SAP archive
+  when: __sap_install_media_detect_fact_sar_files_present
+  block:
+
+    - name: SAP Install Media Detect - SAPCAR - Set fact with the SAPCAR executables of the source directory
+      ansible.builtin.set_fact:
+        __sap_install_media_detect_fact_sapcar_files:
+          "{{ __sap_install_media_detect_fact_source_files | select('search', '/SAPCAR[^/]*\\.EXE$') | list }}"
+
+    # The executables are already in the main directory in every scenario, because scenario B and C
+    # copy the installation media there before this point, see 'copy_files_to_main_directory.yml'.
+    # Only the permissions have to be adjusted to allow execution.
+    #
+    # The tag 'sap_install_media_detect_classify' skips the copy, so the files are still in the source
+    # directory, which scenario C mounts read only. The permissions are left alone in that case and
+    # SAPCAR has to be usable as it is, which the resolution below reports on.
+    - name: SAP Install Media Detect - SAPCAR - Make the SAPCAR executables executable
+      ansible.builtin.file:
+        path: "{{ sapcar_item }}"
+        owner: "{{ sap_install_media_detect_sapcar_owner }}"
+        group: "{{ sap_install_media_detect_sapcar_group }}"
+        mode: "{{ sap_install_media_detect_sapcar_mode }}"
+      loop: "{{ __sap_install_media_detect_fact_sapcar_files }}"
+      loop_control:
+        loop_var: sapcar_item
+        label: "{{ sapcar_item | basename }}"
+      when:
+        - not __sap_install_media_detect_fact_use_target_dir
+          or __sap_install_media_detect_fact_is_media_copied
+
+    - name: SAP Install Media Detect - SAPCAR - Determine which SAPCAR executable runs on this host
+      ansible.builtin.command:
+        cmd: "{{ sapcar_item | quote }} -version"
+      register: __sap_install_media_detect_register_sapcar_version
+      failed_when: false
+      changed_when: false
+      loop: "{{ __sapcar_candidates }}"
+      loop_control:
+        loop_var: sapcar_item
+        label: "{{ sapcar_item | basename }}"
+      vars:
+        __sapcar_candidates:
+          "{{ ([sap_install_media_detect_sapcar_path]
+                if sap_install_media_detect_sapcar_path | d('') | length > 0
+                else [])
+              + __sap_install_media_detect_fact_sapcar_files | d([]) }}"
+
+    # A candidate that does not exist or was built for another architecture never runs, so it fails
+    # before it can produce a return code of its own and a result without one is not usable either.
+    - name: SAP Install Media Detect - SAPCAR - Set fact with the SAPCAR program of this host
+      ansible.builtin.set_fact:
+        __sap_install_media_detect_fact_sapcar_path: "{{ __usable_sapcar | first | d('') }}"
+      vars:
+        __usable_sapcar:
+          "{{ __sap_install_media_detect_register_sapcar_version.results | d([])
+              | selectattr('rc', 'defined')
+              | selectattr('rc', 'equalto', 0)
+              | map(attribute='sapcar_item') | list }}"
+
+    # The presence of a file named 'SAPCAR*.EXE' is not what matters, being able to run one is,
+    # so the failure is decided on the outcome of the calls above.
+    - name: SAP Install Media Detect - SAPCAR - Fail if no SAPCAR program runs on this host
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The SAR files were found, but no valid SAPCAR program could be detected on this host.
+          Neither of these was found:
+          - User defined path via the 'sap_install_media_detect_sapcar_path' variable.
+          - SAPCAR program in the source directory.
+      when: __sap_install_media_detect_fact_sapcar_path | length == 0
+
+    - name: SAP Install Media Detect - SAPCAR - Show the SAPCAR program used by the role
+      ansible.builtin.debug:
+        msg: |
+          INFO: The following SAPCAR program is used to analyze and extract the SAP archives.
+          Architecture: {{ ansible_facts['architecture'] }}
+          Program: {{ __sap_install_media_detect_fact_sapcar_path }}
+          Candidates of the installation media: {{
+            __sap_install_media_detect_fact_sapcar_files | map('basename') | join(', ') | d('none', true) }}
+
+
+# Outside of the block above, because the initialization at the top of this file already provides
+# the facts of a source directory which holds no SAP archive.
+- name: SAP Install Media Detect - Summary - Set the progress fact for the SAPCAR program
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_is_sapcar_provided: true

@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# vars file for sap_general_preconfigure
-
 __sap_general_preconfigure_sapnotes_versions:
   - { number: '2369910', version: '18' }
   - { number: '3562909', version: '1' }
@@ -53,10 +51,11 @@ __sap_general_preconfigure_packagegroups_s390x:
 
 __sap_general_preconfigure_packagegroups: "{{ lookup('vars', '__sap_general_preconfigure_packagegroups_' + ansible_facts['architecture']) }}"
 
-__sap_general_preconfigure_packages_x86_64:
+__sap_general_preconfigure_packages_general:
   - uuidd
   - tcsh
   - psmisc
+  - sysstat
   - nfs-utils
   - bind-utils
 # package hostname: needed by rhel-system-roles-sap
@@ -69,39 +68,14 @@ __sap_general_preconfigure_packages_x86_64:
   - langpacks-en
   - glibc-langpack-en
 
-__sap_general_preconfigure_packages_ppc64le:
-  - uuidd
-  - tcsh
-  - psmisc
-  - nfs-utils
-  - bind-utils
-# package hostname: needed by rhel-system-roles-sap
-  - hostname
-# package tuned: no longer part of package group "Core" in RHEL 10, so we have to install it
-  - tuned
-# package libxcrypt-compat: needed by sapstartsrv on RHEL 10:
-  - libxcrypt-compat
-# English locale packages are required as per SAP note 2369910:
-  - langpacks-en
-  - glibc-langpack-en
+__sap_general_preconfigure_packages_add_x86_64: []
 
-__sap_general_preconfigure_packages_s390x:
-  - uuidd
-  - tcsh
-  - psmisc
-  - nfs-utils
-  - bind-utils
-# package hostname: needed by rhel-system-roles-sap
-  - hostname
-# package tuned: no longer part of package group "Core" in RHEL 10, so we have to install it
-  - tuned
-# package libxcrypt-compat: needed by sapstartsrv on RHEL 10:
-  - libxcrypt-compat
-# English locale packages are required as per SAP note 2369910:
-  - langpacks-en
-  - glibc-langpack-en
+__sap_general_preconfigure_packages_add_ppc64le: []
 
-__sap_general_preconfigure_packages: "{{ lookup('vars', '__sap_general_preconfigure_packages_' + ansible_facts['architecture']) }}"
+__sap_general_preconfigure_packages_add_s390x: []
+
+__sap_general_preconfigure_packages: "{{ __sap_general_preconfigure_packages_general +
+    lookup('vars', '__sap_general_preconfigure_packages_add_' + ansible_facts['architecture']) }}"
 
 __sap_general_preconfigure_required_ppc64le:
   - ibm-power-managed-rhel10

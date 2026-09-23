@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Validation
+- name: SAP Host Agent - Bundle - Assert that the variable 'sap_hostagent_bundle_path' is defined as String and not empty
+  ansible.builtin.assert:
+    that:
+      - sap_hostagent_bundle_path is defined
+      - sap_hostagent_bundle_path is string
+      - sap_hostagent_bundle_path | trim | length > 0
+    fail_msg: |
+      FAIL: The variable 'sap_hostagent_bundle_path' is undefined, not a String or empty.
+
+- name: SAP Host Agent - Bundle - Set fact with full path to HOSTAGENT.TGZ file
+  ansible.builtin.set_fact:
+    __sap_hostagent_fact_bundle_path:
+      "{{ sap_hostagent_bundle_path | regex_replace('\\/$', '') }}/HOSTAGENT.TGZ"
+
+
+# File validation
+- name: SAP Host Agent - Bundle - Stat HOSTAGENT.TGZ file in provided path
+  ansible.builtin.stat:
+    path: "{{ __sap_hostagent_fact_bundle_path }}"
+  register: __sap_hostagent_register_bundle_stat
+
+- name: SAP Host Agent - Bundle - Fail if the HOSTAGENT.TGZ file does not exist
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The SAP Host Agent file '{{ __sap_hostagent_fact_bundle_path }}' does not exist.
+      Ensure that the 'sap_hostagent_bundle_path' variable points towards extracted SAP HANA archive.
+      HOSTAGENT.TGZ is usually located in the 'server' directory of the extracted archive.
+  when: not __sap_hostagent_register_bundle_stat.stat.exists

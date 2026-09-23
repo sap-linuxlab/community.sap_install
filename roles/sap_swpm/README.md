@@ -685,6 +685,13 @@ Define UID of Linux user SIDADM.
 
 ### Miscellaneous Variables
 
+#### sap_swpm_force
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Optional override that forces execution of installation tasks if existing SAP instance is detected.<br>
+This variable should be used with caution as running SWPM installation with active SAP instances can lead to corruption of existing SAP installation.
+
 #### sap_swpm_ascs_install_gateway
 - _Type:_ `string`
 - _Default:_ `true`

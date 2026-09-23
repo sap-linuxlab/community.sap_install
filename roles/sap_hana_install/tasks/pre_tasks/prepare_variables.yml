@@ -20,49 +20,38 @@
     sap_hana_install_system_usage: "{{ sap_hana_install_env_type | d(sap_hana_install_system_usage) | d('custom') }}"
     sap_hana_install_restrict_max_mem: "{{ sap_hana_install_mem_restrict | d(sap_hana_install_restrict_max_mem) | d('n') }}"
 
-# SID
-- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_sid' is defined as String consisting of 3 characters
+# SID (Validated using collection wide plugins)
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_sid' is defined as String with valid SAP SID
   ansible.builtin.assert:
     that:
       - sap_hana_install_sid is defined
-      - sap_hana_install_sid is string
-      - sap_hana_install_sid | trim | length == 3
-    success_msg: |
-      PASS: The length of SAP HANA System ID '{{ sap_hana_install_sid }}' is 3 characters.
+      - sap_hana_install_sid is community.sap_install.valid_sap_sid('hdblcm')
     fail_msg: |
-      {% if sap_hana_install_sid is not string %}
-        FAIL: The variable 'sap_hana_install_sid' is not String.
-      {% elif sap_hana_install_sid | length == 0 %}
-        FAIL: The variable 'sap_hana_install_sid' is empty.
+      {% if sap_hana_install_sid is not defined %}
+      FAIL: The variable 'sap_hana_install_sid' is not defined.
       {% else %}
-        FAIL: The length of SAP HANA System ID '{{ sap_hana_install_sid }}' is not 3 characters!
+      FAIL: The variable 'sap_hana_install_sid' is not a valid SAP SID.
+      {% for condition in (sap_hana_install_sid
+                            | community.sap_install.validate_sap_sid('hdblcm')).failed_conditions %}
+      - {{ condition }}
+      {% endfor %}
       {% endif %}
 
-- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_sid' is not in the list of reserved SAP SIDs
-  ansible.builtin.assert:
-    that: sap_hana_install_sid not in __sap_hana_install_sid_prohibited
-    success_msg: |
-      PASS: The SAP HANA System ID '{{ sap_hana_install_sid }}' is not in the list of reserved SAP SIDs in SAP note 1979280 v.20.
-    fail_msg: |
-      FAIL: The SAP HANA System ID '{{ sap_hana_install_sid }}' is in the list of reserved SAP SIDs in SAP note 1979280 v.20!
-
-# Instance Number
-- name: Assert that the variable 'sap_hana_install_number' is defined as String consisting of 2 digits
+# Instance Number (Validated using collection wide plugins)
+- name: Assert that the variable 'sap_hana_install_number' is defined as String with valid SAP HANA Instance Number
   ansible.builtin.assert:
     that:
       - sap_hana_install_number is defined
-      - sap_hana_install_number is string
-      - sap_hana_install_number | trim | length == 2
-      - sap_hana_install_number is match('^[0-9]{2}$')
-    success_msg: |
-      PASS: The SAP HANA Instance Number '{{ sap_hana_install_number }}' is defined as String consisting of 2 digits.
+      - sap_hana_install_number is community.sap_install.valid_sap_instance_nr('hdblcm')
     fail_msg: |
-      {% if sap_hana_install_number is not string %}
-        FAIL: The variable 'sap_hana_install_number' is not String.
-      {% elif sap_hana_install_number | length == 0 %}
-        FAIL: The variable 'sap_hana_install_number' is empty.
+      {% if sap_hana_install_number is not defined %}
+      FAIL: The variable 'sap_hana_install_number' is not defined.
       {% else %}
-        FAIL: The SAP HANA Instance Number '{{ sap_hana_install_number }}' is not 2 digits!
+      FAIL: The variable 'sap_hana_install_number' is not a valid SAP HANA Instance Number.
+      {% for condition in (sap_hana_install_number
+                            | community.sap_install.validate_sap_instance_nr('hdblcm')).failed_conditions %}
+      - {{ condition }}
+      {% endfor %}
       {% endif %}
 
 # Master password
@@ -225,6 +214,15 @@
   when:
     - sap_hana_install_configure_firewall | d(false)
     - sap_hana_install_firewall_zone is defined
+
+- name: SAP HANA - Pre-Tasks - Assert that the variable 'sap_hana_install_skip_filesystem_check' is defined as a boolean
+  ansible.builtin.assert:
+    that:
+      - sap_hana_install_skip_filesystem_check is boolean
+    fail_msg: |
+      The variable 'sap_hana_install_skip_filesystem_check' is not a boolean.
+      It should be a boolean (true/false) indicating whether to skip the filesystem check during SAP HANA installation.
+  when: sap_hana_install_skip_filesystem_check is defined
 
 
 # SELinux is not currently supported by SAP using SLES4SAP

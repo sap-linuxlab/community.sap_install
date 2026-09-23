@@ -1,29 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-# Requires: ansible 2.11
-# Argument specifications in this separate file maintain backwards compatibility.
+
+# Argument Spec is using lazy validation and allows for invalid types or values to proceed.
+# Explicit validation using assert modules is executed afterwards to ensure that the variables meet the required criteria.
+#
+# NOTE: The key 'required' has to be used very carefully, because every scenario is a different combination of keys.
+# Only a key that is shared by all scenarios can be marked as required, like 'name'.
+# Keys that are mandatory for one scenario only are validated by the role instead.
+# The default of 'required' is false, so it is declared only where it is true.
+
 argument_specs:
 
   main:
     short_description: SAP system storage setup
     options:
-
-# Take this template and copy it to the desired place.
-# Add content and remove placeholders that are not needed.
-# Ideally sort by key (variable name) alphabetically.
-#
-#      sap_storage_setup_
-#        default:
-#        description:
-#           -
-#        example:
-#
-#        required: false
-#        type:
-#        options: # additional options for lists and dicts
-#          <param>:
-#            description:
-#            ...
 
       sap_storage_setup_definition:
         description:
@@ -50,13 +40,18 @@ argument_specs:
             description:
               - Size of the disk device that is used for the filesystem.
               - For filesystems with no LVM logical volume striping, this is the total size of the filesystem.
-              - For filesystems with LVM LV striping defined (`lvm_lv_stripes`), this is the size of each disk. The resulting filesystem size will be `disk_size` multiplied by `lvm_lv_stripes` (=disks).
-            type: str
+              - For filesystems with LVM LV striping defined (`lvm_lv_stripes`), this is the size of each disk.
+              - The resulting filesystem size will be `disk_size` multiplied by `lvm_lv_stripes` (=disks).
+              - An integer is handled as size in GB, a string can carry the unit suffix `G` or `T`.
+              - The type is `raw`, because a declared type would convert the value,
+              - and the role accepts both an integer and a string. The value is validated by the role instead.
+            type: raw
 
           filesystem_type:
             default: xfs
             description:
               - The type of filesystem that will be created on the logical volume.
+              - The role variable `sap_storage_setup_local_filesystem_type` is used when this key is not defined.
             type: str
 
           lvm_lv_name:
@@ -78,17 +73,27 @@ argument_specs:
               - Example format - "128K".
             type: str
 
+          lvm_pv_options:
+            description:
+              - Free-form options that are passed to the `pvcreate` command of the volume group.
+            type: str
+
           lvm_vg_name:
             description:
               - The name of the LVM volume group.
               - The default name is derived from the name value of the filesystem definition entry, for example 'vg_hanalog'.
-            required: false
+            type: str
+
+          lvm_vg_options:
+            description:
+              - Free-form options that are passed to the `vgcreate` command of the volume group.
             type: str
 
           lvm_vg_physical_extent_size:
             default: 4
             description:
               - Adjustable size of the physical extents of the volume group in LVM.
+              - can be optionally suffixed by a UNIT (k/K/m/M/g/G), default unit is megabyte.
             type: str
 
           mountpoint:
@@ -113,8 +118,7 @@ argument_specs:
           nfs_mount_options:
             description:
               - Mount options to use for the NFS mount.
-              - Generic default is `hard,acl`.
-              - Defaults depend on the specific platform detected by the role or defined explicitly.
+              - The role variable `sap_storage_setup_nfs_mount_options` is used when this key is not defined.
             type: str
 
           nfs_path:
@@ -140,21 +144,122 @@ argument_specs:
         description:
           - The type of service the target system is going to be configured for.
           - This can be a list of multiple types which apply to a single host.
-          - If not defined, the default will be inherited from the global parameter `sap_host_type`. One of these parameters must be defined.
-        required: true
+          - Required only for NFS mounts, where it selects the `/usr/sap` subdirectories to create.
+          - "Supported values are:"
+          - "SAP HANA: `hana_primary`, `hana_secondary`"
+          - "SAP ABAP: `nwas_abap_ascs`, `nwas_ers`, `nwas_abap_pas`, `nwas_abap_aas`"
+          - "SAP JAVA: `nwas_java_scs`, `nwas_ers`, `nwas_java_ci`"
+          - "Others: `nwas_webdisp`"
         # type can be list or string, the code will convert it to a list
+        # 'choices' is not declared, because it does not cover a list of values and would reject
+        # a valid multi type host list before the role validation runs.
 
+
+      sap_storage_setup_local_filesystem_type:
+        default: xfs
+        description:
+          - The filesystem type used for block storage volumes.
+          - Applies to every definition entry that does not carry its own `filesystem_type` key.
+        type: str
 
       sap_storage_setup_multipath_enable_and_detect:
         default: false
         description:
           - Define if multipathing should be enabled and dynamic multipath devices detected and used for the filesystem setup.
-        required: false
         type: bool
+
+      sap_storage_setup_nfs_filesystem_type:
+        default: nfs4
+        description:
+          - The NFS protocol used for NFS mounts, for example `nfs` or `nfs4`.
+          - Applies to every NFS entry that does not carry its own `nfs_filesystem_type` key.
+        type: str
+
+      sap_storage_setup_nfs_mount_options:
+        default: defaults
+        description:
+          - The mount options used for NFS mounts.
+          - Applies to every NFS entry that does not carry its own `nfs_mount_options` key.
+        type: str
+
+      # No default is declared on purpose. The role tests this variable for being defined, and an
+      # empty default would be applied to every entry that omits the 'nfs_server' key.
+      sap_storage_setup_nfs_server:
+        description:
+          - The address of the NFS server, including the root path in which the mount directories
+            exist or will be created, for example `192.168.1.100:/`.
+          - Applies to every NFS entry that does not carry its own `nfs_server` key.
+          - Leave this variable undefined to require the key on each entry instead.
+        type: str
+
+      # A string of two digits is the only accepted form of an instance number, so the type is
+      # declared. An unquoted value is still rejected by the role validation, which compares the
+      # value against the two digit pattern.
+      sap_storage_setup_nwas_abap_aas_instance_nr:
+        description:
+          - Instance number of the NetWeaver ABAP additional application server.
+          - Used for the host type `nwas_abap_aas` to build the `/usr/sap` subdirectory `D<nr>`.
+          - Must be a quoted string of two digits, for example `'01'`.
+        type: str
+
+      sap_storage_setup_nwas_abap_ascs_instance_nr:
+        description:
+          - Instance number of the ABAP central services instance.
+          - Used for the host type `nwas_abap_ascs` to build the `/usr/sap` subdirectory `ASCS<nr>`.
+          - Must be a quoted string of two digits, for example `'01'`.
+        type: str
+
+      sap_storage_setup_nwas_abap_ers_instance_nr:
+        description:
+          - Instance number of the enqueue replication server, kept for backwards compatibility.
+          - Used for the host type `nwas_abap_ers` to build the `/usr/sap` subdirectory `ERS<nr>`.
+          - Must be a quoted string of two digits, for example `'01'`.
+        type: str
+
+      sap_storage_setup_nwas_abap_pas_instance_nr:
+        description:
+          - Instance number of the NetWeaver ABAP primary application server.
+          - Used for the host type `nwas_abap_pas` to build the `/usr/sap` subdirectory `D<nr>`.
+          - Must be a quoted string of two digits, for example `'01'`.
+        type: str
+
+      sap_storage_setup_nwas_ers_instance_nr:
+        description:
+          - Instance number of the enqueue replication server, shared by ABAP and JAVA.
+          - Used for the host type `nwas_ers` to build the `/usr/sap` subdirectory `ERS<nr>`.
+          - Must be a quoted string of two digits, for example `'01'`.
+        type: str
+
+      sap_storage_setup_nwas_java_ci_instance_nr:
+        description:
+          - Instance number of the NetWeaver JAVA central instance.
+          - Used for the host type `nwas_java_ci` to build the `/usr/sap` subdirectory `J<nr>`.
+          - Must be a quoted string of two digits, for example `'01'`.
+        type: str
+
+      sap_storage_setup_nwas_java_ers_instance_nr:
+        description:
+          - Instance number of the enqueue replication server, kept for backwards compatibility.
+          - Used for the host type `nwas_java_ers` to build the `/usr/sap` subdirectory `ERS<nr>`.
+          - Must be a quoted string of two digits, for example `'01'`.
+        type: str
+
+      sap_storage_setup_nwas_java_scs_instance_nr:
+        description:
+          - Instance number of the JAVA central services instance.
+          - Used for the host type `nwas_java_scs` to build the `/usr/sap` subdirectory `SCS<nr>`.
+          - Must be a quoted string of two digits, for example `'01'`.
+        type: str
+
+      sap_storage_setup_nwas_webdisp_instance_nr:
+        description:
+          - Instance number of the SAP Web Dispatcher.
+          - Used for the host type `nwas_webdisp` to build the `/usr/sap` subdirectory `W<nr>`.
+          - Must be a quoted string of two digits, for example `'01'`.
+        type: str
 
       sap_storage_setup_sid:
         description:
           - SID of the SAP service.
-          - If not defined, the default will be inherited from the global parameter `sap_system_sid`. One of these parameters must be defined.
-        required: true
+          - Required only for NFS mounts, where it is used to build the `/usr/sap` subdirectory names.
         type: str

@@ -1,0 +1,69 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Block to copy local files
+  when: not __sap_hostagent_sar_remote
+  block:
+
+    - name: SAP Host Agent - SAR - Copy local SAR file to temporary directory on remote host
+      ansible.builtin.copy:
+        src: "{{ __sap_hostagent_fact_sar_local_path }}"
+        dest: "{{ __sap_hostagent_register_tmpdir.path }}/{{ sap_hostagent_sar_file_name }}"
+        mode: '0755'
+
+    - name: SAP Host Agent - SAR - Copy local SAPCAR file to temporary directory on remote host
+      ansible.builtin.copy:
+        src: "{{ __sap_hostagent_fact_sapcar_local_path }}"
+        dest: "{{ __sap_hostagent_register_tmpdir.path }}/{{ sap_hostagent_sapcar_file_name }}"
+        mode: '0755'
+
+- name: Block to copy remote files
+  when: __sap_hostagent_sar_remote
+  block:
+
+    - name: SAP Host Agent - SAR - Copy remote SAR file to temporary directory on remote host
+      ansible.builtin.copy:
+        src: "{{ __sap_hostagent_fact_sar_remote_path }}"
+        dest: "{{ __sap_hostagent_register_tmpdir.path }}/{{ sap_hostagent_sar_file_name }}"
+        mode: '0755'
+        remote_src: true
+
+    - name: SAP Host Agent - SAR - Copy remote SAPCAR file to temporary directory on remote host
+      ansible.builtin.copy:
+        src: "{{ __sap_hostagent_fact_sapcar_remote_path }}"
+        dest: "{{ __sap_hostagent_register_tmpdir.path }}/{{ sap_hostagent_sapcar_file_name }}"
+        mode: '0755'
+        remote_src: true
+
+
+- name: SAP Host Agent - SAR - Extract contents of SAR file using SAPCAR
+  ansible.builtin.command:
+    cmd: >-
+      {{ __sap_hostagent_register_tmpdir.path }}/{{ sap_hostagent_sapcar_file_name }}
+      -xvf {{ __sap_hostagent_register_tmpdir.path }}/{{ sap_hostagent_sar_file_name }}
+      -manifest SIGNATURE.SMF
+  args:
+    chdir: "{{ __sap_hostagent_register_tmpdir.path }}"
+  register: __sap_hostagent_register_extract_sar
+  changed_when: "'file(s) extracted' in __sap_hostagent_register_extract_sar.stdout"
+
+
+# Output contains typo so we need to use regex: [OK] SAPHostExec / SAPHostControl successfully installed
+# RC=0 is valid, but it outputs into 'stderr' instead of 'stdout', so we need to check both.
+- name: SAP Host Agent - SAR - Install SAP Host Agent using saphostexec
+  ansible.builtin.command:
+    cmd: >-
+      {{ __sap_hostagent_register_tmpdir.path }}/saphostexec -install
+  args:
+    chdir: "{{ __sap_hostagent_register_tmpdir.path }}"
+  become: true
+  become_user: root
+  register: __sap_hostagent_register_install_sar
+  changed_when: >-
+    __sap_hostagent_register_install_sar.stdout is search('SAPHostExec.*installed')
+    or 'Start saphostagent.service' in __sap_hostagent_register_install_sar.stdout
+    or __sap_hostagent_register_install_sar.stderr is search('SAPHostExec.*installed')
+    or 'Start saphostagent.service' in __sap_hostagent_register_install_sar.stderr
+  failed_when: >-
+    '[ERROR]' in __sap_hostagent_register_install_sar.stdout
+    or '[ERROR]' in __sap_hostagent_register_install_sar.stderr

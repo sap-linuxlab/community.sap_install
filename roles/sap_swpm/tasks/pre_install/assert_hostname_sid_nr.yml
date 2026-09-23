@@ -1,0 +1,97 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Assert hostname compliance with SAP note 611361
+- name: SAP SWPM Pre Install - Assert that hostnames comply with SAP note 611361
+  ansible.builtin.assert:
+    that:
+      - __sap_swpm_hostnames_var is community.sap_install.valid_sap_abap_platform_hostname
+    fail_msg: |
+      FAIL: The variable '{{ __sap_swpm_hostnames_line_item }}' is defined as: '{{
+        lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item) }}',
+      which fails the following validation criteria:
+      {% for condition in (__sap_swpm_hostnames_var | community.sap_install.validate_sap_abap_platform_hostname).failed_conditions %}
+      - {{ condition }}
+      {% endfor %}
+    success_msg: |
+      PASS: The variable '{{ __sap_swpm_hostnames_line_item }}' is a valid SAP hostname.
+  loop:
+    - sap_swpm_ascs_instance_hostname
+    - sap_swpm_ers_instance_hostname
+    - sap_swpm_pas_instance_hostname
+    - sap_swpm_aas_instance_hostname
+    - sap_swpm_java_scs_instance_hostname
+    - sap_swpm_virtual_hostname
+  loop_control:
+    loop_var: __sap_swpm_hostnames_line_item
+  vars:
+    __sap_swpm_hostnames_var: "{{ lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item) }}"
+  when:
+    - lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item, default='') is defined
+    - lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item, default='') is not none
+    - lookup('ansible.builtin.vars', __sap_swpm_hostnames_line_item, default='') | string | length > 0
+
+# Assert sap_swpm_sid compliance
+- name: SAP SWPM Pre Install - Assert that sap_swpm_sid is compliant
+  ansible.builtin.assert:
+    that:
+      - sap_swpm_sid is community.sap_install.valid_sap_sid('swpm')
+    fail_msg: |
+      FAIL: The variable 'sap_swpm_sid' is defined as: '{{ sap_swpm_sid }}',
+      which fails the following validation criteria:
+      {% for condition in (sap_swpm_sid | community.sap_install.validate_sap_sid('swpm')).failed_conditions %}
+      - {{ condition }}
+      {% endfor %}
+    success_msg: |
+      PASS: The variable 'sap_swpm_sid' is a valid SAP SID.
+  when:
+    - sap_swpm_sid is defined
+    - sap_swpm_sid is not none
+    - sap_swpm_sid | string | length > 0
+
+# Assert sap_swpm_db_sid compliance
+- name: SAP SWPM Pre Install - Assert that sap_swpm_db_sid is compliant
+  ansible.builtin.assert:
+    that:
+      - sap_swpm_db_sid is community.sap_install.valid_sap_sid
+    fail_msg: |
+      FAIL: The variable 'sap_swpm_db_sid' is defined as: '{{ sap_swpm_db_sid }}',
+      which fails the following validation criteria:
+      {% for condition in (sap_swpm_db_sid | community.sap_install.validate_sap_sid).failed_conditions %}
+      - {{ condition }}
+      {% endfor %}
+    success_msg: |
+      PASS: The variable 'sap_swpm_db_sid' is a valid SAP database SID.
+  when:
+    - sap_swpm_db_sid is defined
+    - sap_swpm_db_sid is not none
+    - sap_swpm_db_sid | string | length > 0
+
+# Assert SAP instance number compliance
+- name: SAP SWPM Pre Install - Assert that the SAP instance numbers are compliant
+  ansible.builtin.assert:
+    that:
+      - __sap_swpm_instance_nr_var is community.sap_install.valid_sap_instance_nr
+    fail_msg: |
+      FAIL: The variable '{{ __sap_swpm_instance_nr_line_item }}' is defined as: '{{
+        lookup('ansible.builtin.vars', __sap_swpm_instance_nr_line_item) }}',
+      which fails the following validation criteria:
+      {% for condition in (__sap_swpm_instance_nr_var | community.sap_install.validate_sap_instance_nr).failed_conditions %}
+      - {{ condition }}
+      {% endfor %}
+    success_msg: |
+      PASS: The variable '{{ __sap_swpm_instance_nr_line_item }}' is a valid SAP instance number.
+  loop:
+    - sap_swpm_ascs_instance_nr
+    - sap_swpm_ers_instance_nr
+    - sap_swpm_pas_instance_nr
+    - sap_swpm_aas_instance_nr
+    - sap_swpm_db_instance_nr
+  loop_control:
+    loop_var: __sap_swpm_instance_nr_line_item
+  vars:
+    __sap_swpm_instance_nr_var: "{{ lookup('ansible.builtin.vars', __sap_swpm_instance_nr_line_item) }}"
+  when:
+    - lookup('ansible.builtin.vars', __sap_swpm_instance_nr_line_item, default='') is defined
+    - lookup('ansible.builtin.vars', __sap_swpm_instance_nr_line_item, default='') is not none
+    - lookup('ansible.builtin.vars', __sap_swpm_instance_nr_line_item, default='') | string | length > 0

@@ -1,0 +1,106 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# A SAP archive is extracted with the SAPCAR program, of which the preparation resolved the one
+# that runs on this host, see 'pre_tasks/provide_sapcar.yml'.
+#
+# The extraction is split in two, because the directory structure inside the archive differs:
+# - A SAP HANA archive holds a single directory, for example 'SAP_HANA_DATABASE', which holds
+#   everything, and the manifest 'SIGNATURE.SMF' is placed next to that directory. Several of
+#   these archives share one extraction directory, so each of them has to keep its own directory,
+#   which the manifest has to end up in as well.
+# - Every other SAP archive has a structure of its own, from completely flat to deeply nested, and
+#   has an extraction directory of its own, so it is extracted into that directory directly.
+
+- name: Block for the extraction of the SAP archives
+  vars:
+    __sapcar_files:
+      "{{ __sap_install_media_detect_fact_files_to_extract
+          | selectattr('archive_type', 'equalto', 'sapcar') | list }}"
+
+    # SAP HANA file types have different handling with SIGNATURE.SMF file, so separate list is created.
+    __hana_file_types:
+      "{{ __sap_install_media_detect_component_file_types['db_saphana']
+          + __sap_install_media_detect_component_file_types['db_client_saphana'] }}"
+    __hana_files: "{{ __sapcar_files | selectattr('sap_file_type', 'in', __hana_file_types) | list }}"
+
+    # Every other SAR file is processed same way, except SAP HANA file types.
+    __other_files: "{{ __sapcar_files | rejectattr('sap_file_type', 'in', __hana_file_types) | list }}"
+
+    # The temporary directory is created inside of the main directory, so that moving a directory
+    # out of it is a rename within one file system instead of a copy. The name ends in '_extracted',
+    # which is one of the names that the reset at the start of the role removes, so a directory
+    # left behind by an interrupted run is cleaned up on the next one.
+    __tmp_directory: "{{ __sap_install_media_detect_fact_main_directory }}/tmp_extracted"
+  when: __sapcar_files | length > 0
+  block:
+
+    # Second check for SAPCAR availability, but now after files were classified.
+    # This ensures that SAR files with wrong extension are caught and the user is informed.
+    - name: SAP Install Media Detect - Organize - Fail if no SAPCAR program is available
+      ansible.builtin.fail:
+        msg: |
+          FAIL: {{ __sapcar_files | length }} SAP archives have to be extracted, but no SAPCAR
+          program was resolved, because none of the files below was recognized as a SAP archive
+          by its name.
+          {% for __archive in __sapcar_files %}
+          - {{ __archive['file'] }}
+          {% endfor %}
+          Rename them with the extension '.SAR', so that the role can provide SAPCAR for them.
+      when: __sap_install_media_detect_fact_sapcar_path | length == 0
+
+
+    - name: Block for the extraction of the SAP HANA archives
+      when: __hana_files | length > 0
+      block:
+
+        - name: SAP Install Media Detect - Organize - Create the temporary directory for the SAP HANA archives
+          ansible.builtin.file:
+            path: "{{ __tmp_directory }}"
+            state: directory
+            owner: "{{ sap_install_media_detect_directory_owner }}"
+            group: "{{ sap_install_media_detect_directory_group }}"
+            mode: "{{ sap_install_media_detect_directory_mode }}"
+
+        # The archive is extracted into the temporary directory, which every iteration leaves empty again,
+        # so the single directory of the archive is the only one in it.
+        # The manifest is moved into that directory and the directory is moved into the extraction directory.
+        - name: SAP Install Media Detect - Organize - Extract the SAP HANA archives
+          ansible.builtin.shell:
+            cmd: >-
+              {{ __sap_install_media_detect_fact_sapcar_path | quote }}
+              -xvf {{ file_item['path'] | quote }}
+              -manifest SIGNATURE.SMF
+              && extracted_dir=$(ls -1d -- */)
+              && mv -- SIGNATURE.SMF "${extracted_dir}"
+              && mv -- "${extracted_dir}" {{ __destination | quote }}/
+            chdir: "{{ __tmp_directory }}"
+          register: __sap_install_media_detect_register_extract_hana
+          changed_when: __sap_install_media_detect_register_extract_hana.rc == 0
+          loop: "{{ __hana_files }}"
+          loop_control:
+            loop_var: file_item
+            label: "{{ file_item['file'] }}"
+          vars:
+            __destination:
+              "{{ __sap_install_media_detect_fact_main_directory }}/{{ file_item['extraction_dir'] }}"
+
+        - name: SAP Install Media Detect - Organize - Remove the temporary directory of the SAP HANA archives
+          ansible.builtin.file:
+            path: "{{ __tmp_directory }}"
+            state: absent
+
+
+    - name: SAP Install Media Detect - Organize - Extract the remaining SAP archives
+      ansible.builtin.command:
+        cmd: >-
+          {{ __sap_install_media_detect_fact_sapcar_path | quote }}
+          -xvf {{ file_item['path'] | quote }}
+          -manifest SIGNATURE.SMF
+        chdir: "{{ __sap_install_media_detect_fact_main_directory }}/{{ file_item['extraction_dir'] }}"
+      register: __sap_install_media_detect_register_extract_sapcar
+      changed_when: __sap_install_media_detect_register_extract_sapcar.rc == 0
+      loop: "{{ __other_files }}"
+      loop_control:
+        loop_var: file_item
+        label: "{{ file_item['file'] }}"

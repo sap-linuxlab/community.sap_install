@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Single scan of the source directory, which produces the list of existing files across the top level and known subdirectories.
+# - Depth 0 is the top level of the source directory.
+# - Depth 1 is the known subdirectories of the source directory.
+
+# NOTES:
+# - Scenario A resets the source directory, because it is the main directory, so the second search returns nothing
+#   and the result is the top level alone.
+#
+# - Scenario B and C reset the target directory and never write to the source directory,
+#   so it can still hold the subdirectories of an earlier run in which it was the main directory.
+
+
+- name: SAP Install Media Detect - Scan - Find all files on the top level of the source directory
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_fact_source_directory }}"
+    patterns: '*'
+    file_type: file
+    recurse: false
+  register: __sap_install_media_detect_register_scan_top_level
+
+
+# 'patterns' is matched against the name of a directory using the '__sap_install_media_detect_known_subdirectories' variable.
+# Compared to 'move_files_to_main_directory.yml', we do not include the '_extracted' suffix here, because we do not want to scan those directories.
+- name: SAP Install Media Detect - Scan - Find the known subdirectories of the source directory
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_fact_source_directory }}"
+    patterns: "{{ __sap_install_media_detect_known_subdirectories }}"
+    file_type: directory
+    recurse: false
+  register: __sap_install_media_detect_register_scan_subdirectory_list
+
+- name: SAP Install Media Detect - Scan - Find all files in the known subdirectories of the source directory
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_register_scan_subdirectory_list.files | map(attribute='path') | list }}"
+    patterns: '*'
+    file_type: file
+    recurse: false
+  register: __sap_install_media_detect_register_scan_subdirectories
+  when: __sap_install_media_detect_register_scan_subdirectory_list.matched > 0
+
+
+# Scenario B and C do not reset the source directory, so it can still contain files from previous runs.
+# We will combine list of files from known subdirectories and the top level of the source directory.
+# Filter 'zip' creates dictionary with the basename as the key and the full path as the value.
+# Followed by 'dict2items' and 'map(attribute='value')' to extract the full paths of the files as a list.
+# Basename as key ensures that only one file with the same name is kept, with the last occurrence taking precedence (the top level wins).
+- name: SAP Install Media Detect - Scan - Set fact with all files found in the source directory
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_source_files:
+      "{{ dict(__found_files | map('basename') | zip(__found_files))
+          | dict2items | map(attribute='value') | list }}"
+  vars:
+    __found_files:
+      "{{ (__sap_install_media_detect_register_scan_subdirectories.files | d([]) | map(attribute='path') | list)
+          + (__sap_install_media_detect_register_scan_top_level.files | d([]) | map(attribute='path') | list) }}"
+
+- name: SAP Install Media Detect - Summary - Set the progress fact for the scan
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_is_media_scanned: true

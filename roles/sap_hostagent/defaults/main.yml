@@ -1,16 +1,87 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-# Global Default variables
-# Adapt to your default settings
 
-# Installation type: RPM, SAR or OTHER -- Defaulting to RPM
-sap_hostagent_installation_type: "rpm"
+### Variables shared across installation types
+# Select default installation method (String).
+# Available options: 'sar', 'rpm' and 'bundle'.
+# NOTE: 'sar-remote' was deprecated in favor of 'sap_hostagent_sar_remote: true'.
+sap_hostagent_installation_type: 'sar'
 
-# Temporary directory for SAPHOSTAGENT files
-sap_hostagent_agent_tmp_directory: "/tmp/hostagent"
+# Select if existing SAP Host Agent installation should be overwritten (Boolean).
+# Set to 'true' to overwrite existing SAP Host Agent installation.
+# Set to 'false' to skip installation tasks if existing installation is detected.
+# NOTE: Downgrade and upgrade is available for all installation types.
+# NOTE: Overwrite with identical version is limited to installation type 'sar' and 'bundle'.
+#       For installation type 'rpm', the package will remain unchanged if the two versions are identical.
+sap_hostagent_overwrite: false
 
-# Remove the temporary directory after the installation has been done
-sap_hostagent_clean_tmp_directory: false
 
-# SSL Variables
-sap_hostagent_config_ssl: False
+### Variables for installation type 'sar'.
+## Both LOCAL and REMOTE.
+# File name of the SAR file (String).
+sap_hostagent_sar_file_name: ''  # Example: 'SAPHOSTAGENT67_67-80004822.SAR'
+
+# File name of the SAPCAR executable (String).
+sap_hostagent_sapcar_file_name: ''  # Example: 'SAPCAR_1400-70007716.EXE'
+
+# Select the method to provide SAR file and SAPCAR executable (Boolean).
+# Set to 'true' if the files are located on the Managed Node.
+# Set to 'false' if the files are located on the Control Node.
+sap_hostagent_sar_remote: false
+
+## SAR - LOCAL.
+# Path to directory where SAR file is located on Control Node (String).
+sap_hostagent_sar_local_path: ''  # Example: '/tmp/sap_hostagent'
+
+# Path to directory where SAPCAR executable is located on Control Node (String).
+sap_hostagent_sapcar_local_path: ''  # Example: '/tmp/sapcar
+
+## SAR - REMOTE.
+# Path to directory where SAR file is located on Managed Node (String).
+sap_hostagent_sar_remote_path: ''  # Example: '/tmp/sap_hostagent'
+
+# Path to directory where SAPCAR executable is located on Managed Node (String).
+sap_hostagent_sapcar_remote_path: ''  # Example: '/tmp/sapcar
+
+
+### Variables for installation type 'bundle'.
+# Path to directory where HOSTAGENT.TGZ file is located on Managed Node (String).
+sap_hostagent_bundle_path: '' # Example: '/tmp/sap_hana_extracted'
+
+
+### Variables for installation type 'rpm'.
+# File name of the RPM file (String).
+sap_hostagent_rpm_file_name: ''  # Example: 'sap_host_agent-1.0.0.rpm'
+
+# Select the method to provide RPM file (Boolean).
+# Set to 'true' if the RPM file is located on the Managed Node.
+# Set to 'false' if the RPM file is located on the Control Node.
+sap_hostagent_rpm_remote: false
+
+## RPM - LOCAL
+# Path to directory where RPM file is located on Control Node (String).
+sap_hostagent_rpm_local_path: ''  # Example: '/tmp/sap_hostagent_rpm'
+
+# RPM - REMOTE
+# Path to directory where RPM file is located on Managed Node (String).
+sap_hostagent_rpm_remote_path: ''  # Example: '/tmp/sap_hostagent_rpm
+
+
+### Variables for SSL Configuration
+# Select if SSL should be configured for the SAP Host Agent after installation (Boolean).
+# Configuration includes PSE and CSR files creation.
+# NOTE: Signed CA certificate is not supported.
+sap_hostagent_config_ssl: false
+
+# Password for the generated CSR file (String).
+sap_hostagent_ssl_passwd: ''
+
+# Organization information for the generated CSR file (String).
+sap_hostagent_ssl_org: ''
+
+# Country information for the generated CSR file (String).
+sap_hostagent_ssl_country: ''
+
+# NOTE: Temp directory variables were deprecated in favour of directory created by 'ansible.builtin.tempfile' Ansible Module.
+# - 'sap_hostagent_agent_tmp_directory'
+# - 'sap_hostagent_clean_tmp_directory'

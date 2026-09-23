@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# This is simplified detection, that relies only on existence of saphostctrl file.
+# This will no ensure that correct version is installed, but it can be forced with overwrite.
+
+- name: SAP Host Agent - Detect - Stat /usr/sap/hostctrl/exe/saphostctrl file
+  ansible.builtin.stat:
+    path: /usr/sap/hostctrl/exe/saphostctrl
+  register: __sap_hostagent_register_saphostctrl_stat
+
+- name: Block for existing SAP Host Agent
+  when:
+    - __sap_hostagent_register_saphostctrl_stat.stat.exists
+    - not sap_hostagent_overwrite | d(false)
+  block:
+
+    - name: SAP Host Agent - Detect - Set fact if SAP Host Agent is already installed
+      ansible.builtin.set_fact:
+        __sap_hostagent_detected: true
+
+    - name: SAP Host Agent - Detect - Inform that SAP Host Agent is already installed and skip installation tasks
+      ansible.builtin.debug:
+        msg: |
+          INFO: SAP Host Agent is already installed on this host. Skipping installation tasks.
+          {% if sap_hostagent_installation_type != 'rpm' %}
+          To overwrite existing installation, set 'sap_hostagent_overwrite' to 'true'.
+          {% endif %}
+
+
+- name: SAP Host Agent - Detect - Inform that SAP Host Agent is already installed and overwrite is set to true
+  ansible.builtin.debug:
+    msg: |
+      INFO: SAP Host Agent is already installed on this host
+      and overwrite variable 'sap_hostagent_overwrite' is set to 'true'.
+      The installation tasks will proceed.
+  when:
+    - __sap_hostagent_register_saphostctrl_stat.stat.exists
+    - sap_hostagent_overwrite | d(false)

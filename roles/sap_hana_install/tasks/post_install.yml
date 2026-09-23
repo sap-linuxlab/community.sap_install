@@ -5,6 +5,7 @@
 - name: Block with tasks for new HANA Systems
   when:
     - not __sap_hana_install_fact_is_installed
+    # Execute only on main host and skip execution on addhosts.
     - __sap_hana_install_fact_is_main_host
   block:
 
@@ -75,3 +76,6 @@
     # Ensure fapolicyd is checked only on supported systems.
     - ansible_facts['os_family'] == "RedHat"
     - __sap_hana_install_configure_fapolicyd
+    # Added to ensure that fapolicyd is configured only on new installations
+    # to avoid trusting potentially compromised files in existing installation.
+    - not __sap_hana_install_fact_is_installed

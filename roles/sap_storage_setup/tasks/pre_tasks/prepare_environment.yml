@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP Storage Setup - Prepare Environment - Install required OS packages
+  ansible.builtin.package:
+    name: "{{ __sap_storage_setup_packages | d([]) }}"
+    state: present
+
+- name: SAP Storage Setup - Prepare Environment - Make sure services are running
+  ansible.builtin.service:
+    name: "{{ service_item }}"
+    state: started
+  loop: "{{ __sap_storage_setup_services | d([]) }}"
+  loop_control:
+    loop_var: service_item
+
+
+- name: Block for Multipathing
+  when: sap_storage_setup_multipath_enable_and_detect
+  block:
+
+    - name: SAP Storage Setup - Prepare Multipathing - Install required OS packages
+      ansible.builtin.package:
+        name: "{{ __sap_storage_setup_packages_multipath | d([]) }}"
+        state: present
+
+    - name: SAP Storage Setup - Prepare Multipathing - Show warning for dependencies
+      ansible.builtin.debug:
+        msg: |
+          WARN: This role does not configure all dependencies for multipathing.
+          Please ensure that required dependencies are installed and configured manually.
+
+    - name: SAP Storage Setup - Prepare Multipathing - Make sure services are running
+      ansible.builtin.service:
+        name: "{{ mp_service_item }}"
+        state: started
+      loop: "{{ __sap_storage_setup_services_multipath | d([]) }}"
+      loop_control:
+        loop_var: mp_service_item

@@ -377,7 +377,7 @@ Installs SAP HANA on `host1` and `host2`, while running on host `host0` where ex
 ```yaml
 ---
 - name: Ansible Play for SAP HANA installation - Add hosts
-  hosts: host0, host1
+  hosts: host0, host1, host2
   become: true
   tasks:
     - name: Execute Ansible Role sap_hana_install

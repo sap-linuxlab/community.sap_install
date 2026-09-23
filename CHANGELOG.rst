@@ -4,6 +4,36 @@ community.sap\_install Release Notes
 
 .. contents:: Topics
 
+v1.11.0
+=======
+
+Release Summary
+---------------
+
+Improved pseudo-idempotency, rework of three roles, new plugins for validation, minor changes and bug fixes
+
+Minor Changes
+-------------
+
+- collection - Add new plugins for SID and Instance Number validation (https://github.com/sap-linuxlab/community.sap_install/pull/1243)
+- sap_general_preconfigure - Ensure the presence of the sysstat package on RHEL 8 and later (https://github.com/sap-linuxlab/community.sap_install/pull/1239)
+- sap_hana_install - Replace SID and Instance Number validation with new plugins (https://github.com/sap-linuxlab/community.sap_install/pull/1245)
+- sap_hana_install - Update Pseudo-Idempotency (https://github.com/sap-linuxlab/community.sap_install/pull/1215)
+- sap_hana_preconfigure/RHEL - Add package for GCC 15 compatibility (https://github.com/sap-linuxlab/community.sap_install/pull/1232)
+- sap_hostagent - Rework and fixes for open issues (https://github.com/sap-linuxlab/community.sap_install/pull/1214)
+- sap_install_media_detect - Rework for performance and accuracy (https://github.com/sap-linuxlab/community.sap_install/pull/1235)
+- sap_storage_setup - Complete Rework (https://github.com/sap-linuxlab/community.sap_install/pull/1242)
+- sap_swpm - Add Pseudo-Idempotency (https://github.com/sap-linuxlab/community.sap_install/pull/1213)
+- sap_swpm - Replace SAP detection fail with warning for wrong GID and UID (https://github.com/sap-linuxlab/community.sap_install/pull/1231)
+- sap_swpm - Validate SIDs and instance numbers with new plugins (https://github.com/sap-linuxlab/community.sap_install/pull/1246)
+
+Bugfixes
+--------
+
+- collection - Let the 'schema' ansible-lint check pass (https://github.com/sap-linuxlab/community.sap_install/pull/1233)
+- sap_hana_install - Ensure correct permissions of SIGNATURE.SMF (https://github.com/sap-linuxlab/community.sap_install/pull/1237)
+- sap_swpm - Add fact reset for variable precedence and improve fact naming (https://github.com/sap-linuxlab/community.sap_install/pull/1241)
+
 v1.10.0
 =======
 

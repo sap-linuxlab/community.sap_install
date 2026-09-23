@@ -1,0 +1,156 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# The sapfile utility classifies most of the installation media by the file name before falling back on the file content.
+# It matches the extension case sensitively, so a file without extension has to be renamed before sapfile is called.
+# Which extension a file gets was already determined by the scan.
+
+# NOTE: The files are renamed in the main directory, which holds the whole installation media at
+# this point. The source directory of scenario C is read-only and is never written to, its files
+# were copied to the main directory beforehand, see 'copy_files_to_main_directory.yml'.
+
+
+# One list per extension, so that it stays visible which files get which extension.
+# The extensions are the keys of '__sap_install_media_detect_file_extension_matrix'.
+#
+# The result is a dictionary of the current name to the new name, so that the pair stays together
+# for the rest of this task file and the current name never has to be derived from the new one.
+# Both lists below name the same five facts in the same order, which is what pairs them up.
+- name: SAP Install Media Detect - Rename - Set fact with the new name of every file without extension
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_files_to_rename: "{{ dict(__current_names | zip(__new_names)) }}"
+  vars:
+    __current_names:
+      "{{ __sap_install_media_detect_fact_zip_files_without_extension
+          + __sap_install_media_detect_fact_rar_files_without_extension
+          + __sap_install_media_detect_fact_exe_files_without_extension
+          + __sap_install_media_detect_fact_sapcar_files_without_extension
+          + __sap_install_media_detect_fact_sar_files_without_extension }}"
+    __new_names: "{{ __zip_names + __rar_names + __exe_names + __sapcar_names + __sar_names }}"
+
+    __zip_names:
+      "{{ __sap_install_media_detect_fact_zip_files_without_extension
+          | map('regex_replace', '$', '.zip') | list }}"
+    __rar_names:
+      "{{ __sap_install_media_detect_fact_rar_files_without_extension
+          | map('regex_replace', '$', '.rar') | list }}"
+    __exe_names:
+      "{{ __sap_install_media_detect_fact_exe_files_without_extension
+          | map('regex_replace', '$', '.exe') | list }}"
+    __sapcar_names:
+      "{{ __sap_install_media_detect_fact_sapcar_files_without_extension
+          | map('regex_replace', '$', '.EXE') | list }}"
+
+    # SAP delivers the SAR archive primarily with an upper case, but sometimes with lower case.
+    # The sapfile utility accepts both, so every SAP archive gets the upper case extension of the matrix.
+    __sar_names:
+      "{{ __sap_install_media_detect_fact_sar_files_without_extension
+          | map('regex_replace', '$', '.SAR') | list }}"
+
+
+# The new name of a file can be already used (if role ran before in scenario B and C).
+# We will create list of files to skip if rename is not allowed, or files to rename.
+- name: SAP Install Media Detect - Rename - Set facts with the files to rename and the files to keep
+  ansible.builtin.set_fact:
+    # Files that will be renamed. If overwriting is enabled, this includes all files to rename.
+    __sap_install_media_detect_fact_files_renamed:
+      "{{ __sap_install_media_detect_fact_files_to_rename if __overwrite else __free_pairs | items2dict }}"
+    # Files that keep their current name, and list of files that are replaced.
+    __sap_install_media_detect_fact_files_rename_skipped:
+      "{{ {} if __overwrite else __taken_pairs | items2dict }}"
+    __sap_install_media_detect_fact_files_rename_replaced:
+      "{{ __replaced_names if __overwrite else [] }}"
+
+  vars:
+    __overwrite: "{{ sap_install_media_detect_rename_target_file_exists == 'overwrite' }}"
+
+    # The dictionary as a list of pairs, so that the new name can be filtered on while the current
+    # name of the same file is carried along.
+    __rename_pairs: "{{ __sap_install_media_detect_fact_files_to_rename | dict2items }}"
+
+    # All names in the source directory turned into case insensitive pattern.
+    __existing_names:
+      "{{ '(?i)^(' ~ (__sap_install_media_detect_fact_source_files | map('regex_escape') | join('|')) ~ ')$' }}"
+    # Pairs whose new name is already taken.
+    __taken_pairs: "{{ __rename_pairs | selectattr('value', 'search', __existing_names) | list }}"
+    # Pairs whose new name is not yet taken.
+    __free_pairs: "{{ __rename_pairs | rejectattr('value', 'search', __existing_names) | list }}"
+
+    # The same match the other way around, which turns the taken new names into the files that hold them.
+    # Those are the files that 'overwrite' has to remove first, because 'mv' replaces
+    # a file of exactly the new name but not one that differs in the case of its extension,
+    # and both '.SAR' and '.sar' can be present at the same time.
+    __taken_names_pattern:
+      "{{ '(?i)^(' ~ (__taken_pairs | map(attribute='value') | map('regex_escape') | join('|')) ~ ')$' }}"
+    __replaced_names:
+      "{{ __sap_install_media_detect_fact_source_files | select('search', __taken_names_pattern) | list }}"
+
+
+# The role parameter decides what happens to a file whose new name is already taken.
+- name: SAP Install Media Detect - Rename - Fail if the new name of a file is already taken
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The following files cannot get their file extension added, because a file of that name already exists:
+      {% for __current, __new in __sap_install_media_detect_fact_files_rename_skipped.items() %}
+      - {{ __current }} -> {{ __new | basename }}
+      {% endfor %}
+      Set the role parameter 'sap_install_media_detect_rename_target_file_exists' to 'skip' to
+      keep existing file, or to 'overwrite' to replace the existing one.
+  when:
+    - __sap_install_media_detect_fact_files_rename_skipped | length > 0
+    - sap_install_media_detect_rename_target_file_exists == 'fail'
+
+- name: SAP Install Media Detect - Rename - Warn about the files which are left alone
+  ansible.builtin.debug:
+    msg: |
+      WARN: The file extension was not added to the following files, because a file of that name already exists:
+      {% for __current, __new in __sap_install_media_detect_fact_files_rename_skipped.items() %}
+      - {{ __current }} -> {{ __new | basename }}
+      {% endfor %}
+      The file which already carries that name is used instead, so the installation media is
+      complete, and the files above are left in place without being processed any further.
+  when: __sap_install_media_detect_fact_files_rename_skipped | length > 0
+
+
+# The role parameter 'overwrite' created list of files to replace so they can be removed before renaming.
+# It is removed even when it carries the extension in the other case, which 'mv' would leave behind as a second copy of the same media.
+- name: SAP Install Media Detect - Rename - Remove the files which are replaced
+  ansible.builtin.file:
+    path: "{{ file_item }}"
+    state: absent
+  loop: "{{ __sap_install_media_detect_fact_files_rename_replaced }}"
+  loop_control:
+    loop_var: file_item
+    label: "{{ file_item | basename }}"
+
+# Ansible does not have a native 'move' module and we have to use the command module instead.
+- name: SAP Install Media Detect - Rename - Add the file extension
+  ansible.builtin.command:
+    cmd: mv -- {{ file_item['key'] | quote }} {{ file_item['value'] | quote }}
+  register: __sap_install_media_detect_register_rename
+  changed_when: __sap_install_media_detect_register_rename.rc == 0
+  loop: "{{ __sap_install_media_detect_fact_files_renamed | dict2items }}"
+  loop_control:
+    loop_var: file_item
+    label: "{{ file_item['value'] | basename }}"
+
+
+# Original source file list must be updated to reflect the renaming operations.
+# NOTE: A renamed file is dropped and added again in the same step, because 'overwrite' gives it
+# the name of the file that it just deleted, so the removal is applied before the new names.
+- name: SAP Install Media Detect - Rename - Set fact with the files of the source directory
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_source_files:
+      "{{ ((__sap_install_media_detect_fact_source_files | reject('in', __names_of_the_scan) | list)
+           + (__sap_install_media_detect_fact_files_renamed.values() | list)) | unique }}"
+  vars:
+    # The current name of a renamed or skipped file is the key of its pair, and a replaced file is
+    # in the list under the name that it had.
+    __names_of_the_scan:
+      "{{ (__sap_install_media_detect_fact_files_renamed.keys() | list)
+          + (__sap_install_media_detect_fact_files_rename_skipped.keys() | list)
+          + __sap_install_media_detect_fact_files_rename_replaced }}"
+
+- name: SAP Install Media Detect - Summary - Set the progress fact for the renaming
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_is_renamed: true

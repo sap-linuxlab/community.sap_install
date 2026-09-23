@@ -1,28 +1,67 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: Execute common pre installation tasks
-  ansible.builtin.import_tasks: common_pre.yml
+- name: SAP Host Agent - Assert that the variable 'sap_hostagent_installation_type' is defined and valid
+  ansible.builtin.assert:
+    that:
+      - sap_hostagent_installation_type is defined
+      - sap_hostagent_installation_type is string
+      - sap_hostagent_installation_type in ['sar', 'rpm', 'bundle', 'sar-remote']
+    fail_msg: |
+      FAIL: The variable 'sap_hostagent_installation_type' is undefined or invalid.
+      Available options: 'sar', 'rpm', 'bundle'
 
-- name: Deploy SAPHOSTAGENT using RPM file
-  ansible.builtin.import_tasks: deploy_rpm.yml
-  when: sap_hostagent_installation_type == "rpm"
 
-- name: Deploy SAPHOSTAGENT using SAR file
-  ansible.builtin.import_tasks: deploy_sar.yml
-  when: sap_hostagent_installation_type == "sar"
+- name: SAP Host Agent - Detect existing SAP Host Agent installation
+  ansible.builtin.include_tasks:
+    file: detect_agent.yml
 
-- name: Deploy SAPHOSTAGENT using SAR file existing on system
-  ansible.builtin.import_tasks: deploy_sar_remote.yml
-  when: sap_hostagent_installation_type == "sar-remote"
 
-- name: Deploy SAPHOSTAGENT using SAP Installation Bundle
-  ansible.builtin.import_tasks: deploy_bundle.yml
-  when: sap_hostagent_installation_type == "bundle"
+- name: SAP Host Agent - Inform that 'rpm' is not supported on SUSE
+  ansible.builtin.debug:
+    msg: |
+      INFO: The installation type 'rpm' is not supported on SUSE.
+      Skipping SAP Host Agent installation for this host.
+  when:
+    - sap_hostagent_installation_type == 'rpm'
+    - ansible_facts['os_family'] == 'Suse'
 
-- name: Configure SSL for SAP Host Agent
-  ansible.builtin.import_tasks: config_ssl.yml
-  when: sap_hostagent_config_ssl
 
-- name: Execute common post installation tasks
-  ansible.builtin.import_tasks: common_post.yml
+- name: Block to continue after detection
+  when:
+    - not __sap_hostagent_detected or sap_hostagent_overwrite | d(false)
+    # RPM is not supported on SUSE.
+    - not (sap_hostagent_installation_type == 'rpm' and ansible_facts['os_family'] == 'Suse')
+  block:
+
+    - name: SAP Host Agent - Include pre tasks for {{ sap_hostagent_installation_type | d('N/A') }}
+      ansible.builtin.include_tasks:
+        file: "{{ __sap_hostagent_installation_type }}/{{ __sap_hostagent_installation_type }}_pre_tasks.yml"
+
+
+    # We create tempfile after pre_tasks to ensure tempfile creation is only attempted
+    # if the provided variables are valid and all necessary SAR file checks have been performed.
+    - name: SAP Host Agent - Create temporary directory on managed node
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: _sap_hostagent
+      register: __sap_hostagent_register_tmpdir
+
+
+    - name: SAP Host Agent - Include installation tasks for {{ sap_hostagent_installation_type | d('N/A') }}
+      ansible.builtin.include_tasks:
+        file: "{{ __sap_hostagent_installation_type }}/{{ __sap_hostagent_installation_type }}_install.yml"
+
+    - name: SAP Host Agent - Include SSL configuration tasks
+      ansible.builtin.include_tasks:
+        file: config_ssl.yml
+      when: sap_hostagent_config_ssl | d(false)
+
+  always:
+    - name: SAP Host Agent - Remove temporary directory after installation
+      ansible.builtin.file:
+        path: "{{ __sap_hostagent_register_tmpdir.path }}"
+        state: absent
+        force: true
+      when:
+        - __sap_hostagent_register_tmpdir.path is defined

@@ -1,0 +1,352 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+### List of scenarios for determining next steps.
+# This ensures that installation can be skipped when needed to prevent any potential issues affecting existing installations.
+# Optional override is available in defaults/main.yml to execute regardless of warning.
+# NOTE: SAP Host Agent can be skipped during installation using 'sap_swpm_install_saphostagent: false'.
+
+## 'saphostctrl' is present:
+# 1. SKIP - 'root' saphostctrl check finds the desired SID and instance number.
+# 2. INSTALL - 'root' saphostctrl check does not find the desired SID and instance number, and no other indicators are found.
+# 3. FAIL - 'root' saphostctrl check does not find the desired SID and instance number, and any other indicators are found.
+
+# 'saphostctrl' is not present:
+# 4. SKIP - 'sidadm' sapcontrol check finds the desired SID and instance number.
+# 5. INSTALL - 'sidadm' sapcontrol check does not find the desired SID and instance number, and no other indicators are found.
+# 6. FAIL - 'sidadm' sapcontrol check does not find the desired SID and instance number, and any other indicators are found.
+
+# Breakdown of potential scenarios and actions:
+# | saphostctrl | sapcontrol | Instance Found | Files Found | Action
+# |-------------|------------|----------------|-------------|--------
+# | Yes         | N/A        | Yes            | N/A         | SKIP
+# | Yes         | N/A        | No             | No          | INSTALL
+# | Yes         | N/A        | No             | Any         | FAIL
+# | No          | Yes        | Yes            | N/A         | SKIP
+# | No          | Yes        | No             | Any         | FAIL
+# | No          | No         | No             | No          | INSTALL
+
+# List of non-saphostctrl indicators for potential existing SAP installation:
+# A. Files found in /usr/sap/<SID> directory.
+# B. Profile files found in /sapmnt/<SID>/profile/ directory.
+# C. Services found in /usr/sap/sapservices file.
+
+
+# Check 1: Check if the group 'sapsys' exists with correct ID.
+# The role supports specifying the 'sapsys' group id in variable `sap_swpm_sapsys_gid`.
+# The installation will show warning if there is already a group named sapsys but with a different ID.
+# NOTE: This is executed even if the above checks detect an existing installation, because we want to identify conflicts.
+
+# This is also used for validation before using 'sidadm' sapcontrol.
+- name: SAP SWPM Pre Install - Detect - Get details of the 'sapsys' group
+  ansible.builtin.getent:
+    database: group
+    key: sapsys
+  # Hide output if group does not exist.
+  failed_when: false
+
+# getent_group will be populated, with fields:
+# [0] - 'X' if the password is set.
+# [1] - Group ID.
+# [2] - Group members.
+- name: SAP SWPM Pre Install - Detect - Warn if conflict exists for group ID 'sapsys'
+  ansible.builtin.debug:
+    msg: |
+      WARN: Group 'sapsys' exists but with a different group ID.
+      Expected: '{{ sap_swpm_sapsys_gid }}'
+      Found: '{{ ansible_facts["getent_group"]['sapsys'][1] }}'
+      SWPM installation will proceed and existing group will be used.
+  when:
+    - sap_swpm_sapsys_gid is defined
+    - sap_swpm_sapsys_gid is string
+    - sap_swpm_sapsys_gid | trim | length > 0
+    # Actual comparison of Group ID
+    - ansible_facts["getent_group"]['sapsys'][1] is defined
+    - ansible_facts["getent_group"]['sapsys'][1] | int != sap_swpm_sapsys_gid | int
+
+
+# Check 2: Check if the user 'sidadm' exists with correct ID.
+# The role supports specifying the 'sidadm' user id in variable `sap_swpm_sidadm_uid`.
+# The installation will show warning if there is already a user named sidadm but with a different ID.
+# NOTE: This is executed even if above check detected existing installation, because we want to know of conflict.
+
+# This is also used for validation before using 'sidadm' sapcontrol.
+- name: SAP SWPM Pre Install - Detect - Get details about available users
+  ansible.builtin.getent:
+    database: passwd
+  # Hide output if user does not exist.
+  failed_when: false
+
+# getent_passwd will be populated, with fields:
+# [0] - 'X' if the password is set.
+# [1] - User ID.
+# [2] - Group ID.
+- name: SAP SWPM Pre Install - Detect - Warn if conflict exists for user ID '{{ __sap_swpm_sidadm_user }}'
+  ansible.builtin.debug:
+    msg: |
+      WARN: User '{{ __sap_swpm_sidadm_user }}' exists but with a different user ID.
+      Expected: '{{ sap_swpm_sidadm_uid }}'
+      Found: '{{ ansible_facts["getent_passwd"][__sap_swpm_sidadm_user][1] }}'
+      SWPM installation will proceed and existing user will be used.
+  when:
+    - sap_swpm_sidadm_uid is defined
+    - sap_swpm_sidadm_uid is string
+    - sap_swpm_sidadm_uid | trim | length > 0
+    # Actual comparison of User ID
+    - ansible_facts["getent_passwd"][__sap_swpm_sidadm_user][1] is defined
+    - ansible_facts["getent_passwd"][__sap_swpm_sidadm_user][1] | int != sap_swpm_sidadm_uid | int
+
+
+# Check 3: Check if the user 'sapadm' exists with correct ID.
+# The role supports specifying the 'sapadm' user id in variable `sap_swpm_sapadm_uid`.
+# The installation will show warning if there is already a user named sapadm but with a different ID.
+# NOTE: This is executed even if above check detected existing installation, because we want to know of conflict.
+
+# The getent data for 'sapadm' is collected in the previous check.
+# Running getent twice with different key filters would prevent checking both users in subsequent tasks.
+
+# getent_passwd will be populated, with fields:
+# [0] - 'X' if the password is set.
+# [1] - User ID.
+# [2] - Group ID.
+- name: SAP SWPM Pre Install - Detect - Warn if conflict exists for user ID 'sapadm'
+  ansible.builtin.debug:
+    msg: |
+      WARN: User 'sapadm' exists but with a different user ID.
+      Expected: '{{ sap_swpm_sapadm_uid }}'
+      Found: '{{ ansible_facts["getent_passwd"]['sapadm'][1] }}'
+      SWPM installation will proceed and existing user will be used.
+  when:
+    - sap_swpm_sapadm_uid is defined
+    - sap_swpm_sapadm_uid is string
+    - sap_swpm_sapadm_uid | trim | length > 0
+    # Actual comparison of User ID
+    - ansible_facts["getent_passwd"]['sapadm'][1] is defined
+    - ansible_facts["getent_passwd"]['sapadm'][1] | int != sap_swpm_sapadm_uid | int
+
+
+### Execute global data gathering before per-instance detection.
+
+# Check 4: Detect 'saphostctrl' and search for SID and instance number in 'ListInstances' output.
+- name: SAP SWPM Pre Install - Detect - Stat /usr/sap/hostctrl/exe/saphostctrl file
+  ansible.builtin.stat:
+    path: /usr/sap/hostctrl/exe/saphostctrl
+  register: __sap_swpm_register_saphostctrl_stat
+
+# Output example:
+# Inst Info : AE1 - 00 - ae1ascs-ha - 793, patch 51, commit 375ae433dffb023985041c1d7b4687b1bde8d211
+# Inst Info : AE1 - 10 - ae1ers-ha - 793, patch 51, commit 375ae433dffb023985041c1d7b4687b1bde8d211
+- name: SAP SWPM Pre Install - Detect - Execute saphostctrl function ListInstances
+  ansible.builtin.command:
+    cmd: /usr/sap/hostctrl/exe/saphostctrl -function ListInstances
+  register: __sap_swpm_register_saphostctrl_list_instances
+  changed_when: false
+  # Hides failed output, but 'rc' can be still used for verification.
+  failed_when: false
+  when:
+    - __sap_swpm_register_saphostctrl_stat.stat.exists
+    - __sap_swpm_register_saphostctrl_stat.stat.executable
+
+- name: SAP SWPM Pre Install - Detect - Show reason why saphostctrl check was skipped
+  ansible.builtin.debug:
+    msg: |
+      INFO: Detection of existing SAP instance installation with 'saphostctrl' command was skipped.
+      {% if not __sap_swpm_register_saphostctrl_stat.stat.exists %}
+      The executable '/usr/sap/hostctrl/exe/saphostctrl' is not available.
+      {% elif not __sap_swpm_register_saphostctrl_stat.stat.executable %}
+      The executable '/usr/sap/hostctrl/exe/saphostctrl' is not executable.
+      {% endif %}
+      {% if __sap_swpm_register_saphostctrl_list_instances.rc is defined
+        and __sap_swpm_register_saphostctrl_list_instances.rc != 0 %}
+      Return code: {{ __sap_swpm_register_saphostctrl_list_instances.rc | d('1') }}
+      Output:      {{ __sap_swpm_register_saphostctrl_list_instances.stdout | d('') }}
+      Error:       {{ __sap_swpm_register_saphostctrl_list_instances.stderr | d('') }}
+      {% endif %}
+  when:
+    - not __sap_swpm_register_saphostctrl_stat.stat.exists
+      or not __sap_swpm_register_saphostctrl_stat.stat.executable
+      or (__sap_swpm_register_saphostctrl_list_instances.rc is defined
+        and __sap_swpm_register_saphostctrl_list_instances.rc != 0)
+
+
+# Check 5: Use 'sapcontrol' and search for SID and instance number in 'GetInstanceProperties' output.
+# The `sapcontrol` command from SAP kernel files can be used to obtain instance information.
+- name: Block for sapcontrol checks
+  when:
+    - ansible_facts["getent_group"]['sapsys'][1] is defined
+    - ansible_facts["getent_passwd"][__sap_swpm_sidadm_user][1] is defined
+  block:
+
+    # Reason for noqa: Switch to user requires shell module to load environment variables.
+    - name: SAP SWPM Pre Install - Detect - Check if 'sapcontrol' command is available  # noqa: command-instead-of-shell
+      ansible.builtin.shell:
+        cmd: "bash -lc 'which sapcontrol'"
+      become: true
+      become_user: "{{ __sap_swpm_sidadm_user }}"
+      # This was specifically required for RHEL due to different behavior for non-interactive shells on RHEL vs. SLES.
+      # It is caused by different contents of the skeleton directory '/etc/skel' and '.bashrc' file contents.
+      become_flags: "-i"
+      register: __sap_swpm_register_which_sapcontrol
+      changed_when: false
+      ignore_errors: true
+
+    - name: SAP SWPM Pre Install - Detect - Show reason why sapcontrol check was skipped - unavailable
+      ansible.builtin.debug:
+        msg: |
+          INFO: Detection of existing SAP instance installation with 'sapcontrol' command was skipped.
+          Command 'sapcontrol' is not available for user '{{ __sap_swpm_sidadm_user }}'.
+      when: __sap_swpm_register_which_sapcontrol.rc != 0
+
+
+# Check 6: Check presence of files in directories.
+- name: SAP SWPM Pre Install - Detect - Stat directory {{ '/usr/sap/' ~ __sap_swpm_sid ~ '/' }}
+  ansible.builtin.stat:
+    path: "{{ '/usr/sap/' ~ __sap_swpm_sid ~ '' }}"
+  register: __sap_swpm_register_sapmnt_stat
+
+- name: SAP SWPM Pre Install - Detect - Find instance directories in {{ '/usr/sap/' ~ __sap_swpm_sid ~ '/' }}
+  ansible.builtin.find:
+    paths: "/usr/sap/{{ __sap_swpm_sid }}/"
+    file_type: directory
+    recurse: false
+  register: __sap_swpm_register_instance_dirs_find
+  when: __sap_swpm_register_sapmnt_stat.stat.exists
+
+
+# Check 7: Check contents of /usr/sap/sapservices
+# This file can be managed by cluster software like Veritas,
+# therefore instances may not appear if cluster is stopped.
+- name: SAP SWPM Pre Install - Detect - Stat /usr/sap/sapservices file
+  ansible.builtin.stat:
+    path: /usr/sap/sapservices
+  register: __sap_swpm_register_sapservices_stat
+
+- name: SAP SWPM Pre Install - Detect - Read /usr/sap/sapservices file
+  ansible.builtin.slurp:
+    path: /usr/sap/sapservices
+  register: __sap_swpm_register_sapservices_slurp
+  when: __sap_swpm_register_sapservices_stat.stat.exists
+
+
+# Check 8: Check profile files in /sapmnt/<SID>/profile/
+- name: SAP SWPM Pre Install - Detect - Stat directory {{ '/sapmnt/' ~ __sap_swpm_sid ~ '/profile/' }}
+  ansible.builtin.stat:
+    path: "{{ '/sapmnt/' ~ __sap_swpm_sid ~ '/profile/' }}"
+  register: __sap_swpm_register_profile_dir_stat
+
+- name: SAP SWPM Pre Install - Detect - Find profile files in {{ '/sapmnt/' ~ __sap_swpm_sid ~ '/profile/' }}
+  ansible.builtin.find:
+    paths: "/sapmnt/{{ __sap_swpm_sid }}/profile/"
+    file_type: file
+    recurse: false
+  register: __sap_swpm_register_profiles_find
+  when: __sap_swpm_register_profile_dir_stat.stat.exists
+
+
+# Include task file for each instance.
+- name: SAP SWPM Pre Install - Detect - Include tasks for each instance
+  ansible.builtin.include_tasks:
+    file: detect_sap_instance.yml
+  loop: "{{ __sap_swpm_fact_detect_instances }}"
+  loop_control:
+    loop_var: instance_item
+    label: "{{ instance_item.number }}"
+  when: __sap_swpm_fact_detect_instances | length > 0
+
+
+### Decision section based on collected facts.
+
+# Set boolean facts for easier decision making in the next steps, based on collected results for all instances.
+- name: SAP SWPM Pre Install - Detect - Set fact with results for all instances
+  ansible.builtin.set_fact:
+    # SKIP should run only if all expected instances are detected.
+    __sap_swpm_fact_detect_saphostctrl_all_found: >-
+      {{ __sap_swpm_fact_detect_instance_results | selectattr('saphostctrl', 'equalto', true) | list | length == __sap_swpm_fact_detect_instances | length }}
+    __sap_swpm_fact_detect_sapcontrol_all_found: >-
+      {{ __sap_swpm_fact_detect_instance_results | selectattr('sapcontrol', 'equalto', true) | list | length == __sap_swpm_fact_detect_instances | length }}
+    # FAIL should run if any of the indicators is found, but SKIP is not triggered.
+    __sap_swpm_fact_detect_files_any_found: >-
+      {{ __sap_swpm_fact_detect_instance_results | selectattr('files', 'equalto', true) | list | length > 0 }}
+    __sap_swpm_fact_detect_sapservices_any_found: >-
+      {{ __sap_swpm_fact_detect_instance_results | selectattr('sapservices', 'equalto', true) | list | length > 0 }}
+    __sap_swpm_fact_detect_profiles_any_found: >-
+      {{ __sap_swpm_fact_detect_instance_results | selectattr('profiles', 'equalto', true) | list | length > 0 }}
+
+
+# 3. FAIL - 'root' saphostctrl check does not find the desired SID and instance number, and any other indicators are found
+# 6. FAIL - 'sidadm' sapcontrol check does not find the desired SID and instance number, and any other indicators are found
+- name: SAP SWPM Pre Install - Detect - Fail if potential installation was detected
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Potential existing SAP System installation detected based on the presence of identifiable indicators.
+      {% if __sap_swpm_fact_detect_files_any_found %}
+      - Existence of files in '/usr/sap/{{ __sap_swpm_sid }}/' directory.
+      {% endif %}
+      {% if __sap_swpm_fact_detect_sapservices_any_found %}
+      - Existence of instance entries in /usr/sap/sapservices file.
+      {% endif %}
+      {% if __sap_swpm_fact_detect_profiles_any_found %}
+      - Existence of profile files in '/sapmnt/{{ __sap_swpm_sid }}/profile/' directory.
+      {% endif %}
+      These checks trigger failure only when 'saphostctrl' and 'sapcontrol' fail to detect all instances.
+
+      Please verify the details above and ensure that you are not trying to install over an existing installation.
+      If you want to proceed with the installation regardless, please set 'sap_swpm_force' variable to true.
+  when:
+    - not sap_swpm_force | d(false)
+    - not __sap_swpm_fact_detect_saphostctrl_all_found
+    - not __sap_swpm_fact_detect_sapcontrol_all_found
+    - __sap_swpm_fact_detect_files_any_found
+      or __sap_swpm_fact_detect_sapservices_any_found
+      or __sap_swpm_fact_detect_profiles_any_found
+
+
+# 1. SKIP - 'root' saphostctrl check finds the desired SID and instance number.
+# 4. SKIP - 'sidadm' sapcontrol check finds the desired SID and instance number.
+- name: Block for SKIP
+  when:
+    # If saphostctrl is available, all instances must be detected from it,
+    # otherwise sapcontrol must have detected all instances.
+    - __sap_swpm_fact_detect_saphostctrl_all_found
+      or __sap_swpm_fact_detect_sapcontrol_all_found
+  block:
+    - name: SAP SWPM Pre Install - Detect - Set fact if installation was detected
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_sap_detected: true
+
+    - name: SAP SWPM Pre Install - Detect - Inform that installation was detected
+      ansible.builtin.debug:
+        msg: |
+          {% if not sap_swpm_force %}
+          WARN: Existing SAP System installation detected using 'saphostctrl' or 'sapcontrol' command checks.
+          Installation steps will be skipped!
+
+          If you intend to proceed with the installation despite this warning,
+          set 'sap_swpm_force' variable to 'true' and execute this Ansible Role again.
+          {% else %}
+          INFO: Existing SAP System installation detected using 'saphostctrl' or 'sapcontrol' command checks.
+          Installation steps will be executed regardless,
+          because 'sap_swpm_force' variable is set to 'true' (default is 'false').
+          {% endif %}
+
+
+# 2. INSTALL - 'root' saphostctrl check does not find the desired SID and instance number, and no other indicators are found.
+# 5. INSTALL - 'sidadm' sapcontrol check does not find the desired SID and instance number, and no other indicators are found.
+- name: SAP SWPM Pre Install - Detect - Inform that no existing installation was detected
+  ansible.builtin.debug:
+    msg: |
+      INFO: No existing SAP System installation detected for SID {{ __sap_swpm_sid }}.
+      Installation will proceed.
+
+      Detection methods used:
+      - saphostctrl command (ListInstances)
+      - sapcontrol command (GetInstanceProperties)
+      - Instance directories (/usr/sap/{{ __sap_swpm_sid }}/)
+      - SAP services file (/usr/sap/sapservices)
+      - Profile files (/sapmnt/{{ __sap_swpm_sid }}/profile/)
+  when:
+    - not __sap_swpm_fact_detect_saphostctrl_all_found
+    - not __sap_swpm_fact_detect_sapcontrol_all_found
+    - not __sap_swpm_fact_detect_files_any_found
+    - not __sap_swpm_fact_detect_sapservices_any_found
+    - not __sap_swpm_fact_detect_profiles_any_found

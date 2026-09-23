@@ -10,9 +10,15 @@ SAP Host Agent is an agent that can accomplish several life-cycle management tas
 
 This role installs SAP Host Agent with following source methods:
 
-- SAP SAR file
-- SAP Bundle
-- RPM package (Red Hat only)
+- **SAR file**
+  - Source: SAP Software Center under product `SAP HOST AGENT`.
+
+- **SAP bundle**
+  - Source: SAP Software Center under products like `SAP HANA PLATFORM EDITION`.
+  - These archives contain the `HOSTAGENT.TGZ` file used for installation.
+
+- **RPM package** (Red Hat only)
+  - Source: SAP Software Center under product `SAP HOST AGENT`.
 <!-- END Description -->
 
 <!-- BEGIN Dependencies -->
@@ -39,10 +45,12 @@ It is recommended to execute this role together with other roles in this collect
 
 ### Execution Flow
 <!-- BEGIN Execution Flow -->
-1. Create temporary directory.
-2. Execute deployment based on chosen method.
-3. Configure SSL if `sap_hostagent_config_ssl` was set.
-4. Cleanup temporary directory
+1. Validate variables and paths to files. 
+2. Detect existing installation.
+3. Create temporary directory.
+4. Execute installation based on chosen method.
+5. Configure SSL if `sap_hostagent_config_ssl` was set.
+6. Cleanup temporary directory
 <!-- END Execution Flow -->
 
 ### Example
@@ -63,7 +71,6 @@ It is recommended to execute this role together with other roles in this collect
         sap_hostagent_sar_file_name: "SAPHOSTAGENT44_44-20009394.SAR"
         sap_hostagent_sapcar_local_path: "/software/SAPHOSTAGENT"
         sap_hostagent_sapcar_file_name: "SAPCAR_1311-80000935.EXE"
-        sap_hostagent_clean_tmp_directory: true
 ```
 #### Example playbook for installing using SAR file located on managed node
 ```yaml
@@ -77,11 +84,11 @@ It is recommended to execute this role together with other roles in this collect
         name: community.sap_install.sap_hostagent
       vars:
         sap_hostagent_installation_type: "sar"
+        sap_hostagent_sar_remote: true
         sap_hostagent_sar_remote_path: "/software/SAPHOSTAGENT"
         sap_hostagent_sar_file_name: "SAPHOSTAGENT44_44-20009394.SAR"
         sap_hostagent_sapcar_remote_path: "/software/SAPHOSTAGENT"
         sap_hostagent_sapcar_file_name: "SAPCAR_1311-80000935.EXE"
-        sap_hostagent_clean_tmp_directory: true
 ```
 #### Example playbook for installing using SAP Bundle
 ```yaml
@@ -96,7 +103,6 @@ It is recommended to execute this role together with other roles in this collect
       vars:
         sap_hostagent_installation_type: "bundle"
         sap_hostagent_bundle_path: "/usr/local/src/HANA-BUNDLE/51053381"
-        sap_hostagent_clean_tmp_directory: true
 ```
 #### Example playbook for installing using RPM on Red Hat
 ```yaml
@@ -112,7 +118,6 @@ It is recommended to execute this role together with other roles in this collect
         sap_hostagent_installation_type: "rpm"
         sap_hostagent_rpm_local_path: "/mylocaldir/SAPHOSTAGENT"
         sap_hostagent_rpm_file_name: "saphostagentrpm_44-20009394.rpm"
-        sap_hostagent_clean_tmp_directory: true
 ```
 <!-- END Execution Example -->
 
@@ -120,6 +125,11 @@ It is recommended to execute this role together with other roles in this collect
 <!-- END Role Tags -->
 
 <!-- BEGIN Further Information -->
+## Further Information
+### Using non-root user
+It is recommended to execute this role with `root` user by using `become: true` on playbook level.<br>
+Using `non-root` user with appropriate `sudo` privileges is also enabled, but not recommended.<br>
+Additional package `acl` will be installed during installation to allow `sudo` from `non-root` to `sapadm` user.
 <!-- END Further Information -->
 
 ## License
@@ -131,139 +141,140 @@ Apache 2.0
 <!-- BEGIN Maintainers -->
 - [Markus Koch](https://github.com/rhmk)
 - [Bernd Finger](https://github.com/berndfinger)
+- [Marcel Mamula](https://github.com/marcelmamula)
 <!-- END Maintainers -->
 
 ## Role Variables
 <!-- BEGIN Role Variables -->
-### sap_hostagent_installation_type
+### Deprecated Variables
+Temp directory variables were deprecated in favour of directory created by `ansible.builtin.tempfile` Ansible Module.
 
+- `sap_hostagent_agent_tmp_directory`
+- `sap_hostagent_clean_tmp_directory`
+
+
+### sap_hostagent_installation_type
 - _Type:_ `string`
 - _Default:_ `rpm`
 
 Select type of installation source for SAPHOSTAGENT.</br>
-Available options: `sar`, `sar-remote`, `bundle`, `rpm`
+Available options: `sar`, `bundle`, `rpm`</br>
+**NOTE: Option `sar-remote` was deprecated in favor of `sap_hostagent_sar_remote: true`.**
+
+### sap_hostagent_overwrite
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Select if existing SAP Host Agent installation should be overwritten.<br>
+Set to `true` to overwrite existing SAP Host Agent installation.<br>
+Set to `false` to skip installation tasks if existing installation is detected.<br>
+**NOTE: Using this option for 'sar' and 'bundle' will allow upgrade and downgrade of SAP Host Agent.**
 
 
 ### Input Parameters for SAR
 Following input parameters are used by both Local SAR and Remote SAR.
 
 #### sap_hostagent_sar_file_name
-
 - _Type:_ `string`
 
-Name of SAR file containing SAPHOSTAGENT.
+File name of the SAR file.
 
 #### sap_hostagent_sapcar_file_name
-
 - _Type:_ `string`
 
-Name of SAR file containing SAPCAR.
+File name of the SAPCAR executable.
+
+#### sap_hostagent_sar_remote
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Select the method to provide SAR file and SAPCAR executable.<br>
+Set to `true` if the files are located on the Managed Node.<br>
+Set to `false` if the files are located on the Control Node.
+
 
 ### Input Parameters for Local SAR
 
 #### sap_hostagent_sar_local_path
-
 - _Type:_ `string`
 
-Local directory path where SAR file is located.</br>
-**Do not use together with `sap_hostagent_sar_remote_path`.**
+Path to directory where SAR file is located on Control Node.</br>
 
 #### sap_hostagent_sapcar_local_path
-
 - _Type:_ `string`
 
-Local directory path where SAPCAR file is located.</br>
-**Do not use together with `sap_hostagent_sapcar_remote_path`.**
+Path to directory where SAPCAR executable is located on Control Node</br>
+
 
 ### Input Parameters for Remote SAR
 
 #### sap_hostagent_sar_remote_path
-
 - _Type:_ `string`
 
-Remote directory path where SAR file is located.</br>
-**Do not use together with `sap_hostagent_sar_local_path`.**
+Path to directory where SAR file is located on Managed Node.</br>
 
 #### sap_hostagent_sapcar_remote_path
-
 - _Type:_ `string`
 
-Local directory path where SAPCAR file is located.</br>
-**Do not use together with `sap_hostagent_sapcar_local_path`.**
+Path to directory where SAPCAR executable is located on Managed Node.</br>
 
 
-### Input Parameters for RPM
-
-#### sap_hostagent_rpm_local_path
-
-- _Type:_ `string`
-
-Local directory path where RPM file is located.</br>
-**Do not use together with `sap_hostagent_rpm_remote_path`.**
-
-#### sap_hostagent_rpm_remote_path
-
-- _Type:_ `string`
-
-Remote directory path where RPM file is located.</br>
-**Do not use together with `sap_hostagent_rpm_local_path`.**
+### Input Parameters for RPM (Red Hat specific)
 
 #### sap_hostagent_rpm_file_name
-
 - _Type:_ `string`
 
-Name of RPM package containing SAPHOSTAGENT.
+File name of the RPM file.
+
+#### sap_hostagent_rpm_remote
+- _Type:_ `bool`
+- _Default:_ `false`
+
+Select the method to provide RPM file.<br>
+Set to `true` if the RPM file is located on the Managed Node.<br>
+Set to `false` if the RPM file is located on the Control Node.
+
+#### sap_hostagent_rpm_local_path
+- _Type:_ `string`
+
+Path to directory where RPM file is located on Control Node.
+
+#### sap_hostagent_rpm_remote_path
+- _Type:_ `string`
+
+Path to directory where RPM file is located on Managed Node.
 
 
 ### Input Parameters for SAP Bundle
 
 #### sap_hostagent_bundle_path
-
 - _Type:_ `string`
 
-Remote directory path where SAP Bundle file is located after being extracted.
+Path to directory where `HOSTAGENT.TGZ` file is located on Managed Node.
 
 
 ### Input Parameters for SSL setup
 
 #### sap_hostagent_config_ssl
-
 - _Type:_ `bool`
-- _Default:_ `False`
+- _Default:_ `false`
 
-Enable to configure PSE and create CSR.</br>
-Adding signed certificates from a valid CA is not supported yet.
+Select if SSL should be configured for the SAP Host Agent after installation.</br>
+Configuration includes PSE and CSR files creation.<br>
+**NOTE: Signed CA certificate is not supported.**
 
 #### sap_hostagent_ssl_passwd
-
 - _Type:_ `string`
 
-Enter password for the CSR. It is used when `sap_hostagent_config_ssl` is set.
+Password for the generated CSR file.
 
 #### sap_hostagent_ssl_org
-
 - _Type:_ `string`
 
-Enter Organization information for the CSR. It is used when `sap_hostagent_config_ssl` is set.
+Organization details for the generated CSR file.
 
 #### sap_hostagent_ssl_country
-
 - _Type:_ `string`
 
-Enter Country information for the CSR. It is used when `sap_hostagent_config_ssl` is set.
-
-
-#### sap_hostagent_agent_tmp_directory
-
-- _Type:_ `string`
-- _Default:_ `/tmp/hostagent`
-
-Temporary directory for processing of source file.
-
-#### sap_hostagent_clean_tmp_directory
-
-- _Type:_ `bool`
-- _Default:_ `False`
-
-Enable to remove temporary directory after installation.
+Country information for the generated CSR file.
 <!-- END Role Variables -->

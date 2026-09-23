@@ -1,13 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP SWPM Pre Install - Determine Installation Type
-  ansible.builtin.set_fact:
-    __sap_swpm_fact_installation_type: ""
-    __sap_swpm_fact_installation_header: "Standard installation of SAP Software"
-    __sap_swpm_fact_command_virtual_hostname: ""
-    __sap_swpm_fact_command_mp_stack: ""
-
 ################
 # Determine Installation Type
 ################
@@ -54,33 +47,19 @@
 # Run Installation Type Steps
 ################
 
-- name: SAP SWPM Pre Install - Assert installation type is defined (including empty)
-  ansible.builtin.assert:
-    that:
-      - __sap_swpm_fact_installation_type is defined
-    fail_msg:
-      - "The installation type (variable '__sap_swpm_fact_installation_type') is not defined!"
-    success_msg:
-      - "The installation type (variable '__sap_swpm_fact_installation_type') is defined (including an empty string)."
-
 - name: SAP SWPM Pre Install - Assert supported installation types
   ansible.builtin.assert:
     that:
-      - __sap_swpm_fact_installation_type == '' or
-        __sap_swpm_fact_installation_type == 'restore' or
-        __sap_swpm_fact_installation_type == 'ha' or
-        __sap_swpm_fact_installation_type == 'maint_plan_stack' or
-        __sap_swpm_fact_installation_type == 'ha_maint_plan_stack'
-    fail_msg:
-      - "The specified installation type, '{{ __sap_swpm_fact_installation_type }}', is not supported!"
-      - "The following installation types are supported:"
-      - "- '' (empty string, the default)"
-      - "- 'restore'"
-      - "- 'ha'"
-      - "- 'maint_plan_stack'"
-      - "- 'ha_maint_plan_stack'"
-    success_msg:
-      - "The specified installation type, '{{ __sap_swpm_fact_installation_type }}', is supported."
+      - __sap_swpm_fact_installation_type is string
+      - __sap_swpm_fact_installation_type in ['', 'restore', 'ha', 'maint_plan_stack', 'ha_maint_plan_stack']
+    fail_msg: |
+      FAIL: Manual change of internal variable was detected!
+      The variable '__sap_swpm_fact_installation_type' allows only following options:
+      - '' (empty string, the default)
+      - 'restore'
+      - 'ha'
+      - 'maint_plan_stack'
+      - 'ha_maint_plan_stack'
 
 - name: SAP SWPM Pre Install - Assert that necessary variable for HA is defined
   ansible.builtin.assert:

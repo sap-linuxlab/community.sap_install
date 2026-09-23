@@ -17,7 +17,8 @@
       ansible.builtin.set_fact:
         __sap_hana_install_fact_addhosts_hosts:
           "{{ sap_hana_install_addhosts.split(',') | map('trim') | reject('equalto', '')
-            | map('regex_replace', ':.*$', '') | list | difference([ansible_facts['hostname'], inventory_hostname, inventory_hostname_short]) }}"
+            | map('regex_replace', ':.*$', '') | list
+            | difference([ansible_facts['hostname'], inventory_hostname, inventory_hostname_short]) }}"
 
     - name: SAP HANA - Addhosts - Pre-Tasks - Assert that the variable 'sap_hana_install_addhosts' is valid addhosts string
       ansible.builtin.assert:
@@ -45,13 +46,13 @@
           PASS: The variable 'sap_hana_install_addhosts' and inventory are aligned.
         fail_msg: |
           FAIL: The variable 'sap_hana_install_addhosts' and inventory are not aligned.
-          The variable 'sap_hana_install_addhosts' should not contain Master host {{ ansible_facts['hostname'] }} and validation is done without it.
 
           Inventory hosts: {{ ansible_play_hosts_all | join(', ') }}
           Addhosts hosts: {{ __sap_hana_install_fact_addhosts_hosts | join(', ') }}
+          NOTE: Comparison was completed without the master host, because only additional hosts are expected in the 'sap_hana_install_addhosts' variable.
           {% if __inventory_diff_addhosts | length > 0 %}
 
-          Ensure that missing hosts are added to the 'sap_hana_install_addhosts' or removed from inventory.
+          Ensure that missing hosts are added to 'sap_hana_install_addhosts' or removed from inventory.
           Hosts missing in the 'sap_hana_install_addhosts': {{ __inventory_diff_addhosts | join(', ') }}
           {% endif %}
           {% if __addhosts_diff_inventory | length > 0 %}
@@ -81,6 +82,7 @@
   ansible.builtin.set_fact:
     __sap_hana_install_fact_is_scaleout: true
 
+    # Replace default ansible hostname with Scale-Out master hostname.
     __sap_hana_install_fact_main_host: >-
       {%- if sap_hana_install_scaleout_master is defined
           and sap_hana_install_scaleout_master is string
@@ -124,123 +126,14 @@
         __present_hosts: "{{ hostvars | dict2items | selectattr('value.__sap_hana_install_fact_is_present', 'defined') | map(attribute='key') }}"
         __missing_hosts: "{{ ansible_play_hosts_all | difference(__present_hosts) }}"
 
-# Fail if existing HANA was found on worker without master host.
-- name: SAP HANA - Addhosts - Pre-Tasks - Fail if non-main host has HANA installed without master
-  when:
-    - __sap_hana_install_fact_is_scaleout
-    - not __sap_hana_install_fact_is_main_host
-    - __sap_hana_install_fact_is_installed
-    - __sap_hana_install_fact_existing_hana_hosts is defined
-  ansible.builtin.assert:
-    that:
-      - __sap_hana_install_fact_main_host in __sap_hana_install_fact_existing_hana_hosts
-    fail_msg: |
-      FAIL: A conflicting SAP HANA installation was found on worker host '{{ inventory_hostname }}'.
-      This host is being added to a scale-out system managed by '{{ __sap_hana_install_fact_main_host }}',
-      but it already runs a HANA system whose members are: '{{ __sap_hana_install_fact_existing_hana_hosts }}'.
-      To prevent data corruption or an inconsistent state, the 'addhosts' operation is blocked.
 
-      Please choose one of the following actions:
-        - Decommission the conflicting HANA system on '{{ inventory_hostname }}'.
-        - Remove this host from the Ansible inventory for this play.
-        - Remove this host from the 'sap_hana_install_addhosts' variable.
-
-
-# Set a fact on each host to confirm it participated in the pre-tasks.
+# Set a fact on each addhost to confirm it participated in the pre-tasks.
 # This allows a central check to detect if the playbook was improperly limited to a subset of hosts.
+# Main host is skipped and default value of 'true' is used.
 - name: SAP HANA - Pre-Tasks - Set fact with boolean flags for each host
   ansible.builtin.set_fact:
-    __sap_hana_install_fact_is_main_host:
-      "{{ __sap_hana_install_fact_main_host
-        in [ansible_facts['hostname'], inventory_hostname, inventory_hostname_short] }}"
-
-    __sap_hana_install_fact_is_addhost_host:
-      "{{ ([ansible_facts['hostname'], inventory_hostname, inventory_hostname_short]
-        | intersect(__sap_hana_install_fact_addhosts_hosts | d([]))) | length > 0 }}"
-
-
-- name: Block for validating existing hosts on main
-  when: __sap_hana_install_fact_is_main_host
-  block:
-
-    # Check for existing addhosts profiles and folders before removing them from list.
-    - name: SAP HANA - Addhosts - Pre-Tasks - Find existing instance profiles for all hosts
-      ansible.builtin.find:
-        paths: "{{ sap_hana_install_shared_path }}/{{ sap_hana_install_sid }}/profile/"
-        patterns: "{{ sap_hana_install_sid }}_HDB{{ sap_hana_install_number }}_*"
-        file_type: file
-      register: __sap_hana_install_register_existing_profiles
-
-    - name: SAP HANA - Addhosts - Pre-Tasks - Set fact with list of existing hosts with instance profiles
-      ansible.builtin.set_fact:
-        __sap_hana_install_fact_existing_hosts_profile:
-          "{{ __sap_hana_install_register_existing_profiles.files | map(attribute='path') | map('basename')
-            | map('regex_replace', '^' + sap_hana_install_sid + '_HDB' + sap_hana_install_number + '_', '') | list }}"
-
-    - name: SAP HANA - Addhosts - Pre-Tasks - Find existing instance directories for all hosts
-      ansible.builtin.find:
-        paths: "/usr/sap/{{ sap_hana_install_sid }}/HDB{{ sap_hana_install_number }}/"
-        patterns: "*"
-        file_type: directory
-      register: __sap_hana_install_register_existing_dirs
-
-    - name: SAP HANA - Addhosts - Pre-Tasks - Set fact with list of existing hosts with instance directories
-      ansible.builtin.set_fact:
-        __sap_hana_install_fact_existing_hosts_dirs:
-          "{{ __sap_hana_install_register_existing_dirs.files | map(attribute='path') | map('basename') | list }}"
-
-    - name: SAP HANA - Addhosts - Pre-Tasks - Set fact with list of new hosts without existing profiles or directories
-      ansible.builtin.set_fact:
-        __sap_hana_install_fact_addhosts_hosts_new: >-
-          {{
-            __sap_hana_install_fact_addhosts_hosts |
-            difference(
-              __sap_hana_install_fact_existing_hosts_profile | union(__sap_hana_install_fact_existing_hosts_dirs)
-            )
-          }}
-
-    # We need to reset hosts list and remove new, if HANA is installed and 'sap_hana_install_new_system' is 'true'.
-    # This ensures that post-tasks are idempotent for those hosts that already exist, not new.
-    - name: SAP HANA - Addhosts - Pre-Tasks - Reset fact with list of new hosts if Add
-      ansible.builtin.set_fact:
-        __sap_hana_install_fact_addhosts_hosts:
-          "{{ __sap_hana_install_fact_addhosts_hosts | difference(__sap_hana_install_fact_addhosts_hosts_new) }}"
-      when:
-        - sap_hana_install_new_system
-        - __sap_hana_install_fact_is_installed
-        - __sap_hana_install_fact_addhosts_hosts_new | length > 0
-
-    - name: SAP HANA - Addhosts - Pre-Tasks - Show lists of hosts to be added
-      ansible.builtin.debug:
-        msg: "New hosts will be added: {{ __sap_hana_install_fact_addhosts_hosts_new | join(', ') }}"
-      when:
-        - __sap_hana_install_fact_addhosts_hosts_new | length > 0
-        - not (sap_hana_install_new_system and __sap_hana_install_fact_is_installed)
-
-
-- name: SAP HANA - Addhosts - Pre-Tasks - Set addhosts facts on remaining hosts
-  ansible.builtin.set_fact:
-    __sap_hana_install_fact_addhosts_hosts_new:
-      "{{ hostvars[__sap_hana_install_fact_main_host]['__sap_hana_install_fact_addhosts_hosts_new'] }}"
-    __sap_hana_install_fact_addhosts_hosts:
-      "{{ hostvars[__sap_hana_install_fact_main_host]['__sap_hana_install_fact_addhosts_hosts'] }}"
+    __sap_hana_install_fact_is_main_host: false
+    __sap_hana_install_fact_is_addhost_host: true
   when:
-    - __sap_hana_install_fact_is_scaleout
-    - not __sap_hana_install_fact_is_main_host
-
-- name: SAP HANA - Addhosts - Pre-Tasks - Set fact with boolean flag for new hosts
-  ansible.builtin.set_fact:
-    __sap_hana_install_fact_is_new_addhost_host:
-      "{{ ([ansible_facts['hostname'], inventory_hostname, inventory_hostname_short]
-        | intersect(__sap_hana_install_fact_addhosts_hosts_new | d([]))) | length > 0 }}"
-
-
-- name: SAP HANA - Addhosts - Pre-Tasks - Fail if SAP HANA is not found when addhosts is used
-  ansible.builtin.fail:
-    msg: |
-      FAIL: The existing SAP HANA System was not detected when adding new hosts!
-      This is required when the variable 'sap_hana_install_new_system' is set to false.
-  when:
-    - not sap_hana_install_new_system
-    - not __sap_hana_install_fact_is_installed
-    - __sap_hana_install_fact_is_main_host
+    - ([ansible_facts['hostname'], inventory_hostname, inventory_hostname_short]
+        | intersect(__sap_hana_install_fact_addhosts_hosts | d([]))) | length > 0
