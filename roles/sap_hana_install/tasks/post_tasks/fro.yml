@@ -1,0 +1,145 @@
+---
+# As of SPS08 this can be done using
+# hdblcm --configure_fast_restart_option --tmpfs_mountpoints_path=<path>
+#        --restrict_tmpfs_global_allocation_limit --tmpfs_global_allocation_limit=<limit in MB>
+# However, the approach below is universal regardless of HANA version and also allows changing or removal of the FRO configuration which
+# is not currently possible using hdblcm
+
+- name: SAP HANA - Post-Tasks - FRO - Gather NUMA nodes and their memory sizes
+  ansible.builtin.shell:
+    cmd: "set -o pipefail && cat /sys/devices/system/node/node*/meminfo | grep MemTotal | awk '{print $2, $4}'"
+  register: __sap_hana_install_numa_memory_sizes_output
+  failed_when: __sap_hana_install_numa_memory_sizes_output.rc != 0
+  become: true
+  changed_when: false
+
+- name: SAP HANA - Post-Tasks - FRO - Extract NUMA nodes and memory sizes
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_numa_nodes: "{{ __sap_hana_install_numa_memory_sizes_output.stdout_lines | map('split') | list }}"
+
+- name: SAP HANA - Post-Tasks - FRO - Define fact for tmpfs base paths
+  ansible.builtin.set_fact:
+    __sap_hana_install_fact_fro_base_path: "{{ __sap_hana_install_fact_numa_nodes | map(attribute=0) | map('regex_replace', '^(.*)$', '/hana/tmpfs\\1/' + sap_hana_install_sid | upper) | join(';') }}"
+
+- name: SAP HANA - Post-Tasks - FRO - Get UID of user {{ sap_hana_install_sid | lower }}adm and GID of group sapsys
+  ansible.builtin.shell:
+    cmd: "set -o pipefail && getent passwd {{ sap_hana_install_sid | lower }}adm | cut -d: -f3 && getent group sapsys | cut -d: -f3"
+  register: __sap_hana_install_user_group_ids
+  changed_when: false
+  become: true
+
+- name: SAP HANA - Post-Tasks - FRO - Create TMPFS mount points for each NUMA node
+  ansible.builtin.file:
+    path: "/hana/tmpfs{{ numa_node[0] }}/{{ sap_hana_install_sid | upper }}"
+    state: directory
+    owner: "{{ sap_hana_install_sid | lower }}adm"
+    group: sapsys
+    mode: '1775'
+  loop: "{{ __sap_hana_install_fact_numa_nodes }}"
+  loop_control:
+    loop_var: numa_node
+    label: "Processing NUMA node {{ numa_node[0] }}"
+  when: sap_hana_install_fro_state == 'enabled'
+
+- name: SAP HANA - Post-Tasks - FRO - Disable FRO by unsetting basepath parameters in HANA and reconfiguring the system
+  ansible.builtin.shell: |
+    source ~/.profile && HDBSettings.sh \
+    setParameter.py  -unset="SYSTEM/global.ini/persistence/basepath_persistent_memory_volumes"
+  args:
+    executable: /bin/bash
+  register: __sap_hana_install_hana_setparam_disable
+  become: true
+  become_user: "{{ sap_system_sid | lower }}adm"
+  changed_when: __sap_hana_install_hana_setparam_disable.rc == 0
+  failed_when: __sap_hana_install_hana_setparam_disable.rc != 0
+  when: sap_hana_install_fro_state == 'disabled'
+
+- name: SAP HANA - Post-Tasks - FRO - Unmount TMPFS for all NUMA nodes if FRO is disabled to allow cleanup of mount points
+  become: true
+  ansible.posix.mount:
+    src: "tmpfs{{ sap_hana_install_sid | lower }}{{ numa_node[0] }}"
+    path: "/hana/tmpfs{{ numa_node[0] }}/{{ sap_hana_install_sid | upper }}"
+    fstype: tmpfs
+    opts: "\
+      rw,relatime,mpol=prefer:{{ numa_node[0] }},\
+      {{ ('size=' + ((numa_node[1] | int * sap_hana_install_fro_mem_percent | int // 100) // 1048576) | string + 'G,') if sap_hana_install_fro_mem_percent > 0 else '' }}\
+      uid={{ __sap_hana_install_user_group_ids.stdout_lines[0] }},\
+      gid={{ __sap_hana_install_user_group_ids.stdout_lines[1] }}"
+    state: unmounted
+  loop: "{{ __sap_hana_install_fact_numa_nodes }}"
+  loop_control:
+    loop_var: numa_node
+    label: "Processing NUMA node {{ numa_node[0] }}"
+  when: sap_hana_install_fro_state == 'disabled'
+
+- name: SAP HANA - Post-Tasks - FRO - Mount/Unmount TMPFS for all NUMA nodes
+  become: true
+  ansible.posix.mount:
+    src: "tmpfs{{ sap_hana_install_sid | lower }}{{ numa_node[0] }}"
+    path: "/hana/tmpfs{{ numa_node[0] }}/{{ sap_hana_install_sid | upper }}"
+    fstype: tmpfs
+    opts: "\
+      rw,relatime,mpol=prefer:{{ numa_node[0] }},\
+      {{ ('size=' + ((numa_node[1] | int * sap_hana_install_fro_mem_percent | int // 100) // 1048576) | string + 'G,') if sap_hana_install_fro_mem_percent > 0 else '' }}\
+      uid={{ __sap_hana_install_user_group_ids.stdout_lines[0] }},\
+      gid={{ __sap_hana_install_user_group_ids.stdout_lines[1] }}"
+    state: "{{ 'mounted' if sap_hana_install_fro_state == 'enabled' else 'absent' }}"
+  loop: "{{ __sap_hana_install_fact_numa_nodes }}"
+  loop_control:
+    loop_var: numa_node
+    label: "Processing NUMA node {{ numa_node[0] }}"
+  when: sap_hana_install_fro_state in ['enabled', 'disabled']
+
+- name: SAP HANA - Post-Tasks - FRO - Enable FRO by setting basepath parameters in HANA and reconfiguring the system
+  ansible.builtin.shell: |
+    source ~/.profile && HDBSettings.sh \
+    setParameter.py  -set="SYSTEM/global.ini/persistence/basepath_persistent_memory_volumes={{ __sap_hana_install_fact_fro_base_path }}"
+  args:
+    executable: /bin/bash
+  register: __sap_hana_install_hana_setparam_enable
+  become: true
+  become_user: "{{ sap_system_sid | lower }}adm"
+  changed_when: __sap_hana_install_hana_setparam_enable.rc == 0
+  failed_when: __sap_hana_install_hana_setparam_enable.rc != 0
+  when: sap_hana_install_fro_state == 'enabled'
+
+- name: SAP HANA - Post-Tasks - FRO - Remove TMPFS mount points for each NUMA node
+  ansible.builtin.file:
+    path: "/hana/tmpfs{{ numa_node[0] }}/{{ sap_hana_install_sid | upper }}"
+    state: absent
+    owner: "{{ sap_hana_install_sid | lower }}adm"
+    group: sapsys
+    mode: '1775'
+  loop: "{{ __sap_hana_install_fact_numa_nodes }}"
+  loop_control:
+    loop_var: numa_node
+    label: "Processing NUMA node {{ numa_node[0] }}"
+  when: sap_hana_install_fro_state == 'disabled'
+
+- name: SAP HANA - Post-Tasks - FRO - Check TMPFS directory content
+  ansible.builtin.find:
+    paths: "/hana/tmpfs{{ numa_node[0] }}"
+    file_type: any
+    recurse: false
+  register: __sap_hana_install_fro_tmpfs_dir_content
+  loop: "{{ __sap_hana_install_fact_numa_nodes }}"
+  loop_control:
+    loop_var: numa_node
+    label: "Processing NUMA node {{ numa_node[0] }}"
+  changed_when: false
+  failed_when: false
+  when: sap_hana_install_fro_state == 'disabled'
+
+- name: SAP HANA - Post-Tasks - FRO - Remove TMPFS parent directory only if not used by another system and empty
+  ansible.builtin.file:
+    path: "/hana/tmpfs{{ dir_check.numa_node[0] }}"
+    state: absent
+  loop: "{{ __sap_hana_install_fro_tmpfs_dir_content.results | default([]) }}"
+  loop_control:
+    loop_var: dir_check
+    label: "Processing NUMA node {{ dir_check.numa_node[0] }}"
+  when:
+    - sap_hana_install_fro_state == 'disabled'
+    - not dir_check.skipped | default(false)
+    - not dir_check.failed | default(false)
+    - dir_check.matched | default(0) == 0

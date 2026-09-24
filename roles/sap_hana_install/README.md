@@ -228,7 +228,7 @@ Steps:
 2. Gather list of all Instance profiles in `/hana/shared/<SID>/profile/`.
 3. Gather list of all directories in `/usr/sap/<SID>/HDB<Instance Number>/`.
 4. If the existing instance profile or directory was found in hosts list, create separate list without them.
-    - This list of the `new hosts` is used for one-time tasks. 
+    - This list of the `new hosts` is used for one-time tasks.
 
 
 #### Pre-Tasks for Installation
@@ -312,7 +312,8 @@ Steps:
 7. Apply SELinux policies if the variable `sap_hana_install_configure_selinux` is set to `true`.
 8. (Red Hat specific) Configure `fapolicyd` if the variable `sap_hana_install_configure_fapolicyd` is set to `true`.
 Additionally, if `sap_hana_install_enable_fapolicyd` is set to `true`, also enable and start the `fapolicyd` service.
-9. Output final status of installed system.
+9. Perform Fast Restart Option (FRO) configuration if requested (`sap_hana_install_fro_state` is set to `enabled` or `disabled`).
+10. Output final status of installed system.
 
 
 #### Post-Tasks for Addhosts
@@ -328,7 +329,8 @@ Steps:
 7. Apply SELinux policies if the variable `sap_hana_install_configure_selinux` is set to `true`.
 8. (Red Hat specific) Configure `fapolicyd` if the variable `sap_hana_install_configure_fapolicyd` is set to `true`.
 Additionally, if `sap_hana_install_enable_fapolicyd` is set to `true`, also enable and start the `fapolicyd` service.
-9. Output final status of installed system.
+9. Perform Fast Restart Option (FRO) configuration if requested (`sap_hana_install_fro_state` is set to `enabled` or `disabled`).
+10. Output final status of installed system.
 <!-- END Execution Flow -->
 
 ### Example
@@ -407,6 +409,7 @@ With the following tags, the role can be called to perform certain activities on
 - tag `sap_hana_install_create_configfile`: Only generate the hdblcm configfile.
 - tag `sap_hana_install_check_hana_exists`: Only check if there is already HANA installed with the
   desired SID and instance number.
+- tag `sap_hana_install_fro_configure`: Run only the Fast Restart Option configuration steps. This will have only effect if `sap_hana_install_fro_state` is set to `enabled` or `disabled`.
 
 The following tags have been removed in this release:
 
@@ -456,8 +459,20 @@ ansible-playbook sap-hana-install.yml --tags=sap_hana_install_check_hana_exists
     sap_hana_install_lss_backup_password: ''
     sap_hana_install_secure_store: localsecurestore
     ```
-> **NOTE**: SAP HANA 2.0 SPS08 requires LSS filesystem to be shared across all Scale-Out (cluster) hosts.</br>
-> This role will check if directory defined in `sap_hana_insall_lss_inst_path` is present for SPS08 or higher and if it is mounted as shared file system.
+  > **NOTE**: SAP HANA 2.0 SPS08 requires LSS filesystem to be shared across all Scale-Out (cluster) hosts.</br>
+  > This role will check if directory defined in `sap_hana_insall_lss_inst_path` is present for SPS08 or higher and if it is mounted as shared file system.
+
+- ### Fast Restart Option (FRO)
+  SAP HANA Fast Restart Option is available as of HANA2.0 SPS04. It uses storage in the file system to preserve and reuse MAIN data fragments to speed up SAP HANA restarts. This is effective in cases where the operating system is not restarted.
+
+  For explantation of how this role handles the FRO configuration see the comments in `defaults/main.yml`.
+  For details how FRO works see [HANA online help](https://help.sap.com/docs/SAP_HANA_PLATFORM/6b94445c94ae495c83a19646e7c3fd56/ce158d28135147f099b761f8b1ee43fc.html?locale=en-US&version=LATEST).
+
+  The role parameters that impact FRO configuration are:
+  ```
+  sap_hana_install_fro_state:
+  sap_hana_install_fro_mem_percent:
+  ```
 
 - ### Additional examples
   For more examples on how to use this role in different installation scenarios, refer to the [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) playbooks.
