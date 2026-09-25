@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP SWPM Pre Install - Assert that 'sap_swpm_crlbag_path' is defined as a non-empty string
+  ansible.builtin.assert:
+    that:
+      - sap_swpm_crlbag_path is string
+      - sap_swpm_crlbag_path | trim | length > 0
+    fail_msg: |
+      FAIL: The variable 'sap_swpm_crlbag_path' is not defined as a non-empty string.
+      Define 'sap_swpm_crlbag_path' as a string containing the full path name
+      of the file crlbag.p7s.
+    success_msg: |
+      PASS: The variable 'sap_swpm_crlbag_path' is defined as a non-empty string.
+
+- name: SAP SWPM Pre Install - Check the availability of the file '{{ sap_swpm_crlbag_path }}'
+  ansible.builtin.stat:
+    path: "{{ sap_swpm_crlbag_path }}"
+  check_mode: false
+  register: __sap_swpm_register_stat_crlbag
+
+- name: SAP SWPM Pre Install - Assert the presence of the file '{{ sap_swpm_crlbag_path }}'
+  ansible.builtin.assert:
+    that:
+      - __sap_swpm_register_stat_crlbag.stat.exists
+    fail_msg: |
+      FAIL: The variable 'sap_swpm_crlbag_path' is defined as: '{{ sap_swpm_crlbag_path }}',
+      but the file does not exist.
+    success_msg: |
+      PASS: The file '{{ sap_swpm_crlbag_path }}' exists.
