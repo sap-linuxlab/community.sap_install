@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Ansible Playbook for installing an SAP system using templates for different products, with the role 'sap_swpm'.
+#
+# The dictionary 'sap_swpm_templates_install_dictionary' holds one entry per product and
+# the variable 'sap_swpm_templates_product_input' selects the entry to be used.
+# Only the following keys of an entry are used by the role:
+# - sap_swpm_product_catalog_id
+# - sap_swpm_inifile_sections_list
+# - sap_swpm_inifile_parameters_dict
+# - sap_swpm_role_parameters_dict
+#
+# Values of the templates fill only the variables, which are not set by sources with higher precedence.
+# The values shared by all products, such as passwords or SID, are defined as role variables
+# and they take precedence over the templates.
+# The dictionary and the role variables are loaded from the file in the 'vars' directory.
+#
+# Prerequisites:
+# - No existing inifile 'inifile.params' is found in 'sap_swpm_inifile_directory', because templates are not used with it.
+# - The directory 'sap_swpm_software_path' contains all installation media required by the product,
+#   including SAPCAR and SWPM, as described in the README of the role 'sap_swpm'.
+#   The role 'sap_install_media_detect' can be used to detect and prepare such directory.
+#
+# See the README of the role 'sap_swpm' for all available variables and their precedence.
+
+- name: Ansible Play for SAP SWPM installation using templates
+  hosts: all
+  become: true
+  any_errors_fatal: true
+  vars_files:
+    - ./vars/sample-variables-sap-swpm-templates.yml
+  tasks:
+
+    - name: Execute Ansible Role sap_swpm
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_swpm
+      vars:
+        # The key of the product in 'sap_swpm_templates_install_dictionary' to be used.
+        sap_swpm_templates_product_input: s4hana_onehost_install

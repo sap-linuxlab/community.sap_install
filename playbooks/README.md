@@ -1,64 +1,55 @@
 
 # Ansible Collection Playbooks
 
-The playbooks starting with `sample-` in this directory can be used as examples for your own playbooksi and cannot be called directly from the commandline.
-The other playbooks can be called directly with a prepared variable file or imported in your own playbooks or workflows.
-The playbooks can run against localhost, all hosts or defined group.
+The playbooks in this directory are samples of how to use the roles of this collection.<br>
+Each `sample-` playbook shows one role or scenario with the mandatory variables only, so copy it and adapt it for your own playbooks.<br>
+The header of every sample lists its prerequisites and refers to the README of the role for all available variables.
 
-## Usage of playbooks
+> **NOTE: For complete end-to-end deployments of SAP systems, use [ansible.playbooks_for_sap](https://github.com/sap-linuxlab/ansible.playbooks_for_sap) (AP4S).**<br>
+> It is the collection of ready-to-use playbooks, which combine the roles of this collection into full scenarios.<br>
+> The samples here intentionally cover a single role each.
 
-### Prepare System for SAP HANA installation: `sap_hana_prepare_exec.yml`
+## Samples
 
-This playbook runs against localhost and/or remote hosts.
-You need to define the variable `sap_hana_group`to run this playbook against a particular group of hosts which is defined in your inventory.
-If you do not define the parameter `sap_hana_group` the playbook will run against all hosts in the inventory unless limited with `-l hostname' or localhost if no inventory is defined.
+All host groups, hostnames, addresses and passwords are placeholders.<br>
+Passwords in the samples are examples only, do not use them. Protect real credentials, e.g. with `ansible-vault`.
 
-To run this playbook you need to prepare a variable file with a minimum viable set of variables.
+| Area | Sample | Shows |
+| --- | --- | --- |
+| Preconfigure | `sample-sap-general-preconfigure.yml` | Role `sap_general_preconfigure` |
+| Preconfigure | `sample-sap-hana-preconfigure.yml` | Roles `sap_general_preconfigure` and `sap_hana_preconfigure` |
+| Preconfigure | `sample-sap-netweaver-preconfigure.yml` | Roles `sap_general_preconfigure` and `sap_netweaver_preconfigure` |
+| Storage | `sample-sap-storage-setup.yml` | Role `sap_storage_setup` with multipath, striped and plain block disks, swap disk, swap file and NFS mount |
+| Installation media | `sample-sap-install-media-detect.yml` | Role `sap_install_media_detect` for SAP HANA, ASCS and PAS hosts |
+| SAP HANA | `sample-sap-hana-install-scaleup.yml` | Role `sap_hana_install`, scale-up system |
+| SAP HANA | `sample-sap-hana-install-scaleout.yml` | Role `sap_hana_install`, scale-out system |
+| SAP SWPM | `sample-sap-swpm-role-variables.yml` | Role `sap_swpm` with role variables, installation or restore |
+| SAP SWPM | `sample-sap-swpm-templates.yml` | Role `sap_swpm` with `sap_swpm_templates_install_dictionary` |
+| SAP SWPM | `sample-sap-swpm-existing-inifile.yml` | Role `sap_swpm` with an existing `inifile.params` |
+| High Availability | `sample-sap-ha-pacemaker-cluster-hana-scale-up.yml` | Role `sap_ha_pacemaker_cluster`, SAP HANA scale-up cluster |
+| High Availability | `sample-sap-ha-pacemaker-cluster-ascs-ers.yml` | Role `sap_ha_pacemaker_cluster`, SAP NetWeaver ASCS and ERS cluster |
 
-#### Example: 
+The directory `vars` contains the variable files used by the SWPM samples, because their variable sets are too long to read inline.
 
-Create a parameter file `my_vars.yml` with similar content:
+For SAP HANA System Replication, see the example in the README of the role `sap_ha_install_hana_hsr`.
 
-```[yaml]
-    # sap_playbook_parameter_confirm: false   # Set to true if you want to list parameters and confirm execution
-    sap_domain: my.sap.domain
-    sap_general_preconfigure_modify_etc_hosts: true
-    sap_general_preconfigure_update: true
-    sap_general_preconfigure_fail_if_reboot_required: false
-    sap_hana_preconfigure_update: true
-    sap_hana_preconfigure_fail_if_reboot_required: false
-    sap_hana_preconfigure_reboot_ok: true
+## Usage
+
+Copy a sample and adapt the host groups and variables for your environment. Then run it against your inventory:
+
+```bash
+ansible-playbook -i my_inventory sample-sap-hana-install-scaleup.yml
 ```
 
-Create the file `my_inventory` similar to:
+When running against remote hosts, the connection user needs to be able to become root.<br>
+Pass `-u <user>` for the SSH user, `-k` to ask for the SSH password and `-K` to ask for the privilege escalation password, if they are required.
 
-```[yaml]
-[my_hanas]
-hana1
-hana2
-```
+> **NOTE:** Use `--check` first with the sample `sample-sap-storage-setup.yml`, to review changes before disks are configured.
 
-Now you can run the playbook with
+## Plugin tests
 
-```[bash]
-ansible-playbook community.sap_install.sap_hana_preconfigure_exec.yml -i my_inventory -e @my_vars.yml -e sap_hana_group=my_hanas
-```
+The playbooks starting with `test-` test the plugins of this collection and are not samples for users.
 
-When you call this playbook against a remote host make sure the user can connect and assume root without a password or pass the following parameters if necessary
-
-```[bash]
- -u <connection user>: User that establishes the ssh connection
- -k: asks for password or passphrase of the connection user, if required for ssh
- -K: asks for the privilege escalation password of the connection user to become root on the target host
-```
-
-You can also call the playbook inside another playbook with:
-
-```
-- name: Include HANA preparation from collection for group my_hanas
-  ansible.builtin.import_playbook: community.sap_install.sap_hana_prepare_exec.yml
-  vars:
-    sap_hana_group: my_hanas
-    # add other vars here, or define somewhere else
-```
+> **NOTE:** Playbooks with a hyphen in the file name cannot be called directly by `ansible-playbook` using the collection name.<br>
+> That is why all playbooks in this directory are meant to be copied or run by their file path.
 

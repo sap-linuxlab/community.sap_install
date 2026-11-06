@@ -1,0 +1,64 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Ansible Playbook for detection and preparation of installation media before installation, using the role 'sap_install_media_detect'.
+#
+# Each host type needs only the components that it installs, so the plays differ in selected components.
+# The results are handed over to the roles 'sap_hana_install' and 'sap_swpm' as their variables.
+#
+# Prerequisites:
+# - The source directory with SAP installation media is present on the host.
+#   Files can be downloaded using the collection 'community.sap_launchpad'.
+#
+# See the README of the role 'sap_install_media_detect' for all available variables.
+
+- name: Ansible Play for media detection - SAP HANA host
+  hosts: hana_hosts
+  become: true
+  any_errors_fatal: true
+  tasks:
+
+    - name: Execute Ansible Role sap_install_media_detect
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_install_media_detect
+      vars:
+        sap_install_media_detect_source_directory: /software
+        sap_install_media_detect_hostagent: true
+        sap_install_media_detect_db: saphana
+
+
+- name: Ansible Play for media detection - SAP NetWeaver ASCS host
+  hosts: nwas_ascs
+  become: true
+  any_errors_fatal: true
+  tasks:
+
+    - name: Execute Ansible Role sap_install_media_detect
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_install_media_detect
+      vars:
+        sap_install_media_detect_source_directory: /software
+        sap_install_media_detect_swpm: true
+        sap_install_media_detect_hostagent: true
+        sap_install_media_detect_igs: true
+        sap_install_media_detect_kernel: true
+
+
+- name: Ansible Play for media detection - SAP NetWeaver PAS host
+  hosts: nwas_pas
+  become: true
+  any_errors_fatal: true
+  tasks:
+
+    - name: Execute Ansible Role sap_install_media_detect
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_install_media_detect
+      vars:
+        sap_install_media_detect_source_directory: /software
+        sap_install_media_detect_swpm: true
+        sap_install_media_detect_hostagent: true
+        sap_install_media_detect_igs: true
+        sap_install_media_detect_kernel: true
+        # The application server needs the database client and the installation export of the SAP product.
+        sap_install_media_detect_db_client: saphana
+        sap_install_media_detect_export: saps4hana
