@@ -1,72 +1,95 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-########################################
-#   SWPM Ansible Role variables
-########################################
+###############################################################################
+# Mandatory Role Specific Variables
+###############################################################################
+# NOTE: All role specific variables have to be defined directly using
+# extravars, vars, inventory or directly in the playbook.
 
-# We do not use role modes any more:
-# sap_swpm_ansible_role_mode: "default"
-# default
-# default_templates
-# advanced
-# advanced_templates
-# inifile_reuse
-
-########################################
-#   SWPM Ansible Role variables
-#   for setting owner, group, and permissions for the SAP files in sap_swpm_software_path
-########################################
-#
-# Set the following parameter to false to not change the owner, group, and permissions of the files in sap_swpm_software_path.
-# The default is true.
-sap_swpm_set_file_permissions: true
-#
-# The following 9 parameters define the default permission and ownership settings as per the
-# Installation of SAP ABAP Systems on UNIX : SAP HANA 2.0 Database - Using Software Provisioning Manager 2.0 guide
-# https://help.sap.com/docs/SLTOOLSET/39c32e9783f6439e871410848f61544c/c1f95d30d0ba4335919bf6e6f44263b2.html?version=CURRENT_VERSION_SWPM20
-# The guide mentions 755 as the minimum permission for the SPWM download directory and a umask setting of 022 for the user
-# which downloads the SAP software.
-#
-# Access permissions and ownership for all directories in sap_swpm_software_path, for sap_swpm_sapcar_path, and for sap_swpm_path:
-sap_swpm_software_directory_mode: '0755'
-sap_swpm_software_directory_owner: root
-sap_swpm_software_directory_group: root
-#
-# Access permissions and ownership for the SAPCAR*EXE file in sap_swpm_sapcar_path:
-sap_swpm_files_sapcar_mode: '0755'
-sap_swpm_files_sapcar_owner: root
-sap_swpm_files_sapcar_group: root
-#
-# Access permissions and ownership for all non-SAPCAR*EXE files in sap_swpm_software_path and for SWPM*.SAR in sap_swpm_path:
-sap_swpm_files_non_sapcar_mode: '0644'
-sap_swpm_files_non_sapcar_owner: root
-sap_swpm_files_non_sapcar_group: root
-
-
-########################################
-#   SWPM Ansible Role variables
-#   for creating the sapinst inifile
-########################################
-
-# Have the role run the sapinst command with an existing inifile or after creating the inifile:
+# The variable that controls whether the sapinst command will be executed (Boolean).
+# Set to 'false' to skip execution of sapinst.
 sap_swpm_run_sapinst: true
 
-#sap_swpm_inifile_parameters_dict:
-#  archives.downloadBasket: /software/download_basket
-#  NW_getFQDN.FQDN: poc.cloud
-## add.additional.parameters: ''
+# The variable that controls whether the role will update the /etc/hosts file (Boolean).
+# Set to 'true' to update /etc/hosts, 'false' to skip.
+sap_swpm_update_etchosts: false
+
+# The variable that controls whether the role will set the 'sidadm' and 'sapadm' user's passwords to never expire (Boolean).
+# Set to 'false' to skip setting password to never expire.
+sap_swpm_set_sidadm_noexpire: true
+
+# The variable that controls whether the role will set file permissions and ownership for the SAP files in respective paths (Boolean).
+# Set to 'false' to skip setting file permissions and ownership.
+# See 'File Permissions and Ownership Variables' section for more information and configuration.
+sap_swpm_set_file_permissions: true
+
+# Set this variable to 'true' to configure the required firewall ports for SAP Netweaver instances (Boolean).
+# See 'Firewall Configuration Variables' section for more information and configuration.
+sap_swpm_configure_firewall: false
+
+# The path to directory where existing sapinst inifile 'inifile.params' is stored (String).
+# Empty or invalid path will be ignored and the role will generate new inifile.
+# NOTE: It is a role specific variable, because the existing inifile is the first source of SWPM specific variables.
+# It must be known before any other source is read, so it cannot be set in 'sap_swpm_role_parameters_dict'
+# or 'sap_swpm_templates_install_dictionary'.
+sap_swpm_inifile_directory: '/software/sap_swpm/inifiles'
 
 
-########################################
-#   SWPM Ansible Role variables
-#   for Default Mode
-#   - List of inifile parameters to generate
-########################################
+###############################################################################
+# Mandatory SWPM Specific Variables
+###############################################################################
+# NOTE: All SWPM specific variables can be defined directly using existing inifile,
+# 'sap_swpm_templates_install_dictionary', extravars, vars, inventory or directly in the playbook.
 
-sap_swpm_inifile_sections_list:
-  - swpm_installation_media
-  - swpm_installation_media_swpm2_hana
+# SAP Product Catalog ID describing type of SAP System to install (String).
+# Value must be a valid SAP Product Catalog ID, compatible with used SWPM version.
+# Example: 'NW_ABAP_OneHost:S4HANA2020.CORE.HDB.ABAP' represents S/4HANA 2020 OneHost system.
+sap_swpm_product_catalog_id: ''
+
+# The primary path to directory where role will look for all files (String).
+# It has to contain all required files (e.g. igs*sar, igshelper*sar, SAPEXEDB_*SAR, SAPEXE_*SAR, IMDB_CLIENT*SAR, SAPHOSTAGENT*SAR, etc.).
+sap_swpm_software_path: '/software/sapfiles'
+
+# The path to directory with SAPCAR*EXE file (String).
+# If left empty, the role will fall back to using 'sap_swpm_software_path'.
+sap_swpm_sapcar_path: ''
+# (Optional) The name of the SAPCAR*EXE file located in the 'sap_swpm_sapcar_path' directory (String).
+# The role will automatically determine the SAPCAR*EXE file name if not specified.
+# sap_swpm_sapcar_file_name: ''
+
+# The path to directory with SWPM*.SAR file (String).
+# If left empty, the role will fall back to using 'sap_swpm_software_path'.
+sap_swpm_path: ''
+# (Optional) The name of the SWPM*.SAR file located in the 'sap_swpm_path' directory (String).
+# The role will automatically determine the SWPM*.SAR file name if not specified.
+# sap_swpm_file_name: ''
+
+# (Optional) The path to directory with extracted SWPM files (String).
+# If left empty or commented out, the role will use './extracted' as a subdirectory of 'sap_swpm_path'.
+# sap_swpm_software_extract_directory: ''
+
+# The SAP System ID (SID) for the SAP system to be installed (String).
+# Value must be a valid SAP System ID (SID) consisting of 3 alphanumeric characters.
+# See SAP Note 1979280 for more information about accepted and restricted values.
+sap_swpm_sid: ''
+
+# Set to 'false' to disable the installation of the SAP Host Agent (Boolean).
+# NOTE: It is not recommended to disable the installation of the SAP Host Agent.
+sap_swpm_install_saphostagent: true  # inifile parameter: NW_System.installSAPHostAgent
+
+# The fully qualified domain name (FQDN) of the SAP system host (String).
+sap_swpm_fqdn: ''
+# Set to 'false' if SWPM should not set the FQDN automatically (Boolean).
+sap_swpm_set_fqdn: true  # inifile parameter: NW_getFQDN.setFQDN
+
+# The list of inifile sections to be processed by the role (List of Strings).
+# Each selected section has required variables that need to be defined.
+# For more details on what sapinst inifile parameters section updated see jinja2 template 'templates/inifile_params.j2'.
+# See README.md file for more information about each inifile section.
+sap_swpm_inifile_sections_list: []
+#  - swpm_installation_media
+#  - swpm_installation_media_swpm2_hana
 #  - swpm_installation_media_swpm1
 #  - swpm_installation_media_swpm1_exportfiles
 #  - swpm_installation_media_swpm1_ibmdb2
@@ -80,15 +103,15 @@ sap_swpm_inifile_sections_list:
 #  - maintenance_plan_stack_spam_config
 #  - maintenance_plan_stack_sum_config
 #  - maintenance_plan_stack_sum_10_batch_mode
-  - credentials
-  - credentials_hana
+#  - credentials
+#  - credentials_hana
 #  - credentials_anydb_ibmdb2
 #  - credentials_anydb_oracledb
 #  - credentials_anydb_sapase
 #  - credentials_anydb_sapmaxdb
 #  - credentials_nwas_ssfs
 #  - credentials_hdbuserstore
-  - db_config_hana
+#  - db_config_hana
 #  - db_config_anydb_all
 #  - db_config_anydb_ibmdb2
 #  - db_config_anydb_oracledb
@@ -97,185 +120,114 @@ sap_swpm_inifile_sections_list:
 #  - db_config_anydb_oracledb_19
 #  - db_config_anydb_sapase
 #  - db_config_anydb_sapmaxdb
-  - db_connection_nw_hana
+#  - db_connection_nw_hana
 #  - db_connection_nw_anydb_ibmdb2
 #  - db_connection_nw_anydb_oracledb
 #  - db_connection_nw_anydb_sapase
-  - db_restore_hana
+#  - db_restore_hana
 #  - nw_config_anydb
-  - nw_config_other
-  - nw_config_central_services_abap
+#  - nw_config_other
+#  - nw_config_central_services_abap
 #  - nw_config_central_services_java
-  - nw_config_primary_application_server_instance
+#  - nw_config_primary_application_server_instance
 #  - nw_config_additional_application_server_instance
 #  - nw_config_ers
-  - nw_config_ports
+#  - nw_config_ports
 #  - nw_config_java_ume
 #  - nw_config_java_feature_template_ids
 #  - nw_config_java_icm_credentials
 #  - nw_config_webdisp_generic
 #  - nw_config_webdisp_gateway
-  - nw_config_host_agent
+#  - nw_config_host_agent
 #  - nw_config_post_load_abap_reports
 #  - nw_config_livecache
 #  - nw_config_sld
 #  - nw_config_abap_language_packages
-  - sap_os_linux_user
+#  - sap_os_linux_user
 
-## Not in use
+## Currently not implemented:
 #  - swpm_installation_media_download_service
 #  - solman_abap_swpm1
 #  - solman_daa_swpm1
 
 
-########################################
-#   SWPM Ansible Role variables
-#   for Default Mode
-#   - SWPM variables
-########################################
-
-# SAP product that will be installed and passed as argument to the sapinst installer, example 'NW_ABAP_OneHost:S4HANA2020.CORE.HDB.ABAP'
-# Needs to be defined in the playbook or inventory or can be determined from an existing inifile.params file.
-sap_swpm_product_catalog_id: ''
-
-# Main path that this role will look for .SAR files
-sap_swpm_software_path: '/software/sapfiles'
-## This directory path should include these files:
-##   - igs*sar
-##   - igshelper*sar
-##   - SAPEXEDB_*SAR
-##   - SAPEXE_*SAR
-##   - IMDB_CLIENT*SAR
-##   - SAPHOSTAGENT*SAR
-
-# Directory and file name of SAPCAR*EXE. Only path is mandatory. The role will automatically determine file_name
-sap_swpm_sapcar_path: ''
-# sap_swpm_sapcar_file_name:
-
-# Directory and file name of SWPM. Only path is mandatory. The role will automatically determine file_name
-sap_swpm_path: ''
-sap_swpm_file_name: ''
-
-# (Optional) The path to the crlbag.p7s
-# SWPM/sapinst downloads the file crlbag.p7s from a SAP URL during the installation.
-# If the URL is not reachable, this file must be provided manually.
-# See SAP note 3207613 for more information.
-# sap_swpm_crlbag_path: "{{ sap_swpm_software_path }}/crlbag.p7s"
-
-# Define your own software extraction directory. If undefined, the role will use './extracted' as a subdirectory
-# of sap_swpm_path.
-# sap_swpm_software_extract_directory: # e.g. /software/sap_swpm_extracted
-
-# Note:
-# When using SWPM2 (for modern SAP products such as S/4 B/4), using .SAR files is recommended - param value should be false
-# When using SWPM1 (for older SAP products), using CD Media is the only choice - param value should be true
-sap_swpm_software_use_media: false
-
-# Dictionary of environment variables which will be temporarily injected when executing swpm
-# This can be used to modify variables like TMP or rsdb_ssfs_connect which will be used by sapinst
-# See SAP Notes 3651688 and 2063079 for more information on TMP environment variable when executing SWPM
-sap_swpm_env_vars: {}
-
-# Directory in which a sapinst inifile which is to be used by the role can be stored:
-sap_swpm_inifile_directory: '/software/sap_swpm/inifiles'
-
-# extra sapinst arguments to be added to the sapinst command line:
-sap_swpm_command_extra_args: ''
-
-# SWPM1 - paths that this role will look for CD Media software
-sap_swpm_cd_export_pt1_path: ''
-sap_swpm_cd_export_pt2_path: ''
-sap_swpm_cd_language_path: ''
-sap_swpm_cd_java_path: ''
-sap_swpm_cd_rdbms_path: ''
-sap_swpm_cd_export_path: ''
-sap_swpm_cd_ibmdb2_path: ''
-sap_swpm_cd_ibmdb2_client_path: ''
-sap_swpm_cd_oracle121_path: ''
-sap_swpm_cd_oracle121_client_path: ''
-sap_swpm_cd_sapase_path: ''
-sap_swpm_cd_sapmaxdb_path: ''
-sap_swpm_ibmdb2_unpack_path: "/db2/db2{{ sap_swpm_db_sid | lower }}/db2_software"
-
-# --- Experimental --- #
-# MP Stack
-sap_swpm_mp_stack_path: ''
-sap_swpm_mp_stack_file_name: ''
-# SUM
-sap_swpm_sum_prepare: false
-sap_swpm_sum_start: false
-sap_swpm_sum_batch_file: ''
-sap_swpm_spam_update: false
-sap_swpm_spam_update_sar: ''
-sap_swpm_configure_tms: true
-sap_swpm_tmsadm_password: ''
-sap_swpm_tms_tr_files_path: ''
-# --- Experimental --- #
-
-# --- Experimental - SWPM Observer mode --- #
-# Enables observer mode of SWPM - TO BE USED for debugging/troubleshooting mainly
-# This allows user to watch the installation progress from a browser (on standard port 4237) and possibly interact with it
-# Note: Interaction can impact the automated installation and may result in the need for further manual actions
-# in order to complete the installation
-sap_swpm_observer_mode: false
-# Allows to specify a different remote access user (e.g. when root's password is unknown).
-# Default SWPM behaviour is to use root. This may not be desirable as the password of the root user
-# may not be available for security reasons. The remote access user must exist before SWPM is executed
-# (i.e. <sid>adm can't be used if it doesn't exist yet).
-sap_swpm_remote_access_user: ''
-# --- Experimental - SWPM Observer mode --- #
-
-sap_swpm_install_saphostagent: true
-
-
-########################################
-#   SWPM Ansible Role variables
-#   for Default Mode
-#   - SAP NetWeaver
-########################################
-
-sap_swpm_sid: ''
-sap_swpm_ascs_instance_nr: ''
-sap_swpm_ascs_instance_hostname: ''
-sap_swpm_ers_instance_nr: ''
-sap_swpm_ers_instance_hostname: ''
-sap_swpm_pas_instance_nr: ''
-sap_swpm_pas_instance_hostname: ''
-sap_swpm_aas_instance_nr: ''
-sap_swpm_aas_instance_hostname: ''
-
-sap_swpm_java_scs_instance_nr: ''
-sap_swpm_java_scs_instance_hostname: ''
-
-# Password used for all users created during SWPM installation
+# The master password used for all users during SWPM installation, unless overridden by specific user passwords (String).
 sap_swpm_master_password: ''
 
-# New Install - define DDIC 000 password
-# Restore - DDIC 000 password from backup
-sap_swpm_ddic_000_password: ''
 
-# initial = not an HA setup
-# set this in the input file when installing ascs, ers to indicate an HA setup
+### SWPM 1 and SWPM 2 Variables ###############################################
+# Set to 'true' if SWPM2 should use CD Media when section 'swpm_installation_media_swpm2_hana' is used (Boolean).
+# - SWPM1 (for older SAP products) requires CD Media and this parameter is ignored.
+# - SWPM2 (for modern SAP products such as S/4 B/4) primarily uses SAR files, but this parameter allows use of CD Media if set to 'true'.
+sap_swpm_software_use_media: false
+
+# The path to the CD Media directories for various components of the SAP software (String).
+# NetWeaver export files
+sap_swpm_cd_export_pt1_path: ''  # Sections: swpm_installation_media_swpm1_exportfiles
+sap_swpm_cd_export_pt2_path: ''  # Sections: swpm_installation_media_swpm1_exportfiles
+sap_swpm_cd_language_path: ''  # Sections: swpm_installation_media_swpm1
+sap_swpm_cd_java_path: ''  # Sections: swpm_installation_media_swpm1
+sap_swpm_cd_export_path: ''  # Sections: swpm_installation_media, swpm_installation_media_swpm1_exportfiles
+sap_swpm_export_files_path: ''  # Sections: syscopy_export_anydb
+sap_swpm_export_target_db_type: ''  # Sections: syscopy_export_anydb
+
+# Databases
+sap_swpm_cd_rdbms_path: ''  # Sections: swpm_installation_media_swpm1
+sap_swpm_cd_ibmdb2_path: ''  # Sections: swpm_installation_media_swpm1_ibmdb2
+sap_swpm_cd_ibmdb2_client_path: ''  # Sections: swpm_installation_media_swpm1_ibmdb2
+sap_swpm_ibmdb2_unpack_path: ''  # Defaults to: "/db2/db2{{ sap_swpm_db_sid | lower }}/db2_software"
+sap_swpm_cd_sapase_path: ''  # Sections: swpm_installation_media_swpm1_sapase
+sap_swpm_cd_sapase_client_path: ''  # Sections: swpm_installation_media_swpm1_sapase
+sap_swpm_cd_sapmaxdb_path: ''  # Sections: swpm_installation_media_swpm1_sapmaxdb
+# Sections: swpm_installation_media_swpm1_oracledb_121, swpm_installation_media_swpm1_oracledb_122, swpm_installation_media_swpm1_oracledb_19
+sap_swpm_cd_oracle_path: ''
+sap_swpm_cd_oracle_client_path: ''
+
+### NetWeaver Variables #######################################################
+# The Instance Numbers for the various SAP system components (String).
+# Value must be a valid instance number consisting of 2 digits.
+# Used for: SAP detection, inifile generation and Firewall ports configuration.
+sap_swpm_ascs_instance_nr: ''     # ASCS sections: nw_config_central_services_abap, nw_config_ports
+sap_swpm_ers_instance_nr: ''      # ERS sections: nw_config_ers
+sap_swpm_pas_instance_nr: ''      # PAS sections: nw_config_primary_application_server_instance
+sap_swpm_aas_instance_nr: ''      # AAS sections: nw_config_additional_application_server_instance
+sap_swpm_java_scs_instance_nr: '' # Java SCS sections: nw_config_central_services_java
+
+# The hostnames for the various SAP system components (String).
+# Used for: inifile generation
+sap_swpm_ascs_instance_hostname: ''     # ASCS sections: nw_config_central_services_abap
+sap_swpm_ers_instance_hostname: ''      # ERS sections: nw_config_ers
+sap_swpm_pas_instance_hostname: ''      # PAS sections: nw_config_primary_application_server_instance, nw_config_java_ume
+sap_swpm_aas_instance_hostname: ''      # AAS sections: nw_config_additional_application_server_instance
+sap_swpm_java_scs_instance_hostname: '' # Java SCS sections: nw_config_central_services_java
+
+# The password of existing DDIC user in client 000 for restoration from backup (String).
+sap_swpm_ddic_000_password: ''  # Section: credentials_syscopy
+
+# Resolvable virtual hostname used for installation in a High Availability (HA) setup (String).
+# Hostname must be either resolvable by DNS or /etc/hosts and resolved IP has to be part of IPv4 addresses on managed host.
+# Used in sapinst command argument 'SAPINST_USE_HOSTNAME', generally in ASCS/ERS cluster configurations.
 sap_swpm_virtual_hostname: ''
 
 
-########################################
-#   SWPM Ansible Role variables
-#   for Default Mode
-#   - Lookup list of NWAS JAVA Feature Template IDs
-########################################
+### NetWeaver JAVA Variables ##################################################
+# The name of JAVA import method, either 'jload' or 'extramile' (BatchDeployer) (String).
+# Default value is based on 'sap_swpm_product_catalog_id' prefix:
+# - 'jload' for SAP S/4HANA, which has 'S4H' in the Product ID.
+# - 'extramile' for SAP NWAS JAVA otherwise.
+sap_swpm_java_import_method: ''
 
-# Two methods exist for SAP NWAS JAVA, jload and extramile (BatchDeployer) before call to Deploy Controller Runner
-# Default to extramile for SAP NWAS JAVA, except SAP S/4HANA
-sap_swpm_java_import_method: "{{ 'jload' if 'S4H' in sap_swpm_product_catalog_id | string else 'extramile' }}"
-
-# Use empty list which will create inifile parameter as blank for default installation
+# The list of selected JAVA template keys for installation from the predefined dictionary 'sap_swpm_java_template_id_lookup_dictionary' (List of Strings).
+# Use empty list which will create inifile parameter as blank for default installation.
+# Used sections: nw_config_java_feature_template_ids
 sap_swpm_java_template_id_selected_list: []
 
+# Predefined dictionary of JAVA template IDs for different components.
+# NOTE: Changes to this dictionary may affect the installation process and should be done with caution.
 sap_swpm_java_template_id_lookup_dictionary:
   java_nwas_as:
     - 01200615324800000135 # Application Server Java
-#    - 01200615324800002844 # !!! Ignore, SAP NWAS 7.40 JAVA only
+    # - 01200615324800002844 # NOTE: Ignore, SAP NWAS 7.40 JAVA only
   java_engine_se:
     - 01200615324800000125 # Adapter Engine (Java SE)
   java_engine_ee:
@@ -286,7 +238,7 @@ sap_swpm_java_template_id_lookup_dictionary:
   java_composition_environment:
     - 01200615324800002968 # Composition Platform
     - 01200615324800002888 # Guided Procedures
-#    - 01200615324800002884 # !!! Ignore, SAP NWAS 7.40 JAVA only
+    # - 01200615324800002884 # NOTE: Ignore, SAP NWAS 7.40 JAVA only
   java_enterprise_portal:
     - 01200615324800000164 # EP Core - Application Portal
     - 01200615324800000174 # Enterprise Portal
@@ -314,134 +266,131 @@ sap_swpm_java_template_id_lookup_dictionary:
   s4hana_java_enterprise_service_repository:
     - '73554900104800002330' # SAP S/4HANA Java Enterprise Services Repository, includes s4hana_java_as (73554900104800002396)
   s4hana_java_aex:
-    - '73554900104800002329' # SAP S/4HANA Java Advanced Adapter Engine Extnd, includes s4hana_java_as (73554900104800002396) and s4hana_java_enterprise_service_repository (73554900104800002330)
+    # # SAP S/4HANA Java Advanced Adapter Engine Extnd, includes s4hana_java_as (73554900104800002396)
+    # and s4hana_java_enterprise_service_repository (73554900104800002330)
+    - '73554900104800002329'
 
 
-########################################
-#   SWPM Ansible Role variables
-#   for Default Mode
-#   - DB Connection (existing SAP HANA)
-########################################
-
-sap_swpm_db_ip: ''
-sap_swpm_db_fqdn: ''
-sap_swpm_db_host: ''
-sap_swpm_db_sid: ''
-sap_swpm_db_instance_nr: ''
-
-sap_swpm_db_system_password: ''
-sap_swpm_db_systemdb_password: ''
-sap_swpm_db_sidadm_password: ''
-
-# New Install - define schema (ABAP), e.g. SAP HANA = SAPHANADB, SAP on IBM Db2 = ABAP or SAPABAP1, SAP on Oracle DB = SAPSR3 (6 characters)
-# Restore - schema details from backup (ABAP)
-sap_swpm_db_schema_abap: "SAPHANADB"
-sap_swpm_db_schema_abap_password: ''
-
-# New Install - define schema password (Java)
-# Restore - schema details from backup (Java)
-sap_swpm_db_schema_java: ''
-sap_swpm_db_schema_java_password: ''
-
-sap_swpm_db_schema: ''
-sap_swpm_db_schema_password: ''
-
-# JAVA UME
+### NetWeaver JAVA UME Variables ##############################################
+# The configuration variables for JAVA UME (User Management Engine).
+# Used by sections: nw_config_java_ume
 sap_swpm_ume_client_nr: '000'
 sap_swpm_ume_type: ''
-sap_swpm_ume_instance_nr: '{{ sap_swpm_pas_instance_nr }}'
-sap_swpm_ume_j2ee_admin_password: ''
-sap_swpm_ume_j2ee_guest_password: ''
+sap_swpm_ume_instance_nr: '' # Default fallback to 'sap_swpm_pas_instance_nr'
 sap_swpm_ume_sapjsf_password: ''
-sap_swpm_ume_instance_hostname: ''
+
+# Used by sections: nw_config_java_ume, nw_config_java_icm_credentials
+sap_swpm_ume_j2ee_admin_password: ''
 
 
-########################################
-#   SWPM Ansible Role variables
-#   for Default Mode
-#   - DB Restore (backup of SAP HANA)
-########################################
+### Database Variables ########################################################
+# The SAP System ID (SID) of Database, used across all database types in SWPM 1 and SWPM 2 (String).
+# Value must be a valid SAP System ID (SID) consisting of 3 alphanumeric characters.
+# See SAP Note 1979280 for more information about non-HANA databases.
+# See SAP HANA Cockpit Installation Guide for more information about HANA databases.
+sap_swpm_db_sid: ''
 
-# Location of the database backup files.
+# The Instance Number of Database instance (String).
+# Value must be a valid instance number consisting of 2 digits.
+# Used in SAP HANA specific inifile sections and for HDB userstore update.
+sap_swpm_db_instance_nr: ''
+
+# The IP address of the Database host used for updating '/etc/hosts' for SAP HANA database (Strings).
+sap_swpm_db_ip: ''
+
+# The hostname of the Database host used for updating '/etc/hosts' for SAP HANA database and various inifile sections (String).
+sap_swpm_db_host: ''
+
+# The password of SYSTEM user for various Database types (String).
+sap_swpm_db_system_password: ''
+
+# The password of SYSTEMDB user in SAP HANA database (String).
+sap_swpm_db_systemdb_password: ''  # Sections: db_connection_nw_hana
+
+# The password of sidadm user in SAP HANA database (String).
+sap_swpm_db_sidadm_password: ''  # Sections: db_connection_nw_hana, db_restore_hana
+
+# The name of ABAP schema during installation or restore (String).
+# Defaults to 'SAPHANADB' used by SAP HANA database,
+# but used also for Oracle DB ('SAPSR3') and IBM Db2 ('ABAP' or 'SAPABAP1').
+sap_swpm_db_schema_abap: "SAPHANADB"
+
+# The password of ABAP schema during installation or restore (String).
+# Used by sections: db_connection_nw_hana, db_connection_nw_anydb_oracledb
+sap_swpm_db_schema_abap_password: ''
+
+# The name of JAVA schema during installation or restore (String).
+# Used by sections: db_connection_nw_hana, db_config_anydb_oracledb
+sap_swpm_db_schema_java: ''
+
+# The password of JAVA schema during installation or restore (String).
+# Used by sections: db_connection_nw_hana, db_connection_nw_anydb_oracledb
+sap_swpm_db_schema_java_password: ''
+
+# The schema name for SAP HANA database (String).
+# Used by sections: db_config_hana
+sap_swpm_db_schema: ''
+
+# The schema password for SAP HANA database and SAP MaxDB (String).
+# Used by sections: credentials_hana, credentials_anydb_sapmaxdb
+sap_swpm_db_schema_password: ''
+
+
+### Database Backup and Restore Variables #####################################
+# Used by sections: db_restore_hana
+
+# The path to directory with SAP HANA database backup files (String).
 sap_swpm_backup_location: ''
 
-# Backup prefix
+# The prefix for the backup files (String).
 sap_swpm_backup_prefix: ''
 
-# SYSTEM password of the backup
+# The password of SYSTEM user for the backup (String).
 sap_swpm_backup_system_password: ''
 
-# ASCS Install Gateway
-sap_swpm_ascs_install_gateway: true
 
-
-########################################
-#   SWPM Ansible Role variables
-#   for Default Mode
-#   - Web Dispatcher
-########################################
-
+### Web Dispatcher Variables ##################################################
+# The instance number of the Web Dispatcher (String).
+# Used by section nw_config_webdisp_generic and for Firewall configuration.
 sap_swpm_wd_instance_nr: ''
 
-sap_swpm_wd_system_connectivity: false
-sap_swpm_wd_activate_icf: false
-sap_swpm_wd_backend_sid: ''
-sap_swpm_wd_backend_ms_http_port: ''
-sap_swpm_wd_backend_ms_host: ''
-sap_swpm_wd_backend_rfc_host: ''
-sap_swpm_wd_backend_rfc_instance_nr: ''
-sap_swpm_wd_backend_rfc_client_nr: '' # 000 default
-sap_swpm_wd_backend_rfc_user: '' # DDIC default
-sap_swpm_wd_backend_rfc_user_password: ''
-sap_swpm_wd_backend_scenario_size: ''
-sap_swpm_wd_virtual_host: ''
+# The Web Dispatcher variables used by section nw_config_webdisp_generic.
+sap_swpm_wd_system_connectivity: false      # inifile parameter: NW_Webdispatcher_Instance.configureSystemConnectivity
+sap_swpm_wd_activate_icf: false             # inifile parameter: NW_webdispatcher_Instance.activateICF
+sap_swpm_wd_backend_sid: ''                 # inifile parameter: NW_webdispatcher_Instance.backEndSID
+sap_swpm_wd_backend_ms_http_port: ''        # inifile parameter: NW_webdispatcher_Instance.msHTTPPort
+sap_swpm_wd_backend_ms_host: ''             # inifile parameter: NW_webdispatcher_Instance.msHost
+sap_swpm_wd_backend_rfc_host: ''            # inifile parameter: NW_webdispatcher_Instance.rfcHost
+sap_swpm_wd_backend_rfc_instance_nr: ''     # inifile parameter: NW_webdispatcher_Instance.rfcInstance
+sap_swpm_wd_backend_rfc_client_nr: ''       # inifile parameter: NW_webdispatcher_Instance.rfcClient
+sap_swpm_wd_backend_rfc_user: ''            # inifile parameter: NW_webdispatcher_Instance.rfcUser
+sap_swpm_wd_backend_rfc_user_password: ''   # inifile parameter: NW_webdispatcher_Instance.rfcPassword
+sap_swpm_wd_backend_scenario_size: ''       # inifile parameter: NW_webdispatcher_Instance.scenarioSize
+sap_swpm_wd_virtual_host: ''                # inifile parameter: NW_webdispatcher_Instance.wdVirtualHostname
 
 
-########################################
-#   SWPM Ansible Role variables
-#   for Default Mode
-#   - Unix user
-########################################
-
+### Operating System User Variables ###########################################
+# The password of 'sapadm' operating system user (String).
+# Used by sections: credentials, db_connection_nw_anydb_ibmdb2
 sap_swpm_sapadm_password: ''
+
+# The password of 'sidadm' operating system user (String).
 sap_swpm_sap_sidadm_password: ''
 
-sap_swpm_sapadm_uid: ''
-sap_swpm_sapsys_gid: ''
+# The user IDs of 'sidadm' and 'sapadm' operating system users defined as 3 or 4 digit string (String).
 sap_swpm_sidadm_uid: ''
+sap_swpm_sapadm_uid: ''
+
+# The group IDs of 'sapsys' operating system group defined as 3 or 4 digit string (String).
+# Both 'sidadm' and 'sapadm' users should belong to this group, if they already exist.
+sap_swpm_sapsys_gid: ''
 
 
-########################################
-#   SWPM Ansible Role variables
-#   for Default Mode
-#   - Misc
-########################################
-
-sap_swpm_parallel_jobs_nr: '23'
-
-sap_swpm_diagnostics_agent_password: ''
-
-sap_swpm_fqdn: ''
-sap_swpm_set_fqdn: true
-
-# If the template to use already has the passwords and they are encrypted the password file must be in the same path as the parameter file
-sap_swpm_use_password_file: false
-sap_swpm_password_file_path: ''
-
-sap_swpm_use_livecache: false
-sap_swpm_ddic_001_password: ''
-sap_swpm_load_type: 'SAP'
-
-sap_swpm_generic: false
-
-# Set linux user password expiry settings
-sap_swpm_set_sidadm_noexpire: true
-
-# Set this variable to `true` to configure the required firewall ports for SAP Netweaver instances.
+### Firewall Configuration Variables ##########################################
 # What this configuration includes:
-# - Installation of the `firewalld` package and starting the service.
-# - If `sap_swpm_firewall_ports` is undefined: A Firewalld service definition is created with recommended ports.
-#   Note: `NN` refers to the SAP Instance Number defined in respective variables.
+# - Installation of the 'firewalld' package and starting the service.
+# - If 'sap_swpm_firewall_ports' is undefined: A Firewalld service definition is created with recommended ports.
+#   Note: 'NN' refers to the SAP Instance Number defined in respective variables.
 #   Application instances: PAS, AAS, WD
 #  | Ports | Protocol | Reason |
 #  | --- | --- | --- |
@@ -462,19 +411,18 @@ sap_swpm_set_sidadm_noexpire: true
 #  | 1128-1129 | TCP | SAP Host Agent ports for status and metrics communication. |
 #  | 36NN | TCP | SAP Message Server port (36NN). Used for internal communication between application servers. |
 #  | 39NN | TCP | SAP SAP Enqueue Server port (39NN). |
-#  | 81NN | TCP | SAP Message Server HTTP port (81NN), configured via the `ms/http_port_<n>` profile parameter. |
+#  | 81NN | TCP | SAP Message Server HTTP port (81NN), configured via the 'ms/http_port_<n>' profile parameter. |
 #  | 5NN13 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
 #  | 5NN14 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
 #  | 5NN16 | TCP | SAP Start Service (sapstartsrv) communication. Used for service control and status checks. |
-# - If `sap_swpm_firewall_ports` is defined: The specified ports are opened directly and no service definition is created.
+# - If 'sap_swpm_firewall_ports' is defined: The specified ports are opened directly and no service definition is created.
 # Important: This does not include configuration of database services or ports, as they are not directly installed with this role.
-# For example, firewall configuration for SAP HANA can be managed separately in the `sap_hana_install` role.
+# For example, firewall configuration for SAP HANA can be managed separately in the 'sap_hana_install' role.
 # Managing configured Firewall:
-# - Setting this variable to `false` does not remove any existing firewall configuration.
-# - For ongoing firewall management, consider using the `community.sap_operations.sap_firewall` role or the `firewall` Linux System Role.
-sap_swpm_configure_firewall: false
+# - Setting this variable to 'false' does not remove any existing firewall configuration.
+# - For ongoing firewall management, consider using the 'community.sap_operations.sap_firewall' role or the 'firewall' Linux System Role.
 
-# Optional list of firewall ports.
+# (Optional) The list of firewall ports.
 # The specified ports are opened directly and no service definition is created.
 # Commented out example 1: Ports that are defined in service file for application instance.
 # sap_swpm_firewall_ports:
@@ -501,32 +449,169 @@ sap_swpm_configure_firewall: false
 #   - "5{{ sap_swpm_ascs_instance_nr }}14"  # SAP Start Service (sapstartsrv) communication.
 #   - "5{{ sap_swpm_ascs_instance_nr }}16"  # SAP Start Service (sapstartsrv) communication.
 
-# Optional name of firewall zone where service or ports will be configured.<br>
-# Default firewall zone, usually `public`, is used if this variable is undefined.
+# (Optional) The name of firewall zone where service or ports will be configured.<br>
+# Default firewall zone, usually 'public', is used if this variable is undefined.
 # sap_swpm_firewall_zone: ''
 
-# Update /etc/hosts
-sap_swpm_update_etchosts: false
 
-# Display SAP SWPM Unattended Mode output (sapinst stdout)
+### Maintenance Planner Variables (Experimental) ##############################
+# The path to the MP stack directory and the stack file name (Strings).
+sap_swpm_mp_stack_path: ''
+sap_swpm_mp_stack_file_name: ''
+
+
+### SUM Variables (Experimental) ##############################################
+# Set to 'true' if SWPM should start SUM after installation (Boolean).
+# The role will wait for SUM completion and move known steps forward automatically.
+sap_swpm_sum_start: false  # inifile parameter: NW_ABAP_Prepare_SUM.startSUM
+
+# Set to 'true' if SWPM should prepare SUM (Boolean).
+# Required for section: maintenance_plan_stack_sum_config
+sap_swpm_sum_prepare: false  # inifile parameter: NW_ABAP_Prepare_SUM.prepareSUM
+
+# The name of existing BatchModeInputFile.xml from previous NetWeaver JAVA installation (SWPM 1) created in /std/param subdirectory (String).
+# Required for section: maintenance_plan_stack_sum_10_batch_mode
+sap_swpm_sum_batch_file: ''  # inifile parameter: NW_ABAP_Prepare_SUM.SUMBatchFile
+
+# Set to 'true' if SWPM should handle SPAM update (Boolean).
+# Required for section: maintenance_plan_stack_spam_config
+sap_swpm_spam_update: false  # inifile parameter: NW_ABAP_SPAM_Update.SPAMUpdateDecision
+# The path to the update archive (String).
+sap_swpm_spam_update_sar: ''  # inifile parameter: NW_ABAP_SPAM_Update.SPAMUpdateArchive
+
+# Set to 'false' if SWPM should not configure TMS (Boolean).
+# Required for section: maintenance_plan_stack_tms_config
+sap_swpm_configure_tms: true  # inifile parameter: NW_ABAP_TMSConfig.configureTMS
+# The password for 'tmsadm' user (String).
+sap_swpm_tmsadm_password: ''  # inifile parameter: NW_ABAP_TMSConfig.transportPassword
+
+# The path to the transport files for TMS configuration (String).
+# Required for section: maintenance_plan_stack_tms_transports
+sap_swpm_tms_tr_files_path: ''  # inifile parameter: NW_ABAP_Include_Corrections.transportFilesLocations
+
+
+### SWPM Observer Mode Variables (Experimental) ###############################
+# Set to 'true' to enable SWPM observer mode for debugging or troubleshooting (Boolean).
+# This allows user to watch the installation progress from a browser (on standard port 4237) interactively.
+# NOTE: This is not intended use and interaction can impact the automated installation, resulting in unexpected issues.
+sap_swpm_observer_mode: false
+
+# The name of the remote access user for SWPM observer mode (String).
+# Allows to specify a different remote access user (e.g. when root's password is unknown).
+# Default SWPM behaviour is to use root, which might not be desirable for security reasons.
+# The remote access user must exist on operating system level before SWPM is executed.
+sap_swpm_remote_access_user: ''
+
+
+## File Permissions and Ownership Variables ###################################
+# The following 9 parameters define the default permission and ownership settings as per the documentation:
+# 'Installation of SAP ABAP Systems on UNIX : SAP HANA 2.0 Database - Using Software Provisioning Manager 2.0 guide'
+# https://help.sap.com/docs/SLTOOLSET/39c32e9783f6439e871410848f61544c/c1f95d30d0ba4335919bf6e6f44263b2.html?version=CURRENT_VERSION_SWPM20
+# The source mentions 755 as the minimum permission for the SPWM download directory
+# and a umask setting of 022 for the user which downloads the SAP software.
+
+# The permission and ownership settings for the directories in the 'sap_swpm_software_path' (String).
+sap_swpm_software_directory_mode: '0755'
+sap_swpm_software_directory_owner: root
+sap_swpm_software_directory_group: root
+
+# The permission and ownership settings for the SAPCAR files in the directory 'sap_swpm_sapcar_path' (String).
+sap_swpm_files_sapcar_mode: '0755'
+sap_swpm_files_sapcar_owner: root
+sap_swpm_files_sapcar_group: root
+
+# The permission and ownership settings for the SWPM*.SAR files in the directory 'sap_swpm_path'
+# and non-SAPCAR files in the directory 'sap_swpm_software_path' (String).
+sap_swpm_files_non_sapcar_mode: '0644'
+sap_swpm_files_non_sapcar_owner: root
+sap_swpm_files_non_sapcar_group: root
+
+
+### Other Role Specific Variables #############################################
+# Set to 'true' if the role should process only SWPM and SAPCAR software files (Boolean).
+# Other files like SAPEXE, SAPEXEDB, igsexe, igshelper will not be validated by the role before SWPM execution.
+sap_swpm_generic: false
+
+# Set to 'true' to show output from SWPM execution (sapinst stdout) in debug task (Boolean).
 sap_swpm_display_unattended_output: false
 
-# Set which Ansible Collection to use when calling sap_install roles.
+# The name of the Ansible Collection to use when calling sap_install roles (String).
 sap_swpm_sap_install_collection: 'community.sap_install'
 
-# Optional override that forces execution of installation tasks if existing SAP instance is detected (Boolean).
+## Safety Overrides (Use With Caution)
+# Override that forces execution of installation tasks if existing SAP instance is detected (Boolean).
 # WARNING: This variable should be used with caution
-# as running SWPM installation with active SAP instances can lead to corruption of existing SAP installation.
+# as running SWPM installation with active SAP instances can lead to corruption of existing SAP installation!
 sap_swpm_force: false
 
-# Skip all detection checks. Use ONLY for testing/development on clean systems.
+# (Optional) Skip all detection checks. Use ONLY for testing/development on clean systems!
 # WARNING: Skipping detection can lead to data loss if installation already exists!
 # This will bypass all safety checks including saphostctrl, sapcontrol, and file existence checks.
 # sap_swpm_skip_detection: false
 
 # Explicit acknowledgement required for Database Load products (NW_ABAP_DB, NW_Java_DB, etc.) (Boolean).
 # These products cannot be detected by this role on empty managed hosts, because no local instance files are created.
-# Running SWPM against an existing database WILL DROP and recreate the schema user, causing DATA LOSS on existing systems.
+# WARNING: Running SWPM against an existing database WILL DROP and recreate the schema user, causing DATA LOSS on existing systems!
 # Set to 'true' only after confirming the target database is empty or intended to be overwritten.
-# WARNING: sap_swpm_force does NOT cover this scenario and it only applies to detection of existing instances.
+# The variable 'sap_swpm_force' does NOT cover this scenario and it only applies to detection of existing instances.
 sap_swpm_db_load_force: false
+
+
+### Other SWPM Specific Variables #############################################
+
+# (Optional) The dictionary of environment variables to be temporarily injected when executing sapinst (Dictionary).
+# This can be used to modify variables like TMP or rsdb_ssfs_connect which will be used by sapinst.
+# See SAP Notes 3651688 and 2063079 for more information on TMP environment variable when executing SWPM.
+sap_swpm_env_vars: {}
+
+# (Optional) The string of extra sapinst arguments to be added to the sapinst command line (String).
+sap_swpm_command_extra_args: ''
+
+# (Optional) The path to the crlbag.p7s file when SWPM is unable to download it from the SAP URL (String).
+# SWPM/sapinst downloads the file crlbag.p7s from a SAP URL during the installation.
+# If the URL is not reachable, this file must be provided manually.
+# See SAP note 3207613 for more information.
+# sap_swpm_crlbag_path: "{{ sap_swpm_software_path }}/crlbag.p7s"
+
+# (Optional) The dictionary containing installation templates for the role (Dictionary).
+# Primarily used to define different SAP product versions and their specific role variables.
+# See repository level 'playbooks' directory for more examples.
+# sap_swpm_templates_install_dictionary: {}
+
+# (Optional) The key name for the dictionary 'sap_swpm_templates_install_dictionary' (String).
+# sap_swpm_templates_product_input: ''
+
+# (Optional) The dictionary containing role variable key pairs (Dictionary).
+# This allows overriding default behavior for specific scenarios, see 'Role Variable Precedence' section in README.md.
+# Example:
+# sap_swpm_role_parameters_dict: {}
+
+# (Optional) The dictionary of inifile parameters to be updated after inifile is generated (List of dictionaries).
+# sap_swpm_inifile_parameters_dict:
+#  archives.downloadBasket: /software/download_basket
+#  NW_getFQDN.FQDN: poc.cloud
+
+# The number of parallel extraction jobs for SAP HANA database (String).
+sap_swpm_parallel_jobs_nr: '23'  # Sections: db_connection_nw_hana
+
+# (Optional) The password for the diagnostics agent (String).
+sap_swpm_diagnostics_agent_password: ''
+
+# Set to 'true' if SWPM should use a password file for existing inifile template containing encrypted passwords (Boolean).
+sap_swpm_use_password_file: false
+
+# The path where file 'instkey.pkey' is expected when sap_swpm_use_password_file is set to 'true'.
+sap_swpm_password_file_path: ''
+
+# The type of load for the SWPM installation set in inifile parameter 'loadType' (String).
+# Sections: nw_config_other, syscopy_export_anydb, syscopy_import_anydb_ibmdb2
+sap_swpm_load_type: 'SAP'
+
+# Set to 'false' if Gateway should not be installed as part of ASCS (Boolean).
+# Used in sections: nw_config_webdisp_gateway
+# NOTE: It is not recommend to disable installation of gateway during ASCS installation.
+sap_swpm_ascs_install_gateway: true
+
+
+### Deprecated Variables
+# Role Modes in 'sap_swpm_ansible_role_mode' are deprecated and replaced by dynamic 'sap_swpm_inifile_sections_list'.
