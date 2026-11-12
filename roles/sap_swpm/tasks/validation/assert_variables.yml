@@ -1,0 +1,183 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Compared to 'assert_mandatory_variables.yml', this file validates resolved values in '__sap_swpm_fact_vars',
+# after all sources were processed in correct precedence.
+# NOTE: Fail is used instead of assert, so that internal dictionary is not exposed in the output.
+
+# Mandatory string variables, required also when existing inifile is used.
+- name: SAP SWPM - Validation - Fail if the string variables are undefined, empty or not a string
+  ansible.builtin.fail:
+    msg: |
+      The string variable '{{ var_item }}' is undefined, empty or not a string.
+  loop:
+    - sap_swpm_software_path
+    - sap_swpm_product_catalog_id
+    - sap_swpm_sid
+    - sap_swpm_fqdn
+  loop_control:
+    loop_var: var_item
+  when:
+    - not (__sap_swpm_fact_vars[var_item] is defined
+        and __sap_swpm_fact_vars[var_item] is string
+        and __sap_swpm_fact_vars[var_item] | trim | length > 0)
+
+# The 'sap_swpm_sid' is validated regardless of existing inifile.
+- name: SAP SWPM - Validation - Fail if the variable 'sap_swpm_sid' is not compliant
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The variable 'sap_swpm_sid' is defined as: '{{ __sap_swpm_fact_vars['sap_swpm_sid'] }}',
+      which fails the following validation criteria:
+      {% for condition in (__sap_swpm_fact_vars['sap_swpm_sid'] | community.sap_install.validate_sap_sid('swpm')).failed_conditions %}
+      - {{ condition }}
+      {% endfor %}
+  when: __sap_swpm_fact_vars['sap_swpm_sid'] is not community.sap_install.valid_sap_sid('swpm')
+
+# The 'sap_swpm_virtual_hostname' is passed to sapinst as command argument based on resolution of 'install_type.yml'.
+# Inifile template does not directly use this variable, so it can come only from role variables or other sources, not from the existing inifile.
+- name: SAP SWPM - Validation - Fail if the 'sap_swpm_virtual_hostname' is not compliant with SAP note 611361
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The variable 'sap_swpm_virtual_hostname' is defined as: '{{ __sap_swpm_fact_vars['sap_swpm_virtual_hostname'] }}',
+      which fails the following validation criteria:
+      {% for condition in (__sap_swpm_fact_vars['sap_swpm_virtual_hostname']
+          | community.sap_install.validate_sap_abap_platform_hostname).failed_conditions %}
+      - {{ condition }}
+      {% endfor %}
+  when:
+    - __sap_swpm_fact_vars['sap_swpm_virtual_hostname'] is defined
+    - __sap_swpm_fact_vars['sap_swpm_virtual_hostname'] is not community.sap_install.valid_sap_abap_platform_hostname
+
+# SUM is controlled after the installation, so its password is validated before the installation starts.
+# The password is not validated by sections here, because SUM can be started without the sections that define it.
+# Master password is the fallback of the password of 'sidadm', as in the credentials sections.
+- name: SAP SWPM - Validation - Fail if the password for SUM is not defined
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The variable 'sap_swpm_sum_start' is true, but the password of 'sidadm' is not a non-empty string.
+      Define the variable 'sap_swpm_sap_sidadm_password' or 'sap_swpm_master_password'.
+  vars:
+    __sum_password: >-
+      {{ __sap_swpm_fact_vars['sap_swpm_sap_sidadm_password']
+        | d(__sap_swpm_fact_vars['sap_swpm_master_password'] | d('')) }}
+  when:
+    - __sap_swpm_fact_vars['sap_swpm_sum_start']
+    - __sum_password is not string
+      or __sum_password | trim | length == 0
+
+- name: SAP SWPM - Validation - Display contents of required variables
+  ansible.builtin.debug:
+    msg: |
+      sap_swpm_product_catalog_id:   '{{ __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] }}'
+      sap_swpm_sid:                  '{{ __sap_swpm_fact_vars['sap_swpm_sid'] }}'
+      sap_swpm_fqdn:                 '{{ __sap_swpm_fact_vars['sap_swpm_fqdn'] }}'
+
+      The SAP software is taken from directory: '{{ __sap_swpm_fact_vars['sap_swpm_software_path'] }}'
+
+
+# Validation of sap_swpm_product_catalog_id
+# Parse the Product ID into its parts, or inform that the prefix is not recognized.
+- name: SAP SWPM - Validation - Parse the SAP Product ID
+  ansible.builtin.include_tasks:
+    file: parse_product_id.yml
+
+# The default of 'sap_swpm_java_import_method' is empty, because its value depends on the Product ID.
+# It is calculated here, after the Product ID was validated, so that it works for any source of the Product ID.
+- name: SAP SWPM - Validation - Set Java import method based on the Product ID
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_vars: >-
+      {{ __sap_swpm_fact_vars | combine({'sap_swpm_java_import_method':
+        'jload' if 'S4H' in __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] else 'extramile'}) }}
+  when: __sap_swpm_fact_vars['sap_swpm_java_import_method'] is not defined
+  no_log: true  # Any set_fact will show full content in verbose mode, including sensitive information.
+
+
+# Limited to new inifile validation, because existing inifile is parsing only a subset of variables validated above.
+- name: Block for new inifile validation
+  when: not __sap_swpm_fact_inifile_exists
+  block:
+
+    # '__sap_swpm_vars_sections_dict' lists all sections of the inifile template, so any other name is a typo or an unsupported section.
+    - name: SAP SWPM - Validation - Fail if the inifile sections are not known
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The variable 'sap_swpm_inifile_sections_list' contains unknown sections:
+          {% for section in __unknown_sections %}
+          - {{ section }}
+          {% endfor %}
+      vars:
+        __unknown_sections: >-
+          {{ __sap_swpm_fact_vars['sap_swpm_inifile_sections_list'] | d([])
+            | difference(__sap_swpm_vars_sections_dict.keys() | list) }}
+      when: __unknown_sections | length > 0
+
+    # Sections without rules in '__sap_swpm_vars_sections_dict' are ignored.
+    - name: SAP SWPM - Validation - Validate variables of each selected inifile section
+      ansible.builtin.include_tasks:
+        file: validate_section_variables.yml
+      loop: "{{ __sap_swpm_fact_vars['sap_swpm_inifile_sections_list'] | d([]) }}"
+      loop_control:
+        loop_var: section_item
+
+    - name: SAP SWPM - Validation - Validate formats of hostnames and instance numbers
+      ansible.builtin.import_tasks:
+        file: assert_hostname_sid_nr.yml
+
+    # Sections required by the SAP product are checked after the per-section validation above,
+    # so variables of the provided sections are validated first. Missing sections are reported here.
+    - name: SAP SWPM - Validation - Fail if inifile sections required by the product are not provided
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The variable 'sap_swpm_inifile_sections_list' is missing the following sections,
+          which are required by the SAP Product '{{ __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] }}':
+          {% for section in __missing %}
+          - {{ section }}
+          {% endfor %}
+      vars:
+        __missing: >-
+          {{ __sap_swpm_product_sections_dict[__sap_swpm_fact_product_prefix]['sections'] | d([])
+            | difference(__sap_swpm_fact_vars['sap_swpm_inifile_sections_list'] | d([])) }}
+      when:
+        - __sap_swpm_fact_product_prefix in __sap_swpm_product_sections_dict
+        - __missing | length > 0
+
+
+- name: SAP SWPM - Validation - Stat the path in the 'sap_swpm_software_path' variable
+  ansible.builtin.stat:
+    path: "{{ __sap_swpm_fact_vars['sap_swpm_software_path'] }}"
+  register: __sap_swpm_register_software_path_stat
+
+- name: SAP SWPM - Validation - Fail if the 'sap_swpm_software_path' is not defined as a valid directory
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The variable 'sap_swpm_software_path' does not specify an existing directory!
+  when:
+    - not (__sap_swpm_register_software_path_stat.stat.exists
+        and __sap_swpm_register_software_path_stat.stat.isdir)
+
+
+- name: Block for crlbag validation
+  when: __sap_swpm_fact_vars['sap_swpm_crlbag_path'] is defined
+  block:
+    - name: SAP SWPM - Validation - Fail if the 'sap_swpm_crlbag_path' is invalid
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The variable 'sap_swpm_crlbag_path' is empty or not a string.
+          Define 'sap_swpm_crlbag_path' as a string containing the full path name of the file crlbag.p7s.
+      when:
+        - not (__sap_swpm_fact_vars['sap_swpm_crlbag_path'] is string
+            and __sap_swpm_fact_vars['sap_swpm_crlbag_path'] | trim | length > 0)
+
+    - name: SAP SWPM - Validation - Stat the path in the 'sap_swpm_crlbag_path' variable
+      ansible.builtin.stat:
+        path: "{{ __sap_swpm_fact_vars['sap_swpm_crlbag_path'] }}"
+      register: __sap_swpm_register_crlbag_path_stat
+
+    - name: SAP SWPM - Validation - Fail if the 'sap_swpm_crlbag_path' is not defined as a valid file
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The variable 'sap_swpm_crlbag_path' does not specify an existing file!
+          Defined as: "{{ __sap_swpm_fact_vars['sap_swpm_crlbag_path'] }}"
+      when:
+        - not (__sap_swpm_register_crlbag_path_stat.stat.exists
+            and __sap_swpm_register_crlbag_path_stat.stat.isfile)

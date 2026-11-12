@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Validates formats of variables used by selected inifile sections, read from '__sap_swpm_fact_vars'.
+# Variables are found dynamically by name, so new variables are validated automatically:
+# - '*_hostname' - SAP hostname, compliant with SAP note 611361.
+# - '*_instance_nr' - SAP instance number.
+# Variables are not validated for being defined, because it is validated per section in 'assert_variables.yml'.
+#
+# NOTE: 'sap_swpm_virtual_hostname' is not used by any section, it is validated in 'assert_variables.yml'.
+
+- name: Block to share section variable names
+  vars:
+    # Names of all variables used by selected sections, so variables of other sections are not validated.
+    # Map flattens dictionary values into a list of variable names.
+    __section_var_names: >-
+      {{ __sap_swpm_fact_vars['sap_swpm_inifile_sections_list'] | d([])
+        | intersect(__sap_swpm_vars_sections_dict.keys() | list)
+        | map('extract', __sap_swpm_vars_sections_dict)
+        | map('list')
+        | flatten | unique | list }}
+  block:
+
+    - name: SAP SWPM - Validation - Fail if the hostnames do not comply with SAP note 611361
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The variable '{{ var_item }}' is defined as: '{{ __sap_swpm_fact_vars[var_item] }}',
+          which fails the following validation criteria:
+          {% for condition in (__sap_swpm_fact_vars[var_item] | community.sap_install.validate_sap_abap_platform_hostname).failed_conditions %}
+          - {{ condition }}
+          {% endfor %}
+      loop: "{{ __section_var_names | select('search', '_hostname$') | select('in', __sap_swpm_fact_vars) | list }}"
+      loop_control:
+        loop_var: var_item
+      when: __sap_swpm_fact_vars[var_item] is not community.sap_install.valid_sap_abap_platform_hostname
+
+    - name: SAP SWPM - Validation - Fail if the SAP instance numbers are not compliant
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The variable '{{ var_item }}' is defined as: '{{ __sap_swpm_fact_vars[var_item] }}',
+          which fails the following validation criteria:
+          {% for condition in (__sap_swpm_fact_vars[var_item] | community.sap_install.validate_sap_instance_nr).failed_conditions %}
+          - {{ condition }}
+          {% endfor %}
+      loop: "{{ __section_var_names | select('search', '_instance_nr$') | select('in', __sap_swpm_fact_vars) | list }}"
+      loop_control:
+        loop_var: var_item
+      when: __sap_swpm_fact_vars[var_item] is not community.sap_install.valid_sap_instance_nr
+
+
+- name: SAP SWPM - Validation - Fail if 'sap_swpm_db_sid' is not compliant
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The variable 'sap_swpm_db_sid' is defined as: '{{ __sap_swpm_fact_vars['sap_swpm_db_sid'] }}',
+      which fails the following validation criteria:
+      {% for condition in (__sap_swpm_fact_vars['sap_swpm_db_sid'] | community.sap_install.validate_sap_sid).failed_conditions %}
+      - {{ condition }}
+      {% endfor %}
+  when:
+    - __sap_swpm_fact_vars['sap_swpm_db_sid'] is defined
+    - __sap_swpm_fact_vars['sap_swpm_db_sid'] is not community.sap_install.valid_sap_sid

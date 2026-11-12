@@ -1,0 +1,180 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP SWPM - Templates - Assert that the templates install dictionary is valid
+  ansible.builtin.assert:
+    that:
+      - sap_swpm_templates_install_dictionary | type_debug == 'dict'
+      - sap_swpm_templates_product_input is string
+      - sap_swpm_templates_product_input | trim | length > 0
+      - sap_swpm_templates_product_input in sap_swpm_templates_install_dictionary
+      - sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input] | type_debug == 'dict'
+    fail_msg: |
+      FAIL: The variables for template mapping are not valid.
+      - 'sap_swpm_templates_install_dictionary' must be a dictionary.
+      - 'sap_swpm_templates_product_input' must be a non-empty string and a key in 'sap_swpm_templates_install_dictionary'.
+      - 'sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]' must be a dictionary.
+
+
+- name: SAP SWPM - Templates - Show value of 'sap_swpm_templates_product_input'
+  ansible.builtin.debug:
+    msg: "INFO: Product '{{ sap_swpm_templates_product_input }}' will be used."
+
+- name: Block to reuse key variable
+  vars:
+    __product_input: "{{ sap_swpm_templates_product_input }}"
+    __template_product: "{{ sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input] }}"
+  block:
+
+    - name: Block for Product Catalog ID
+      when: __template_product['sap_swpm_product_catalog_id'] is defined
+      block:
+        - name: SAP SWPM - Templates - Warning if existing Product ID is already defined with higher precedence
+          ansible.builtin.debug:
+            msg: |
+              {% if __template_product['sap_swpm_product_catalog_id'] != __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] %}
+              WARN: The Product ID is not consistent between:
+              - Dictionary 'sap_swpm_templates_install_dictionary['{{ __product_input }}']': '{{ __template_product['sap_swpm_product_catalog_id'] }}'
+              - Variable 'sap_swpm_product_catalog_id': '{{ __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] }}'
+              Value from variable will be used due to precedence.
+              {% else %}
+              INFO: The Product ID in 'sap_swpm_templates_install_dictionary['{{ __product_input }}']' is ignored,
+              because it is already defined with the same value by a source with higher precedence.
+              {% endif %}
+          when:
+            - __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] | d('', true) | length > 0
+
+        - name: SAP SWPM - Templates - Set fact with Product Catalog ID
+          ansible.builtin.set_fact:
+            __sap_swpm_fact_vars:
+              "{{ __sap_swpm_fact_vars | combine({'sap_swpm_product_catalog_id': __template_product['sap_swpm_product_catalog_id']}) }}"
+          when:
+            - __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] | d('', true) | length == 0
+          no_log: true  # Any set_fact will show full content in verbose mode, including sensitive information.
+
+    - name: Block for inifile sections list
+      when:
+        - __template_product['sap_swpm_inifile_sections_list'] is defined
+          or __template_product['sap_swpm_inifile_list'] is defined
+      block:
+        - name: SAP SWPM - Templates - Fail if 'sap_swpm_inifile_sections_list' conflict was detected
+          ansible.builtin.fail:
+            msg: |
+              FAIL: Conflicting keys detected in 'sap_swpm_templates_install_dictionary['{{ __product_input }}']'
+              - 'sap_swpm_inifile_sections_list'
+              - 'sap_swpm_inifile_list'
+              Please resolve the conflict by defining only one of these keys (preferably 'sap_swpm_inifile_sections_list').
+          when:
+            - __template_product['sap_swpm_inifile_sections_list'] is defined
+            - __template_product['sap_swpm_inifile_list'] is defined
+
+        # Backwards compatibility for:
+        # - 'sap_swpm_inifile_sections_list' - Current
+        # - 'sap_swpm_inifile_list' - Deprecated
+        - name: SAP SWPM - Templates - Set fact with inifile sections list
+          ansible.builtin.set_fact:
+            __sap_swpm_fact_vars:
+              "{{ __sap_swpm_fact_vars | combine({'sap_swpm_inifile_sections_list':
+                  __template_product['sap_swpm_inifile_sections_list'] | d(__template_product['sap_swpm_inifile_list'])}) }}"
+          when:
+            - __sap_swpm_fact_vars['sap_swpm_inifile_sections_list'] | d([]) | length == 0
+          no_log: true  # Any set_fact will show full content in verbose mode, including sensitive information.
+
+
+    - name: Block for inifile parameters dictionary
+      when:
+        - __template_product['sap_swpm_inifile_parameters_dict'] is defined
+          or __template_product['sap_swpm_inifile_custom_values_dictionary'] is defined
+      block:
+        - name: SAP SWPM - Templates - Fail if 'sap_swpm_inifile_parameters_dict' conflict was detected
+          ansible.builtin.fail:
+            msg: |
+              FAIL: Conflicting keys detected in 'sap_swpm_templates_install_dictionary['{{ __product_input }}']'
+              - 'sap_swpm_inifile_parameters_dict'
+              - 'sap_swpm_inifile_custom_values_dictionary'
+              Please resolve the conflict by defining only one of these keys (preferably 'sap_swpm_inifile_parameters_dict').
+          when:
+            - __template_product['sap_swpm_inifile_parameters_dict'] is defined
+            - __template_product['sap_swpm_inifile_custom_values_dictionary'] is defined
+
+        # Backwards compatibility for:
+        # - 'sap_swpm_inifile_parameters_dict' - Current
+        # - 'sap_swpm_inifile_custom_values_dictionary' - Deprecated
+        - name: SAP SWPM - Templates - Set fact with inifile parameters dictionary
+          ansible.builtin.set_fact:
+            __sap_swpm_fact_vars:
+              "{{ __sap_swpm_fact_vars | combine({'sap_swpm_inifile_parameters_dict':
+                  __template_product['sap_swpm_inifile_parameters_dict']
+                  | d(__template_product['sap_swpm_inifile_custom_values_dictionary'])}) }}"
+          when:
+            - __sap_swpm_fact_vars['sap_swpm_inifile_parameters_dict'] is not defined
+          # Inifile parameters can contain sensitive information such as passwords.
+          no_log: true  # Any set_fact will show full content in verbose mode, including sensitive information.
+
+
+    - name: Block for role parameters dictionary
+      when:
+        - __template_product['sap_swpm_role_parameters_dict'] is defined
+          or __template_product['sap_swpm_inifile_dictionary'] is defined
+      block:
+        - name: SAP SWPM - Templates - Fail if 'sap_swpm_role_parameters_dict' conflict was detected
+          ansible.builtin.fail:
+            msg: |
+              FAIL: Conflicting keys detected in 'sap_swpm_templates_install_dictionary['{{ __product_input }}']'
+              - 'sap_swpm_role_parameters_dict'
+              - 'sap_swpm_inifile_dictionary'
+              Please resolve the conflict by defining only one of these keys (preferably 'sap_swpm_role_parameters_dict').
+          when:
+            - __template_product['sap_swpm_role_parameters_dict'] is defined
+            - __template_product['sap_swpm_inifile_dictionary'] is defined
+
+        - name: SAP SWPM - Templates - Assert that 'sap_swpm_role_parameters_dict' is a dictionary
+          ansible.builtin.assert:
+            that:
+              - >-
+                sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_role_parameters_dict']
+                | d(sap_swpm_templates_install_dictionary[sap_swpm_templates_product_input]['sap_swpm_inifile_dictionary'])
+                | type_debug == 'dict'
+            fail_msg: |
+              FAIL: The 'sap_swpm_role_parameters_dict' in 'sap_swpm_templates_install_dictionary['{{ __product_input }}']'
+              must be a dictionary.
+
+        # Precedence between keys of the product and keys inside of 'sap_swpm_role_parameters_dict' is not defined.
+        - name: SAP SWPM - Templates - Fail if keys are defined both in the product and in 'sap_swpm_role_parameters_dict'
+          ansible.builtin.fail:
+            msg: |
+              FAIL: Following keys are defined both in 'sap_swpm_templates_install_dictionary['{{ __product_input }}']'
+              and in its 'sap_swpm_role_parameters_dict':
+              {% for key in __duplicate_keys %}
+              - '{{ key }}'
+              {% endfor %}
+              Please define each key only once.
+          vars:
+            __duplicate_keys: >-
+              {{ __template_product.keys()
+                | intersect((__template_product['sap_swpm_role_parameters_dict']
+                  | d(__template_product['sap_swpm_inifile_dictionary'])).keys()) }}
+          when: __duplicate_keys | length > 0
+
+        - name: SAP SWPM - Templates - Show keys used from role parameter dictionary
+          ansible.builtin.debug:
+            msg: |
+              INFO: Keys used from 'sap_swpm_role_parameters_dict' in 'sap_swpm_templates_install_dictionary['{{ __product_input }}']':
+              {% for key in (__template_product['sap_swpm_role_parameters_dict']
+                  | d(__template_product['sap_swpm_inifile_dictionary'])).keys() | select('match', 'sap_swpm_') %}
+              - '{{ key }}'
+              {% endfor %}
+
+        # Existing keys are combined last to keep precedence of previous sources.
+        # Backwards compatibility for:
+        # - 'sap_swpm_role_parameters_dict' - Current
+        # - 'sap_swpm_inifile_dictionary' - Deprecated
+        # Only keys starting with 'sap_swpm_' are used.
+        - name: SAP SWPM - Templates - Set fact with role parameter dictionary
+          ansible.builtin.set_fact:
+            __sap_swpm_fact_vars:
+              "{{ __template_product['sap_swpm_role_parameters_dict']
+                | d(__template_product['sap_swpm_inifile_dictionary'])
+                | dict2items | selectattr('key', 'match', 'sap_swpm_') | items2dict
+                | combine(__sap_swpm_fact_vars) }}"
+          no_log: true  # Any set_fact will show full content in verbose mode, including sensitive information.

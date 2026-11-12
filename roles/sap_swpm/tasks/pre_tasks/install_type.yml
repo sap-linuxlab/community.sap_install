@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Determines the installation type based on the known SAP product catalog ID and other relevant variables.
+
+# NOTE: Existing installation types were reduced, where duplicate or redundant code was present.
+
+# Ignore Product IDs for SAP NetWeaver 7.5 Java standalone:
+# - Advanced Adapter Engine (AE) with .AE .AEHA
+# - Advanced Adapter Engine Extended (AEX) with .AEX .AEXHA
+# - Process Integration / Process Orchestration (PI/PO) with .PI .PIHA .PIABAP .PIABAPHA .PIJAVA .PIJAVAHA
+
+- name: SAP SWPM - Install Type - Set fact if SAP Product ID indicates System Copy (Backup/Restore)
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_installation_type: "restore"
+    __sap_swpm_fact_installation_header: "System Copy restore from backup"
+  when: "'.CP' in __sap_swpm_fact_vars['sap_swpm_product_catalog_id']"
+
+- name: SAP SWPM - Install Type - Set fact if SAP Product ID indicates High Availability installation
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_installation_type: "ha"
+    __sap_swpm_fact_installation_header: "High Availability Installation using virtual hostname"
+  when: "'.ABAPHA' in __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] or
+         '.HA' in __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] or
+         '.HACP' in __sap_swpm_fact_vars['sap_swpm_product_catalog_id']"
+
+# Reset facts task file handles most cases, but it cannot override highest tiers of precedence.
+- name: SAP SWPM - Install Type - Fail if unsupported installation type is detected
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Manual change of internal variable was detected!
+      The variable '__sap_swpm_fact_installation_type' allows only following options:
+      - '' (empty string, the default)
+      - 'restore'
+      - 'ha'
+  when:
+    - __sap_swpm_fact_installation_type is not string
+      or __sap_swpm_fact_installation_type not in ['', 'restore', 'ha']
+
+- name: SAP SWPM - Install Type - Fail if necessary variable for HA is not defined
+  ansible.builtin.fail:
+    msg: "FAIL: 'sap_swpm_virtual_hostname' is not defined or is defined with an empty string!"
+  when:
+    - __sap_swpm_fact_installation_type is search('ha')
+    - __sap_swpm_fact_vars['sap_swpm_virtual_hostname'] is not defined
+
+
+# Execute task file for Maintenance Planner XML validation
+- name: SAP SWPM - Install Type - Run SAP Maintenance Planner Stack XML Steps
+  ansible.builtin.include_tasks:
+    file: install_type/mp_stack.yml
+  when: __sap_swpm_fact_vars['sap_swpm_mp_stack_path'] is defined
+
+
+# Execute task file if it exists, which removes need for placeholders.
+- name: SAP SWPM - Install Type - Run Installation Type Steps
+  ansible.builtin.include_tasks:
+    file: "{{ __install_type_file }}"
+  vars:
+    __install_type_file:
+      "{{ role_path }}/tasks/pre_tasks/install_type/{{ __sap_swpm_fact_installation_type }}_install.yml"
+  when: __install_type_file is file
