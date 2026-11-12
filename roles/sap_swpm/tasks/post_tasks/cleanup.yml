@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Removes the temporary directory, after preserving the generated inifile in the software path if it is needed.
+# This file is executed in the 'always' section of the main task file, so it must handle any state of the run:
+# - Temporary directory does not exist, because the tasks creating it were skipped by tags.
+# - Inifile does not exist, because the existing inifile is used or its generation was skipped.
+
+# Inifile is preserved only if the generated inifile is needed after the role finished:
+# - Role failed, which is marked by the prefix 'FAILED' in the name of the preserved inifile.
+# - Tag 'sap_swpm_generate_inifile' is used, promising that the generated inifile is retained.
+# - Sapinst is not executed, because 'sap_swpm_run_sapinst' is false.
+# NOTE: It runs only if 'inifile.params' exists, so condition for '__sap_swpm_fact_inifile_exists' is not required.
+
+# NOTE: Inifile contains passwords, so it is preserved with the mode '0600'.
+
+- name: Block for existing temporary directory
+  when: __sap_swpm_register_tmpdir.path | d('') | length > 0
+  vars:
+    __tempdir: "{{ __sap_swpm_register_tmpdir.path }}"
+    __inifile_name: >-
+      {{ (['FAILED' if __sap_swpm_fact_failed_task | length > 0 else '', 'inifile',
+            __sap_swpm_fact_vars['sap_swpm_sid'] | d(''), __sap_swpm_fact_product_prefix | d('')])
+        | select | join('_') }}.params
+    __inifile_destination: "{{ __sap_swpm_fact_vars['sap_swpm_software_path'] }}/{{ __inifile_name }}"
+  block:
+
+    - name: SAP SWPM - Cleanup - Check if the temporary directory exists
+      ansible.builtin.stat:
+        path: "{{ __tempdir }}"
+      register: __sap_swpm_register_cleanup_tempdir_stat
+
+    - name: Block for existing inifile in temporary directory
+      when: __sap_swpm_register_cleanup_tempdir_stat.stat.isdir | d(false)
+      block:
+
+        - name: SAP SWPM - Cleanup - Check if the generated inifile exists
+          ansible.builtin.stat:
+            path: "{{ __tempdir }}/inifile.params"
+          register: __sap_swpm_register_cleanup_inifile_stat
+
+        - name: SAP SWPM - Cleanup - Block for preserving the generated inifile
+          when:
+            - __sap_swpm_register_cleanup_inifile_stat.stat.exists
+            # Preservation of generated inifile will occur only if any check below evaluates to true, described below.
+            # - Any task failed
+            # - Tag 'sap_swpm_generate_inifile' is used.
+            # - Variable 'sap_swpm_run_sapinst' is false.
+            - >
+              __sap_swpm_fact_failed_task | length > 0
+                or 'sap_swpm_generate_inifile' in ansible_run_tags
+                or not sap_swpm_run_sapinst
+          block:
+
+            - name: SAP SWPM - Cleanup - Preserve the generated inifile in the software path
+              ansible.builtin.copy:
+                src: "{{ __tempdir }}/inifile.params"
+                dest: "{{ __inifile_destination }}"
+                remote_src: true
+                owner: "{{ sap_swpm_files_non_sapcar_owner }}"
+                group: "{{ sap_swpm_files_non_sapcar_group }}"
+                mode: '0600'
+              # Inifile contains passwords, so its content must not be shown in the diff.
+              diff: false
+
+            - name: SAP SWPM - Cleanup - Inform that the generated inifile was preserved
+              ansible.builtin.debug:
+                msg: |
+                  INFO: The sapinst inifile was preserved in '{{ __inifile_destination }}'.
+                  It contains passwords and its mode is '0600'.
+                  Remove it when it is no longer needed.
+
+          # Failed preservation must not hide the original failure, or stop the cleanup.
+          rescue:
+
+            - name: SAP SWPM - Cleanup - Warn that the generated inifile was not preserved
+              ansible.builtin.debug:
+                msg: |
+                  WARN: The sapinst inifile could not be preserved in '{{ __inifile_destination }}'.
+                  {{ ansible_failed_result.msg | d('') }}
+
+        - name: SAP SWPM - Cleanup - Remove the temporary directory
+          ansible.builtin.file:
+            path: "{{ __tempdir }}"
+            state: absent
