@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+# NOTE: Ansible-core 2.18 and older generate 'AnsibleUnsafeText' so integer conversion is required before performing arithmetic operations.
+
 - name: SAP Storage Setup - Multipathing - Scan SCSI bus
   ansible.builtin.command:
     cmd: rescan-scsi-bus.sh -a
@@ -56,10 +58,10 @@
             and disk.value.holders | length == 0
             %}
 
-          {%- set disk_size_gb = __sap_storage_setup_fact_device_size_gb[disk.key] %}
+          {%- set disk_size_gb = __sap_storage_setup_fact_device_size_gb[disk.key] | int %}
 
           {%- for fs in __sap_storage_setup_lvm_volumes %}
-            {%- if (disk_size_gb-8) <= fs['disk_size_gb'] <= (disk_size_gb+8) %}
+            {%- if (disk_size_gb-8) <= fs['disk_size_gb'] | int <= (disk_size_gb+8) %}
               {%- set add_to_list = unused_disks.append(disk) %}
             {%- endif %}
           {%- endfor %}
@@ -100,7 +102,7 @@
       {#- First pass, exact size check for all volumes -#}
       {%- for fs in __sap_storage_setup_lvm_volumes -%}
         {%- for dev in unused_dev -%}
-          {%- if __sap_storage_setup_fact_device_size_gb[dev.key] == fs['disk_size_gb']
+          {%- if __sap_storage_setup_fact_device_size_gb[dev.key] | int == fs['disk_size_gb'] | int
               and dev.value.wwn not in assigned_dev
               and matched_dev[fs['name']] | length < (fs['lvm_lv_stripes'] | d('1') | int) %}
 
@@ -117,8 +119,8 @@
       {%- for fs in __sap_storage_setup_lvm_volumes -%}
         {%- if matched_dev[fs['name']] | length < (fs['lvm_lv_stripes'] | d('1') | int) -%}
           {%- for dev in unused_dev -%}
-            {%- set disk_size_gb = __sap_storage_setup_fact_device_size_gb[dev.key] -%}
-            {%- if (disk_size_gb-8) <= fs['disk_size_gb'] <= (disk_size_gb+8)
+            {%- set disk_size_gb = __sap_storage_setup_fact_device_size_gb[dev.key] | int -%}
+            {%- if (disk_size_gb-8) <= fs['disk_size_gb'] | int <= (disk_size_gb+8)
                 and dev.value.wwn not in assigned_dev
                 and matched_dev[fs['name']] | length < (fs['lvm_lv_stripes'] | d('1') | int) %}
 

@@ -2,7 +2,7 @@
 ---
 
 # NOTE: If the criteria for filesystem matching change, both tasks must be updated accordingly.
-
+# NOTE: Ansible-core 2.18 and older generate 'AnsibleUnsafeText' so integer conversion is required before performing arithmetic operations.
 
 - name: SAP Storage Setup - Filesystem Mapping - Get device size facts
   ansible.builtin.include_tasks:
@@ -16,13 +16,13 @@
       {%- set unused_disks = [] -%}
       {%- set all_disks = (ansible_facts['devices'] | dict2items) -%}
       {%- for disk in all_disks -%}
-        {%- set disk_size_gb = __sap_storage_setup_fact_device_size_gb[disk.key] -%}
+        {%- set disk_size_gb = __sap_storage_setup_fact_device_size_gb[disk.key] | int -%}
         {%- for fs in __sap_storage_setup_lvm_volumes -%}
           {%- if not disk.key.startswith('dm-')
               and disk.value.links.uuids | length == 0
               and disk.value.partitions | length == 0
               and disk.value.holders | length == 0
-              and ((disk_size_gb-8) <= fs['disk_size_gb'] <= (disk_size_gb+8)) -%}
+              and ((disk_size_gb-8) <= fs['disk_size_gb'] | int <= (disk_size_gb+8)) -%}
             {%- set add_to_list = unused_disks.append(disk) -%}
           {%- endif -%}
         {%- endfor -%}
@@ -62,7 +62,7 @@
       {%- for fs in __sap_storage_setup_lvm_volumes -%}
         {%- if fs['name'] in matched_dev -%}
           {%- for dev in unused_dev -%}
-            {%- if __sap_storage_setup_fact_device_size_gb[dev.key] == fs['disk_size_gb']
+            {%- if __sap_storage_setup_fact_device_size_gb[dev.key] | int == fs['disk_size_gb'] | int
                 and dev.key not in assigned_dev
                 and dev.value.holders | length == 0
                 and matched_dev[fs['name']] | length < (fs['lvm_lv_stripes'] | d('1') | int) -%}
@@ -78,8 +78,8 @@
         {%- if fs['name'] in matched_dev
             and matched_dev[fs['name']] | length < (fs['lvm_lv_stripes'] | d('1') | int) -%}
           {%- for dev in unused_dev -%}
-            {%- set disk_size_gb = __sap_storage_setup_fact_device_size_gb[dev.key] -%}
-            {%- if (disk_size_gb-8) <= fs['disk_size_gb'] <= (disk_size_gb+8)
+            {%- set disk_size_gb = __sap_storage_setup_fact_device_size_gb[dev.key] | int -%}
+            {%- if (disk_size_gb-8) <= fs['disk_size_gb'] | int <= (disk_size_gb+8)
                 and dev.key not in assigned_dev
                 and dev.value.holders | length == 0
                 and matched_dev[fs['name']] | length < (fs['lvm_lv_stripes'] | d('1') | int) -%}
