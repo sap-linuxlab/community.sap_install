@@ -68,7 +68,7 @@ For these variables the role resolves values itself, independently of Ansible va
 
 ### SAP System Detection
 The role detects existing SAP System and Instances to ensure its execution does not damage existing installation.<br>
-Detection follows set of rules, unless it is skipped with `sap_swpm_skip_detection: true` or overriden with `sap_swpm_force: true`.<br>
+Detection follows set of rules, unless it is skipped with `sap_swpm_skip_detection: true` or overridden with `sap_swpm_force: true`.<br>
 
 Following checks are executed during detection workflow:
 1. Existence of `saphostctrl` and if its output contains SID and Instance Numbers.
@@ -112,7 +112,7 @@ It is recommended to execute this role together with other roles in this collect
 - Existing SAP System and Instances are detected and the role proceeds based on [SAP System Detection](#sap-system-detection) rules.
 
 - Determine installation type based on SAP Product Catalog ID defined in the `sap_swpm_product_catalog_id`.<br>
-  Additional task are executed for High Avalability and System Restore products.
+  Additional task are executed for High Availability and System Restore products.
 
 - Find `SAPCAR` files in the `sap_swpm_sapcar_path` and `SWPM` files in the `sap_swpm_path`.
 
@@ -205,7 +205,7 @@ It is recommended to execute this role together with other roles in this collect
 > **Following tasks are always executed, regardless of any tags:**<br>
 > - **Validation** - Validation of role variables is always executed to ensure that all subsequent tasks are executed on valid values.<br>
 > - **Cleanup** - Cleanup tasks are executed every time temporary directory and files are created during role execution.<br>
-> - Preservation (conditional) - Generated sapinst inifile is preserved in the `sap_swpm_software_path` directory if failure occured during execution, or tag `sap_swpm_generate_inifile` was used or the variable `sap_swpm_run_sapinst` is set to `false`.
+> - Preservation (conditional) - Generated sapinst inifile is preserved in the `sap_swpm_software_path` directory if failure occurred during execution, or tag `sap_swpm_generate_inifile` was used or the variable `sap_swpm_run_sapinst` is set to `false`.
 
 With the following tags, the role can be called to perform certain activities only:
 
@@ -907,7 +907,7 @@ The backend server RFC hostname set in parameter `rfcHost` sapinst inifile.
 #### sap_swpm_wd_backend_rfc_instance_nr
 - _Type:_ `string`
 
-The backend server RFC instnance number set in parameter `rfcInstance` sapinst inifile.
+The backend server RFC instance number set in parameter `rfcInstance` sapinst inifile.
 
 #### sap_swpm_wd_backend_rfc_client_nr
 - _Type:_ `string`
