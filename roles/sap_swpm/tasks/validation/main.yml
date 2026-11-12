@@ -1,0 +1,126 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP SWPM - Validation - Reset facts from previous execution
+  ansible.builtin.import_tasks:
+    file: reset_facts.yml
+
+- name: SAP SWPM - Validation - Validate mandatory variables
+  ansible.builtin.import_tasks:
+    file: assert_mandatory_variables.yml
+
+
+### Precedence of variable sources.
+# All values are resolved into the internal dictionary '__sap_swpm_fact_vars', using role variable names as keys.
+# Sources are processed from highest to lowest precedence, so validation order defines precedence.
+# Each source adds a key only if it is not defined yet, so values from previous sources are never overwritten.
+
+# Invalid values are not skipped, they fail the validation at the end.
+
+## 1. Existing inifile
+# - Inifile is used as-is to replicate the previous installation.
+# - Product ID, Software Path, SID and FQDN are parsed from the inifile, if found with value.
+# - Validation is limited to variables required for pre_tasks, like /etc/hosts or firewall.
+# - The 'sap_swpm_role_parameters_dict' and role variables are loaded into the internal dictionary, in this order,
+#   but not used for the inifile, because inifile generation is skipped.
+# - The 'sap_swpm_templates_install_dictionary' is skipped.
+# - The 'sap_swpm_inifile_sections_list' is skipped.
+# - The 'sap_swpm_inifile_parameters_dict' is skipped.
+
+## 2. New inifile
+# - The 'sap_swpm_role_parameters_dict' defined directly is loaded first, so it overrides role variables and their defaults.
+#   Only keys starting with 'sap_swpm_' are used, with the same rules for empty values as for role variables.
+# - Role variables are loaded next.
+#   - Booleans are always added, including 'false'.
+#   - Other values are added only if not empty ('none', '', {}), regardless of the expected type. Empty list '[]' is added.
+#   - Deprecated variables are added under the name of their replacement, only if the replacement is not set.
+# - The 'sap_swpm_templates_install_dictionary' fills values not set by role variables.
+#   - Product keys and 'sap_swpm_role_parameters_dict' are added as-is. Same key defined in both fails.
+#   - Values already set by role variables are ignored with a warning, including booleans, because booleans are always added.
+# - Fallback values are added last: from the matrix for selected inifile sections,
+#   and from Software Path for 'sap_swpm_sapcar_path' and 'sap_swpm_path'.
+# - The 'sap_swpm_inifile_parameters_dict' is not a source of values for inifile generation,
+#   but it updates parameters after inifile generation.
+
+
+# Validation of existing inifile
+- name: Block when 'sap_swpm_inifile_directory' is set
+  when:
+    - sap_swpm_inifile_directory is defined
+    - sap_swpm_inifile_directory is string
+    - sap_swpm_inifile_directory | trim | length > 0
+  vars:
+    __sap_swpm_fact_inifile_params_path: "{{ sap_swpm_inifile_directory }}/inifile.params"
+  block:
+    - name: SAP SWPM - Validation - Check if existing inifile.params file is present
+      ansible.builtin.stat:
+        path: "{{ __sap_swpm_fact_inifile_params_path }}"
+      check_mode: false
+      register: __sap_swpm_register_stat_sapinst_inifile
+
+    - name: SAP SWPM - Validation - Set fact with result of inifile.params stat
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_inifile_exists:
+          "{{ __sap_swpm_register_stat_sapinst_inifile.stat.exists }}"
+
+    - name: SAP SWPM - Validation - Show status of existing inifile
+      ansible.builtin.debug:
+        msg: |
+          {% if __sap_swpm_fact_inifile_exists %}
+          INFO: Using existing SWPM inifile '{{ sap_swpm_inifile_directory }}/inifile.params'.
+          {% else %}
+          There is no existing SWPM inifile at '{{ sap_swpm_inifile_directory }}/inifile.params'.
+          The role will create a new inifile.
+          {% endif %}
+
+    - name: SAP SWPM - Validation - Parse existing inifile
+      ansible.builtin.import_tasks:
+        file: parse_existing_inifile.yml
+      when: __sap_swpm_fact_inifile_exists
+
+
+# Prepare internal facts and backwards compatible variables.
+# Role variables are loaded for both existing and new inifile.
+- name: SAP SWPM - Validation - Prepare variables
+  ansible.builtin.import_tasks:
+    file: prepare_variables.yml
+
+
+# Validation of 'sap_swpm_templates_install_dictionary' if defined.
+# Originally part of Advanced Mode, it is still in use by 'ansible.playbooks_for_sap' playbooks.
+# Fills values that were not set by role variables.
+# NOTE: Data types are validated inside of the task file.
+- name: SAP SWPM - Validation - Validate the templates install dictionary
+  ansible.builtin.import_tasks:
+    file: validate_templates_install_dictionary.yml
+  when:
+    # Ignore if inifile exists, since we do not use them.
+    - not __sap_swpm_fact_inifile_exists
+    # Both dictionary and its key must be defined.
+    - sap_swpm_templates_install_dictionary is defined
+    - sap_swpm_templates_product_input is defined
+
+# Fallback values are applied after all sources, so that any source can define them first.
+- name: SAP SWPM - Validation - Set fallback for SAPCAR path from Software Path
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_vars:
+      "{{ __sap_swpm_fact_vars | combine({'sap_swpm_sapcar_path': __sap_swpm_fact_vars['sap_swpm_software_path']}) }}"
+  when:
+    - __sap_swpm_fact_vars['sap_swpm_sapcar_path'] | d('', true) | length == 0
+    - __sap_swpm_fact_vars['sap_swpm_software_path'] is defined
+  no_log: true  # Any set_fact will show full content in verbose mode, including sensitive information.
+
+- name: SAP SWPM - Validation - Set fallback for SWPM path from Software Path
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_vars:
+      "{{ __sap_swpm_fact_vars | combine({'sap_swpm_path': __sap_swpm_fact_vars['sap_swpm_software_path']}) }}"
+  when:
+    - __sap_swpm_fact_vars['sap_swpm_path'] | d('', true) | length == 0
+    - __sap_swpm_fact_vars['sap_swpm_software_path'] is defined
+  no_log: true  # Any set_fact will show full content in verbose mode, including sensitive information.
+
+
+# Final validation of all provided variables, updated based on precedence.
+- name: SAP SWPM - Validation - Validate all provided variables
+  ansible.builtin.import_tasks:
+    file: assert_variables.yml

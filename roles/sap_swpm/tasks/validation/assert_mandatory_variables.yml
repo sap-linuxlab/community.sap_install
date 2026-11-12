@@ -1,0 +1,146 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Initial variable validation is used only for role input variables,
+# that are not part of existing inifile or derived from other sources.
+# It validates that the pre-set defaults were not replaced with a value of a wrong type.
+# NOTE: Variables are read directly, because '__sap_swpm_fact_vars' does not exist yet.
+#
+# Variables are split into two groups, based on how the rest of the role consumes them.
+# Role Specific - They control how the role runs on the managed host and are not a part of any SAP installation.
+#                 Consumed directly from role variables, never from '__sap_swpm_fact_vars'.
+# SWPM Specific - They control the behavior and configuration of the SWPM.
+#                 Can have other sources than role variables so they need to be resolved from '__sap_swpm_fact_vars'.
+
+
+## Role Specific Variables
+# String variables
+- name: SAP SWPM - Validation - Role Specific - Fail if the string variables are undefined or invalid
+  ansible.builtin.fail:
+    msg: |
+      The string variable '{{ var_item }}' is undefined, empty or invalid.
+  loop:
+    - sap_swpm_sap_install_collection
+    - sap_swpm_software_directory_mode
+    - sap_swpm_software_directory_owner
+    - sap_swpm_software_directory_group
+    - sap_swpm_files_sapcar_mode
+    - sap_swpm_files_sapcar_owner
+    - sap_swpm_files_sapcar_group
+    - sap_swpm_files_non_sapcar_mode
+    - sap_swpm_files_non_sapcar_owner
+    - sap_swpm_files_non_sapcar_group
+  loop_control:
+    loop_var: var_item
+  when:
+    - not (lookup('ansible.builtin.vars', var_item, default='') is string
+        and lookup('ansible.builtin.vars', var_item, default='') | trim | length > 0)
+
+# Boolean variables
+- name: SAP SWPM - Validation - Role Specific - Fail if the boolean variables are undefined or invalid
+  ansible.builtin.fail:
+    msg: |
+      The boolean variable '{{ var_item }}' is undefined or invalid.
+  loop:
+    - sap_swpm_run_sapinst
+    - sap_swpm_force
+    - sap_swpm_db_load_force
+    - sap_swpm_update_etchosts
+    - sap_swpm_configure_firewall
+    - sap_swpm_set_file_permissions
+    - sap_swpm_display_unattended_output
+    - sap_swpm_generic
+    - sap_swpm_set_sidadm_noexpire
+  loop_control:
+    loop_var: var_item
+  when:
+    # NOTE: default='' marks all undefined as string, resulting in them failing the boolean check.
+    - lookup('ansible.builtin.vars', var_item, default='') is not boolean
+
+# Optional variables without default are validated only if they are defined.
+- name: SAP SWPM - Validation - Role Specific - Fail if the optional string variables are empty or invalid
+  ansible.builtin.fail:
+    msg: |
+      The string variable '{{ var_item }}' is empty or invalid.
+  loop:
+    - sap_swpm_firewall_zone
+  loop_control:
+    loop_var: var_item
+  when:
+    - var_item in lookup('ansible.builtin.varnames', '^sap_swpm_', wantlist=True)
+    - not (lookup('ansible.builtin.vars', var_item) is string
+        and lookup('ansible.builtin.vars', var_item) | trim | length > 0)
+
+- name: SAP SWPM - Validation - Role Specific - Fail if the optional list variables are invalid
+  ansible.builtin.fail:
+    msg: |
+      The list variable '{{ var_item }}' is invalid.
+  loop:
+    - sap_swpm_firewall_ports
+  loop_control:
+    loop_var: var_item
+  when:
+    - var_item in lookup('ansible.builtin.varnames', '^sap_swpm_', wantlist=True)
+    - lookup('ansible.builtin.vars', var_item) | type_debug != 'list'
+
+- name: SAP SWPM - Validation - Role Specific - Fail if the optional boolean variables are invalid
+  ansible.builtin.fail:
+    msg: |
+      The boolean variable '{{ var_item }}' is invalid.
+  loop:
+    - sap_swpm_skip_detection
+  loop_control:
+    loop_var: var_item
+  when:
+    - var_item in lookup('ansible.builtin.varnames', '^sap_swpm_', wantlist=True)
+    - lookup('ansible.builtin.vars', var_item) is not boolean
+
+
+## SWPM Specific Variables
+# String variables
+- name: SAP SWPM - Validation - SWPM Specific - Fail if the string variables are undefined or invalid
+  ansible.builtin.fail:
+    msg: |
+      The string variable '{{ var_item }}' is undefined, empty or invalid.
+  loop:
+    - sap_swpm_load_type
+    - sap_swpm_parallel_jobs_nr
+  loop_control:
+    loop_var: var_item
+  when:
+    - not (lookup('ansible.builtin.vars', var_item, default='') is string
+        and lookup('ansible.builtin.vars', var_item, default='') | trim | length > 0)
+
+# Boolean variables
+- name: SAP SWPM - Validation - SWPM Specific - Fail if the boolean variables are undefined or invalid
+  ansible.builtin.fail:
+    msg: |
+      The boolean variable '{{ var_item }}' is undefined or invalid.
+  loop:
+    - sap_swpm_observer_mode
+    - sap_swpm_install_saphostagent
+    - sap_swpm_set_fqdn
+    - sap_swpm_use_password_file
+  loop_control:
+    loop_var: var_item
+  when:
+    # NOTE: default='' marks all undefined as string, resulting in them failing the boolean check.
+    - lookup('ansible.builtin.vars', var_item, default='') is not boolean
+
+# List variables
+- name: SAP SWPM - Validation - SWPM Specific - Assert that 'sap_swpm_inifile_sections_list' is defined as a list
+  ansible.builtin.assert:
+    that:
+      - sap_swpm_inifile_sections_list is defined
+      - sap_swpm_inifile_sections_list | type_debug == 'list'
+    fail_msg: |
+      FAIL: The variable 'sap_swpm_inifile_sections_list' is not defined as a list.
+
+# Dictionary variables
+- name: SAP SWPM - Validation - SWPM Specific - Assert that 'sap_swpm_env_vars' is defined as a dictionary
+  ansible.builtin.assert:
+    that:
+      - sap_swpm_env_vars is defined
+      - sap_swpm_env_vars | type_debug == 'dict'
+    fail_msg: |
+      FAIL: The variable 'sap_swpm_env_vars' is not defined as a dictionary.

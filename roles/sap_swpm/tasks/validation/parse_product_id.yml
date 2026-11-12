@@ -1,0 +1,70 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Parsing workflow for the SAP Product ID.
+#
+# The SAP Product ID has the format 'PREFIX:RELEASE[.SUBSET].DATABASE.SCENARIO'.
+# Example: 'NW_ABAP_ASCS:S4HANA2025.CORE.HDB.ABAP'
+
+# Known segment breakdown:
+# - PREFIX: The product prefix (e.g., 'NW_ABAP_ASCS')
+# - RELEASE: The release version (e.g., 'S4HANA2025')
+# - SUBSET: Optional subset segment (e.g., 'CORE')
+# - DATABASE: The database type (e.g., 'HDB')
+# - SCENARIO: The scenario (e.g., 'ABAP')
+
+# NOTE:
+# - Some products do not have all segments present in their SAP Product ID.
+#   Example 'NW_DI:NW731.ADA.HACP' has only one product segment 'NW731' before database.
+
+# Premise:
+# - Facts remain empty if the corresponding information is not available in the SAP Product ID.
+# - Only known product prefixes and scenarios will be recognized and set as facts.
+
+
+# SAP Product ID prefix.
+# Prefix is used for handling SAP detection for Database Load products.
+- name: SAP SWPM - SAP Product ID - Set fact with SAP Product ID prefix
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_product_prefix:
+      "{{ __sap_swpm_fact_vars['sap_swpm_product_catalog_id'].split(':') | first | trim }}"
+  when: "':' in __sap_swpm_fact_vars['sap_swpm_product_catalog_id']"
+
+- name: SAP SWPM - SAP Product ID - Inform if SAP Product ID prefix is unavailable
+  ansible.builtin.debug:
+    msg: |
+      WARN: Unable to extract SAP Product ID prefix for product catalog ID '{{ __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] }}'.
+      Expected format of product catalog ID is 'PREFIX:REST_OF_ID' (e.g., 'NW_ABAP_ASCS:S4HANA2025.CORE.HDB.ABAP').
+      Detection of existing SAP instances will proceed based on contents of 'sap_swpm_inifile_sections_list' variable.
+
+      NOTE: Providing invalid SAP Product ID will most likely lead into failure during SWPM execution.
+  when: __sap_swpm_fact_product_prefix | length == 0
+
+
+# We cannot reliably detect some products like Database load and we have to fail, unless user acknowledges risks.
+# Only DB Load is currently implemented with the variable `sap_swpm_db_load_force`.
+- name: Block for Database Load
+  when: __sap_swpm_fact_product_prefix in __sap_swpm_product_detection_unavailable.dbload | d([])
+  block:
+    - name: SAP SWPM - SAP Product ID - Fail for product prefixes requiring explicit acknowledgement
+      ansible.builtin.fail:
+        msg: |
+          FAIL: SAP Product '{{ __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] }}' cannot be reliably detected by this role
+          and its execution must be explicitly confirmed by setting the variable 'sap_swpm_db_load_force'.
+
+          Database Load products do not store any local files that can be detected to ensure safe execution.
+          Running SWPM against an existing database WILL drop and recreate the schema user, causing DATA LOSS on existing systems.
+
+          Set the variable 'sap_swpm_db_load_force' to 'true' only if the target database is empty or you accept the risk.
+      when: not sap_swpm_db_load_force
+
+    - name: SAP SWPM - SAP Product ID - Inform that DB Load product will proceed with explicit confirmation
+      ansible.builtin.debug:
+        msg: |
+          WARN: SAP Product '{{ __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] }}' cannot be reliably detected by this role.
+
+          Database Load products do not store any local files that can be detected to ensure safe execution.
+          Running SWPM against an existing database WILL drop and recreate the schema user, causing DATA LOSS on existing systems.
+
+          Proceeding because 'sap_swpm_db_load_force' is set to 'true'.
+      when: sap_swpm_db_load_force
