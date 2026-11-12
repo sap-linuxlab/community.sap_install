@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP SWPM - Firewall - Install packages
+- name: SAP SWPM - Pre Tasks - Firewall - Install packages
   ansible.builtin.package:
     name: "{{ __sap_swpm_firewall_packages + __sap_swpm_firewall_extra_packages }}"
     state: present
 
-- name: SAP SWPM - Firewall - Start and enable firewalld service
+- name: SAP SWPM - Pre Tasks - Firewall - Start and enable firewalld service
   ansible.builtin.systemd_service:
     name: firewalld
     state: started
@@ -14,17 +14,17 @@
     masked: false
 
 
-# Validate firewall zone if defined
+# Validate firewall zone if defined. Its type is validated in 'assert_mandatory_variables.yml'.
 - name: Block for validation of firewall zone
   when: sap_swpm_firewall_zone is defined
   block:
-    - name: SAP SWPM - Firewall - Get list of configured zones from firewalld
+    - name: SAP SWPM - Pre Tasks - Firewall - Get list of configured zones from firewalld
       ansible.builtin.command:
         cmd: firewall-cmd --get-zones
       register: __sap_swpm_register_firewall_zones
       changed_when: false
 
-    - name: SAP SWPM - Firewall - Assert that the firewall zone is available
+    - name: SAP SWPM - Pre Tasks - Firewall - Assert that the firewall zone is available
       ansible.builtin.assert:
         that:
           - sap_swpm_firewall_zone in __sap_swpm_register_firewall_zones.stdout.split()
@@ -40,42 +40,44 @@
   when: sap_swpm_firewall_ports | d([]) | length == 0
   block:
 
-    - name: SAP SWPM - Firewall - Set fact with instance numbers for firewall configuration
+    - name: SAP SWPM - Pre Tasks - Firewall - Set fact with instance numbers for firewall configuration
       ansible.builtin.set_fact:
         # Combine ASCS, SCS, ERS into one list, if they are defined and their respective sections are in 'sap_swpm_inifile_sections_list'
         __sap_swpm_fact_firewall_inst_nrs_cs: >-
           {{
-            [ (sap_swpm_ascs_instance_nr if (sap_swpm_ascs_instance_nr | d('') | length > 0 and
-                ('nw_config_central_services_abap' in sap_swpm_inifile_sections_list
-                  or 'nw_config_ports' in sap_swpm_inifile_sections_list)) else []),
+            [ (__sap_swpm_fact_vars['sap_swpm_ascs_instance_nr'] if (__sap_swpm_fact_vars['sap_swpm_ascs_instance_nr'] is defined and
+                ('nw_config_central_services_abap' in __sections
+                  or 'nw_config_ports' in __sections)) else []),
 
-              (sap_swpm_ers_instance_nr if (sap_swpm_ers_instance_nr | d('') | length > 0 and
-                'nw_config_ers' in sap_swpm_inifile_sections_list) else []),
+              (__sap_swpm_fact_vars['sap_swpm_ers_instance_nr'] if (__sap_swpm_fact_vars['sap_swpm_ers_instance_nr'] is defined and
+                'nw_config_ers' in __sections) else []),
 
-              (sap_swpm_java_scs_instance_nr if (sap_swpm_java_scs_instance_nr | d('') | length > 0 and
-                'nw_config_central_services_java' in sap_swpm_inifile_sections_list) else [])
+              (__sap_swpm_fact_vars['sap_swpm_java_scs_instance_nr'] if (__sap_swpm_fact_vars['sap_swpm_java_scs_instance_nr'] is defined and
+                'nw_config_central_services_java' in __sections) else [])
             ] | flatten | reject('equalto', []) | unique | list
           }}
 
         # Combine PAS, AAS, WD into one list, if they are defined and their respective sections are in 'sap_swpm_inifile_sections_list'
         __sap_swpm_fact_firewall_inst_nrs_app: >-
           {{
-            [ (sap_swpm_pas_instance_nr if (sap_swpm_pas_instance_nr | d('') | length > 0 and
-                'nw_config_primary_application_server_instance' in sap_swpm_inifile_sections_list) else []),
+            [ (__sap_swpm_fact_vars['sap_swpm_pas_instance_nr'] if (__sap_swpm_fact_vars['sap_swpm_pas_instance_nr'] is defined and
+                'nw_config_primary_application_server_instance' in __sections) else []),
 
-              (sap_swpm_aas_instance_nr if (sap_swpm_aas_instance_nr | d('') | length > 0 and
-                'nw_config_additional_application_server_instance' in sap_swpm_inifile_sections_list) else []),
+              (__sap_swpm_fact_vars['sap_swpm_aas_instance_nr'] if (__sap_swpm_fact_vars['sap_swpm_aas_instance_nr'] is defined and
+                'nw_config_additional_application_server_instance' in __sections) else []),
 
-              (sap_swpm_wd_instance_nr if (sap_swpm_wd_instance_nr | d('') | length > 0 and
-                'nw_config_webdisp_generic' in sap_swpm_inifile_sections_list) else [])
+              (__sap_swpm_fact_vars['sap_swpm_wd_instance_nr'] if (__sap_swpm_fact_vars['sap_swpm_wd_instance_nr'] is defined and
+                'nw_config_webdisp_generic' in __sections) else [])
             ] | flatten | reject('equalto', []) | unique | list
           }}
+      vars:
+        __sections: "{{ __sap_swpm_fact_vars['sap_swpm_inifile_sections_list'] }}"
 
 
     - name: Block for central service instances
       when: __sap_swpm_fact_firewall_inst_nrs_cs | d([]) | length > 0
       block:
-        - name: SAP SWPM - Firewall - Generate service file from template for central service instances
+        - name: SAP SWPM - Pre Tasks - Firewall - Generate service file from template for central service instances
           ansible.builtin.template:
             src: firewall-sap-nw-central.j2
             dest: "/etc/firewalld/services/{{ __sap_swpm_firewall_service_name_cs }}-{{ instance_item }}.xml"
@@ -89,12 +91,12 @@
             # Variable is used inside of jinja2 template
             __sap_swpm_firewall_instance_nr: "{{ instance_item }}"
 
-        - name: SAP SWPM - Firewall - Reload firewalld after creating service file for central service instances
+        - name: SAP SWPM - Pre Tasks - Firewall - Reload firewalld after creating service file for central service instances
           ansible.builtin.command:
             cmd: firewall-cmd --reload
           changed_when: true
 
-        - name: SAP SWPM - Firewall - Configure service in firewall for central service instances
+        - name: SAP SWPM - Pre Tasks - Firewall - Configure service in firewall for central service instances
           ansible.builtin.command:
             cmd: >-
               firewall-cmd
@@ -112,7 +114,7 @@
     - name: Block for application instances
       when: __sap_swpm_fact_firewall_inst_nrs_app | d([]) | length > 0
       block:
-        - name: SAP SWPM - Firewall - Generate service file from template for application instances
+        - name: SAP SWPM - Pre Tasks - Firewall - Generate service file from template for application instances
           ansible.builtin.template:
             src: firewall-sap-nw-app.j2
             dest: "/etc/firewalld/services/{{ __sap_swpm_firewall_service_name_app }}-{{ instance_item }}.xml"
@@ -126,12 +128,12 @@
             # Variable is used inside of jinja2 template
             __sap_swpm_firewall_instance_nr: "{{ instance_item }}"
 
-        - name: SAP SWPM - Firewall - Reload firewalld after creating service file for application instances
+        - name: SAP SWPM - Pre Tasks - Firewall - Reload firewalld after creating service file for application instances
           ansible.builtin.command:
             cmd: firewall-cmd --reload
           changed_when: true
 
-        - name: SAP SWPM - Firewall - Configure service in firewall for application instances
+        - name: SAP SWPM - Pre Tasks - Firewall - Configure service in firewall for application instances
           ansible.builtin.command:
             cmd: >-
               firewall-cmd
@@ -149,7 +151,7 @@
 - name: Block for ports
   when: sap_swpm_firewall_ports | d([]) | length > 0
   block:
-    - name: SAP SWPM - Firewall - Open Ports without service file
+    - name: SAP SWPM - Pre Tasks - Firewall - Open Ports without service file
       ansible.builtin.command:
         cmd: >-
           firewall-cmd
@@ -171,19 +173,19 @@
       or (__sap_swpm_fact_firewall_inst_nrs_app | d([]) | length > 0)
   block:
 
-    - name: SAP SWPM - Firewall - Reload firewalld after applying changes
+    - name: SAP SWPM - Pre Tasks - Firewall - Reload firewalld after applying changes
       ansible.builtin.command:
         cmd: firewall-cmd --reload
       changed_when: true
 
-    - name: SAP SWPM - Firewall - Get current firewall configuration of the default zone
+    - name: SAP SWPM - Pre Tasks - Firewall - Get current firewall configuration of the default zone
       ansible.builtin.command:
         cmd: firewall-cmd --list-all
       changed_when: false
       register: __sap_swpm_register_current_firewall_configuration
 
 
-    - name: SAP SWPM - Firewall - Show details of configured firewall
+    - name: SAP SWPM - Pre Tasks - Firewall - Show details of configured firewall
       ansible.builtin.debug:
         msg: |
           Firewall was configured for SAP Netweaver instances and reloaded.

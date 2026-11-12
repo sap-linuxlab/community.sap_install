@@ -14,7 +14,7 @@
 
     # Match pattern: " <SID> - <NR> ".
     # Example: Inst Info : AE1 - 10 - ae1ers-ha - 793, patch 51, commit 375ae433dffb023985041c1d7b4687b1bde8d211
-    - name: SAP SWPM Pre Install - Detect - Set fact if instance is detected in saphostctrl output - {{ instance_item.number | d('') }}
+    - name: SAP SWPM - Pre Tasks - Detect - Set fact if instance is detected in saphostctrl output - {{ instance_item.number | d('') }}
       ansible.builtin.set_fact:
         __sap_swpm_fact_detect_saphostctrl_instance_found: >-
           {{ __sap_swpm_register_saphostctrl_list_instances.stdout_lines | d([])
@@ -22,7 +22,7 @@
             | list | length > 0 }}
 
     # Check for conflict: instance number exists but with a different SID.
-    - name: SAP SWPM Pre Install - Detect - Fail if instance number conflict was found (Same NR, Different SID) - {{ instance_item.number | d('') }}
+    - name: SAP SWPM - Pre Tasks - Detect - Fail if instance number conflict was found (Same NR, Different SID) - {{ instance_item.number | d('') }}
       ansible.builtin.fail:
         msg: |
           FAIL: Conflict detected for instance number {{ instance_item.number }}!
@@ -49,7 +49,7 @@
   block:
 
     # Reason for noqa: Switch to user requires shell module to load environment variables.
-    - name: SAP SWPM Pre Install - Detect - Execute sapcontrol - {{ instance_item.number | d('') }}  # noqa: command-instead-of-shell
+    - name: SAP SWPM - Pre Tasks - Detect - Execute sapcontrol - {{ instance_item.number | d('') }}  # noqa: command-instead-of-shell
       ansible.builtin.shell:
         cmd: "bash -lc 'sapcontrol -nr {{ instance_item.number }} -function GetInstanceProperties'"
       become: true
@@ -62,7 +62,7 @@
       # Hides failed output, but 'rc' can be still used for verification.
       failed_when: false
 
-    - name: SAP SWPM Pre Install - Detect - Show reason why sapcontrol check was skipped - command failed - {{ instance_item.number | d('') }}
+    - name: SAP SWPM - Pre Tasks - Detect - Show reason why sapcontrol check was skipped - command failed - {{ instance_item.number | d('') }}
       ansible.builtin.debug:
         msg: |
           INFO: Detection of existing SAP instance installation with 'sapcontrol' command was skipped.
@@ -74,7 +74,7 @@
         - __sap_swpm_register_sapcontrol_instance_properties.rc != 0
 
     # Check if output contains correct SAPSYSTEMNAME.
-    - name: SAP SWPM Pre Install - Detect - Set fact if matching SID is found in sapcontrol output - {{ instance_item.number | d('') }}
+    - name: SAP SWPM - Pre Tasks - Detect - Set fact if matching SID is found in sapcontrol output - {{ instance_item.number | d('') }}
       ansible.builtin.set_fact:
         __sap_swpm_fact_detect_sapcontrol_sid_match: >-
           {{ __sap_swpm_register_sapcontrol_instance_properties.stdout_lines | d([])
@@ -82,10 +82,10 @@
             | list | length > 0 }}
 
     # Extract INSTANCE_NAME value from output.
-    - name: SAP SWPM Pre Install - Detect - Set fact with discovered instance name from sapcontrol output - {{ instance_item.number | d('') }}
+    # It is empty if the output has no INSTANCE_NAME, and it is checked only together with the SID match below.
+    - name: SAP SWPM - Pre Tasks - Detect - Set fact with discovered instance name from sapcontrol output - {{ instance_item.number | d('') }}
       ansible.builtin.set_fact:
         __sap_swpm_fact_detect_sapcontrol_instance_name: "{{ __parsed_instance_name }}"
-      when: __sap_swpm_fact_detect_sapcontrol_sid_match
       vars:
         # Extract the line containing INSTANCE_NAME.
         __instance_name_line: >-
@@ -96,7 +96,7 @@
         __parsed_instance_name: "{{ __instance_name_line.split(',')[-1] | trim }}"
 
     # Check if discovered name is in the list of expected names (ANY match = detected).
-    - name: SAP SWPM Pre Install - Detect - Set fact instance is detected in sapcontrol output - {{ instance_item.number | d('') }}
+    - name: SAP SWPM - Pre Tasks - Detect - Set fact instance is detected in sapcontrol output - {{ instance_item.number | d('') }}
       ansible.builtin.set_fact:
         __sap_swpm_fact_detect_sapcontrol_instance_found: >-
           {{ __sap_swpm_fact_detect_sapcontrol_sid_match
@@ -105,7 +105,7 @@
 
 # Check 6: Check presence of files in directories.
 # Filter directories that match this instance's names.
-- name: SAP SWPM Pre Install - Detect - Set fact with filtered directories matching instance {{ instance_item.number }}
+- name: SAP SWPM - Pre Tasks - Detect - Set fact with filtered directories matching instance {{ instance_item.number }}
   ansible.builtin.set_fact:
     __sap_swpm_fact_detect_instance_dirs_matching: >-
       {{ __sap_swpm_register_instance_dirs_find.files | d([])
@@ -118,7 +118,7 @@
 # Depth 5 is good compromise between speed and detection quality.
 # Unrestricted can take ~1 minute for S4HANA 2025 PAS instance with 14000 files,
 # but same system with depth of 5 takes only 6 seconds and still detects the instance.
-- name: SAP SWPM Pre Install - Detect - Find files in directories - {{ instance_item.number }}
+- name: SAP SWPM - Pre Tasks - Detect - Find files in directories - {{ instance_item.number }}
   ansible.builtin.find:
     paths: "{{ dir_item.path }}"
     file_type: file
@@ -131,14 +131,13 @@
   register: __sap_swpm_register_detect_instance_files_found
   when: __sap_swpm_fact_detect_instance_dirs_matching | length > 0
 
-- name: SAP SWPM Pre Install - Detect - Set fact if instance directories contain existing files - {{ instance_item.number | d('') }}
+- name: SAP SWPM - Pre Tasks - Detect - Set fact if instance directories contain existing files - {{ instance_item.number | d('') }}
   ansible.builtin.set_fact:
     __sap_swpm_fact_detect_instance_files: >-
       {{ __sap_swpm_register_detect_instance_files_found.results | d([])
           | selectattr('matched', 'defined')
           | selectattr('matched', 'gt', 0)
           | list | length > 0 }}
-  when: __sap_swpm_register_detect_instance_files_found is defined
 
 
 # Check 7: Check contents of /usr/sap/sapservices
@@ -149,7 +148,7 @@
   block:
 
     # Match pattern: SAP<SID>_<NR> for this instance
-    - name: SAP SWPM Pre Install - Detect - Set fact if instance is detected in sapservices - {{ instance_item.number | d('') }}
+    - name: SAP SWPM - Pre Tasks - Detect - Set fact if instance is detected in sapservices - {{ instance_item.number | d('') }}
       ansible.builtin.set_fact:
         __sap_swpm_fact_detect_instance_sapservices_found: >-
           {{ (__sap_swpm_register_sapservices_slurp.content | b64decode)
@@ -165,7 +164,7 @@
 
     # Match pattern: <SID>_<INSTANCE>_ (e.g., AE1_ASCS00_)
     # Check if any profile file matches any of this instance's expected names.
-    - name: SAP SWPM Pre Install - Detect - Set fact if instance is detected in profile files - {{ instance_item.number | d('') }}
+    - name: SAP SWPM - Pre Tasks - Detect - Set fact if instance is detected in profile files - {{ instance_item.number | d('') }}
       ansible.builtin.set_fact:
         __sap_swpm_fact_detect_instance_profiles_found: >-
           {{ __sap_swpm_register_profiles_find.files | d([])
@@ -176,7 +175,7 @@
 
 
 # Display detection results for this instance
-- name: SAP SWPM Pre Install - Detect - Show detection results - {{ instance_item.number | d('') }}
+- name: SAP SWPM - Pre Tasks - Detect - Show detection results - {{ instance_item.number | d('') }}
   ansible.builtin.debug:
     msg: |
       INFO: Detection results for instance {{ instance_item.number }} ({{ instance_item.names | join(', ') }}):
@@ -208,10 +207,9 @@
           or __sap_swpm_fact_detect_instance_files
           or __sap_swpm_fact_detect_instance_sapservices_found
           or __sap_swpm_fact_detect_instance_profiles_found }}
-  when: __any_checks_true
 
 
-- name: SAP SWPM Pre Install - Detect - Set fact with detection results - {{ instance_item.number | d('') }}
+- name: SAP SWPM - Pre Tasks - Detect - Set fact with detection results - {{ instance_item.number | d('') }}
   ansible.builtin.set_fact:
     __sap_swpm_fact_detect_instance_results: "{{ __sap_swpm_fact_detect_instance_results + [__current_result] }}"
   vars:

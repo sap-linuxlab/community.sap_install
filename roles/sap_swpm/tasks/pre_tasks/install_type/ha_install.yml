@@ -4,15 +4,17 @@
 # High Availability installation
 
 # See virtual hostname information in SAP Note 2279110 and 962955
-# Avoid "host with the name <host> is not a valid virtual host on the local host" by using SAP SWPM property IS_HOST_LOCAL_USING_STRING_COMPARE=true
-- name: SAP SWPM Pre Install - HA Installation - Add virtual hostname in sapinst command
+# Avoid "host with the name <host> is not a valid virtual host on the local host"
+# by using SAP SWPM property IS_HOST_LOCAL_USING_STRING_COMPARE=true
+- name: SAP SWPM - Install Type - HA - Add virtual hostname in sapinst command
   ansible.builtin.set_fact:
-    __sap_swpm_fact_command_virtual_hostname: "SAPINST_USE_HOSTNAME={{ sap_swpm_virtual_hostname }} IS_HOST_LOCAL_USING_STRING_COMPARE=true"
+    __sap_swpm_fact_command_virtual_hostname:
+      "SAPINST_USE_HOSTNAME={{ __sap_swpm_fact_vars['sap_swpm_virtual_hostname'] }} IS_HOST_LOCAL_USING_STRING_COMPARE=true"
 
 # Legacy code, appears to serve no function but does cause ASCS HA <sid>adm to not default to C Shell
 # As test without this code installed ASCS HA successfully, commenting out for removal at later date
 # # Create sidadm and sapsys when HA setup
-# - name: SAP SWPM Pre Install - HA Installation - Create User when ASCS (initial HA setup)
+# - name: SAP SWPM - Install Type - HA - Create User when ASCS (initial HA setup)
 #   ansible.builtin.include_tasks: ../create_os_user.yml
 #   when:
 #     - "'_ASCS' in sap_swpm_product_catalog_id | string"

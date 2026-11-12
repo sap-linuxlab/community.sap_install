@@ -32,37 +32,67 @@
   tags: always
 
 
-- name: SAP SWPM - Include task file to reset facts from previous execution
-  ansible.builtin.include_tasks:
-    file: pre_tasks/reset_facts.yml
-    apply:
-      tags: always
+# Tags are not used, because validation must validate variables in all cases.
+- name: SAP SWPM - Prepare and validate variables
+  ansible.builtin.import_tasks:
+    file: validation/main.yml
   tags: always
 
-- name: SAP SWPM - Include task file to prepare variables
-  ansible.builtin.include_tasks:
-    file: pre_tasks/prepare_variables.yml
-    apply:
+
+- name: SAP SWPM - Block for tasks using the temporary directory
+  block:
+
+    - name: SAP SWPM - Preparation tasks before installation
+      ansible.builtin.import_tasks:
+        file: pre_tasks/main.yml
+      tags:
+        - sap_swpm_pre_install
+        - sap_swpm_install
+
+    - name: SAP SWPM - Execute SWPM
+      ansible.builtin.import_tasks:
+        file: swpm.yml
+      when:
+        - sap_swpm_run_sapinst
+        - not __sap_swpm_fact_sap_detected or sap_swpm_force
+      tags:
+        - sap_swpm_install
+
+    - name: SAP SWPM - Preparation tasks after installation
+      ansible.builtin.import_tasks:
+        file: post_tasks/main.yml
+      when: sap_swpm_run_sapinst
+
+  rescue:
+
+    # The failed task is recorded and the failure is raised again after the cleanup,
+    # so that the failed task is the last output and the cleanup output does not hide it.
+    - name: SAP SWPM - Set the facts of the failed task
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_failed_task: "{{ ansible_failed_task.name | d('unknown task') }}"
+        __sap_swpm_fact_failed_message: "{{ ansible_failed_result.msg | d('') }}"
       tags: always
-  tags: always
 
-- name: SAP SWPM - Run pre_install tasks
-  ansible.builtin.import_tasks:
-    file: pre_install.yml
-  tags:
-    - sap_swpm_pre_install
-    - sap_swpm_install
+  always:
 
-- name: SAP SWPM - Run swpm
-  ansible.builtin.import_tasks:
-    file: swpm.yml
-  when:
-    - sap_swpm_run_sapinst
-    - not __sap_swpm_fact_sap_detected or sap_swpm_force | d(false)
-  tags:
-    - sap_swpm_install
+    # Apply 'always' ensures the cleanup is executed, regardless of the tags used in the run.
+    - name: SAP SWPM - Cleanup
+      ansible.builtin.include_tasks:
+        file: post_tasks/cleanup.yml
+        apply:
+          tags: always
+      tags: always
 
-- name: SAP SWPM - Run post_install task
-  ansible.builtin.import_tasks:
-    file: post_install.yml
-  when: sap_swpm_run_sapinst
+    # Fail based on the facts set in the rescue section, after the cleanup was executed.
+    - name: SAP SWPM - Fail if the role did not complete
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The role failed in the task '{{ __sap_swpm_fact_failed_task }}'.
+          {% if __sap_swpm_fact_failed_message | length > 0 %}
+          {{ __sap_swpm_fact_failed_message }}
+          {% else %}
+          The task returned no message.
+          It was either failed by its 'failed_when' condition or it did not provide any message.
+          {% endif %}
+      when: __sap_swpm_fact_failed_task | length > 0
+      tags: always
