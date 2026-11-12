@@ -8,19 +8,19 @@
 # 4. Select latest based on version.
 # NOTE: '--version' cannot be used because 'sapinst' executable is not always updated.
 
-- name: SAP SWPM Pre Install - Check availability of SWPM path - {{ __sap_swpm_fact_swpm_path }}
+- name: SAP SWPM - Prepare SWPM - Check availability of SWPM path - {{ __sap_swpm_path }}
   ansible.builtin.stat:
-    path: "{{ __sap_swpm_fact_swpm_path }}"
+    path: "{{ __sap_swpm_path }}"
   register: __sap_swpm_register_swpm_path_stat
   failed_when: not __sap_swpm_register_swpm_path_stat.stat.exists
 
-- name: SAP SWPM Pre Install - Find all SWPM files in {{ __sap_swpm_fact_swpm_path }}
+- name: SAP SWPM - Prepare SWPM - Find all SWPM files in {{ __sap_swpm_path }}
   ansible.builtin.find:
-    paths: "{{ __sap_swpm_fact_swpm_path }}"
+    paths: "{{ __sap_swpm_path }}"
     patterns: 'SWPM*.SAR'
   register: __sap_swpm_register_swpm_files
 
-- name: SAP SWPM Pre Install - Change owner and permission of SWPM file(s) - {{ __sap_swpm_fact_swpm_path }}
+- name: SAP SWPM - Prepare SWPM - Change owner and permission of SWPM file(s) - {{ __sap_swpm_path }}
   ansible.builtin.file:
     path: "{{ __sap_swpm_line_item.path }}"
     recurse: false
@@ -35,31 +35,49 @@
     - sap_swpm_set_file_permissions
 
 
-- name: Block when 'sap_swpm_file_name' is defined and valid
-  when:
-    - __sap_swpm_fact_swpm_file_name is defined
-    - __sap_swpm_fact_swpm_file_name is string
-    - __sap_swpm_fact_swpm_file_name | trim | length > 0
+# Empty variables are not in '__sap_swpm_fact_vars', so 'sap_swpm_file_name' is defined only if it is set.
+- name: Block when 'sap_swpm_file_name' is defined
+  when: __sap_swpm_fact_vars['sap_swpm_file_name'] is defined
+  vars:
+    __swpm_file_name: "{{ __sap_swpm_fact_vars['sap_swpm_file_name'] }}"
   block:
-    - name: SAP SWPM Pre Install - SWPM defined - Check if the SWPM executable exists
-      ansible.builtin.stat:
-        path: "{{ __sap_swpm_fact_swpm_path }}/{{ __sap_swpm_fact_swpm_file_name }}"
-      register: __sap_swpm_register_swpm_stat
+    - name: SAP SWPM - Prepare SWPM - Defined - Fail if the SWPM filename is not a string
+      ansible.builtin.fail:
+        msg: "FAIL: The variable 'sap_swpm_file_name' must be a string."
+      when: __swpm_file_name is not string
 
-    - name: SAP SWPM Pre Install - SWPM defined - Fail if the SWPM executable does not exist
-      ansible.builtin.debug:
-        msg: |
-          WARN: The SWPM EXE file '{{ __sap_swpm_fact_swpm_path }}/{{ __sap_swpm_fact_swpm_file_name }}' does not exist!"
-          Proceeding with auto-detection of SWPM files in '{{ __sap_swpm_fact_swpm_path }}/'
-      when: not __sap_swpm_register_swpm_stat.stat.exists
+    # The filename is optional and not part of the inifile, so its content is not validated before this point.
+    # A blank filename is ignored, and SWPM is auto-detected.
+    - name: Block when 'sap_swpm_file_name' is not blank
+      when: __swpm_file_name | trim | length > 0
+      block:
+        - name: SAP SWPM - Prepare SWPM - Defined - Check if the SWPM executable exists
+          ansible.builtin.stat:
+            path: "{{ __sap_swpm_path }}/{{ __swpm_file_name }}"
+          register: __sap_swpm_register_swpm_stat
 
-    - name: SAP SWPM Pre Install - SWPM defined - Change owner and permission of defined SWPM file
-      ansible.builtin.file:
-        path: "{{ __sap_swpm_fact_swpm_path }}/{{ __sap_swpm_fact_swpm_file_name }}"
-        recurse: false
-        mode: "{{ sap_swpm_files_non_sapcar_mode }}"
-        owner: "{{ sap_swpm_files_non_sapcar_owner }}"
-        group: "{{ sap_swpm_files_non_sapcar_group }}"
+        - name: SAP SWPM - Prepare SWPM - Defined - Warn if the SWPM executable does not exist
+          ansible.builtin.debug:
+            msg: |
+              WARN: The SWPM EXE file '{{ __sap_swpm_path }}/{{ __swpm_file_name }}' does not exist!
+              Proceeding with auto-detection of SWPM files in '{{ __sap_swpm_path }}/'
+          when: not __sap_swpm_register_swpm_stat.stat.exists
+
+        - name: SAP SWPM - Prepare SWPM - Defined - Set fact with defined SWPM filename
+          ansible.builtin.set_fact:
+            __sap_swpm_fact_swpm_file_name: "{{ __swpm_file_name }}"
+          when: __sap_swpm_register_swpm_stat.stat.exists
+
+        - name: SAP SWPM - Prepare SWPM - Defined - Change owner and permission of defined SWPM file
+          ansible.builtin.file:
+            path: "{{ __sap_swpm_path }}/{{ __swpm_file_name }}"
+            recurse: false
+            mode: "{{ sap_swpm_files_non_sapcar_mode }}"
+            owner: "{{ sap_swpm_files_non_sapcar_owner }}"
+            group: "{{ sap_swpm_files_non_sapcar_group }}"
+          when:
+            - sap_swpm_set_file_permissions
+            - __sap_swpm_register_swpm_stat.stat.exists
 
 
 # Undefined check is enough because only valid combination would be done in block above.
@@ -69,29 +87,27 @@
   block:
 
     # Package 'file' is present in Base system, but this task ensures next task does not fail on hardened images.
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Ensure file package is present
+    - name: SAP SWPM - Prepare SWPM - Auto-detection - Ensure file package is present
       ansible.builtin.package:
         name: file
         state: present
       when: ansible_facts['os_family'] == 'Suse'
 
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Create temporary directory
-      ansible.builtin.tempfile:
+    # Directory inside of the temporary directory of the role, which is removed after the detection.
+    - name: SAP SWPM - Prepare SWPM - Auto-detection - Create temporary directory
+      ansible.builtin.file:
+        path: "{{ __sap_swpm_register_tmpdir.path }}/swpm_detection"
         state: directory
-        suffix: _swpm_detection
+        mode: '0700'
       register: __sap_swpm_register_tmpdir_swpm
 
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Assert that SWPM files were found
-      ansible.builtin.assert:
-        that:
-          - __sap_swpm_register_swpm_files.files | length > 0
-        success_msg: |
-          SUCCESS: SWPM files were found in '{{ __sap_swpm_fact_swpm_path }}'.
-          Files: {{ __sap_swpm_register_swpm_files.files | map(attribute='path') | map('basename') | join(', ') }}
-        fail_msg: |
-          FAIL: No SWPM files were found in {{ __sap_swpm_fact_swpm_path }}!
+    - name: SAP SWPM - Prepare SWPM - Auto-detection - Fail if SWPM files were not found
+      ansible.builtin.fail:
+        msg: |
+          FAIL: No SWPM files were found in {{ __sap_swpm_path }}!
+      when: __sap_swpm_register_swpm_files.files | length == 0
 
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Prepare detected files for validation
+    - name: SAP SWPM - Prepare SWPM - Auto-detection - Prepare detected files for validation
       ansible.builtin.include_tasks:
         file: swpm_single.yml
       loop: "{{ __sap_swpm_register_swpm_files.files }}"
@@ -106,7 +122,7 @@
     # In the first step, we execute the file command for each of the SWPM sapinst file. It displays the
     # hardware architecture in the second output field, using a string which is different from the output
     # of the 'uname -m' command.
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Detect file OS architecture
+    - name: SAP SWPM - Prepare SWPM - Auto-detection - Detect file OS architecture
       ansible.builtin.shell:
         cmd: "file */sapinst"
       args:
@@ -117,7 +133,7 @@
     # Loop through found files and compare them against search keywords for ansible_facts['architecture'].
     # Supported combinations are defined in the variable '__sap_swpm_architecture_matrix' in vars/main.yml file.
     # Each platform can contain multiple search words. AND operator is achieved by counting all found keywords.
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Compare found files against the variable ansible_facts['architecture']
+    - name: SAP SWPM - Prepare SWPM - Auto-detection - Compare found files against the variable ansible_facts['architecture']
       ansible.builtin.set_fact:
         __sap_swpm_fact_swpm_matching_arch: |
           {%- set matching_files = [] -%}
@@ -144,16 +160,12 @@
           {%- endif -%}
           {{- matching_files -}}
 
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Assert that compatible SWPM was found
-      ansible.builtin.assert:
-        that:
-          - __sap_swpm_fact_swpm_matching_arch | length > 0
-          - __sap_swpm_fact_swpm_matching_arch not in ['none', 'None']
-        success_msg: |
-          SUCCESS: Compatible SWPM files were found for architecture '{{ ansible_facts['architecture'] }}'.
-          Files: {{ __sap_swpm_fact_swpm_matching_arch | join(', ') }}
-        fail_msg: |
-          FAIL: No SWPM file for architecture '{{ ansible_facts['architecture'] }}' was found in {{ __sap_swpm_fact_swpm_path }}!
+    - name: SAP SWPM - Prepare SWPM - Auto-detection - Fail if compatible SWPM was not found
+      ansible.builtin.fail:
+        msg: |
+          FAIL: No SWPM file for architecture '{{ ansible_facts['architecture'] }}' was found in {{ __sap_swpm_path }}!
+      when: __sap_swpm_fact_swpm_matching_arch | length == 0
+            or __sap_swpm_fact_swpm_matching_arch in ['none', 'None']
 
 
     # We cannot use 'sapinst --version' because it is not updated in every new version.
@@ -165,7 +177,7 @@
     # - Ansible 2.18 and older is not able to convert string to integers and save in set_fact, resulting in string data type.
     # - Ansible 2.19 and newer is able to convert string to integers and save in set_fact.
     # Conversion to integers is done only inside of the Jinja expression, which works correctly compared to set_fact.
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Parse SWPM filenames into a structured list
+    - name: SAP SWPM - Prepare SWPM - Auto-detection - Parse SWPM filenames into a structured list
       ansible.builtin.set_fact:
         __sap_swpm_fact_parsed_swpm_list: "{{ __sap_swpm_fact_parsed_swpm_list + [item_details] }}"
       loop: "{{ __sap_swpm_fact_swpm_matching_arch }}"
@@ -182,10 +194,12 @@
 
     # SWPM 1 takes priority during finding file, because default is SWPM 2.
     # This is required to ensure that we select SWPM1 when swpm1 sections are used.
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Determine if SWPM1 is required
+    - name: SAP SWPM - Prepare SWPM - Auto-detection - Determine if SWPM1 is required
       ansible.builtin.set_fact:
         __sap_swpm_fact_swpm1_is_required: >-
-          {{ sap_swpm_inifile_sections_list | select('search', 'swpm_installation_media_swpm1') | list | length > 0 }}
+          {{ __sap_swpm_fact_vars['sap_swpm_inifile_sections_list']
+            | select('search', 'swpm_installation_media_swpm1') | list | length > 0 }}
+
 
     - name: Block for SWPM 1
       when: __sap_swpm_fact_swpm1_is_required
@@ -193,19 +207,18 @@
         __swpm1_list: "{{ __sap_swpm_fact_parsed_swpm_list | selectattr('swpm_ver', 'equalto', '10') | list }}"
       block:
 
-        - name: SAP SWPM Pre Install - SWPM auto-detection - Fail if SWPM1 files were not found
+        - name: SAP SWPM - Prepare SWPM - Auto-detection - Fail if SWPM1 files were not found
           ansible.builtin.fail:
             msg: |
-              FAIL: No SWPM1 files were found in '{{ __sap_swpm_fact_swpm_path }}'!
+              FAIL: No SWPM1 files were found in '{{ __sap_swpm_path }}'!
               SWPM1 is required when the variable 'sap_swpm_inifile_sections_list' contains
               items starting with 'swpm_installation_media_swpm1'.
           when: __swpm1_list | length == 0
 
-
         # NOTE: Original sort(attribute='') cannot be used here, because string and integer sorting is different.
         # Instead list is looped through and each file is converted into a list of integer versions followed by the filename.
         # The integers exist only inside of the expression, so only the filename string is stored in the fact.
-        - name: SAP SWPM Pre Install - SWPM auto-detection - Identify the SWPM1 file with the latest version
+        - name: SAP SWPM - Prepare SWPM - Auto-detection - Identify the SWPM1 file with the latest version
           ansible.builtin.set_fact:
             __sap_swpm_fact_latest_swpm_file: >-
               {%- set candidates = [] -%}
@@ -217,7 +230,7 @@
 
     # NOTE: Compared to task above, additional sorting by 'swpm_ver' is required for SWPM2 files.
     # It can be replaced by strict search for '20', but this method is future-proof.
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Identify the SWPM2 file with the latest version
+    - name: SAP SWPM - Prepare SWPM - Auto-detection - Identify the SWPM2 file with the latest version
       ansible.builtin.set_fact:
         __sap_swpm_fact_latest_swpm_file: >-
           {%- set candidates = [] -%}
@@ -229,16 +242,16 @@
       when: not __sap_swpm_fact_swpm1_is_required
 
 
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Display SWPM file name
+    - name: SAP SWPM - Prepare SWPM - Auto-detection -  Display SWPM file name
       ansible.builtin.debug:
         msg: "Using SWPM file: {{ __sap_swpm_fact_latest_swpm_file | trim }}"
 
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Set fact for SWPM file from auto-detection
+    - name: SAP SWPM - Prepare SWPM - Auto-detection - Set fact for SWPM file from auto-detection
       ansible.builtin.set_fact:
         __sap_swpm_fact_swpm_file_name: "{{ __sap_swpm_fact_latest_swpm_file | trim }}"
 
   always:
-    - name: SAP SWPM Pre Install - SWPM auto-detection - Cleanup temporary directory
+    - name: SAP SWPM - Prepare SWPM - Auto-detection - Cleanup temporary directory
       ansible.builtin.file:
         path: "{{ __sap_swpm_register_tmpdir_swpm.path }}"
         state: absent
