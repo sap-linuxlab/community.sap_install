@@ -1,0 +1,89 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Ansible Playbook for configuration of storage devices before installation, using the role 'sap_storage_setup'.
+#
+# The plays are independent examples, so use only the entries that match your hosts.
+# Every entry of 'sap_storage_setup_definition' is one of the following scenarios:
+# - Block disk with LVM: plain, striped or with custom LVM names
+# - Swap disk and swap file
+# - NFS mount
+#
+# Prerequisites:
+# - All block storage volumes are attached to the host. Disks are matched to entries by their size,
+#   which has to be equal to 'disk_size' or within 8 GB of it.
+# - All NFS servers are reachable from the host.
+#
+# WARNING: Run the playbook with 'ansible-playbook --check' first, to see which changes would be made.
+#
+# See the README of the role 'sap_storage_setup' for all available variables.
+
+- name: Ansible Play for storage setup - Multipath
+  hosts: multipath_hosts
+  become: true
+  any_errors_fatal: true
+  tasks:
+
+    - name: Execute Ansible Role sap_storage_setup with Multipath
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_storage_setup
+      vars:
+        # Enable multipath and use the detected multipath devices instead of plain disks.
+        sap_storage_setup_multipath_enable_and_detect: true
+        sap_storage_setup_definition:
+          - name: hana_data
+            mountpoint: /hana/data
+            disk_size: 512
+            filesystem_type: xfs
+
+
+- name: Ansible Play for storage setup - All scenarios
+  hosts: sap_hosts
+  become: true
+  any_errors_fatal: true
+  tasks:
+
+    - name: Execute Ansible Role sap_storage_setup without Multipath
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_storage_setup
+      vars:
+        sap_storage_setup_multipath_enable_and_detect: false
+        sap_storage_setup_definition:
+
+          # Block disk with striping across 2 disks of 256 GB each, resulting in 512 GB filesystem.
+          - name: sapdata
+            mountpoint: /hana/data
+            disk_size: 256
+            filesystem_type: xfs
+            lvm_lv_stripes: 2
+            lvm_lv_stripe_size: '128K'
+
+          # Block disk with custom LVM names, filesystem type and physical extent size.
+          - name: sapexe
+            mountpoint: /usr/sap
+            disk_size: 50
+            filesystem_type: ext4
+            lvm_vg_name: vg_custom_name
+            lvm_lv_name: lv_custom_name
+            lvm_vg_physical_extent_size: '8'
+
+          # Swap disk
+          - name: swapvol
+            filesystem_type: swap
+            disk_size: 32
+            lvm_vg_name: vg_swapvol
+            lvm_lv_name: lv_swapvol
+
+          # Swap file on an existing filesystem
+          - name: swapfile
+            filesystem_type: swap
+            disk_size: 2
+            swap_path: /swapfile1
+
+          # NFS mount
+          - name: software
+            mountpoint: /software
+            nfs_server: '10.10.10.10:/sap_software'
+            nfs_path: ''
+            nfs_filesystem_type: nfs4
+            nfs_mount_options: 'nfsvers=4'

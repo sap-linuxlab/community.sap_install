@@ -1,14 +1,33 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
-- name: Ansible Play for executing preconfiguration activities for SAP HANA to all hosts in Ansible Inventory
-  hosts: all
+
+# Ansible Playbook for preconfiguration of hosts for SAP HANA installation, using the role 'sap_hana_preconfigure'.
+# This example also includes execution of the role 'sap_general_preconfigure' as recommended prerequisite.
+#
+# Prerequisites:
+# - The hosts are registered to a repository source with the repositories required for SAP HANA.
+# - The hosts have a DNS domain, which the roles take from the host FQDN (Ansible fact 'domain'),
+#   unless 'sap_general_preconfigure_domain' is set. It is not needed if 'sap_general_preconfigure_modify_etc_hosts' is set to false.
+#
+# See the READMEs of the roles 'sap_general_preconfigure' and 'sap_hana_preconfigure' for all available variables.
+
+- name: Ansible Play for SAP HANA preconfigure
+  hosts: hana_hosts
   become: true
-  vars:
-    sap_general_preconfigure_fail_if_reboot_required: no
-    sap_hana_preconfigure_fail_if_reboot_required: no
-    sap_hana_preconfigure_update: yes
-    sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured: no
-  roles:
-    - { role: community.sap_install.sap_general_preconfigure }
-    - { role: community.sap_install.sap_hana_preconfigure }
-    - { role: community.sap_install.sap_netweaver_preconfigure }
+  any_errors_fatal: true
+  tasks:
+
+    - name: Execute Ansible Role sap_general_preconfigure
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_general_preconfigure
+      vars:
+        sap_general_preconfigure_domain: 'example.com'  # Defines the valid DNS domain for the hosts.
+        sap_general_preconfigure_fail_if_reboot_required: false  # Ensures that the playbook will not fail if reboot is required.
+
+    - name: Execute Ansible Role sap_hana_preconfigure
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_hana_preconfigure
+      vars:
+        sap_hana_preconfigure_update: true  # Ensures that the system is updated before SAP HANA installation.
+        sap_hana_preconfigure_reboot_ok: true  # Allows the system to reboot if required.
+        sap_hana_preconfigure_fail_if_reboot_required: false  # Ensures that the playbook will not fail if reboot is required.

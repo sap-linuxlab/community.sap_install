@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Ansible Playbook for installing and configuring a Pacemaker cluster for SAP NetWeaver ABAP ASCS and ERS with 2 nodes.
+# The ASCS and ERS cluster defaults to ENSA2 with Simple Mount, unless overridden by the role variables.
+#
+# The role configures the ASCS and ERS resource groups, each with an instance filesystem,
+# the instance resource and a virtual IP address of the instance.
+#
+# WARNING: The role destroys and then recreates the Pacemaker cluster on the hosts.
+#
+# Prerequisites:
+# - SAP NetWeaver ASCS and ERS instances are installed, e.g. by the role 'sap_swpm'.
+# - The required ports are open, see the README of the role 'sap_ha_pacemaker_cluster'.
+# - Cloud platform resources required by the resource agents exist, because the role does not create them.
+# - Hosts with more than one network interface need 'sap_ha_pacemaker_cluster_vip_client_interface' defined,
+#   to select the interface for the virtual IP addresses. The role fails otherwise.
+# - Fencing: The role detects the platform and prepares the fence agent resource. Without fencing, STONITH is disabled.
+#   On a platform without detection, define the fence agent with 'sap_ha_pacemaker_cluster_stonith_custom'.
+#   The role does not provision the fencing devices (e.g. SBD block devices or watchdog), they have to be present before.
+#   The role only activates them in the cluster configuration.
+#
+# See the README of the role 'sap_ha_pacemaker_cluster' for all available variables.
+
+- name: Ansible Play for SAP NetWeaver ASCS and ERS Pacemaker cluster setup
+  hosts: nwas_ascs, nwas_ers
+  become: true
+  any_errors_fatal: true
+  tasks:
+
+    - name: Execute Ansible Role sap_ha_pacemaker_cluster
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_ha_pacemaker_cluster
+      vars:
+        sap_ha_pacemaker_cluster_cluster_name: ascs-ers-cluster
+        sap_ha_pacemaker_cluster_hacluster_user_password: 'NewPass$321'  # Do not use, this is example only!
+
+        sap_ha_pacemaker_cluster_host_type:
+          - nwas_abap_ascs_ers
+
+        # SID and instance numbers of ASCS and ERS.
+        sap_ha_pacemaker_cluster_nwas_sid: AE1
+        sap_ha_pacemaker_cluster_nwas_ascs_instance_nr: '00'
+        sap_ha_pacemaker_cluster_nwas_ers_instance_nr: '10'
+
+        # Instance names and profile paths created by the installer, in the format <SID>_<ASCS|ERS><instance number>_<virtual hostname>.
+        sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name: AE1_ASCS00_ascs-node-ha
+        sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_start_profile_string: /sapmnt/AE1/profile/AE1_ASCS00_ascs-node-ha
+        sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name: AE1_ERS10_ers-node-ha
+        sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string: /sapmnt/AE1/profile/AE1_ERS10_ers-node-ha
+
+        # Virtual IP addresses of the instances. They move between the nodes together with the instance.
+        sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address: 192.168.10.100
+        sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address: 192.168.10.110
