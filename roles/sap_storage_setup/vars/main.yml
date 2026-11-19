@@ -1,6 +1,104 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+# SAP Storage Setup SID in uppercase.
+__sap_storage_setup_sid: "{{ sap_storage_setup_sid | upper }}"
+
+# Directories use static prefixes /SYS, /ASCS, /ERS, /D, /SCS, /J
+# Required File Systems and Directories - SAP Directories
+# https://help.sap.com/docs/SLTOOLSET/39c32e9783f6439e871410848f61544c/d8d6abf3dceb45b9aa7b5f4e44b0d4b4.html?version=CURRENT_VERSION_SWPM20
+#
+# Predefined prefixes during SAP SWPM installation:
+# - NWAS ABAP ASCS uses ASCS<Instance_Number>
+# - NWAS JAVA SCS uses SCS<Instance_Number>
+# - NWAS ERS uses ERS<Instance_Number>
+# - NWAS ABAP PAS/AAS uses D<Instance_Number>
+# - NWAS JAVA AS uses J<Instance_Number>
+# - NWAS WebDispatcher uses W<Instance_Number>
+
+# The keys are the supported values of 'sap_storage_setup_host_type', which is validated against them.
+# This removes need to hardcode list of valid types during validation.
+# The key 'all' is not a host type, its directories are used for every host.
+# A host type with an empty list is supported, but needs no '/usr/sap' subdirectory.
+#
+# Every host type with directories has a matching instance number variable, named 'sap_storage_setup_<host_type>_instance_nr'.
+__sap_storage_setup_nfs_dirs_usr_sap:
+  all:
+    - "{{ __sap_storage_setup_sid }}/SYS"
+  # SAP HANA does not have any dedicated '/usr/sap' subdirectories.
+  hana_primary: []
+  hana_secondary: []
+
+  # Central Services (ABAP and JAVA)
+  nwas_abap_ascs:
+    - "{{ __sap_storage_setup_sid }}/ASCS{{ sap_storage_setup_nwas_abap_ascs_instance_nr }}"
+  nwas_java_scs:
+    - "{{ __sap_storage_setup_sid }}/SCS{{ sap_storage_setup_nwas_java_scs_instance_nr }}"
+  # Netweaver has only one ERS for both ABAP and JAVA.
+  nwas_ers:
+    - "{{ __sap_storage_setup_sid }}/ERS{{ sap_storage_setup_nwas_ers_instance_nr }}"
+  # Obsolete ERS types, kept for backward compatibility.
+  nwas_abap_ers:
+    - "{{ __sap_storage_setup_sid }}/ERS{{ sap_storage_setup_nwas_abap_ers_instance_nr }}"
+  nwas_java_ers:
+    - "{{ __sap_storage_setup_sid }}/ERS{{ sap_storage_setup_nwas_java_ers_instance_nr }}"
+
+  # NetWeaver ABAP
+  nwas_abap_pas:
+    - "{{ __sap_storage_setup_sid }}/D{{ sap_storage_setup_nwas_abap_pas_instance_nr }}"
+  nwas_abap_aas:
+    - "{{ __sap_storage_setup_sid }}/D{{ sap_storage_setup_nwas_abap_aas_instance_nr }}"
+
+  # NetWeaver JAVA
+  nwas_java_ci:
+    - "{{ __sap_storage_setup_sid }}/J{{ sap_storage_setup_nwas_java_ci_instance_nr }}"
+
+  # Web Dispatcher
+  nwas_webdisp:
+    - "{{ __sap_storage_setup_sid }}/W{{ sap_storage_setup_nwas_webdisp_instance_nr }}"
+
+
+# Key specification for the entries of 'sap_storage_setup_definition', used by the explicit validation tasks
+# to detect unknown keys and to verify the data type of each key that is defined.
+# Keys with a variable data type, like 'disk_size', are validated separately.
+
+__sap_storage_setup_definition_keys_str:
+  - filesystem_type
+  - lvm_lv_name
+  - lvm_lv_stripe_size
+  - lvm_pv_options
+  - lvm_vg_name
+  - lvm_vg_options
+  - mountpoint
+  - name
+  - nfs_filesystem_type
+  - nfs_mount_options
+  - nfs_path
+  - nfs_server
+  - swap_path
+  - lvm_vg_physical_extent_size  # Numbers, but module accepts only string.
+
+# Integer keys.
+__sap_storage_setup_definition_keys_int:
+  - lvm_lv_stripes
+
+# Both types are accepted, to ensure backwards compatibility caused by lazy validation.
+# NOTE: Role uses 'str', but Ansible.playbooks_for_sap are using 'int'.
+__sap_storage_setup_definition_keys_str_int:
+  - disk_size
+
+__sap_storage_setup_definition_keys_all: "{{
+  __sap_storage_setup_definition_keys_str
+  + __sap_storage_setup_definition_keys_int
+  + __sap_storage_setup_definition_keys_str_int }}"
+
+# String keys where an empty value is valid and has its own meaning.
+# Used as special case list and not counted towards '__sap_storage_setup_definition_keys_all',
+# because it is already part of '__sap_storage_setup_definition_keys_str'.
+__sap_storage_setup_definition_keys_str_empty:
+  - nfs_path
+
+
 # List of directories that must never be used as mount points for NFS filesystems,
 # to avoid critical operating system failures.
 __sap_storage_setup_nfs_forbidden_paths:
@@ -32,3 +130,10 @@ __sap_storage_setup_nfs_forbidden_paths:
   - '/usr/lib64'
   - '/usr/local'
   - '/usr/sbin'
+
+
+# Internal lists with packages and services replaced by OS-specific values.
+__sap_storage_setup_packages: []
+__sap_storage_setup_services: []
+__sap_storage_setup_packages_multipath: []
+__sap_storage_setup_services_multipath: []

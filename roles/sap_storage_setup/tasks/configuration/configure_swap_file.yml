@@ -1,0 +1,162 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+### BTRFS NOTE
+# Starting with SLES 16, the default filesystem is 'btrfs' which requires special handling when creating a swap file.
+# Swapon on btrfs filesystems will fail with "swapon: /swapfile: swapon failed: Invalid argument"
+# This is solved by setting the NOCOW attribute on the swap file with 'chattr +C /swapfile'.
+# Fallocate command does not always create empty file, resulting in 'chattr +C' silently failing.
+# Therefore, we first create an empty file with 'touch'.
+
+
+# The size is normalized to GB, because 'fallocate' is called with a size in GiB.
+# A value without a suffix is handled as GB, 'T' is multiplied by 1024.
+#
+# NOTE: The swap file is not a block device, so it is not part of the volume map
+# and the normalized size of the LVM volumes cannot be reused here.
+- name: SAP Storage Setup - Swap file - Set fact with the swap file size in GB
+  ansible.builtin.set_fact:
+    __sap_storage_setup_fact_swap_file_size_gb: "{{ __size_number | int * 1024
+      if __sap_storage_setup_swap_item['disk_size'] | string is match('.*[Tt]$')
+      else __size_number | int }}"
+  vars:
+    __size_number: "{{ __sap_storage_setup_swap_item['disk_size'] | string | regex_replace('[GTgt]$', '') | int }}"
+
+- name: SAP Storage Setup - Swap file - Check the target directory of the swap file
+  ansible.builtin.stat:
+    path: "{{ __sap_storage_setup_swap_item['swap_path'] | dirname }}"
+    get_attributes: false
+    get_checksum: false
+    get_mime: false
+  register: __sap_storage_setup_register_stat_swapfile_dir
+
+- name: SAP Storage Setup - Swap file - Fail if the target directory is not usable
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The directory '{{ __sap_storage_setup_swap_item['swap_path'] | dirname }}' of the swap file
+      '{{ __sap_storage_setup_swap_item['swap_path'] }}' does not exist or it is not a directory.
+
+      Ensure that the directory exists before this role is executed,
+      or define the key 'swap_path' with a path in an existing directory.
+  when: not __sap_storage_setup_register_stat_swapfile_dir.stat.isdir | d(false)
+
+- name: SAP Storage Setup - Swap file - Check if the swap file exists
+  ansible.builtin.stat:
+    path: "{{ __sap_storage_setup_swap_item['swap_path'] }}"
+    get_attributes: false
+    get_checksum: false
+    get_mime: false
+  register: __sap_storage_setup_register_check_swapfile
+
+- name: SAP Storage Setup - Swap file - Get the active swap files and partitions
+  ansible.builtin.command:
+    cmd: "swapon --show=NAME --noheadings"
+  register: __sap_storage_setup_register_swapfile_active
+  changed_when: false
+  check_mode: false
+
+
+- name: SAP Storage Setup - Swap file - Create empty file for swap with touch
+  ansible.builtin.file:
+    path: "{{ __sap_storage_setup_swap_item['swap_path'] }}"
+    state: touch
+    mode: '0600'
+  when: not __sap_storage_setup_register_check_swapfile.stat.exists
+
+- name: SAP Storage Setup - Swap file - Get the actual mount point and filesystem type
+  # This command returns just the fstype of the mount containing the path
+  ansible.builtin.shell:
+    cmd: "set -o pipefail && df --output=fstype {{ __sap_storage_setup_swap_item['swap_path'] | dirname }} | tail -1"
+  register: __sap_storage_setup_register_swapfile_fstype
+  changed_when: false
+  check_mode: false
+
+
+- name: Block for btrfs handling
+  when: __sap_storage_setup_register_swapfile_fstype.stdout | d('') | trim == 'btrfs'
+  block:
+    - name: SAP Storage Setup - Swap file - btrfs - Check file attributes
+      ansible.builtin.command:
+        cmd: "lsattr {{ __sap_storage_setup_swap_item['swap_path'] }}"
+      register: __sap_storage_setup_register_swapfile_attributes
+      failed_when: false
+      changed_when: false
+      check_mode: false
+
+    - name: SAP Storage Setup - Swap file - btrfs - Fail when swap file exists without NOCOW attribute
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The swap file {{ __sap_storage_setup_swap_item['swap_path'] }} exists on a btrfs filesystem
+          but does not have the NOCOW attribute set.
+          This will lead to failure when activating the swap file.
+
+          Remove the existing swap file and rerun this Ansible Role
+          to re-create the swap file with the correct attributes.
+      when:
+        - __sap_storage_setup_register_check_swapfile.stat.exists
+        - __sap_storage_setup_register_swapfile_attributes.rc is defined
+        - __sap_storage_setup_register_swapfile_attributes.rc == 0
+        - "'C' not in __sap_storage_setup_register_swapfile_attributes.stdout"
+
+    - name: SAP Storage Setup - Swap file - btrfs - Create 0-byte file and set NOCOW
+      ansible.builtin.file:
+        path: "{{ __sap_storage_setup_swap_item['swap_path'] }}"
+        attributes: '+C'
+      when:
+        - not __sap_storage_setup_register_check_swapfile.stat.exists
+        - "'C' not in __sap_storage_setup_register_swapfile_attributes.stdout | d('')"
+
+
+- name: SAP Storage Setup - Swap file - Allocate space
+  ansible.builtin.command:
+    cmd: "fallocate -l {{ __sap_storage_setup_fact_swap_file_size_gb }}GiB {{ __sap_storage_setup_swap_item['swap_path'] }}"
+  changed_when: true
+  when: not __sap_storage_setup_register_check_swapfile.stat.exists
+
+- name: SAP Storage Setup - Swap file - Adjust file permissions
+  ansible.builtin.file:
+    path: "{{ __sap_storage_setup_swap_item['swap_path'] }}"
+    mode: "0600"
+
+# We will format swap file only when newly created to avoid touching existing.
+- name: SAP Storage Setup - Swap file - Format the new swap file
+  ansible.builtin.command:
+    cmd: "mkswap {{ __sap_storage_setup_swap_item['swap_path'] }}"
+  changed_when: true
+  when: not __sap_storage_setup_register_check_swapfile.stat.exists
+
+# Fstab will be always updated even if already existing.
+# The mount point must be 'none' for swap devices, because the module matches an existing
+# entry of '/etc/fstab' by the mount point. With any other mount point, a second swap device
+# would replace the entry of the first one instead of adding its own.
+- name: SAP Storage Setup - Swap file - Maintain entry in /etc/fstab
+  ansible.posix.mount:
+    path: none
+    src: "{{ __sap_storage_setup_swap_item['swap_path'] }}"
+    fstype: swap
+    opts: defaults
+    state: present
+
+# Activate swap file if it is not already active.
+- name: SAP Storage Setup - Swap file - Activate swap file
+  ansible.builtin.command:
+    cmd: "swapon {{ __sap_storage_setup_swap_item['swap_path'] }}"
+  register: __sap_storage_setup_register_swapfile_activate
+  changed_when: true
+  failed_when: false
+  when: __sap_storage_setup_swap_item['swap_path'] not in __sap_storage_setup_register_swapfile_active.stdout_lines
+
+- name: SAP Storage Setup - Swap file - Fail if swap file could not be activated
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The swap file {{ __sap_storage_setup_swap_item['swap_path'] }} could not be activated.
+      {% if __sap_storage_setup_register_check_swapfile.stat.exists %}
+      The existing swap file might be corrupted or was not created with correct attributes.
+      {% else %}
+      The newly created swap file could not be activated. Please check the system logs for details.
+      {% endif %}
+
+      Command output: {{ __sap_storage_setup_register_swapfile_activate.stdout }}
+  when:
+    - __sap_storage_setup_register_swapfile_activate.rc is defined
+    - __sap_storage_setup_register_swapfile_activate.rc != 0

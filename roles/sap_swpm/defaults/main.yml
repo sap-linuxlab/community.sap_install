@@ -508,3 +508,20 @@ sap_swpm_display_unattended_output: false
 
 # Set which Ansible Collection to use when calling sap_install roles.
 sap_swpm_sap_install_collection: 'community.sap_install'
+
+# Optional override that forces execution of installation tasks if existing SAP instance is detected (Boolean).
+# WARNING: This variable should be used with caution
+# as running SWPM installation with active SAP instances can lead to corruption of existing SAP installation.
+sap_swpm_force: false
+
+# Skip all detection checks. Use ONLY for testing/development on clean systems.
+# WARNING: Skipping detection can lead to data loss if installation already exists!
+# This will bypass all safety checks including saphostctrl, sapcontrol, and file existence checks.
+# sap_swpm_skip_detection: false
+
+# Explicit acknowledgement required for Database Load products (NW_ABAP_DB, NW_Java_DB, etc.) (Boolean).
+# These products cannot be detected by this role on empty managed hosts, because no local instance files are created.
+# Running SWPM against an existing database WILL DROP and recreate the schema user, causing DATA LOSS on existing systems.
+# Set to 'true' only after confirming the target database is empty or intended to be overwritten.
+# WARNING: sap_swpm_force does NOT cover this scenario and it only applies to detection of existing instances.
+sap_swpm_db_load_force: false

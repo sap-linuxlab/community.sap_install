@@ -1,0 +1,112 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Main runner file for preparation before processing the installation media.
+
+- name: SAP Install Media Detect - Pre Tasks - Validate variables
+  ansible.builtin.include_tasks:
+    file: validate_variables.yml
+    apply:
+      tags: always
+  tags: always
+
+- name: SAP Install Media Detect - Pre Tasks - Check directories
+  ansible.builtin.include_tasks:
+    file: check_directories.yml
+    apply:
+      tags: always
+  tags: always
+
+
+# Resets the main directory to a clean flat state by processing known subdirectories (that this role manages):
+# 1. Subdirectories with '_extract' suffix are removed.
+# 2. Any files within these subdirectories (not '_extract' suffix) are moved to the main directory.
+- name: SAP Install Media Detect - Pre Tasks - Move any files from subdirectories to main directory
+  ansible.builtin.include_tasks:
+    file: move_files_to_main_directory.yml
+    apply:
+      tags: sap_install_media_detect_reset
+  tags: sap_install_media_detect_reset
+
+- name: SAP Install Media Detect - Pre Tasks - Scan the source directory
+  ansible.builtin.include_tasks:
+    file: scan_source_directory.yml
+    apply:
+      tags:
+        - sap_install_media_detect_prepare
+        - sap_install_media_detect_classify
+  tags:
+    - sap_install_media_detect_prepare
+    - sap_install_media_detect_classify
+
+# Scenario A has no target directory and works in the source directory, so there is nothing to copy.
+- name: SAP Install Media Detect - Pre Tasks - Copy the installation media into the main directory
+  ansible.builtin.include_tasks:
+    file: copy_files_to_main_directory.yml
+  when: __sap_install_media_detect_fact_use_target_dir
+
+# Files were reset and possibly copied to target, which can produce duplicates.
+# Only one file of given type and name (uses extension detection logic) is kept.
+- name: SAP Install Media Detect - Pre Tasks - Remove duplicate file names
+  ansible.builtin.include_tasks:
+    file: deduplicate_file_names.yml
+
+
+- name: SAP Install Media Detect - Pre Tasks - Determine the type of the files without extension
+  ansible.builtin.include_tasks:
+    file: scan_file_types.yml
+    apply:
+      tags:
+        - sap_install_media_detect_prepare
+        - sap_install_media_detect_classify
+  tags:
+    - sap_install_media_detect_prepare
+    - sap_install_media_detect_classify
+
+
+# All the tasks above are handling no source files found in the source directory.
+# The block below is executed only if there are source files found.
+- name: Block for a source directory that holds installation media
+  when: __sap_install_media_detect_fact_source_files | length > 0
+  block:
+
+    # The sapfile utility classifies by the file name, so the extensions that the scan determined
+    # for the files without extension are added before the utility is deployed and called.
+    - name: SAP Install Media Detect - Pre Tasks - Add the missing file extensions
+      ansible.builtin.include_tasks:
+        file: rename_files.yml
+
+    - name: SAP Install Media Detect - Pre Tasks - Deploy sapfile utility to temporary directory
+      ansible.builtin.include_tasks:
+        file: provide_sapfile_utility.yml
+        apply:
+          tags: sap_install_media_detect_classify
+      tags: sap_install_media_detect_classify
+
+    # Required by sapfile utility as it executes ZIP and RAR commands ('zipinfo' and 'lsar').
+    - name: SAP Install Media Detect - Pre Tasks - Enable handling of zip and rar files
+      ansible.builtin.include_tasks:
+        file: enable_archive_handling.yml
+        apply:
+          tags:
+            - sap_install_media_detect_prepare
+            - sap_install_media_detect_classify
+      tags:
+        - sap_install_media_detect_prepare
+        - sap_install_media_detect_classify
+
+    # Required by sapfile utility, but provided only if SAR files are found.
+    - name: SAP Install Media Detect - Pre Tasks - Provide the SAPCAR program for the sapfile utility
+      ansible.builtin.include_tasks:
+        file: provide_sapcar.yml
+        apply:
+          tags: sap_install_media_detect_classify
+      tags: sap_install_media_detect_classify
+
+    # Execution of sapfile utility and processing of its output.
+    - name: SAP Install Media Detect - Pre Tasks - Classify the files of the source directory
+      ansible.builtin.include_tasks:
+        file: classify_files.yml
+        apply:
+          tags: sap_install_media_detect_classify
+      tags: sap_install_media_detect_classify

@@ -1,6 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+# NOTE: This can be replaced completely by 'ansible.builtin.user' module when we increase minimum ansible version to 2.18!
+# Argument '-I' is set by module parameter 'password_expire_account_disable' added in 2.18.
+# ansible.builtin.user:
+#   name: "{{ user_item }}"
+#   password_expire_min: 0  # chage -m 0
+#   password_expire_max: 99999  # chage -M 99999
+#   password_expire_account_disable: -1  # chage -I -1
+#   expires: -1  # chage -E -1
+
+# Current use of 'chage' will always be marked as change in Ansible logs, regardless of outcome.
 - name: SAP HANA - Post-Tasks - Set '{{ sap_hana_install_sid | lower }}adm' to not expire
   ansible.builtin.shell: |
       chage -m 0 -M 99999 -I -1 -E -1 {{ sap_hana_install_sid | lower }}adm

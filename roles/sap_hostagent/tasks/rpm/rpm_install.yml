@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP Host Agent - RPM - Copy local RPM file to temporary directory on remote host
+  ansible.builtin.copy:
+    src: "{{ __sap_hostagent_fact_rpm_path }}"
+    dest: "{{ __sap_hostagent_register_tmpdir.path }}/{{ sap_hostagent_rpm_file_name }}"
+    mode: '0755'
+  when: not sap_hostagent_rpm_remote
+
+- name: SAP Host Agent - RPM - Copy remote RPM file to temporary directory on remote host
+  ansible.builtin.copy:
+    src: "{{ __sap_hostagent_fact_rpm_path }}"
+    dest: "{{ __sap_hostagent_register_tmpdir.path }}/{{ sap_hostagent_rpm_file_name }}"
+    mode: '0755'
+    remote_src: true
+  when: sap_hostagent_rpm_remote
+
+
+- name: SAP Host Agent - RPM - Ensure that the RPM file is installed
+  ansible.builtin.package:
+    name: "{{ __sap_hostagent_register_tmpdir.path }}/{{ sap_hostagent_rpm_file_name }}"
+    state: present
+
+    # These are not package parameters, but they are recognized by underlying package managers.
+    disable_gpg_check: true
+    allow_downgrade: true
+  become: true
+  become_user: root

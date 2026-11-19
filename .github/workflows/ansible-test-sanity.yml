@@ -6,13 +6,22 @@ name: Ansible Test - Sanity
 
 on:
   schedule:
-    # This is 01:05 UTC, which is 3:05 AM in Prague/CEST
-    - cron: '5 3 * * 1'
+    # Monday at 02:17 UTC (~3:17 AM CET / 4:17 AM CEST). Actual start time depends on GitHub load.
+    - cron: '17 2 * * 1'
 
   pull_request:
     branches:
       - main
       - dev
+    paths-ignore:
+      # Do not trigger workflow for files that do not affect functionality or tests.
+      # This helps reduce unnecessary CI runs and saves resources.
+      - '**.md'             # All markdown files anywhere in the repository.
+      - '**.rst'            # All changelog files anywhere in the repository.
+      - 'docs/**'           # All files inside the docs folder on root level.
+      - 'roles/**/docs/**'  # All files inside the docs folder inside the roles.
+      - 'changelogs/**'     # All files inside the changelogs folder on root level.
+      - 'galaxy.yml'        # Collection metadata file.
 
   workflow_dispatch:
 
@@ -22,13 +31,19 @@ jobs:
     name: Sanity (Supported Ⓐ${{ matrix.ansible }})
     strategy:
       fail-fast: false  # Disabled so we can see all failed combinations.
+
+      # Serialization: Limit number of parallel jobs.
+      # This helps with throughput issues on GitHub Gateway servers.
+      max-parallel: 5
+
       # Define a build matrix to test compatibility across multiple Ansible versions.
       # Each version listed below will spawn a separate job that runs in parallel.
       matrix:
         ansible:
-          # Supported versions (must pass)
           - 'stable-2.18'  # Python 3.11 - 3.13
           - 'stable-2.19'  # Python 3.11 - 3.13
+          - 'stable-2.20'  # Python 3.12 - 3.14
+          - 'stable-2.21'  # Python 3.12 - 3.14
           - 'devel'  # Test against the upcoming development version.
     steps:
       - uses: actions/checkout@v5
@@ -39,46 +54,51 @@ jobs:
           ansible-core-version: ${{ matrix.ansible }}
           testing-type: sanity
 
-  sanity-eol:
-    runs-on: ubuntu-latest
-    # This job only runs if the supported tests pass
-    needs: sanity-supported
-    name: Sanity (EOL Ⓐ${{ matrix.ansible }}+py${{ matrix.python }})
-    continue-on-error: true  # This entire job is allowed to fail
-    strategy:
-      fail-fast: false  # Disabled so we can see all failed combinations.
-      # Define a build matrix to test compatibility across multiple Ansible versions.
-      # Each version listed below will spawn a separate job that runs in parallel.
-      matrix:
-        ansible:
-          - 'stable-2.14'  # Python 3.9 - 3.11
-          - 'stable-2.15'  # Python 3.9 - 3.11
-          - 'stable-2.16'  # Python 3.10 - 3.12
-          - 'stable-2.17'  # Python 3.10 - 3.12
-        python:
-          - '3.9'
-          - '3.10'
-          - '3.11'
-          - '3.12'
-        exclude:
-          # Exclusions for incompatible Python versions.
-          - ansible: 'stable-2.14'
-            python: '3.12'
 
-          - ansible: 'stable-2.15'
-            python: '3.12'
+  # NOTE: Minimum supported Ansible version was changed to 2.18 and these tests no longer work.
+  # It can be uncommented and repurposed when we have a new EOL version of Ansible to test against
+  # while ensuring that it aligns with minimum version defined in meta/runtime.yml.
 
-          - ansible: 'stable-2.16'
-            python: '3.9'
+  # sanity-eol:
+  #   runs-on: ubuntu-latest
+  #   # This job only runs if the supported tests pass
+  #   needs: sanity-supported
+  #   name: Sanity (EOL Ⓐ${{ matrix.ansible }}+py${{ matrix.python }})
+  #   continue-on-error: true  # This entire job is allowed to fail
+  #   strategy:
+  #     fail-fast: false  # Disabled so we can see all failed combinations.
+  #     # Define a build matrix to test compatibility across multiple Ansible versions.
+  #     # Each version listed below will spawn a separate job that runs in parallel.
+  #     matrix:
+  #       ansible:
+  #         - 'stable-2.14'  # Python 3.9 - 3.11
+  #         - 'stable-2.15'  # Python 3.9 - 3.11
+  #         - 'stable-2.16'  # Python 3.10 - 3.12
+  #         - 'stable-2.17'  # Python 3.10 - 3.12
+  #       python:
+  #         - '3.9'
+  #         - '3.10'
+  #         - '3.11'
+  #         - '3.12'
+  #       exclude:
+  #         # Exclusions for incompatible Python versions.
+  #         - ansible: 'stable-2.14'
+  #           python: '3.12'
 
-          - ansible: 'stable-2.17'
-            python: '3.9'
-    steps:
-      - uses: actions/checkout@v5
+  #         - ansible: 'stable-2.15'
+  #           python: '3.12'
 
-      - name: ansible-test - sanity
-        uses: ansible-community/ansible-test-gh-action@release/v1
-        with:
-          ansible-core-version: ${{ matrix.ansible }}
-          target-python-version: ${{ matrix.python }}
-          testing-type: sanity
+  #         - ansible: 'stable-2.16'
+  #           python: '3.9'
+
+  #         - ansible: 'stable-2.17'
+  #           python: '3.9'
+  #   steps:
+  #     - uses: actions/checkout@v5
+
+  #     - name: ansible-test - sanity
+  #       uses: ansible-community/ansible-test-gh-action@release/v1
+  #       with:
+  #         ansible-core-version: ${{ matrix.ansible }}
+  #         target-python-version: ${{ matrix.python }}
+  #         testing-type: sanity

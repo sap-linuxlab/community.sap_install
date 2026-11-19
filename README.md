@@ -17,19 +17,21 @@ Included roles cover range of tasks:
 ## Requirements
 
 | Component | Control Node | Managed Node |
-| --- | --- | --- |
-| Operating System | Any OS | Red Hat Enterprise Linux for SAP Solutions 8.x, 9.x and 10.x<br>SUSE Linux Enterprise Server for SAP applications 15 SP5, 15 SP6, 15 SP7 and 16.0 |
+| :--- | :--- | :--- |
+| Operating System | Any OS | [See compatible OS versions](#compatible-operating-system-versions) |
 | Python | 3.11 or higher | 3.9 or higher |
 | Ansible-Core | 2.18 or higher | N/A |
-| Ansible | 12 or higher | N/A |
-
-> **Managed Node Registration**<br>
-> Operating system needs to have access to required package repositories either directly or via subscription registration.
 
 **Additional notes:**
 
-- **Version Compatibility:** For a detailed mapping of supported Python versions and Ansible-Core lifecycles, refer to the official [Ansible-Core Support Matrix](https://docs.ansible.com/projects/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix).
+- **Version Compatibility:** For a detailed mapping of supported Python versions and Ansible-Core lifecycle, refer to the official [Ansible-Core Support Matrix](https://docs.ansible.com/projects/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix).
 - **Control Node Permissions:** Ensure the user executing the playbooks has the necessary SSH keys and sudo privileges configured for the target environment.
+- **Managed Node Registration:** Operating system needs to have access to required package repositories either directly or via subscription registration.
+
+### Compatible Operating System Versions
+
+- Red Hat Enterprise Linux for SAP Solutions: 8.x, 9.x, 10.x
+- SUSE Linux Enterprise Server for SAP applications: 15 SP5, 15 SP6, 15 SP7, 16
 
 ## Installation Instructions
 
@@ -99,8 +101,8 @@ This Ansible Collection was tested across different Operating Systems, SAP produ
 
 Operating systems:
 
-- Red Hat Enterprise Linux for SAP Solutions 8.x, 9.x and 10.x
-- SUSE Linux Enterprise Server for SAP applications 15 SP5, 15 SP6, 15 SP7 and 16.0
+- Red Hat Enterprise Linux for SAP Solutions: 8.x, 9.x, 10.x
+- SUSE Linux Enterprise Server for SAP applications: 15 SP5, 15 SP6, 15 SP7, 16
 
 Deployment scenarios:
 
@@ -108,10 +110,10 @@ Deployment scenarios:
 
 SAP Products:
 
-- SAP S/4HANA AnyPremise (1809, 1909, 2020, 2021, 2022, 2023) with setup as Standard, Distributed, High Availability and optional Maintenance Planner or Restore System Copy
+- SAP S/4HANA AnyPremise (2020, 2021, 2022, 2023, 2025) with setup as Standard, Distributed, High Availability and optional Maintenance Planner or Restore System Copy
 - SAP Business Suite (ECC) on HANA and SAP Business Suite (ECC) with SAP AnyDB - SAP ASE, SAP MaxDB, IBM Db2, Oracle DB
 - SAP BW/4HANA (2021, 2023) with setup as Standard or Scale-Out
-- SAP HANA 2.0 (SPS04+) with setup as Scale-Up, Scale-Out, High Availability
+- SAP HANA 2.0 (SPS06+) with setup as Scale-Up, Scale-Out, High Availability
 - Other SAP installation activities; such as System Rename, System Copy Export, SAP Solution Manager and SAP Web Dispatcher
 
 > **Testing Disclaimer**<br>

@@ -1,0 +1,96 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Prepare tools for extraction of ZIP and RAR files.
+# This does not include SAPCAR archive, because it is provided by the 'sap_install_media_detect_sapcar_path' variable.
+
+
+# The 'sapfile' utility calls 'zipinfo' included in the 'unzip' package on both SUSE and Red Hat.
+- name: SAP Install Media Detect - Archive Handling - Ensure the presence of the 'unzip' package
+  ansible.builtin.package:
+    name: 'unzip'
+    state: present
+
+
+# The 'sapfile' utility calls 'lsar' included in the 'unar' package on both SUSE and Red Hat (RHEL requires EPEL).
+# The scan of the source directory decides if any RAR file is present, so that the repositories
+# are not touched on hosts where no RAR file has to be handled.
+- name: Block for the EPEL repository
+  when:
+    - sap_install_media_detect_rar_handling
+    - sap_install_media_detect_rar_use_unar
+    - __sap_install_media_detect_fact_rar_files_present
+    - ansible_facts['os_family'] == 'RedHat'
+  block:
+
+    # Reason for noqa: The 'yum' module is not available on all platforms supported by this role (e.g. SUSE),
+    # so using it here would add a dependency that only applies to Red Hat, but would be forced to everything else.
+    - name: SAP Install Media Detect - Archive Handling - EPEL - Detect the presence of the EPEL release package  # noqa command-instead-of-module
+      ansible.builtin.command:
+        cmd: "rpm -q {{ __sap_install_media_detect_epel_release_package_name }} --qf '%{NAME}'"
+      register: __sap_install_media_detect_register_rpm_q_epel
+      failed_when: false
+      changed_when: false
+
+    - name: Block for enabling the EPEL repository
+      when: __sap_install_media_detect_register_rpm_q_epel.stdout | d('')
+              != __sap_install_media_detect_epel_release_package_name
+      block:
+
+        # The cleanup in 'post_tasks/epel_repo.yml' only removes the repository when this fact is
+        # set, so a host that already had the repository keeps it. The fact is set before anything
+        # is changed, so that a failure in the middle of this block is cleaned up as well.
+        - name: SAP Install Media Detect - Archive Handling - EPEL - Set fact that the EPEL repository is enabled by this role
+          ansible.builtin.set_fact:
+            __sap_install_media_detect_fact_epel_enabled_by_role: true
+
+        - name: SAP Install Media Detect - Archive Handling - EPEL - Import the EPEL GPG key
+          ansible.builtin.rpm_key:
+            state: present
+            key: "{{ sap_install_media_detect_epel_gpg_key_url }}"
+
+        - name: SAP Install Media Detect - Archive Handling - EPEL - Install the EPEL release package
+          ansible.builtin.package:
+            name: "{{ __sap_install_media_detect_epel_release_package_url }}"
+            state: present
+
+        # NOTE: '/usr/bin/crb' is provided by the 'epel-release' package of RHEL 9 and later.
+        #       On RHEL 8 the same repository is named 'powertools' and is enabled with
+        #       'dnf config-manager --set-enabled powertools'.
+        # Reason for noqa: Determining the current status would require an extra call to '/usr/bin/crb status'.
+        - name: SAP Install Media Detect - Archive Handling - EPEL - Enable the CRB repository  # noqa no-changed-when
+          ansible.builtin.command:
+            cmd: /usr/bin/crb enable
+
+
+- name: SAP Install Media Detect - Archive Handling - Ensure the presence of the 'unar' package
+  ansible.builtin.package:
+    name: 'unar'
+    state: present
+  when:
+    - sap_install_media_detect_rar_handling
+    - sap_install_media_detect_rar_use_unar
+    - __sap_install_media_detect_fact_rar_files_present
+
+- name: SAP Install Media Detect - Archive Handling - Set facts for the 'unar' commands
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_rar_list: "{{ __sap_install_media_detect_unar_rar_list }}"
+    __sap_install_media_detect_fact_rar_extract: "{{ __sap_install_media_detect_unar_rar_extract }}"
+    __sap_install_media_detect_fact_rar_extract_directory_argument:
+      "{{ __sap_install_media_detect_unar_rar_extract_directory_argument }}"
+  when:
+    - sap_install_media_detect_rar_handling
+    - sap_install_media_detect_rar_use_unar
+
+
+# The alternative RAR package and its commands are provided by the user.
+# The package itself is not installed by this role.
+- name: SAP Install Media Detect - Archive Handling - Set facts for the alternative RAR commands
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_rar_list: "{{ sap_install_media_detect_rar_list }}"
+    __sap_install_media_detect_fact_rar_extract: "{{ sap_install_media_detect_rar_extract }}"
+    __sap_install_media_detect_fact_rar_extract_directory_argument:
+      "{{ sap_install_media_detect_rar_extract_directory_argument }}"
+  when:
+    - sap_install_media_detect_rar_handling
+    - not sap_install_media_detect_rar_use_unar

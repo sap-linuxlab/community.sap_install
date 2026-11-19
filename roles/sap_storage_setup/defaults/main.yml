@@ -1,138 +1,57 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# Mandatory
-# Inherit from global parameter, if exist
-sap_storage_setup_sid: "{{ sap_system_sid }}"
+### Main Variables
 
-# Mandatory
-# Inherit from global parameter, if exist
-# Use list with values: hana_primary, hana_secondary, nwas_abap_ascs, nwas_abap_ers, nwas_abap_pas, nwas_abap_aas, nwas_java_scs, nwas_java_ers
-# Sandbox example
-## sap_storage_setup_host_type:
-##   - hana_primary
-##   - nwas_abap_ascs
-##   - nwas_abap_pas
-sap_storage_setup_host_type: "{{ sap_host_type }}"
+# SAP Storage Setup definition list of dictionary items (List of Dictionaries).
+# Each item defines a storage volume for the SAP system.
+# Available keys are explained in detail in README.md.
+sap_storage_setup_definition: []
 
 
-#### Mandatory variable reference example for SAP System storage definition
+### Block Storage Specific Variables
 
-# # Mandatory
-# sap_storage_setup_definition:
-
-#   # Block Storage volume
-#   - name: name                     # required: string, filesystem name used to generate lvm_lv_name and lvm_vg_name
-#     mountpoint: /directory         # required: string, directory path where the filesystem is mounted
-#     disk_size: 384                 # required: integer, size in GB
-#     filesystem_type: xfs           # optional: string, value 'xfs'. Use 'swap' to create swap filesystem
-#     #lvm_lv_name:                  # optional: string, value 'lv_<element_name>'
-#     #lvm_lv_stripes:               # optional: integer, value '1', stripe over LVM Physical Volumes within the LVM Volume Group
-#     #lvm_lv_stripe_size:           # optional: string, value '128K', override definition by the OS. Akin to Virtualized Block Size
-#     #lvm_vg_name:                  # optional: string, value 'vg_<element name>''
-#     #lvm_vg_options:               # optional: string, value '', additional LVM VG options (e.g. "--dataalignment XX ..." to override MiB offset from disk start before first LVM VG Physical Extent)
-#     #lvm_vg_physical_extent_size:  # optional: integer, value '4', size in MiB. Akin to Physical Block Size, difficult to change once set
-#     #lvm_pv_options:               # optional: string, value '', additional LVM PV options (e.g. "--dataalignment XX ..." to override MiB offset from disk start before first LVM PV Physical Extent)
-
-#   # File Storage volume
-#   - name: name                     # required: string, reference name
-#     mountpoint: /directory         # required: string, directory path where the filesystem is mounted
-#     nfs_server: nfs.corp:/         # required: string, server and parent directory of the NFS Server; value default from var sap_storage_setup_nfs_server
-#     #nfs_path:                     # optional: string, value '', subdirectory path on the NFS Server
-#     #nfs_filesystem_type:          # optional: string, value default 'nfs4' from var sap_storage_setup_nfs_filesystem_type, NFS Server protocol
-#     #nfs_mount_options:            # optional: string, value default 'defaults' from var sap_storage_setup_nfs_mount_options, NFS Server specific options e.g. 'relatime'
-
-#   # Swap as file instead of Block Storage volume
-#   - name: swap                     # required: string, reference name
-#     swap_path: /swapfile           # required: string, directory path where swap file is created
-#     disk_size: 4                   # required: integer, size in GB of swap file
-#     filesystem_type: swap          # required: string, must be value 'swap'
-
-# # If applicable, create default for all nfs_server keys within sap_storage_setup_definition
-# sap_storage_setup_nfs_server: 'nfs.corp:/'
-
-
-#### Default variable values for SAP System storage
-
-# By default do not look for multipath devices.
-# When enabled, this includes
-# - installation of necessary packages
-# - enabling of related services
+# (Optional) Set to 'true' if the role should enable and detect multipath for SAP storage setup (Boolean).
+# NOTE: Installs packages for multipathing, but does not configure actual block devices underneath.
 sap_storage_setup_multipath_enable_and_detect: false
 
-# The instance_nr parameters are required for references at the bottom.
-sap_storage_setup_nwas_abap_ascs_instance_nr: '00'
-sap_storage_setup_nwas_abap_ers_instance_nr: '10'
-sap_storage_setup_nwas_abap_pas_instance_nr: '01'
-sap_storage_setup_nwas_abap_aas_instance_nr: '11'
-sap_storage_setup_nwas_java_scs_instance_nr: '20'
-sap_storage_setup_nwas_java_ers_instance_nr: '30'
-sap_storage_setup_nwas_java_ci_instance_nr: '21'
-
-# Directories use static prefixes /SYS, /ASCS, /ERS, /D, /SCS, /J
-# Required File Systems and Directories - SAP Directories
-# https://help.sap.com/docs/SLTOOLSET/39c32e9783f6439e871410848f61544c/d8d6abf3dceb45b9aa7b5f4e44b0d4b4.html?version=CURRENT_VERSION_SWPM20
-#
-# Predefined prefixes during SAP SWPM installation:
-# - NWAS ABAP ASCS uses ASCS<Instance_Number>
-# - NWAS ABAP ERS uses ERS<Instance_Number>
-# - NWAS ABAP PAS/AAS uses D<Instance_Number>
-# - NWAS JAVA SCS uses SCS<Instance_Number>
-# - NWAS JAVA ERS uses ERS<Instance_Number>
-# - NWAS JAVA AS uses J<Instance_Number>
-# - NWAS WebDispatcher uses W<Instance_Number>
-
-
-#### NFS default values
-
-sap_storage_setup_nfs_filesystem_type: nfs4
-sap_storage_setup_nfs_mount_options: defaults
+# (Optional) Local filesystem type for block storage volumes, if 'filesystem_type' key is not present (String).
 sap_storage_setup_local_filesystem_type: xfs
 
-# subdirectories as per SAP requirements
 
-sap_storage_setup_nfs_dirs_usr_sap:
-  all:
-    - "{{ sap_storage_setup_sid }}/SYS"
-  nwas_abap_aas:
-    - "{{ sap_storage_setup_sid }}/D{{ sap_storage_setup_nwas_abap_aas_instance_nr }}"
-  nwas_abap_ascs:
-    - "{{ sap_storage_setup_sid }}/ASCS{{ sap_storage_setup_nwas_abap_ascs_instance_nr }}"
-  nwas_abap_ers:
-    - "{{ sap_storage_setup_sid }}/ERS{{ sap_storage_setup_nwas_abap_ers_instance_nr }}"
-  nwas_abap_pas:
-    - "{{ sap_storage_setup_sid }}/D{{ sap_storage_setup_nwas_abap_pas_instance_nr }}"
-  nwas_java_ci:
-    - "{{ sap_storage_setup_sid }}/J{{ sap_storage_setup_nwas_java_ci_instance_nr }}"
-  nwas_java_ers:
-    - "{{ sap_storage_setup_sid }}/ERS{{ sap_storage_setup_nwas_java_ers_instance_nr }}"
-  nwas_java_scs:
-    - "{{ sap_storage_setup_sid }}/SCS{{ sap_storage_setup_nwas_java_scs_instance_nr }}"
+### NFS Mount Specific Variables
+
+# SAP System ID (SID) used to create directories for NFS mounts (String).
+sap_storage_setup_sid: ''
+
+# Defines the type of host for the SAP storage setup (List or String).
+# Controls what directory name is created under '/usr/sap/<SID>/' path.
+# DEV NOTE: Available values are defined in the internal fact '__sap_storage_setup_nfs_dirs_usr_sap'.
+sap_storage_setup_host_type: ''
+
+## Instance number for the SAP system instance defined as a two-digit string (String).
+# Central Services (ABAP and JAVA)
+sap_storage_setup_nwas_abap_ascs_instance_nr: ''    # Type: nwas_abap_ascs -> 'ASCS<nr>'
+sap_storage_setup_nwas_java_scs_instance_nr: ''     # Type: nwas_java_scs -> 'SCS<nr>'
+sap_storage_setup_nwas_ers_instance_nr: ''          # Type: nwas_ers -> 'ERS<nr>'
+# Obsolete ERS types, kept for backward compatibility. NetWeaver has only one ERS for both ABAP and JAVA.
+sap_storage_setup_nwas_abap_ers_instance_nr: ''     # Type: nwas_abap_ers -> 'ERS<nr>'
+sap_storage_setup_nwas_java_ers_instance_nr: ''     # Type: nwas_java_ers -> 'ERS<nr>'
+# NetWeaver ABAP
+sap_storage_setup_nwas_abap_pas_instance_nr: ''     # Type: nwas_abap_pas -> 'D<nr>'
+sap_storage_setup_nwas_abap_aas_instance_nr: ''     # Type: nwas_abap_aas -> 'D<nr>'
+# NetWeaver JAVA
+sap_storage_setup_nwas_java_ci_instance_nr: ''      # Type: nwas_java_ci -> 'J<nr>'
+# Web Dispatcher
+sap_storage_setup_nwas_webdisp_instance_nr: ''      # Type: nwas_webdisp -> 'W<nr>'
 
 
-#####
-#### Legacy code - retain vars for commented out code, until decision on specific activities for each Cloud
-######
+# (Optional) NFS server name to use on all NFS mounts, if 'nfs_server' key is not present (String).
+# Commented out to use the 'nfs_server' key in individual NFS mount definitions.
+# sap_storage_setup_nfs_server: ''
 
-sap_storage_setup_cloud_type: 'generic'
-# generic | az | aws
+# (Optional) NFS filesystem type to use on all NFS mounts, if 'nfs_filesystem_type' key is not present (String).
+sap_storage_setup_nfs_filesystem_type: nfs4
 
-# Azure variables
-
-sap_storage_setup_az_imds_json:
-sap_storage_setup_az_imds_url: 'http://169.254.169.254/metadata/instance/compute?api-version=2020-09-01'
-sap_storage_setup_az_vmsize_url: 'http://169.254.169.254/metadata/instance/compute/vmSize?api-version=2017-08-01&format=text'
-
-sap_storage_setup_az_vmsize:
-
-sap_storage_setup_az_lun: '/dev/disk/azure/scsi1/lun'
-
-# AWS variables
-
-# should probably put into a platform specific vars file, to be included and overwriting the default
-#sap_storage_setup_aws_nfs_options: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,acl'
-
-sap_storage_setup_aws_imds_url:
-sap_storage_setup_aws_vmsize_url:
-
-sap_storage_setup_aws_vmsize:
+# (Optional) NFS mount options to use on all NFS mounts, if 'nfs_mount_options' key is not present (String).
+sap_storage_setup_nfs_mount_options: defaults

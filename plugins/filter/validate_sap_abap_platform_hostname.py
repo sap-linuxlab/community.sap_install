@@ -3,6 +3,10 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+from ansible_collections.community.sap_install.plugins.plugin_utils.sap_abap_platform_hostname import (
+    validate_sap_abap_platform_hostname,
+)
+
 DOCUMENTATION = """
     name: validate_sap_abap_platform_hostname
     short_description: Validate hostname and return detailed results
@@ -48,60 +52,6 @@ _result:
             type: list
             elements: str
 """
-
-
-def validate_sap_abap_platform_hostname(value):
-    """
-    Validate hostname and return detailed failure information.
-
-    Returns a dict consisting of a 'valid' boolean and a list of 'failed_conditions'
-    """
-    result = {
-        'valid': True,
-        'failed_conditions': []
-    }
-
-    # Check if value is really a string (not a number wrapped in AnsibleUnsafeText)
-    try:
-        # Try to convert to int/float - if successful, it is a number
-        if str(value).isdigit() or (str(value).replace('.', '', 1).isdigit() and str(value).count('.') <= 1):
-            # It's a numeric value
-            result['valid'] = False
-            result['failed_conditions'].append(f"Value must be a string, got numeric value: {value}!")
-            return result
-    except (ValueError, AttributeError):
-        pass
-
-    # Check if it is a string type (including AnsibleUnsafeText)
-    if not isinstance(value, str):
-        result['valid'] = False
-        result['failed_conditions'].append(f"Value must be a string, got {type(value).__name__}!")
-        return result
-
-    # Convert to regular string to handle AnsibleUnsafeText
-    str_value = str(value)
-
-    # String too long
-    if len(str_value) > 13:
-        result['valid'] = False
-        result['failed_conditions'].append(f"Length must be 13 characters or less, got {len(str_value)}!")
-
-    # String starts with a number
-    if str_value and str_value[0].isdigit():
-        result['valid'] = False
-        result['failed_conditions'].append(f"Must not start with a number, starts with '{str_value[0]}'!")
-
-    # String contains characters other than alpha characters, digits and the hyphen character
-    if str_value and not str_value.replace('-', 'x').isalnum():
-        result['valid'] = False
-        result['failed_conditions'].append("Must not contain any characters other than alpha characters, digits, or hyphens!")
-
-    # String contains a dot character
-    if str_value and str_value.find('.') != -1:
-        result['valid'] = False
-        result['failed_conditions'].append(f"Must not contain a dot character, contains at least one, at position {str(value).find('.') + 1}!")
-
-    return result
 
 
 class FilterModule(object):

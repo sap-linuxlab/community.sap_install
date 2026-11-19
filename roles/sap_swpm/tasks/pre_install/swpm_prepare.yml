@@ -24,52 +24,94 @@
   ansible.builtin.include_tasks: "generate_inifile.yml"
   tags: sap_swpm_generate_inifile
 
-# Determine Installation Type, e.g. System Copy, HA, Maintenance Planner, ...
-- name: SAP SWPM default mode - Determine Installation Type
-  ansible.builtin.include_tasks:
-    file: install_type.yml
-#    apply:
-#      tags: sap_swpm_generate_inifile
-#  tags: sap_swpm_generate_inifile
 
-# Requires variables - sap_swpm_software_path (e.g. /software/download_basket), __sap_swpm_fact_sapcar_path (e.g. /software/sapcar), __sap_swpm_fact_swpm_path (e.g. /software/swpm)
-# Prepare Software
-- name: SAP SWPM Pre Install - Prepare Software
-  ansible.builtin.include_tasks: prepare_software.yml
-  when: sap_swpm_run_sapinst
+# Detect running SAP instances using variables validated in tasks above.
+# NOTE: This will result in skipping of remaining tasks, unless force is used.
+- name: Block for SAP Detection
+  # Inherited tags are explicitly declared here to ensure this inclusion
+  # is skipped (and logs are hidden) when only sub-tags like 'sap_swpm_generate_inifile' are requested.
+  tags:
+    - sap_swpm_pre_install
+    - sap_swpm_install
+  block:
+    - name: SAP SWPM Pre Install - Skip all detection checks
+      ansible.builtin.debug:
+        msg: |
+          WARN: Detection checks are SKIPPED because 'sap_swpm_skip_detection' is set to 'true'.
 
-# Set fact for SWPM path
-- name: SAP SWPM Pre Install - Set fact for SWPM path when extract directory defined
-  ansible.builtin.set_fact:
-    __sap_swpm_fact_sapinst_path: "{{ sap_swpm_software_extract_directory }}"
-  when:
-    - sap_swpm_run_sapinst
-    - sap_swpm_software_extract_directory is defined
-    - not (sap_swpm_software_extract_directory is none or (sap_swpm_software_extract_directory | length == 0))
+          This bypasses all safety mechanisms that prevent installation over existing SAP systems.
+          Use this ONLY for testing/development on clean systems.
 
-# Set fact for SWPM path
-- name: SAP SWPM Pre Install - Set fact for SWPM path when undefined extract directory
-  ansible.builtin.set_fact:
-    __sap_swpm_fact_sapinst_path: "{{ (__sap_swpm_fact_swpm_path | regex_replace('\\/$', '')) + '/extracted' }}"
-  when:
-    - sap_swpm_run_sapinst
-    - sap_swpm_software_extract_directory is undefined or (sap_swpm_software_extract_directory is none or (sap_swpm_software_extract_directory | length) == 0)
+          Proceeding with installation without any detection checks.
+      when: sap_swpm_skip_detection | d(false)
 
-- name: SAP SWPM Pre Install - Ensure directory '{{ __sap_swpm_fact_sapinst_path }}' exists
-  ansible.builtin.file:
-    path: "{{ __sap_swpm_fact_sapinst_path }}"
-    state: directory
-    mode: '0755'
-  when: sap_swpm_run_sapinst
+    - name: SAP SWPM Pre Install - Prepare variables for SAP detection
+      ansible.builtin.include_tasks:
+        file: detect_sap_prepare.yml
+      when: not sap_swpm_skip_detection | d(false)
 
-# Extract SWPM
-- name: SAP SWPM Pre Install - Extract SWPM
-  ansible.builtin.command: >-
-    {{ __sap_swpm_fact_sapcar_path }}/{{ __sap_swpm_fact_sapcar_file_name }} \
-    -xvf {{ __sap_swpm_fact_swpm_path }}/{{ __sap_swpm_fact_swpm_file_name }} \
-    -manifest SIGNATURE.SMF
-  register: sap_swpm_extractswpm
-  args:
-    chdir: "{{ __sap_swpm_fact_sapinst_path }}"
-  changed_when: "'SAPCAR: processing archive' in sap_swpm_extractswpm.stdout"
-  when: sap_swpm_run_sapinst
+    - name: SAP SWPM Pre Install - Detect running SAP instances
+      ansible.builtin.include_tasks:
+        file: pre_install/detect_sap.yml
+      when:
+        - not sap_swpm_skip_detection | d(false)
+        - __sap_swpm_fact_detect_instances | length > 0
+
+
+- name: Block to execute only if SAP instance is not detected or in force mode.
+  when: not __sap_swpm_fact_sap_detected or sap_swpm_force | d(false)
+  block:
+
+    # Determine Installation Type, e.g. System Copy, HA, Maintenance Planner, ...
+    - name: SAP SWPM default mode - Determine Installation Type
+      ansible.builtin.include_tasks:
+        file: install_type.yml
+    #    apply:
+    #      tags: sap_swpm_generate_inifile
+    #  tags: sap_swpm_generate_inifile
+
+    # Requires variables:
+    # - sap_swpm_software_path (e.g. /software/download_basket)
+    # - __sap_swpm_fact_sapcar_path (e.g. /software/sapcar)
+    # - __sap_swpm_fact_swpm_path (e.g. /software/swpm)
+    # Prepare Software
+    - name: SAP SWPM Pre Install - Prepare Software
+      ansible.builtin.include_tasks: prepare_software.yml
+      when: sap_swpm_run_sapinst
+
+    # Set fact for SWPM path
+    - name: SAP SWPM Pre Install - Set fact for SWPM path when extract directory defined
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_sapinst_path: "{{ sap_swpm_software_extract_directory }}"
+      when:
+        - sap_swpm_run_sapinst
+        - sap_swpm_software_extract_directory is defined
+        - not (sap_swpm_software_extract_directory is none or (sap_swpm_software_extract_directory | length == 0))
+
+    # Set fact for SWPM path
+    - name: SAP SWPM Pre Install - Set fact for SWPM path when undefined extract directory
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_sapinst_path: "{{ (__sap_swpm_fact_swpm_path | regex_replace('\\/$', '')) + '/extracted' }}"
+      when:
+        - sap_swpm_run_sapinst
+        - sap_swpm_software_extract_directory is undefined
+          or (sap_swpm_software_extract_directory is none or (sap_swpm_software_extract_directory | length) == 0)
+
+    - name: SAP SWPM Pre Install - Ensure sapinst directory exists
+      ansible.builtin.file:
+        path: "{{ __sap_swpm_fact_sapinst_path }}"
+        state: directory
+        mode: '0755'
+      when: sap_swpm_run_sapinst
+
+    # Extract SWPM
+    - name: SAP SWPM Pre Install - Extract SWPM
+      ansible.builtin.command: >-
+        {{ __sap_swpm_fact_sapcar_path }}/{{ __sap_swpm_fact_sapcar_file_name }} \
+        -xvf {{ __sap_swpm_fact_swpm_path }}/{{ __sap_swpm_fact_swpm_file_name }} \
+        -manifest SIGNATURE.SMF
+      register: __sap_swpm_register_extract_swpm
+      args:
+        chdir: "{{ __sap_swpm_fact_sapinst_path }}"
+      changed_when: "'SAPCAR: processing archive' in __sap_swpm_register_extract_swpm.stdout"
+      when: sap_swpm_run_sapinst

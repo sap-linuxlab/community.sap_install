@@ -1,10 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# SAP System IDs that are reserved and must not be used
-# Reference: SAP Note 1979280
-__sap_hana_install_sid_prohibited: ['ADD', 'ADM', 'ALL', 'AMD', 'AND', 'ANY', 'ARE', 'ASC', 'AUX', 'AVG', 'BIN', 'BIT', 'CDC', 'COM', 'CON', 'DAA', 'DBA', 'DBM', 'DBO', 'DTD', 'ECO', 'END', 'EPS', 'EXE', 'FOR', 'GET', 'GID', 'IBM', 'INT', 'KEY', 'LIB', 'LOG', 'LPT', 'MAP', 'MAX', 'MEM', 'MIG', 'MIN', 'MON', 'NET', 'NIX', 'NOT', 'NUL', 'OFF', 'OLD', 'OMS', 'OUT', 'PAD', 'PRN', 'RAW', 'REF', 'ROW', 'SAP', 'SET', 'SGA', 'SHG', 'SID', 'SQL', 'SUM', 'SYS', 'TMP', 'TOP', 'TRC', 'UID', 'USE', 'USR', 'VAR']
+# Internal role variables.
 
+# Prefix for temporary fact directory name.
 __sap_hana_install_fact_tmp_dirname: ''
 
 # This dictionary defines keyword rules to identify SAP binaries compatible with modern Linux distributions supported by SAP HANA.
@@ -49,12 +48,7 @@ __sap_hana_install_fact_is_scaleout: false
 # Sets default value of HANA exists detection.
 __sap_hana_install_fact_is_installed: false
 
-# The list of all valid hostnames in addhosts string including Managed node.
-# - Used for running all configuration tasks for idempotency.
-__sap_hana_install_fact_all_hosts: []
-
-# The list of all valid hostnames in addhosts string.
-# - Used only for setting '__sap_hana_install_fact_addhosts_hosts_new' and '__sap_hana_install_fact_all_hosts'.
+# The list of all valid hostnames in addhosts string, without main host.
 __sap_hana_install_fact_addhosts_hosts: []
 
 # The list of all valid hostnames in addhosts string without host with existing profiles or directories.
@@ -63,7 +57,8 @@ __sap_hana_install_fact_addhosts_hosts_new: []
 
 # The flags used for separation of tasks between hosts
 # This is main host where hdblcm is executed.
-__sap_hana_install_fact_is_main_host: false
+# Always set to 'true', but changed to 'false' for Scale-Out.
+__sap_hana_install_fact_is_main_host: true
 # This is for hosts defined in addhosts string.
 __sap_hana_install_fact_is_addhost_host: false
 # This is for hosts defined in addhosts string that is not installed yet.
@@ -71,6 +66,10 @@ __sap_hana_install_fact_is_new_addhost_host: false
 
 # Path to LSS shared directory.
 __sap_hana_install_lss_inst_path: /lss/shared
+
+# Path to HANA shared directory:
+__sap_hana_install_shared_path:
+  "{{ sap_hana_install_shared_path | regex_replace('/+$', '') }}/{{ sap_hana_install_sid }}"
 
 # Flag for SPS08+ systems where LSS is required.
 __sap_hana_install_fact_is_lss_required: false
@@ -88,3 +87,9 @@ __sap_hana_install_firewall_extra_packages: []
 
 # Predefined firewall service name.
 __sap_hana_install_firewall_service_name: "sap-hana-{{ sap_hana_install_number }}"
+
+# System ID (SID) in upper case.
+__sap_hana_install_sid: "{{ sap_hana_install_sid | upper }}"
+
+# Name of '<sid>adm' user.
+__sap_hana_install_sidadm_user: "{{ sap_hana_install_sid | lower }}adm"

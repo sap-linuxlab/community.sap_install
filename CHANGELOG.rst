@@ -4,6 +4,58 @@ community.sap\_install Release Notes
 
 .. contents:: Topics
 
+v1.11.0
+=======
+
+Release Summary
+---------------
+
+Improved pseudo-idempotency, rework of three roles, new plugins for validation, minor changes and bug fixes
+
+Minor Changes
+-------------
+
+- collection - Add new plugins for SID and Instance Number validation (https://github.com/sap-linuxlab/community.sap_install/pull/1243)
+- sap_general_preconfigure - Ensure the presence of the sysstat package on RHEL 8 and later (https://github.com/sap-linuxlab/community.sap_install/pull/1239)
+- sap_hana_install - Replace SID and Instance Number validation with new plugins (https://github.com/sap-linuxlab/community.sap_install/pull/1245)
+- sap_hana_install - Update Pseudo-Idempotency (https://github.com/sap-linuxlab/community.sap_install/pull/1215)
+- sap_hana_preconfigure/RHEL - Add package for GCC 15 compatibility (https://github.com/sap-linuxlab/community.sap_install/pull/1232)
+- sap_hostagent - Rework and fixes for open issues (https://github.com/sap-linuxlab/community.sap_install/pull/1214)
+- sap_install_media_detect - Rework for performance and accuracy (https://github.com/sap-linuxlab/community.sap_install/pull/1235)
+- sap_storage_setup - Complete Rework (https://github.com/sap-linuxlab/community.sap_install/pull/1242)
+- sap_swpm - Add Pseudo-Idempotency (https://github.com/sap-linuxlab/community.sap_install/pull/1213)
+- sap_swpm - Replace SAP detection fail with warning for wrong GID and UID (https://github.com/sap-linuxlab/community.sap_install/pull/1231)
+- sap_swpm - Validate SIDs and instance numbers with new plugins (https://github.com/sap-linuxlab/community.sap_install/pull/1246)
+
+Bugfixes
+--------
+
+- collection - Let the 'schema' ansible-lint check pass (https://github.com/sap-linuxlab/community.sap_install/pull/1233)
+- sap_hana_install - Ensure correct permissions of SIGNATURE.SMF (https://github.com/sap-linuxlab/community.sap_install/pull/1237)
+- sap_swpm - Add fact reset for variable precedence and improve fact naming (https://github.com/sap-linuxlab/community.sap_install/pull/1241)
+
+v1.10.0
+=======
+
+Release Summary
+---------------
+
+Minimum Ansible version is 2.18, improvements for Clusters and HSR, bug fixes
+
+Minor Changes
+-------------
+
+- sap_ha_install_hana_hsr - Add dedicated replication network support (https://github.com/sap-linuxlab/community.sap_install/pull/1224)
+- sap_ha_pacemaker_cluster - Add QDevice and Diskless SBD (https://github.com/sap-linuxlab/community.sap_install/pull/1209)
+- sap_maintain_etc_hosts - Refactor role and implement improved handling from PR 1195 (https://github.com/sap-linuxlab/community.sap_install/pull/1212)
+
+Bugfixes
+--------
+
+- collection - Update PR branch policy workflow (https://github.com/sap-linuxlab/community.sap_install/pull/1217)
+- collection - Update min Ansible version and update workflows (https://github.com/sap-linuxlab/community.sap_install/pull/1227)
+- sap_general_preconfigure, sap_hana_preconfigure - Fixes for Ansible 2.19 (https://github.com/sap-linuxlab/community.sap_install/pull/1228)
+
 v1.9.2
 ======
 

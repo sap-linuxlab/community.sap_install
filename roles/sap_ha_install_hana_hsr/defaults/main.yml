@@ -23,19 +23,26 @@ sap_ha_install_hana_hsr_instance_number: ''
 #   node_role: (string) Role of the node in the HSR setup. Valid options: 'primary', 'secondary'.
 #   hana_site: (string) A unique logical site name (e.g., DC01, EU-WEST).
 #
+# Optional key for dedicated replication network:
+#   node_hsr_ip: (string) IP address of the dedicated replication interface.
+#     When set, configures [system_replication_hostname_resolution] in global.ini
+#     to map each peer's hostname to its replication IP.
+#
 # Example:
 # sap_ha_install_hana_hsr_cluster_nodes:
 #   - node_name: "hana01"
 #     node_ip: "10.0.0.1"
 #     node_role: primary
 #     hana_site: DC01
+#     node_hsr_ip: "192.168.10.1"
 #   - node_name: "hana02"
 #     node_ip: "10.0.0.2"
 #     node_role: secondary
 #     hana_site: DC02
+#     node_hsr_ip: "192.168.10.2"
 sap_ha_install_hana_hsr_cluster_nodes: []
 
-# The hdbuserstore key used for connecting to the SYSTEMDB for administrative tasks like backups (String).
+# The hdbuserstore key used for connecting to the SYSTEMDB for administrative tasks like backups or updating the global.ini (String).
 sap_ha_install_hana_hsr_hdbuserstore_system_backup_user: HDB_SYSTEMDB
 
 # Password for the HANA 'SYSTEM' user (String).
@@ -104,3 +111,9 @@ sap_ha_install_hana_hsr_configure_firewall: false
 # Optional name of firewall zone where service or ports will be configured.
 # Default firewall zone, usually `public`, is used if this variable is undefined.
 # sap_ha_install_hana_hsr_firewall_zone: ''
+
+# Optional: SAP HANA System Replication listen interface (String).
+# Controls which network interface HANA listens on for incoming replication connections.
+# Available values: '.internal', '.global'.
+# When not set, listeninterface is not configured and HANA uses its default.
+# sap_ha_install_hana_hsr_listeninterface: ''

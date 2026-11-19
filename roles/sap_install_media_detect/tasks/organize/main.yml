@@ -1,0 +1,130 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Main runner file for the organization of the installation media.
+#
+# Everything below works in the main directory, which holds all of the classified files.
+# The classification decides what happens to a file, the two role parameters below decide whether it happens at all:
+# - 'sap_install_media_detect_extract_archives' controls the extraction of the archives.
+# - 'sap_install_media_detect_move_or_copy_archives' controls the component subdirectories.
+
+
+# A target directory of 'auto' means that the sapfile utility leaves the decision to the role,
+# because it depends on the role parameters and not on the file.
+# NOTE: Currently configured file types with 'auto' are: SAPCAR, SAP Host Agent and the SAP HANA client.
+- name: SAP Install Media Detect - Organize - Set fact with the directories of the files with an automatic target
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_auto_directories: "{{ [] if __no_files else __directories }}"
+  vars:
+    __no_files: "{{ __sap_install_media_detect_fact_files_to_copy | length == 0 }}"
+    __directories:
+      "{{ (['sap_hana'] if sap_install_media_detect_db | d('') == 'saphana' else [])
+          + (['sap_swpm_download_basket'] if sap_install_media_detect_swpm | d(false) else []) }}"
+
+- name: SAP Install Media Detect - Organize - Create the subdirectories of the main directory
+  ansible.builtin.include_tasks:
+    file: create_directories.yml
+
+
+# The ownership is applied while all of the installation media is still in the main directory,
+# so that it covers the files which stay there as well.
+- name: SAP Install Media Detect - Organize - Set the ownership and permissions of the installation media
+  ansible.builtin.file:
+    path: "{{ file_item['path'] }}"
+    owner: "{{ __owner }}"
+    group: "{{ __group }}"
+    mode: "{{ __mode }}"
+  loop: "{{ __sap_install_media_detect_fact_wanted_files }}"
+  loop_control:
+    loop_var: file_item
+    label: "{{ file_item['file'] }}"
+  vars:
+    # The SAPCAR program is the only executable among the installation media, everything else is an
+    # archive or a descriptor which is only ever read, so it has parameters of its own.
+    __owner:
+      "{{ sap_install_media_detect_sapcar_owner if file_item['sap_file_type'] == 'sapcar'
+          else sap_install_media_detect_files_owner }}"
+    __group:
+      "{{ sap_install_media_detect_sapcar_group if file_item['sap_file_type'] == 'sapcar'
+          else sap_install_media_detect_files_group }}"
+    __mode:
+      "{{ sap_install_media_detect_sapcar_mode if file_item['sap_file_type'] == 'sapcar'
+          else sap_install_media_detect_files_mode }}"
+
+
+# The archive type comes from the 'file' command and decides which program extracts the archive,
+# while the SAP file type decides where the result of the extraction is placed.
+# An empty list skips the task without an extra condition, so only the role parameter is checked.
+- name: Block for the extraction of the archives
+  when: sap_install_media_detect_extract_archives
+  block:
+
+    # Reason for noqa: The 'unarchive' module checksums the archive and lists its content to decide
+    # whether it has to extract at all, which is a considerable cost for an installation export of
+    # several gigabytes that the reset at the start of the role has already removed the result of.
+    - name: SAP Install Media Detect - Organize - Extract the zip archives  # noqa command-instead-of-module
+      ansible.builtin.command:
+        cmd: "unzip -o {{ file_item['path'] | quote }} -d {{ __destination | quote }}"
+      register: __sap_install_media_detect_register_extract_zip
+      changed_when: __sap_install_media_detect_register_extract_zip.rc == 0
+      loop: "{{ __sap_install_media_detect_fact_files_to_extract
+                | selectattr('archive_type', 'equalto', 'zip') | list }}"
+      loop_control:
+        loop_var: file_item
+        label: "{{ file_item['file'] }}"
+      vars:
+        # An installation export is delivered as a set of zip archives which share one extraction
+        # directory and whose contents overlap, so each of them is extracted into a directory of
+        # its own, named after the archive. Every other archive extracts into the shared directory.
+        # The '-o' argument keeps 'unzip' from asking what to do with a file that is already there,
+        # which would stall the run, and matches the behavior of the reset at the start of the role.
+        __destination: >-
+          {{ __sap_install_media_detect_fact_main_directory }}/{{ file_item['extraction_dir']
+          }}{{ '/' ~ (file_item['file'] | splitext | first) if 'export' in file_item['sap_file_type'] else '' }}
+
+    # Only the self-extracting archive is extracted. It is the first volume of the set and pulls in
+    # the '.rar' volumes next to it on its own, which is why those are not extracted themselves.
+    - name: SAP Install Media Detect - Organize - Extract the self-extracting RAR archives
+      ansible.builtin.command:
+        cmd: >-
+          {{ __sap_install_media_detect_fact_rar_extract }}
+          {{ file_item['path'] | quote }}{{ __sap_install_media_detect_fact_rar_extract_directory_argument }}
+          {{ __destination | quote }}
+        chdir: "{{ __sap_install_media_detect_fact_main_directory }}"
+      register: __sap_install_media_detect_register_extract_rar
+      changed_when: __sap_install_media_detect_register_extract_rar.rc == 0
+      loop: "{{ __sap_install_media_detect_fact_files_to_extract
+                | selectattr('archive_type', 'equalto', 'rarexe') | list }}"
+      loop_control:
+        loop_var: file_item
+        label: "{{ file_item['file'] }}"
+      vars:
+        __destination:
+          "{{ __sap_install_media_detect_fact_main_directory }}/{{ file_item['extraction_dir'] }}"
+      when: sap_install_media_detect_rar_handling
+
+    - name: SAP Install Media Detect - Organize - Extract the SAP archives
+      ansible.builtin.include_tasks:
+        file: sapcar.yml
+
+
+- name: SAP Install Media Detect - Organize - Distribute the installation media
+  ansible.builtin.include_tasks:
+    file: distribute.yml
+  when: sap_install_media_detect_move_or_copy_archives
+
+
+# The installation media is in its final place from here on, so the two files below only determine
+# which file and which directory each of the consuming roles is given.
+- name: SAP Install Media Detect - Organize - Locate the files of the SWPM installation media
+  ansible.builtin.include_tasks:
+    file: locate_basket.yml
+
+- name: SAP Install Media Detect - Organize - Locate the directories of the extracted installation media
+  ansible.builtin.include_tasks:
+    file: locate_extracted.yml
+
+
+- name: SAP Install Media Detect - Summary - Set the progress fact for the organization
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_is_organized: true

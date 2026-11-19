@@ -1,0 +1,194 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP Storage Setup - Multipathing - Scan SCSI bus
+  ansible.builtin.command:
+    cmd: rescan-scsi-bus.sh -a
+  changed_when: false
+  failed_when: false
+
+# Retries are replacing hardcoded sleep 10.
+- name: SAP Storage Setup - Multipathing - Reconfigure multipath daemon
+  ansible.builtin.command:
+    cmd: multipathd reconfigure
+  register: __sap_storage_setup_register_multipath_reconfigure
+  until: __sap_storage_setup_register_multipath_reconfigure.rc == 0
+  retries: 3
+  delay: 10
+  changed_when: __sap_storage_setup_register_multipath_reconfigure.rc == 0
+
+# 'mpathconf' is RHEL specific, where SLES configuration is done with previous task.
+- name: SAP Storage Setup - Multipathing - Enable mpathconf (RHEL)
+  ansible.builtin.command:
+    cmd: /sbin/mpathconf --enable
+  args:
+    creates: /etc/multipath.conf
+  when: ansible_facts['os_family'] == 'RedHat'
+
+
+- name: SAP Storage Setup - Multipathing - Refresh ansible device facts
+  ansible.builtin.setup:
+    gather_subset:
+      - hardware
+
+- name: SAP Storage Setup - Multipathing - Set device size facts
+  ansible.builtin.include_tasks:
+    file: get_device_size_facts.yml
+
+
+# Disks are included only if all following device fact criteria are met:
+# - Key "holders" is empty
+# - Key "links.uuids" is empty
+# - Key "partitions" is empty
+# - Key "wwn" is defined
+# - Key "size" Matching any of the filesystems defined in {{ __sap_storage_setup_lvm_volumes }}
+#   within the same -8GB and +8GB range that is used by the mapping task below.
+
+- name: SAP Storage Setup - Multipathing - Set fact with a list of unused WWNs of the requested sizes
+  ansible.builtin.set_fact:
+    __sap_storage_setup_fact_available_devices_multipath: |
+      {% set unused_disks = [] %}
+      {% set all_disks = (ansible_facts['devices'] | dict2items) %}
+      {% for disk in all_disks %}
+        {%- if disk.value.wwn is defined
+            and disk.value.links.uuids | length == 0
+            and disk.value.partitions | length == 0
+            and disk.value.holders | length == 0
+            %}
+
+          {%- set disk_size_gb = __sap_storage_setup_fact_device_size_gb[disk.key] %}
+
+          {%- for fs in __sap_storage_setup_lvm_volumes %}
+            {%- if (disk_size_gb-8) <= fs['disk_size_gb'] <= (disk_size_gb+8) %}
+              {%- set add_to_list = unused_disks.append(disk) %}
+            {%- endif %}
+          {%- endfor %}
+
+        {%- endif %}
+      {%- endfor %}
+      {{ unused_disks | items2dict }}
+
+# NOTE: If the criteria for unused WWNs or disk sizes change, both tasks must be updated accordingly.
+
+
+# Disks are discovered by their name, but the WWN is used to address the multipath device.
+#
+# NOTE: The device path is constructed from the WWN, which requires the multipath option
+# 'user_friendly_names' to be disabled. With the option enabled, the multipath devices are
+# named '/dev/mapper/mpath*' instead and the constructed device path does not exist.
+#
+# First pass assigns devices based on exact size, for all entries.
+# Second pass assigns devices based on approximate size -8GB and +8GB, only for entries that are
+# still short of their stripe count.
+#
+# Both passes cover all entries before the next one starts, so that an approximate match of an
+# earlier entry cannot claim the device that a later entry matches exactly.
+- name: SAP Storage Setup - Multipathing - Set fact with a multipathing mapping list of devices
+  ansible.builtin.set_fact:
+    __sap_storage_setup_fact_device_map_multipath: "{{ __multipath_to_fs_device_map }}"
+  vars:
+    __multipath_to_fs_device_map: |
+      {% set device_map = [] %}
+      {% set unused_dev = (__sap_storage_setup_fact_available_devices_multipath | dict2items) %}
+      {% set assigned_dev = [] %}
+      {% set matched_dev = {} %}
+
+      {%- for fs in __sap_storage_setup_lvm_volumes -%}
+        {%- set init = matched_dev.update({fs['name']: []}) -%}
+      {%- endfor -%}
+
+      {#- First pass, exact size check for all volumes -#}
+      {%- for fs in __sap_storage_setup_lvm_volumes -%}
+        {%- for dev in unused_dev -%}
+          {%- if __sap_storage_setup_fact_device_size_gb[dev.key] == fs['disk_size_gb']
+              and dev.value.wwn not in assigned_dev
+              and matched_dev[fs['name']] | length < (fs['lvm_lv_stripes'] | d('1') | int) %}
+
+              {%- set assigned = assigned_dev.append(dev.value.wwn) %}
+
+              {#- wwn prefix "0x" must be removed and a "3" prefixed -#}
+              {%- set add = matched_dev[fs['name']].append('/dev/mapper/3' + dev.value.wwn[2:]) %}
+
+          {%- endif %}
+        {%- endfor %}
+      {%- endfor -%}
+
+      {#- Second pass, approximate size check for all remaining volumes -#}
+      {%- for fs in __sap_storage_setup_lvm_volumes -%}
+        {%- if matched_dev[fs['name']] | length < (fs['lvm_lv_stripes'] | d('1') | int) -%}
+          {%- for dev in unused_dev -%}
+            {%- set disk_size_gb = __sap_storage_setup_fact_device_size_gb[dev.key] -%}
+            {%- if (disk_size_gb-8) <= fs['disk_size_gb'] <= (disk_size_gb+8)
+                and dev.value.wwn not in assigned_dev
+                and matched_dev[fs['name']] | length < (fs['lvm_lv_stripes'] | d('1') | int) %}
+
+                {%- set assigned = assigned_dev.append(dev.value.wwn) %}
+                {%- set add = matched_dev[fs['name']].append('/dev/mapper/3' + dev.value.wwn[2:]) %}
+
+            {%- endif %}
+          {%- endfor %}
+        {%- endif -%}
+      {%- endfor -%}
+
+      {#- An entry without a matching device must not be added, and its left for single disk mapping instead -#}
+      {%- for fs in __sap_storage_setup_lvm_volumes -%}
+        {%- if matched_dev[fs['name']] | length > 0 -%}
+          {%- set extend = device_map.extend([
+            {
+              'device': matched_dev[fs['name']] | join(','),
+              'name': fs['name'],
+            }
+          ]) -%}
+        {%- endif %}
+      {%- endfor %}
+      {{ device_map }}
+
+
+# The multipath device is created by the multipath daemon and not by this role,
+# so the constructed device path is verified before it is used.
+# A device path that does not exist is not passed to the LVM tasks, the entry is left to the single disk mapping instead.
+- name: SAP Storage Setup - Multipathing - Verify that the multipath devices exist
+  ansible.builtin.stat:
+    path: "{{ mpath_item }}"
+    get_attributes: false
+    get_checksum: false
+    get_mime: false
+  register: __sap_storage_setup_register_stat_multipath
+  loop: "{{ __sap_storage_setup_fact_device_map_multipath
+    | map(attribute='device') | map('split', ',') | flatten }}"
+  loop_control:
+    loop_var: mpath_item
+
+- name: Block for existing multipath devices
+  vars:
+    __missing_devices: "{{ __sap_storage_setup_register_stat_multipath.results
+      | rejectattr('stat.exists')
+      | map(attribute='mpath_item') | list }}"
+
+    # An entry is kept only if all of its devices exist, because a volume group must not be
+    # created from an incomplete list of devices.
+    __existing_device_map: |
+      {% set device_map = [] %}
+      {% for entry in __sap_storage_setup_fact_device_map_multipath %}
+      {%- if entry['device'].split(',') | select('in', __missing_devices) | list | length == 0 -%}
+        {%- set add_to_list = device_map.append(entry) -%}
+      {%- endif %}
+      {%- endfor %}
+      {{ device_map }}
+  block:
+
+    - name: SAP Storage Setup - Multipathing - Show warning for multipath devices that do not exist
+      ansible.builtin.debug:
+        msg: |
+          WARN: The following multipath devices were expected, but they do not exist:
+          {{ __missing_devices | join('\n') }}
+
+          This indicates that the multipath daemon did not finish the reconfiguration in time,
+          or that the multipath option 'user_friendly_names' is enabled.
+          The affected storage definition entries are handled as single disks instead.
+      when: __missing_devices | length > 0
+
+    - name: SAP Storage Setup - Multipathing - Set fact with a mapping list of existing devices
+      ansible.builtin.set_fact:
+        __sap_storage_setup_fact_filesystem_device_map:
+          "{{ __sap_storage_setup_fact_filesystem_device_map | d([]) + __existing_device_map }}"

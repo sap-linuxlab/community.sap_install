@@ -1,0 +1,92 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Validation
+- name: SAP Host Agent - RPM - Assert that the variable 'sap_hostagent_rpm_file_name' is defined as String and not empty
+  ansible.builtin.assert:
+    that:
+      - sap_hostagent_rpm_file_name is defined
+      - sap_hostagent_rpm_file_name is string
+      - sap_hostagent_rpm_file_name | trim | length > 0
+    fail_msg: |
+      FAIL: The variable 'sap_hostagent_rpm_file_name' is undefined, not a String or empty.
+
+
+# The variable 'sap_hostagent_sar_remote' is always set in 'defaults/main.yml',
+# but this check is here just in case for backwards compatibility.
+- name: SAP Host Agent - RPM - Fail if both remote and local paths were provided
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The variables 'sap_hostagent_rpm_remote' and 'sap_hostagent_rpm_local_path' cannot be both provided.
+      Set the variable 'sap_hostagent_sar_remote' to 'true' if the RPM file is located on the Managed Node,
+      or to 'false' if the RPM file is located on the Control Node.
+  when:
+    - sap_hostagent_rpm_remote is not defined
+    - sap_hostagent_rpm_local_path | d('') | trim | length > 0
+    - sap_hostagent_rpm_remote_path | d('') | trim | length > 0
+
+
+- name: Block for installation type rpm local
+  when: not sap_hostagent_rpm_remote
+  block:
+
+    - name: SAP Host Agent - RPM - Assert that the variable 'sap_hostagent_rpm_local_path' is defined as String and not empty
+      ansible.builtin.assert:
+        that:
+          - sap_hostagent_rpm_local_path is defined
+          - sap_hostagent_rpm_local_path is string
+          - sap_hostagent_rpm_local_path | trim | length > 0
+        fail_msg: |
+          FAIL: The variable 'sap_hostagent_rpm_local_path' is undefined, not a String or empty.
+
+    - name: SAP Host Agent - RPM - Set fact with full local path to RPM file
+      ansible.builtin.set_fact:
+        __sap_hostagent_fact_rpm_path:
+          "{{ sap_hostagent_rpm_local_path | regex_replace('\\/$', '') }}/{{ sap_hostagent_rpm_file_name }}"
+
+    - name: SAP Host Agent - RPM - Stat local RPM file
+      ansible.builtin.stat:
+        path: "{{ __sap_hostagent_fact_rpm_path }}"
+      # Delegate back to Control Node for local RPM file.
+      delegate_to: localhost
+      register: __sap_hostagent_register_rpm_stat
+
+    - name: SAP Host Agent - RPM - Fail if the local RPM file does not exist
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The SAP Host Agent file '{{ __sap_hostagent_fact_rpm_path }}' does not exist.
+          Ensure that the 'sap_hostagent_rpm_local_path' variable points towards the correct directory.
+          The RPM file is usually located in the 'server' directory of the extracted archive.
+      when: not __sap_hostagent_register_rpm_stat.stat.exists
+
+
+- name: Block for installation type rpm remote
+  when: sap_hostagent_rpm_remote
+  block:
+
+    - name: SAP Host Agent - RPM - Assert that the variable 'sap_hostagent_rpm_remote_path' is defined as String and not empty
+      ansible.builtin.assert:
+        that:
+          - sap_hostagent_rpm_remote_path is defined
+          - sap_hostagent_rpm_remote_path is string
+          - sap_hostagent_rpm_remote_path | trim | length > 0
+        fail_msg: |
+          FAIL: The variable 'sap_hostagent_rpm_remote_path' is undefined, not a String or empty.
+
+    - name: SAP Host Agent - RPM - Set fact with full remote path to RPM file
+      ansible.builtin.set_fact:
+        __sap_hostagent_fact_rpm_path:
+          "{{ sap_hostagent_rpm_remote_path | regex_replace('\\/$', '') }}/{{ sap_hostagent_rpm_file_name }}"
+
+    - name: SAP Host Agent - RPM - Stat remote RPM file
+      ansible.builtin.stat:
+        path: "{{ __sap_hostagent_fact_rpm_path }}"
+      register: __sap_hostagent_register_rpm_stat
+
+    - name: SAP Host Agent - RPM - Fail if the remote RPM file does not exist
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The SAP Host Agent file '{{ __sap_hostagent_fact_rpm_path }}' does not exist.
+          Ensure that the 'sap_hostagent_rpm_remote_path' variable points towards the correct directory.
+          The RPM file is usually located in the 'server' directory of the extracted archive.
+      when: not __sap_hostagent_register_rpm_stat.stat.exists

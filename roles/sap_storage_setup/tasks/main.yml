@@ -1,113 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP Storage Setup - Get facts about the OS
-  ansible.builtin.setup:
-    gather_subset:
-      - "distribution"
-      - "hardware"
+- name: Block to fail if any host fails
+  # Stop execution of remaining tasks in the role, if any task in the block failed on any host.
+  # This ensures that the role does not proceed skipping failed host, but fails the entire role execution.
+  # 'any_errors_fatal' is not documented to work on task level, therefore we use simple block.
+  # http://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_error_handling.html#aborting-on-the-first-error-any-errors-fatal
+  any_errors_fatal: true
+  block:
 
-- name: SAP Storage Setup - Include OS specific vars
-  ansible.builtin.include_vars:
-    file: "{{ ansible_facts['os_family'] }}.yml"
+    - name: SAP Storage Setup - Pre-tasks
+      ansible.builtin.include_tasks:
+        file: pre_tasks/main.yml
 
-- name: SAP Storage Setup - Install additional OS packages
-  when: __sap_storage_setup_extra_packages is defined
-  ansible.builtin.package:
-    name: "{{ __sap_storage_setup_extra_packages }}"
-    state: present
-
-- name: SAP Storage Setup - Make sure services are running
-  when: __sap_storage_setup_extra_services is defined
-  ansible.builtin.service:
-    name: "{{ service_item }}"
-    state: started
-  loop: "{{ __sap_storage_setup_extra_services }}"
-  loop_control:
-    loop_var: service_item
-
-# Create a list of elements from {{ sap_storage_setup_definition }} for all
-# mountpoint elements that are not already reported as mounted in ansible facts.
-
-- name: SAP Storage Setup - Determine which local filesystems are not configured yet
-  when:
-    - new_mounts_item.nfs_path is not defined
-    - (
-        new_mounts_item.mountpoint is defined
-        and new_mounts_item.mountpoint not in ansible_facts['mounts'] | map(attribute="mount")
-      )
-      or
-      (
-        new_mounts_item.filesystem_type == 'swap'
-        and ansible_facts['swaptotal_mb'] < (new_mounts_item.disk_size * 1000)
-      )
-    # Calculating with 1000 instead of 1024, because existing swaptotal is likely to be
-    # reported at a slightly reduced size due to volume/filesystem metadata.
-  ansible.builtin.set_fact:
-    __sap_storage_setup_fact_new_mounts: "{{ __sap_storage_setup_fact_new_mounts | default([]) + [new_mounts_item] }}"
-  loop: "{{ sap_storage_setup_definition }}"
-  loop_control:
-    loop_var: new_mounts_item
-    label: "{{ new_mounts_item.name }}"
-
-
-# TODO: Cloud Specific Pre-Tasks - call cloud specific pre tasks thru {{ sap_storage_setup_cloud_type }}_main.yml
-#- name: SAP Storage Setup - Preparation for '{{ sap_storage_setup_cloud_type }}'
-#  include_tasks: "{{ sap_storage_setup_cloud_type }}_main.yml"
-
-# TODO: verify that the number of disks matches the fs definition
-# TODO: add functionality to work with existing LVM volumes and skip disk assignment
-
-# Multipathing before single device processing:
-# When multipathing is enabled it will run device detection and fs mapping
-# first and the following generic tasks will do the same for any non-multipathed
-# devices in addition, if there are any left and filesystems not yet assigned
-# with devices.
-
-- name: SAP Storage Setup - Configure multipathing and map disks to target filesystems
-  when:
-    - sap_storage_setup_multipath_enable_and_detect
-    - __sap_storage_setup_fact_new_mounts is defined
-  ansible.builtin.include_tasks:
-    file: "{{ sap_storage_setup_cloud_type }}_tasks/configure_multipathing.yml"
-
-- name: SAP Storage Setup - Combine single disks and complete mapping definition
-  when:
-    - __sap_storage_setup_fact_new_mounts is defined
-  ansible.builtin.include_tasks:
-    file: "{{ sap_storage_setup_cloud_type }}_tasks/map_single_disks_to_filesystems.yml"
-
-# LVM setup will only be entered when there were
-# - unconfigured mountpoints
-# - unconfigured disks matching the unconfigured filesystem sizes
-
-- name: SAP Storage Setup - Configure Volume Groups and Logical Volumes
-  when:
-    - __sap_storage_setup_fact_volume_map is defined
-    - __sap_storage_setup_fact_volume_map | length > 0
-  ansible.builtin.include_tasks:
-    file: "{{ sap_storage_setup_cloud_type }}_tasks/configure_local_filesystems.yml"
-
-
-# NOTE: The "default" in the conditional of this task requires
-# Jinja2 version >= 2.11.0 (released January 2020)
-# Reference: https://jinja.palletsprojects.com/en/3.1.x/templates/#jinja-filters.map
-- name: SAP Storage Setup - Configure swap
-  ansible.builtin.include_tasks:
-    file: "{{ sap_storage_setup_cloud_type }}_tasks/configure_swap.yml"
-  when:
-    - __sap_storage_setup_fact_new_mounts is defined
-    - '"swap" in __sap_storage_setup_fact_new_mounts
-      | map(attribute="filesystem_type", default=sap_storage_setup_local_filesystem_type)'
-
-- name: SAP Storage Setup - Configure NFS filesystems
-  ansible.builtin.include_tasks:
-    file: "{{ sap_storage_setup_cloud_type }}_tasks/configure_nfs_filesystems.yml"
-  loop: "{{ sap_storage_setup_definition }}"
-  loop_control:
-    loop_var: nfs_item
-    label: "{{ nfs_item.name }}"
-  when:
-    - nfs_item.nfs_path is defined
-    - nfs_item.nfs_server is defined or
-      sap_storage_setup_nfs_server is defined
+    - name: SAP Storage Setup - Configuration
+      ansible.builtin.include_tasks:
+        file: configuration/main.yml

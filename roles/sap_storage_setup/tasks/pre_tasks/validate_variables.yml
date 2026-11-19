@@ -1,0 +1,181 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Argument Spec is using lazy validation and allows for invalid types or values to proceed.
+# Explicit validation using assert modules is executed afterwards to ensure that the variables meet the required criteria.
+
+
+### Definition Validation
+# Validation of definition is complex procedure requiring individual checks for each entry and ensuring uniqueness of key attributes.
+- name: SAP Storage Setup - Validation - Assert that the variable 'sap_storage_setup_definition' is defined as valid string
+  ansible.builtin.assert:
+    that:
+      - sap_storage_setup_definition is defined
+      - sap_storage_setup_definition | type_debug == 'list'
+      - sap_storage_setup_definition | length > 0
+    fail_msg: |
+      The variable 'sap_storage_setup_definition' is undefined, empty or invalid.
+      It should be a non-empty list describing the SAP storage setup definition.
+
+
+# Validate keys and values of each entry first, before checking for duplicates.
+- name: SAP Storage Setup - Validation - Validate keys and values of each storage definition entry
+  ansible.builtin.include_tasks:
+    file: validate_definition_item.yml
+  loop: "{{ sap_storage_setup_definition }}"
+  loop_control:
+    label: "{{ __sap_storage_setup_definition_item.name | d('N/A') }}"
+    loop_var: __sap_storage_setup_definition_item
+
+- name: SAP Storage Setup - Validation - Fail if any storage definition entry was not recognized
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The following storage definition entries do not match any supported combination of keys:
+      {% for __entry in __invalid %}
+      - {{ __entry['name'] }}
+      {% endfor %}
+
+      Review the keys 'filesystem_type', 'disk_size', 'mountpoint', 'nfs_server', 'nfs_path'
+      and 'swap_path' for these entries.
+  vars:
+    __valid_names:
+      "{{ (__sap_storage_setup_nfs_mounts
+        + __sap_storage_setup_swap_files
+        + __sap_storage_setup_swap_disks
+        + __sap_storage_setup_block_disks)
+          | map(attribute='name') | list }}"
+    __invalid:
+      "{{ sap_storage_setup_definition | rejectattr('name', 'in', __valid_names) | list }}"
+  when: __invalid | length > 0
+
+
+- name: SAP Storage Setup - Validation - Fail if the 'name' values are not unique
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Duplicate values in the 'name' key were found:
+      {% for __name in __defined_names | unique %}
+      {% if __defined_names | select('equalto', __name) | list | length > 1 %}
+      - {{ __name }}
+      {% endif %}
+      {% endfor %}
+  vars:
+    __defined_names:
+      "{{ sap_storage_setup_definition | map(attribute='name', default='') | select | list }}"
+  when: __defined_names | length != __defined_names | unique | length
+
+- name: SAP Storage Setup - Validation - Fail if the 'mountpoint' values are not unique
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Duplicate values in the 'mountpoint' key were found:
+      {% for __mountpoint in __defined_mountpoints | unique %}
+      {% if __defined_mountpoints | select('equalto', __mountpoint) | list | length > 1 %}
+      - {{ __mountpoint }}
+      {% endif %}
+      {% endfor %}
+  vars:
+    __defined_mountpoints:
+      "{{ sap_storage_setup_definition | map(attribute='mountpoint', default='') | select | list }}"
+  when: __defined_mountpoints | length != __defined_mountpoints | unique | length
+
+
+### Host Type Validation
+# The SID and the host types are only used to derive the '/usr/sap' subdirectories of NFS mounts,
+# so both variables are required only when the storage definition contains NFS mounts.
+- name: Block for the host types of NFS mounts
+  when: __sap_storage_setup_nfs_mounts | length > 0
+  block:
+
+    # SAP requires a SID of exactly three alphanumeric characters, starting with a letter and in uppercase.
+    # A lowercase value is accepted and converted by the role in 'vars/main.yml' into '__sap_storage_setup_sid'.
+    # The value is not trimmed, because a SID containing whitespace is always a typo and would
+    # otherwise end up in the mount paths.
+    - name: SAP Storage Setup - Validation - Assert that the variable 'sap_storage_setup_sid' is defined as valid string
+      ansible.builtin.assert:
+        that:
+          - sap_storage_setup_sid is defined
+          - sap_storage_setup_sid is string
+          - sap_storage_setup_sid is match('^[A-Za-z][A-Za-z0-9]{2}$')
+        fail_msg: |
+          The variable 'sap_storage_setup_sid' is undefined or not a valid SAP system SID.
+          It must consist of exactly 3 alphanumeric characters and start with a letter.
+
+    - name: SAP Storage Setup - Validation - Assert that the variable 'sap_storage_setup_host_type' is defined as non-empty list
+      ansible.builtin.assert:
+        that:
+          - sap_storage_setup_host_type is defined
+          - (sap_storage_setup_host_type | type_debug == 'list' and sap_storage_setup_host_type | length > 0)
+            or (sap_storage_setup_host_type is string and sap_storage_setup_host_type | trim | length > 0)
+        fail_msg: |
+          The variable 'sap_storage_setup_host_type' is undefined or invalid.
+          It should be a non-empty list or string describing the host types for SAP storage setup.
+
+    # The variable is converted to a list once, so that the NFS tasks do not have to repeat it.
+    # The conversion is done in one expression, because a multi line template returns a string
+    # and the host types would be iterated character by character.
+    - name: SAP Storage Setup - Validation - Set fact with the host types as list
+      ansible.builtin.set_fact:
+        __sap_storage_setup_fact_host_types: "{{ sap_storage_setup_host_type | split(' ')
+          if sap_storage_setup_host_type is string
+          else sap_storage_setup_host_type }}"
+
+    # An unsupported host type is not an error of the mount tasks, it simply matches no subdirectory,
+    # so the host silently ends up with the directories of the key 'all' only.
+    - name: SAP Storage Setup - Validation - Fail if a host type is not supported
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The variable 'sap_storage_setup_host_type' contains unsupported values:
+          {{ __unsupported | join(', ') }}
+
+          Supported values are: {{ __supported | join(', ') }}
+      vars:
+        __supported: "{{ __sap_storage_setup_nfs_dirs_usr_sap.keys() | reject('==', 'all') | list }}"
+        __unsupported: "{{ __sap_storage_setup_fact_host_types | reject('in', __supported) | list }}"
+      when: __unsupported | length > 0
+
+    # The instance number is concatenated into the directory name, so an unquoted value like
+    # 01 is read as the integer 1 and results in '/usr/sap/<SID>/D1' instead of '/usr/sap/<SID>/D01'.
+    # This is never reported as an error, the host is mounted with a wrong directory instead.
+    #
+    # Only the host types that are used are checked, and the default value is an empty string,
+    # so a missing instance number fails the same check as an invalid one.
+    - name: SAP Storage Setup - Validation - Fail if the instance number of a host type is invalid
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The host type '{{ host_type_item }}' requires an instance number.
+          Variable:      'sap_storage_setup_{{ host_type_item }}_instance_nr'
+          Current value: '{{ __instance_nr }}'
+          Current type:  '{{ __instance_nr | type_debug }}'
+
+          The value must be a quoted string of exactly two digits, for example '00'.
+      loop: "{{ __sap_storage_setup_fact_host_types }}"
+      loop_control:
+        loop_var: host_type_item
+      vars:
+        # Host type is used to construct the variable name for its instance number.
+        __instance_nr: "{{ lookup('vars', 'sap_storage_setup_' + host_type_item + '_instance_nr',
+          default='') }}"
+      when:
+        - __sap_storage_setup_nfs_dirs_usr_sap[host_type_item] | length > 0
+        - __instance_nr is not string
+          or __instance_nr is not match('^[0-9]{2}$')
+
+
+- name: SAP Storage Setup - Validation - Assert that the variable 'sap_storage_setup_multipath_enable_and_detect' is defined as boolean
+  ansible.builtin.assert:
+    that:
+      - sap_storage_setup_multipath_enable_and_detect is defined
+      - sap_storage_setup_multipath_enable_and_detect is boolean
+    fail_msg: |
+      The variable 'sap_storage_setup_multipath_enable_and_detect' is undefined or invalid.
+      It should be a boolean describing if multipathing should be enabled and detected.
+
+
+- name: SAP Storage Setup - Validation - Assert that the variable 'sap_storage_setup_nfs_server' is defined as non-empty string
+  ansible.builtin.assert:
+    that:
+      - sap_storage_setup_nfs_server is string
+      - sap_storage_setup_nfs_server | trim | length > 0
+    fail_msg: |
+      The variable 'sap_storage_setup_nfs_server' is undefined, empty, or invalid.
+      It should be a non-empty string specifying the NFS server for the SAP storage setup.
+  when: sap_storage_setup_nfs_server is defined

@@ -1,0 +1,225 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+### This is a dedicated file to perform per-instance detection checks.
+
+# Check 4: Detect 'saphostctrl' and search for SID and instance number in 'ListInstances' output.
+# saphostctrl can return non-zero exit code when sapstartsrv process is not running.
+- name: Block if saphostctrl ListInstances command executed successfully
+  when:
+    - __sap_swpm_register_saphostctrl_list_instances is defined
+    - __sap_swpm_register_saphostctrl_list_instances.rc is defined
+    - __sap_swpm_register_saphostctrl_list_instances.rc == 0
+  block:
+
+    # Match pattern: " <SID> - <NR> ".
+    # Example: Inst Info : AE1 - 10 - ae1ers-ha - 793, patch 51, commit 375ae433dffb023985041c1d7b4687b1bde8d211
+    - name: SAP SWPM Pre Install - Detect - Set fact if instance is detected in saphostctrl output - {{ instance_item.number | d('') }}
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_detect_saphostctrl_instance_found: >-
+          {{ __sap_swpm_register_saphostctrl_list_instances.stdout_lines | d([])
+            | select('search', ' ' ~ __sap_swpm_sid ~ ' - ' ~ instance_item.number ~ ' ')
+            | list | length > 0 }}
+
+    # Check for conflict: instance number exists but with a different SID.
+    - name: SAP SWPM Pre Install - Detect - Fail if instance number conflict was found (Same NR, Different SID) - {{ instance_item.number | d('') }}
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Conflict detected for instance number {{ instance_item.number }}!
+          This instance number is already used by a different SID.
+          Expected SID {{ __sap_swpm_sid }}, but found following lines:
+          {% for line in __conflict_lines %}
+          - {{ line }}
+          {% endfor %}
+      when: __conflict_lines | length > 0
+      vars:
+        __conflict_lines: >-
+          {{ __sap_swpm_register_saphostctrl_list_instances.stdout_lines | d([])
+            | select('search', ' - ' ~ instance_item.number ~ ' ')
+            | reject('search', ' ' ~ __sap_swpm_sid ~ ' - ')
+            | list }}
+
+
+# Check 5: Use 'sapcontrol' and search for SID and instance number in 'GetInstanceProperties' output.
+- name: Block if sapcontrol is available
+  when:
+    - __sap_swpm_register_which_sapcontrol is defined
+    - __sap_swpm_register_which_sapcontrol.rc is defined
+    - __sap_swpm_register_which_sapcontrol.rc == 0
+  block:
+
+    # Reason for noqa: Switch to user requires shell module to load environment variables.
+    - name: SAP SWPM Pre Install - Detect - Execute sapcontrol - {{ instance_item.number | d('') }}  # noqa: command-instead-of-shell
+      ansible.builtin.shell:
+        cmd: "bash -lc 'sapcontrol -nr {{ instance_item.number }} -function GetInstanceProperties'"
+      become: true
+      become_user: "{{ __sap_swpm_sidadm_user }}"
+      # This was specifically required for RHEL due to different behavior for non-interactive shells on RHEL vs. SLES.
+      # It is caused by different contents of the skeleton directory '/etc/skel' and '.bashrc' file contents.
+      become_flags: "-i"
+      register: __sap_swpm_register_sapcontrol_instance_properties
+      changed_when: false
+      # Hides failed output, but 'rc' can be still used for verification.
+      failed_when: false
+
+    - name: SAP SWPM Pre Install - Detect - Show reason why sapcontrol check was skipped - command failed - {{ instance_item.number | d('') }}
+      ansible.builtin.debug:
+        msg: |
+          INFO: Detection of existing SAP instance installation with 'sapcontrol' command was skipped.
+          Return code: {{ __sap_swpm_register_sapcontrol_instance_properties.rc | d('1') }}
+          Output:      {{ __sap_swpm_register_sapcontrol_instance_properties.stdout | d('') }}
+          Error:       {{ __sap_swpm_register_sapcontrol_instance_properties.stderr | d('') }}
+      when:
+        - __sap_swpm_register_sapcontrol_instance_properties.rc is defined
+        - __sap_swpm_register_sapcontrol_instance_properties.rc != 0
+
+    # Check if output contains correct SAPSYSTEMNAME.
+    - name: SAP SWPM Pre Install - Detect - Set fact if matching SID is found in sapcontrol output - {{ instance_item.number | d('') }}
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_detect_sapcontrol_sid_match: >-
+          {{ __sap_swpm_register_sapcontrol_instance_properties.stdout_lines | d([])
+            | select('search', 'SAPSYSTEMNAME.*,.*' ~ __sap_swpm_sid)
+            | list | length > 0 }}
+
+    # Extract INSTANCE_NAME value from output.
+    - name: SAP SWPM Pre Install - Detect - Set fact with discovered instance name from sapcontrol output - {{ instance_item.number | d('') }}
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_detect_sapcontrol_instance_name: "{{ __parsed_instance_name }}"
+      when: __sap_swpm_fact_detect_sapcontrol_sid_match
+      vars:
+        # Extract the line containing INSTANCE_NAME.
+        __instance_name_line: >-
+          {{ __sap_swpm_register_sapcontrol_instance_properties.stdout_lines | d([])
+            | select('search', 'INSTANCE_NAME')
+            | first | d('') }}
+        # Extract the value after the last comma, trimming whitespaces/quotes.
+        __parsed_instance_name: "{{ __instance_name_line.split(',')[-1] | trim }}"
+
+    # Check if discovered name is in the list of expected names (ANY match = detected).
+    - name: SAP SWPM Pre Install - Detect - Set fact instance is detected in sapcontrol output - {{ instance_item.number | d('') }}
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_detect_sapcontrol_instance_found: >-
+          {{ __sap_swpm_fact_detect_sapcontrol_sid_match
+            and __sap_swpm_fact_detect_sapcontrol_instance_name | d('') in instance_item.names }}
+
+
+# Check 6: Check presence of files in directories.
+# Filter directories that match this instance's names.
+- name: SAP SWPM Pre Install - Detect - Set fact with filtered directories matching instance {{ instance_item.number }}
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_detect_instance_dirs_matching: >-
+      {{ __sap_swpm_register_instance_dirs_find.files | d([])
+        | selectattr('path', 'defined')
+        | list
+        | selectattr('path', 'match', '^.*/(' ~ instance_item.names | join('|') ~ ')$')
+        | list }}
+
+# Check for files in matching directories.
+# Depth 5 is good compromise between speed and detection quality.
+# Unrestricted can take ~1 minute for S4HANA 2025 PAS instance with 14000 files,
+# but same system with depth of 5 takes only 6 seconds and still detects the instance.
+- name: SAP SWPM Pre Install - Detect - Find files in directories - {{ instance_item.number }}
+  ansible.builtin.find:
+    paths: "{{ dir_item.path }}"
+    file_type: file
+    recurse: true
+    depth: 5
+  loop: "{{ __sap_swpm_fact_detect_instance_dirs_matching }}"
+  loop_control:
+    label: "{{ dir_item.path }}"
+    loop_var: dir_item
+  register: __sap_swpm_register_detect_instance_files_found
+  when: __sap_swpm_fact_detect_instance_dirs_matching | length > 0
+
+- name: SAP SWPM Pre Install - Detect - Set fact if instance directories contain existing files - {{ instance_item.number | d('') }}
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_detect_instance_files: >-
+      {{ __sap_swpm_register_detect_instance_files_found.results | d([])
+          | selectattr('matched', 'defined')
+          | selectattr('matched', 'gt', 0)
+          | list | length > 0 }}
+  when: __sap_swpm_register_detect_instance_files_found is defined
+
+
+# Check 7: Check contents of /usr/sap/sapservices
+- name: Block for sapservices checks
+  when:
+    - __sap_swpm_register_sapservices_slurp is defined
+    - __sap_swpm_register_sapservices_slurp.content is defined
+  block:
+
+    # Match pattern: SAP<SID>_<NR> for this instance
+    - name: SAP SWPM Pre Install - Detect - Set fact if instance is detected in sapservices - {{ instance_item.number | d('') }}
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_detect_instance_sapservices_found: >-
+          {{ (__sap_swpm_register_sapservices_slurp.content | b64decode)
+             | regex_search('SAP' ~ __sap_swpm_sid ~ '_' ~ instance_item.number) is not none }}
+
+
+# Check 8: Check profile files in /sapmnt/<SID>/profile/
+- name: Block for profile files checks
+  when:
+    - __sap_swpm_register_profiles_find is defined
+    - __sap_swpm_register_profiles_find.files is defined
+  block:
+
+    # Match pattern: <SID>_<INSTANCE>_ (e.g., AE1_ASCS00_)
+    # Check if any profile file matches any of this instance's expected names.
+    - name: SAP SWPM Pre Install - Detect - Set fact if instance is detected in profile files - {{ instance_item.number | d('') }}
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_detect_instance_profiles_found: >-
+          {{ __sap_swpm_register_profiles_find.files | d([])
+             | map(attribute='path')
+             | map('basename')
+             | select('match', '^' ~ __sap_swpm_sid ~ '_(' ~ instance_item.names | join('|') ~ ')_')
+             | list | length > 0 }}
+
+
+# Display detection results for this instance
+- name: SAP SWPM Pre Install - Detect - Show detection results - {{ instance_item.number | d('') }}
+  ansible.builtin.debug:
+    msg: |
+      INFO: Detection results for instance {{ instance_item.number }} ({{ instance_item.names | join(', ') }}):
+      {% if __sap_swpm_fact_detect_saphostctrl_instance_found %}
+      - Found in saphostctrl output (ListInstances).
+      {% endif %}
+      {% if __sap_swpm_fact_detect_sapcontrol_instance_found %}
+      - Found in sapcontrol output (GetInstanceProperties).
+      {% endif %}
+      {% if __sap_swpm_fact_detect_instance_files %}
+      - Found files in instance directories (/usr/sap/{{ __sap_swpm_sid }}/):
+      {% for dir in __sap_swpm_register_detect_instance_files_found.results | d([]) if dir.matched is defined and dir.matched > 0 %}
+        '{{ dir.dir_item.path }}': {{ dir.matched }} files.
+      {% endfor %}
+      {% endif %}
+      {% if __sap_swpm_fact_detect_instance_sapservices_found %}
+      - Found in SAP services file (/usr/sap/sapservices).
+      {% endif %}
+      {% if __sap_swpm_fact_detect_instance_profiles_found %}
+      - Found in profile files (/sapmnt/{{ __sap_swpm_sid }}/profile/).
+      {% endif %}
+      {% if not __any_checks_true %}
+      - No existing installation detected for this instance
+      {% endif %}
+  vars:
+    __any_checks_true: >-
+       {{ __sap_swpm_fact_detect_saphostctrl_instance_found
+          or __sap_swpm_fact_detect_sapcontrol_instance_found
+          or __sap_swpm_fact_detect_instance_files
+          or __sap_swpm_fact_detect_instance_sapservices_found
+          or __sap_swpm_fact_detect_instance_profiles_found }}
+  when: __any_checks_true
+
+
+- name: SAP SWPM Pre Install - Detect - Set fact with detection results - {{ instance_item.number | d('') }}
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_detect_instance_results: "{{ __sap_swpm_fact_detect_instance_results + [__current_result] }}"
+  vars:
+    __current_result:
+      number: "{{ instance_item.number }}"
+      names: "{{ instance_item.names }}"
+      saphostctrl: "{{ __sap_swpm_fact_detect_saphostctrl_instance_found }}"
+      sapcontrol: "{{ __sap_swpm_fact_detect_sapcontrol_instance_found }}"
+      files: "{{ __sap_swpm_fact_detect_instance_files }}"
+      sapservices: "{{ __sap_swpm_fact_detect_instance_sapservices_found }}"
+      profiles: "{{ __sap_swpm_fact_detect_instance_profiles_found }}"

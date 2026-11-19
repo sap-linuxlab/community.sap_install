@@ -1,0 +1,101 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# When the role is executed against the same source directory multiple times,
+# we need to ensure that file scanning and classification does not skip subdirectories managed by this role.
+
+# This task file moves any files from subdirectories back to the main directory,
+# so that the next run of the role starts from the same layout as the first one.
+
+
+- name: SAP Install Media Detect - Reset - Find all files in the main directory
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_fact_main_directory }}"
+    patterns: '*'
+    file_type: file
+    recurse: false
+  register: __sap_install_media_detect_register_main_directory_files
+
+# 'patterns' is matched against the name of a directory as combination of two lists:
+# - List of known subdirectories managed by this role in the '__sap_install_media_detect_known_subdirectories' variable.
+# - One item list with the suffix '_extracted', that gets appended to all items in the first list.
+- name: SAP Install Media Detect - Reset - Find the subdirectories left by a previous run
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_fact_main_directory }}"
+    patterns: "{{ __sap_install_media_detect_known_subdirectories + ['*_extracted'] }}"
+    file_type: directory
+    recurse: false
+  register: __sap_install_media_detect_register_previous_subdirectories
+
+# The names of the files which are already in the main directory are needed to decide which of
+# the files in the subdirectories still have to be moved back.
+- name: SAP Install Media Detect - Reset - Set facts with the content of the main directory
+  ansible.builtin.set_fact:
+    # List of regular files used to avoid moving duplicates.
+    __sap_install_media_detect_fact_main_directory_file_names:
+      "{{ __sap_install_media_detect_register_main_directory_files.files
+          | map(attribute='path')
+          | map('basename')
+          | list }}"
+
+    # List of all previous subdirectories and target subdirectories without extracted suffix.
+    __sap_install_media_detect_fact_previous_subdirs: "{{ __subdirectories }}"
+    __sap_install_media_detect_fact_previous_target_subdirs:
+      "{{ __subdirectories
+        | reject('search', '_extracted$')
+        | list }}"
+  vars:
+    __subdirectories:
+      "{{ __sap_install_media_detect_register_previous_subdirectories.files
+          | map(attribute='path')
+          | list }}"
+
+# Only the target subdirectories are searched, not extraction directories.
+- name: SAP Install Media Detect - Reset - Find files in target subdirectories
+  ansible.builtin.find:
+    paths: "{{ __sap_install_media_detect_fact_previous_target_subdirs }}"
+    patterns: '*'
+    recurse: false
+  register: __sap_install_media_detect_register_files_to_move
+  when: __sap_install_media_detect_fact_previous_target_subdirs | length > 0
+
+
+# Remove duplicates from the list of files to move back, because they are already in the main directory.
+# This can be caused when copy tasks are used instead of move commands.
+# Filter 'zip' creates dictionary with the basename as the key and the full path as the value.
+- name: SAP Install Media Detect - Reset - Set fact for files to move back
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_files_to_move:
+      "{{ dict(__found_files | map('basename') | zip(__found_files)) | dict2items
+          | rejectattr('key', 'in', __sap_install_media_detect_fact_main_directory_file_names)
+          | map(attribute='value') | list }}"
+  vars:
+    __found_files:
+      "{{ __sap_install_media_detect_register_files_to_move.files | d([]) | map(attribute='path') | list }}"
+
+
+# Ansible does not have native 'move' module and we have to use the command module instead.
+# Alternative would be to use the 'ansible.builtin.copy' module with 'remote_src: true'
+# and then remove the original files using 'ansible.builtin.file' with 'state: absent'.
+- name: SAP Install Media Detect - Reset - Move files back to the main directory
+  ansible.builtin.command:
+    cmd: >-
+      mv -t {{ __sap_install_media_detect_fact_main_directory | quote }}
+      {{ __sap_install_media_detect_fact_files_to_move | map('quote') | join(' ') }}
+  register: __sap_install_media_detect_register_move_files
+  changed_when: __sap_install_media_detect_register_move_files.rc == 0
+  when: __sap_install_media_detect_fact_files_to_move | length > 0
+
+- name: SAP Install Media Detect - Reset - Remove subdirectories left by a previous run
+  ansible.builtin.file:
+    path: "{{ dir_item }}"
+    state: absent
+  loop: "{{ __sap_install_media_detect_fact_previous_subdirs }}"
+  loop_control:
+    loop_var: dir_item
+
+# The reset is the last step of the role when the tag 'sap_install_media_detect_reset' is used,
+# and the result of it is reported by 'post_tasks/show_summary.yml' in both cases.
+- name: SAP Install Media Detect - Summary - Set the progress fact for the reset
+  ansible.builtin.set_fact:
+    __sap_install_media_detect_fact_is_main_directory_reset: true

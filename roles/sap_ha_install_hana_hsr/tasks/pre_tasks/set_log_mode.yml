@@ -1,20 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
+# Set log_mode at SYSTEM layer only. HOST layer overrides are not managed by this role.
 
-- name: SAP HSR - check log_mode
-  become: true
-  become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
-  ansible.builtin.shell:
-    cmd: >-
-      set -o pipefail &&
-      grep "log_mode" /usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/global/hdb/custom/config/global.ini | grep normal
-  register: __sap_ha_install_hana_hsr_register_log_mode
-  failed_when: false
-  changed_when: false
-
-# CHECK, if ansible_facts['hostname'] needs to be replaced with interface name
-# This task will fail when HSR is already configured, because secondary node nameserver is not running with port 3XX13.
-- name: SAP HSR - Set log_mode to normal
+- name: SAP HSR - Check current log_mode in SYSTEM global.ini
   become: true
   become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
   ansible.builtin.shell:
@@ -22,9 +10,31 @@
       /usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql \
       -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
       -m <<EOF
-      ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM') SET ('persistence', 'log_mode') = 'normal' WITH RECONFIGURE;
-      ALTER SYSTEM ALTER CONFIGURATION('global.ini','HOST','{{ ansible_facts['hostname'] }}') SET ('persistence','log_mode') = 'normal' WITH RECONFIGURE;
+      SELECT VALUE FROM M_INIFILE_CONTENTS
+        WHERE FILE_NAME = 'global.ini'
+        AND LAYER_NAME = 'SYSTEM'
+        AND SECTION = 'persistence'
+        AND KEY = 'log_mode'
+        AND VALUE = 'normal';
+      EOF
+  register: __sap_ha_install_hana_hsr_register_log_mode
+  failed_when: false
+  changed_when: false
+
+# This task will fail when HSR is already configured,
+# because secondary node nameserver is not running with port 3XX13.
+- name: SAP HSR - Set log_mode to normal for SYSTEM
+  become: true
+  become_user: "{{ __sap_ha_install_hana_hsr_sid | lower }}adm"
+  ansible.builtin.shell:
+    cmd: |
+      /usr/sap/{{ __sap_ha_install_hana_hsr_sid }}/SYS/exe/hdb/hdbsql \
+      -U {{ sap_ha_install_hana_hsr_hdbuserstore_system_backup_user }} \
+      -m <<EOF
+      ALTER SYSTEM ALTER CONFIGURATION('global.ini','SYSTEM')
+        SET ('persistence','log_mode')
+        = 'normal' WITH RECONFIGURE;
       EOF
   ignore_errors: true
-  when: __sap_ha_install_hana_hsr_register_log_mode.rc != '0'
+  when: "'normal' not in __sap_ha_install_hana_hsr_register_log_mode.stdout"
   changed_when: true

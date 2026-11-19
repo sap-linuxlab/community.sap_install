@@ -22,7 +22,7 @@
     - name: SAP SWPM Pre Install, existing inifile - Search inifile for des25
       ansible.builtin.shell: |
         set -o pipefail && awk 'BEGIN{a=0}!/^#/&&/des25\(/{a++}END{print a}' {{ __sap_swpm_register_tmpdir.path }}/inifile.params
-      register: sap_swpm_inifile_count_des25
+      register: __sap_swpm_register_inifile_count_des25
       changed_when: false
 
     - name: SAP SWPM Pre Install, existing inifile - Ensure that des25 is not present in inifile
@@ -30,7 +30,7 @@
         msg:
           - "Inifile '{{ sap_swpm_inifile_directory }}/inifile.params' cannot be reused because it contains des25 encrypted data."
           - "See also SAP note 2609804."
-      when: sap_swpm_inifile_count_des25.stdout != '0'
+      when: __sap_swpm_register_inifile_count_des25.stdout != '0'
 
     - name: SAP SWPM Pre Install - Detect Variables
       ansible.builtin.import_tasks:
@@ -38,7 +38,7 @@
 
 # At this point, the following variables need to be set:
 # sap_swpm_product_catalog_id, __sap_swpm_fact_software_path, sap_swpm_sid, sap_swpm_fqdn
-- name: SAP SWPM Pre Install - Assert that certain variables are set
+- name: SAP SWPM Pre Install - Assert that required variables are set correctly
   ansible.builtin.include_tasks:
     file: assert_vars_length_loop_block.yml
     apply:
@@ -52,14 +52,40 @@
     loop_var: __sap_swpm_vars_to_be_asserted_for_length_line_item
   tags: sap_swpm_generate_inifile
 
-- name: SAP SWPM Pre Install - Display these variables
+- name: SAP SWPM Pre Install - Display contents of required variables
   ansible.builtin.debug:
     msg: |
-      "sap_swpm_product_catalog_id:   '{{ sap_swpm_product_catalog_id }}'"
-      "sap_swpm_sid:                  '{{ sap_swpm_sid }}'"
-      "sap_swpm_fqdn:                 '{{ sap_swpm_fqdn }}'"
-      " "
-      "The SAP software is taken from directory: '{{ __sap_swpm_fact_software_path }}'"
+      sap_swpm_product_catalog_id:   '{{ sap_swpm_product_catalog_id }}'
+      sap_swpm_sid:                  '{{ sap_swpm_sid }}'
+      sap_swpm_fqdn:                 '{{ sap_swpm_fqdn }}'
+
+      The SAP software is taken from directory: '{{ __sap_swpm_fact_software_path }}'
+
+
+# While SWPM allows providing extra inputs and ignores them,
+# we want to ensure that some sections are provided before failure occurs inside of SWPM execution.
+- name: SAP SWPM Pre Install - Assert that inifile sections are provided for product
+  ansible.builtin.assert:
+    that: >-
+      (__sap_swpm_product_sections_dict[__product_prefix]['sections']
+        | intersect(sap_swpm_inifile_sections_list) | length)
+          == __sap_swpm_product_sections_dict[__product_prefix]['sections'] | length
+    fail_msg: |
+      FAIL: The SAP Product '{{ sap_swpm_product_catalog_id }}'
+      requires all of the following sections to be defined
+      in the variable 'sap_swpm_inifile_sections_list':
+      {% for section in __sap_swpm_product_sections_dict[__product_prefix]['sections'] | d([]) %}
+      - {{ section }}
+      {% endfor %}
+  vars:
+    __product_prefix: "{{ sap_swpm_product_catalog_id.split(':') | first }}"
+  when:
+    - sap_swpm_inifile_sections_list | d([]) | length > 0
+    - sap_swpm_product_catalog_id | d('') | trim | length > 0
+    - "':' in sap_swpm_product_catalog_id"
+    - __sap_swpm_product_sections_dict[__product_prefix] is defined
+  tags: sap_swpm_generate_inifile
+
 
 # We are creating the inifile dynamically in one of the two cases:
 # 1 - The tag sap_swpm_generate_inifile is specified

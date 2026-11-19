@@ -1,0 +1,103 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# The swap disks share all device stages with the block disks.
+# The logical volumes and the swap signatures were already created by 'configure_lvg_lvm.yml',
+# so only the entries in '/etc/fstab' and the activation of the swap devices are done here.
+
+
+# All swap disks are processed, not only the ones that were configured by this run,
+# because a disk that already has its logical volume is not part of the volume map
+# and its entry in '/etc/fstab' and its activation still have to be maintained.
+# Entries that found no unused disk have no logical volume and are dropped by the check below.
+- name: SAP Storage Setup - Swap disk - Set fact with the swap device paths
+  ansible.builtin.set_fact:
+    __sap_storage_setup_fact_swap_devices: |
+      {% set devices = [] %}
+      {% for entry in __sap_storage_setup_swap_disks %}
+        {%- set add_to_list = devices.append(
+          '/dev/' + entry['lvm_vg_name'] | d('vg_' + entry['name'])
+          + '/' + entry['lvm_lv_name'] | d('lv_' + entry['name'])) -%}
+      {% endfor %}
+      {{ devices }}
+
+    # The volumes that the LVM tasks were asked to create in this run.
+    # Only these have to exist, which is verified below.
+    __sap_storage_setup_fact_swap_devices_expected: |
+      {% set devices = [] %}
+      {% for volume in __sap_storage_setup_fact_volume_map | d([])
+          | selectattr('filesystem_type', '==', 'swap') %}
+        {%- set add_to_list = devices.append(
+          '/dev/' + volume['volume_group'] + '/' + volume['volume_name']) -%}
+      {% endfor %}
+      {{ devices }}
+
+- name: SAP Storage Setup - Swap disk - Get the active swap devices
+  ansible.builtin.command:
+    cmd: swapon --show=NAME --noheadings
+  register: __sap_storage_setup_register_active_swap
+  changed_when: false
+  check_mode: false
+
+- name: SAP Storage Setup - Swap disk - Get stat of existing swap devices
+  ansible.builtin.stat:
+    path: "{{ swap_device }}"
+    get_attributes: false
+    get_checksum: false
+    get_mime: false
+  register: __sap_storage_setup_register_stat_swap_devices
+  loop: "{{ __sap_storage_setup_fact_swap_devices }}"
+  loop_control:
+    loop_var: swap_device
+
+# Only the volumes that the LVM tasks were asked to create must exist.
+# A swap disk that found no unused disk is not part of the volume map, it is reported by the mapping stage instead.
+- name: SAP Storage Setup - Swap disk - Fail if a swap device does not exist
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The logical volumes of the following swap disks were not found:
+      {{ __missing_devices | join('\n') }}
+
+      This indicates that the LVM tasks did not complete,
+      check the output of the earlier tasks for errors.
+  vars:
+    __missing_devices: "{{ __sap_storage_setup_register_stat_swap_devices.results
+      | rejectattr('stat.exists') | map(attribute='swap_device')
+      | select('in', __sap_storage_setup_fact_swap_devices_expected) | list }}"
+  when:
+    - not ansible_check_mode
+    - __missing_devices | length > 0
+
+# The mount point must be 'none' for swap devices, because the module matches an existing
+# entry of '/etc/fstab' by the mount point. With any other mount point, a second swap device
+# would replace the entry of the first one instead of adding its own.
+- name: SAP Storage Setup - Swap disk - Maintain the entries in /etc/fstab
+  ansible.posix.mount:
+    path: none
+    src: "{{ stat_item['swap_device'] }}"
+    fstype: swap
+    opts: defaults
+    state: present
+  loop: "{{ __sap_storage_setup_register_stat_swap_devices.results }}"
+  loop_control:
+    loop_var: stat_item
+    label: "{{ stat_item['swap_device'] }}"
+  # A device that does not exist would be an entry that breaks the next boot.
+  when: stat_item['stat']['exists']
+
+- name: SAP Storage Setup - Swap disk - Enable the swap devices
+  ansible.builtin.command:
+    cmd: "swapon {{ stat_item['swap_device'] }}"
+  changed_when: true
+  loop: "{{ __sap_storage_setup_register_stat_swap_devices.results }}"
+  loop_control:
+    loop_var: stat_item
+    label: "{{ stat_item['swap_device'] }}"
+  when:
+    - not ansible_check_mode
+    - stat_item['stat']['exists']
+
+    # The active swap devices are reported with their resolved device name (e.g. '/dev/dm-0'),
+    # so the target of the symbolic link is compared instead of the device path.
+    - stat_item['stat']['lnk_source'] | d(stat_item['swap_device'])
+      not in __sap_storage_setup_register_active_swap.stdout_lines

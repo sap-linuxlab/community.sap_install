@@ -1,0 +1,217 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Variables in this file are not meant to be overridden by users.
+# User variables should be defined in the 'defaults/main.yml' file or passed as extra-vars.
+
+# NOTE: This role is designed to be run multiple times inside of same playbook run,
+# which makes these variables obsolete after the first run of the role.
+# Dedicated 'set_fact' tasks must be used to re-set these variables.
+
+
+# List of known subdirectory names for moving files to the main directory.
+__sap_install_media_detect_known_subdirectories:
+  # Main SWPM download basket.
+  - sap_swpm_download_basket
+
+  # Databases.
+  - sap_hana
+  - sap_swpm
+  - sapase
+  - sapmaxdb
+  - oracledb
+  - ibmdb2
+
+  # Installation exports.
+  - sap_export_nwas_abap
+  - sap_export_nwas_java
+  - sap_export_ecc
+  - sap_export_ecc_ides
+  - sap_export_solman_abap
+  - sap_export_solman_java
+  - sap_export_solman_lang
+
+
+# Number of files that are passed to a single invocation of the 'file' and 'sapfile' commands.
+# Default value of 10 is set to ensure that the argument list does not become too long for the commands.
+__sap_install_media_detect_command_batch_size: 10
+
+# This dictionary defines keywords to identify the type of an installation media file which has no extension,
+# so that the missing extension can be added to it before sapfile is called.
+#   Key: The extension which is added to a matching file.
+#   Value: A list of keywords to search for in the `file` command output.
+__sap_install_media_detect_file_extension_matrix:
+
+  # SAP archive. The keyword was added to the `file` command between version 5.32 and 5.46, so an
+  # older version reports the generic 'data' instead and the file stays unidentified.
+  # 5.32: igsexe_0-70008564.sar: data
+  # 5.46: igsexe_0-70008564.sar: SAPCAR archive data
+  SAR: ['SAPCAR archive data']
+
+  # The SAPCAR program, an executable and not an archive. The architecture does not matter here.
+  # SAPCAR_1400-70007716.EXE: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), ...
+  EXE: ['ELF']
+
+  # Windows executable with a RAR archive appended, keyword is at the end of the output.
+  # 51050708_1.exe: PE32 executable (GUI) Intel 80386, for MS Windows, RAR self-extracting archive
+  exe: ['RAR self-extracting archive']
+
+  # 51050708_2.rar: RAR archive data, v4, os: Unix, flags: ArchiveVolume NewVolumeNaming
+  rar: ['RAR archive data']
+
+  # 51056772.ZIP: Zip archive data, at least v2.0 to extract
+  zip: ['Zip archive data']
+
+
+# The list of SAP file types which are always kept, independent of the role parameters.
+# 'sap_unknown' is kept because a file that sapfile cannot identify still belongs into the SWPM download basket,
+# where SWPM itself decides what to do with it.
+__sap_install_media_detect_generic_file_types:
+  - sapcar
+  - sap_jvm
+  - sap_unknown
+
+
+# The dictionary matrix tying together role variables and SAP file types.
+#
+# KEY: The role parameter that asks for them. For a boolean parameter it is the parameter name
+#      without the role prefix, for a parameter that takes a value it is the parameter name
+#      without the role prefix, followed by the value:
+#
+#        sap_install_media_detect_swpm: true            ->  swpm
+#        sap_install_media_detect_kernel: true          ->  kernel
+#        sap_install_media_detect_db: 'saphana'         ->  db_saphana
+#        sap_install_media_detect_db_client: 'ibmdb2'   ->  db_client_ibmdb2
+#        sap_install_media_detect_export: 'sapecc'      ->  export_sapecc
+#
+# VALUE: The SAP file types that sapfile reports for the files of that parameter. This is not a
+#        directory name. Where a file is placed is decided by sapfile as well and is reported in
+#        a separate field of its output.
+#
+# The map is the single source for both the selection of the files and the assertion that the
+# installation media is complete, so that the two cannot drift apart.
+__sap_install_media_detect_component_file_types:
+
+  swpm: ['sap_swpm']
+  hostagent: ['sap_hostagent']
+  igs: ['sap_igs']
+  webdisp: ['sap_webdisp']
+  mpstack: ['sap_mp_xml']
+
+  # Database independent SAP kernel, and the database dependent one.
+  # Without a value for 'sap_install_media_detect_kernel_db' any database dependent kernel is accepted,
+  # which is what the 'kernel_db_any' entry stands for.
+  kernel: ['sap_kernel']
+  kernel_db_any:
+    - sap_kernel_db_hdb
+    - sap_kernel_db_ase
+    - sap_kernel_db_ada
+    - sap_kernel_db_ora
+    - sap_kernel_db_db6
+  kernel_db_saphana: ['sap_kernel_db_hdb']
+  kernel_db_sapase: ['sap_kernel_db_ase']
+  kernel_db_sapmaxdb: ['sap_kernel_db_ada']
+  kernel_db_oracledb: ['sap_kernel_db_ora']
+  kernel_db_ibmdb2: ['sap_kernel_db_db6']
+
+  db_saphana:
+    - saphana
+    - saphana_other
+    - saphana_vch_afl
+  db_sapase: ['sapase']
+  db_sapmaxdb: ['sapmaxdb']
+  db_oracledb:
+    - oracledb
+    - oracledb_tools
+  db_ibmdb2:
+    - ibmdb2
+    - ibmdb2_license
+
+  # SAP MaxDB has no separate client media, its client is part of the SWPM installation,
+  # so the parameter value is accepted but selects nothing.
+  db_client_saphana: ['saphana_client']
+  db_client_sapase: ['sapase_client']
+  db_client_sapmaxdb: []
+  db_client_oracledb: ['oracledb_client']
+  db_client_ibmdb2: ['ibmdb2_client']
+
+  export_saps4hana:
+    - sap_export_s4hana
+    - sap_s4hana_lang
+  export_sapbw4hana:
+    - sap_export_bw4hana
+    - sap_s4hana_lang
+  export_sapecc: ['sap_export_ecc']
+  export_sapecc_ides: ['sap_export_ecc_ides']
+  export_sapnwas_abap: ['sap_export_nwas_abap']
+  export_sapnwas_java: ['sap_export_nwas_java']
+  export_sapsolman_abap: ['sap_export_solman_abap']
+  export_sapsolman_java: ['sap_export_solman_java']
+
+
+# The dictionary mapping for final detection of extracted SAP media directories.
+#
+# KEY:   The role parameter that asks for the component, as in the map above.
+# VALUE: 'subdirectory' is the extraction directory returned by sapfile utility.
+#        'pattern' is a regular expression for the wanted directory inside of it.
+#
+# NOTE: The SAP S/4HANA and SAP BW/4HANA exports are not extracted, so they are located as files
+#       and are not part of this map.
+__sap_install_media_detect_extracted_directory_matrix:
+
+  db_sapase:
+    subdirectory: 'sapase_extracted'
+    pattern: '.*SYBASE_LINUX.*'
+  db_sapmaxdb:
+    subdirectory: 'sapmaxdb_extracted'
+    pattern: '.*MaxDB_7\.9.*'
+  db_oracledb:
+    subdirectory: 'oracledb_extracted'
+    pattern: '.*LINUX_X86_64.*'
+  db_ibmdb2:
+    subdirectory: 'ibmdb2_extracted'
+    pattern: '.*LINUXX86_64.*'
+
+  db_client_saphana:
+    subdirectory: 'sap_hana_client_extracted'
+    pattern: 'SAP_HANA_CLIENT$'
+  db_client_sapase:
+    subdirectory: 'sapase_client_extracted'
+    pattern: 'sybodbc'
+  db_client_oracledb:
+    subdirectory: 'oracledb_client_extracted'
+    pattern: '.*OCL_LINUX_X86_64.*'
+  db_client_ibmdb2:
+    subdirectory: 'ibmdb2_client_extracted'
+    pattern: '.*DATA_UNITS.*'
+
+  export_sapecc:
+    subdirectory: 'sap_export_ecc_extracted'
+    pattern: '.*DATA_UNITS.*'
+  export_sapecc_ides:
+    subdirectory: 'sap_export_ecc_ides_extracted'
+    pattern: '.*EXP.*'
+  export_sapnwas_abap:
+    subdirectory: 'sap_export_nwas_abap_extracted'
+    pattern: '.*DATA_UNITS.*'
+  export_sapnwas_java:
+    subdirectory: 'sap_export_nwas_java_extracted'
+    pattern: '.*DATA_UNITS.*'
+  export_sapsolman_abap:
+    subdirectory: 'sap_export_solman_abap_extracted'
+    pattern: '.*DATA_UNITS.*'
+  export_sapsolman_java:
+    subdirectory: 'sap_export_solman_java_extracted'
+    pattern: '.*DATA_UNITS.*'
+
+
+# List of commands tied to 'unar' package, which is the default way of handling RAR files on all supported platforms.
+__sap_install_media_detect_unar_rar_list: '/usr/bin/lsar'
+__sap_install_media_detect_unar_rar_extract: '/usr/bin/unar'
+__sap_install_media_detect_unar_rar_extract_directory_argument: ' -o'
+
+# (Red Hat specific) The 'unar' package is not part of the base repositories and is obtained
+# from EPEL, which in turn requires the CodeReady Builder repository.
+__sap_install_media_detect_epel_release_package_url:
+  "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
+__sap_install_media_detect_epel_release_package_name: 'epel-release'

@@ -42,7 +42,9 @@
 - name: SAP HANA - Install - Pre-Tasks - Check shared filesystems
   ansible.builtin.include_tasks:
     file: pre_tasks/check_filesystems.yml
-  when: __sap_hana_install_fact_is_scaleout
+  when:
+    - __sap_hana_install_fact_is_scaleout
+    - not sap_hana_install_skip_filesystem_check | d(false)
 
 
 # We need to change permissions only after filesystem check has passed.
