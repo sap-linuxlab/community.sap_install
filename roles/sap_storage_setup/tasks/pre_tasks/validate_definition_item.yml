@@ -81,12 +81,9 @@
   loop: "{{ __sap_storage_setup_definition_keys_int }}"
   loop_control:
     loop_var: __sap_storage_setup_key_item
-  # Digit-only strings are accepted, because templated values always render to strings. '\Z' rejects a trailing newline.
   when:
     - __sap_storage_setup_key_item in __sap_storage_setup_definition_item
-    - not (__sap_storage_setup_definition_item[__sap_storage_setup_key_item] is integer
-        or (__sap_storage_setup_definition_item[__sap_storage_setup_key_item] is string
-            and __sap_storage_setup_definition_item[__sap_storage_setup_key_item] is match('^[0-9]+\Z')))
+    - __sap_storage_setup_definition_item[__sap_storage_setup_key_item] is not integer
       or __sap_storage_setup_definition_item[__sap_storage_setup_key_item] | int <= 0
 
 # Accepted are positive integers like 100 and strings with an optional unit suffix, like '100' or '2T'.
