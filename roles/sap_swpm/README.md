@@ -212,6 +212,7 @@ With the following tags, the role can be called to perform certain activities on
 - `sap_swpm_generate_inifile`: Generates sapinst inifile regardless of whether existing inifile is present, without running any other tasks.<br>
   The file is saved in the `sap_swpm_software_path` directory with SAP System specific prefix (e.g. `inifile_AE1_NW_ABAP_OneHost.params`).<br>
   This can be used to check if the inifile is created as desired.
+  - **NOTE:** This file can be used for installation after renaming to `inifile.params` and defining path to its directory in the variable `sap_swpm_inifile_directory`.
 - `sap_swpm_sapinst_commandline`: Prepares the sapinst command that would be executed and outputs it.<br>
   **NOTE: Command show path to sapinst inifile, but it is not generated when only this tag is used!**
 - `sap_swpm_pre_install`: Performs all pre tasks and exits before execution of sapinst command.
@@ -364,6 +365,13 @@ The path to directory where existing sapinst inifile `inifile.params` is stored.
 Empty or invalid path will be ignored and the role will generate new inifile.<br>
 The existing inifile is the first source of SWPM specific variables, so this variable must be known before any other source is read.
 It cannot be set in `sap_swpm_role_parameters_dict` or `sap_swpm_templates_install_dictionary`.
+
+#### sap_swpm_keep_inifile
+- _Type:_ `bool`
+- _Default:_ `false`
+
+The variable that controls whether the role will keep the existing inifile.<br>
+Set to `true` to keep the existing inifile in the directory path defined in `sap_swpm_software_path`.
 <!-- END Mandatory Role Specific Variables -->
 
 

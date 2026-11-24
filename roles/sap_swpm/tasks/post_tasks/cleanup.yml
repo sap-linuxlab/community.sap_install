@@ -44,10 +44,12 @@
             - __sap_swpm_register_cleanup_inifile_stat.stat.exists
             # Preservation of generated inifile will occur only if any check below evaluates to true, described below.
             # - Any task failed
+            # - Variable 'sap_swpm_keep_inifile' is true.
             # - Tag 'sap_swpm_generate_inifile' is used.
             # - Variable 'sap_swpm_run_sapinst' is false.
             - >
               __sap_swpm_fact_failed_task | length > 0
+                or sap_swpm_keep_inifile
                 or 'sap_swpm_generate_inifile' in ansible_run_tags
                 or not sap_swpm_run_sapinst
           block:

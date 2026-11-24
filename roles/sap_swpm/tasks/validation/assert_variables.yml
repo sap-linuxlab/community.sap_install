@@ -94,7 +94,7 @@
 
 # Limited to new inifile validation, because existing inifile is parsing only a subset of variables validated above.
 - name: Block for new inifile validation
-  when: not __sap_swpm_fact_inifile_exists
+  when: "'sap_swpm_generate_inifile' in ansible_run_tags or (not __sap_swpm_fact_inifile_exists)"
   block:
 
     # '__sap_swpm_vars_sections_dict' lists all sections of the inifile template, so any other name is a typo or an unsupported section.
@@ -180,4 +180,5 @@
           Defined as: "{{ __sap_swpm_fact_vars['sap_swpm_crlbag_path'] }}"
       when:
         - not (__sap_swpm_register_crlbag_path_stat.stat.exists
-            and __sap_swpm_register_crlbag_path_stat.stat.isfile)
+            and (__sap_swpm_register_crlbag_path_stat.stat.isreg
+              or __sap_swpm_register_crlbag_path_stat.stat.islnk))
