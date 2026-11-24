@@ -81,9 +81,22 @@
 
 # Prepare internal facts and backwards compatible variables.
 # Role variables are loaded for both existing and new inifile.
-- name: SAP SWPM - Validation - Prepare variables
-  ansible.builtin.import_tasks:
-    file: prepare_variables.yml
+- name: Block for catching fatal errors
+  block:
+    - name: SAP SWPM - Validation - Prepare variables
+      ansible.builtin.import_tasks:
+        file: prepare_variables.yml
+
+  # Variable preparation is expanding variables to set internal dictionary of facts.
+  # This rescue will ensure we provide clear message if variable preparation fails.
+  rescue:
+    - name: SAP SWPM - Validation - Fail if the variables could not be prepared
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The task to load all variables with prefix 'sap_swpm_' has failed.
+          This usually occurs when a 'sap_swpm_' variable references a source variable that is undefined.
+          For example, setting 'sap_swpm_sid' from an undefined 'sap_system_sid'.
+          Ensure all referenced variables are defined and accessible.
 
 
 # Validation of 'sap_swpm_templates_install_dictionary' if defined.
