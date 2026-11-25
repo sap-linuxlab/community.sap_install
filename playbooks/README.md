@@ -33,7 +33,7 @@ The directory `vars` contains the variable files used by the SWPM samples, becau
 
 For SAP HANA System Replication, see the example in the README of the role `sap_ha_install_hana_hsr`.
 
-## Usage
+### Usage
 
 Copy a sample and adapt the host groups and variables for your environment. Then run it against your inventory:
 
@@ -45,6 +45,64 @@ When running against remote hosts, the connection user needs to be able to becom
 Pass `-u <user>` for the SSH user, `-k` to ask for the SSH password and `-K` to ask for the privilege escalation password, if they are required.
 
 > **NOTE:** Use `--check` first with the sample `sample-sap-storage-setup.yml`, to review changes before disks are configured.
+
+
+## Ready to use playbooks
+
+The following playbooks are ready to use directly with `ansible-playbook` command.
+| Area | Sample | Shows |
+| --- | --- | --- |
+| Preconfigure | `sap_hana_preconfigure_exec.yml` | Roles `sap_general_preconfigure` and `sap_hana_preconfigure` |
+
+### Usage example for `sap_hana_preconfigure_exec`
+
+1. Prepare your Ansible inventory file. Example of file `my_inventory`:
+```yaml
+[hana_hosts]
+hana1
+hana2
+```
+
+> **NOTE:** Ensure that the hosts defined in your inventory are accessible via SSH or define the appropriate connection parameters in your inventory file.
+
+2. Prepare the variable file. Example of file `my_vars.yml`:
+```yaml
+---
+# Control variables for playbook execution
+sap_playbook_parameter_confirm: false  # Set to true, if playbooks should wait for confirmation before execution.
+
+# Variables for Ansible Role 'sap_general_preconfigure'
+sap_general_preconfigure_domain: my.sap.domain
+sap_general_preconfigure_modify_etc_hosts: true
+sap_general_preconfigure_update: true
+sap_general_preconfigure_fail_if_reboot_required: false
+
+# Variables for Ansible Role 'sap_hana_preconfigure'
+sap_hana_preconfigure_update: true
+sap_hana_preconfigure_fail_if_reboot_required: false
+sap_hana_preconfigure_reboot_ok: true
+```
+
+> **NOTE:** See the README of the roles `sap_general_preconfigure` and `sap_hana_preconfigure` for detailed information on the variables and their usage.
+
+3. Run the playbook with your inventory and variable file:
+```bash
+ansible-playbook community.sap_install.sap_hana_preconfigure_exec.yml -i my_inventory -e @my_vars.yml -e sap_hana_group=hana_hosts
+```
+
+> **NOTE:** The variable `sap_hana_group` should match the host group defined in your inventory file for the HANA hosts.
+
+Optionally you can run the playbook inside of another using `import_playbook`:
+```yaml
+---
+- name: Run SAP HANA preconfigure playbook
+  import_playbook: community.sap_install.sap_hana_preconfigure_exec.yml
+  vars:
+    sap_hana_group: hana_hosts
+  vars_files:
+    - my_vars.yml
+```
+
 
 ## Plugin tests
 
