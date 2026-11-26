@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Ansible Playbook for preconfiguration of hosts for any SAP software, using the role 'sap_general_preconfigure'.
+# The role is a prerequisite for the product specific preconfigure roles, e.g. 'sap_hana_preconfigure' and 'sap_netweaver_preconfigure'.
+#
+# Prerequisites:
+# - The hosts are registered to a repository source with the repositories required for SAP software.
+# - The hosts have a DNS domain, which the role takes from the host FQDN (Ansible fact 'domain'),
+#   unless 'sap_general_preconfigure_domain' is set. It is not needed if 'sap_general_preconfigure_modify_etc_hosts' is set to false.
+#
+# See the README of the role 'sap_general_preconfigure' for all available variables.
+
+- name: Ansible Play for SAP general preconfigure
+  hosts: sap_hosts
+  become: true
+  any_errors_fatal: true
+  tasks:
+
+    - name: Execute Ansible Role sap_general_preconfigure
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_general_preconfigure
+      vars:
+        sap_general_preconfigure_domain: 'example.com'  # Defines the valid DNS domain for the hosts.
+        sap_general_preconfigure_update: true  # Ensures that the system is updated.
+        sap_general_preconfigure_reboot_ok: true  # Allows the system to reboot if required.
+        sap_general_preconfigure_fail_if_reboot_required: false  # Ensures that the playbook will not fail if reboot is required.

@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Ansible Playbook for installing a new scale-up (single node) SAP HANA system, using the role 'sap_hana_install'.
+#
+# Prerequisites:
+# - The software directory contains the IMDB_SERVER*SAR file, IMDB_*SAR files of all components to be installed and the SAPCAR executable.
+# - The host is prepared for SAP HANA, e.g. by the roles 'sap_general_preconfigure' and 'sap_hana_preconfigure'.
+#
+# See the README of the role 'sap_hana_install' for all available variables.
+
+- name: Ansible Play for SAP HANA installation - Scale-up
+  hosts: hana_hosts
+  become: true
+  any_errors_fatal: true
+  tasks:
+
+    - name: Execute Ansible Role sap_hana_install
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_hana_install
+      vars:
+        sap_hana_install_sid: 'H01'
+        sap_hana_install_instance_nr: '01'
+        sap_hana_install_software_directory: /software/hana
+        sap_hana_install_master_password: 'NewPass$321'  # Do not use, this is example only!

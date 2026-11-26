@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Ansible Playbook for installing an SAP S/4HANA one-host system using role variables, with the role 'sap_swpm'.
+#
+# The inifile is generated from 'sap_swpm_inifile_sections_list' and the variables of the selected sections.
+# The variables are loaded from the file in the 'vars' directory, but they can be defined also in the inventory or extravars.
+# The file also shows the optional dictionaries 'sap_swpm_role_parameters_dict' and 'sap_swpm_inifile_parameters_dict'.
+#
+# Prerequisites:
+# - No existing inifile 'inifile.params' is found in 'sap_swpm_inifile_directory'.
+# - The directory 'sap_swpm_software_path' contains all installation media required by the product,
+#   including SAPCAR and SWPM, as described in the README of the role 'sap_swpm'.
+#   The role 'sap_install_media_detect' can be used to prepare such directory.
+#
+# See the README of the role 'sap_swpm' for all available variables and their precedence.
+
+- name: Ansible Play for SAP SWPM installation using role variables
+  hosts: all
+  become: true
+  any_errors_fatal: true
+  vars_files:
+    # NOTE: Use only one of the following files, so keep the other one commented out.
+    - ./vars/sample-variables-sap-swpm-s4hana-onehost-install.yml
+    # - ./vars/sample-variables-sap-swpm-s4hana-onehost-restore.yml
+  tasks:
+
+    - name: Execute Ansible Role sap_swpm
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_swpm

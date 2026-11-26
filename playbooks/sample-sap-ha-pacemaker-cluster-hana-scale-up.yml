@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Ansible Playbook for installing and configuring a Pacemaker cluster for a SAP HANA scale-up system with 2 nodes.
+# The cluster defaults to using the SAP HANA Angi resource agent, if it is available and installable.
+#
+# WARNING: The role destroys and then recreates the Pacemaker cluster on the hosts.
+#
+# Prerequisites:
+# - SAP HANA is installed and SAP HANA System Replication is configured between the nodes.
+# - The required ports are open, see the README of the role 'sap_ha_pacemaker_cluster'.
+# - Cloud platform resources required by the resource agents exist, because the role does not create them.
+# - Hosts with more than one network interface need 'sap_ha_pacemaker_cluster_vip_client_interface' defined,
+#   to select the interface for the virtual IP address. The role fails otherwise.
+# - Fencing: The role detects the platform and prepares the fence agent resource. Without fencing, STONITH is disabled.
+#   On a platform without detection, define the fence agent with 'sap_ha_pacemaker_cluster_stonith_custom'.
+#   The role does not provision the fencing devices (e.g. SBD block devices or watchdog), they have to be present before.
+#   The role only activates them in the cluster configuration.
+#
+# See the README of the role 'sap_ha_pacemaker_cluster' for all available variables.
+
+- name: Ansible Play for SAP HANA scale-up Pacemaker cluster setup
+  hosts: hana_primary, hana_secondary
+  become: true
+  any_errors_fatal: true
+  tasks:
+
+    - name: Execute Ansible Role sap_ha_pacemaker_cluster
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_ha_pacemaker_cluster
+      vars:
+        sap_ha_pacemaker_cluster_cluster_name: clusterhdb
+        sap_ha_pacemaker_cluster_hacluster_user_password: 'NewPass$321'  # Do not use, this is example only!
+
+        sap_ha_pacemaker_cluster_host_type:
+          - hana_scaleup_perf
+
+        sap_ha_pacemaker_cluster_hana_sid: H01
+        sap_ha_pacemaker_cluster_hana_instance_nr: '01'
+
+        # Ensures that packages conflicting with SAP HANA Angi are uninstalled before it is used.
+        # WARNING: This is a one-way step, which is destructive on a running cluster without migration to SAP HANA Angi.
+        sap_ha_pacemaker_cluster_saphanasr_angi_force: true
+
+        sap_ha_pacemaker_cluster_cluster_nodes:
+          - node_name: h01hana0
+            node_ip: 10.10.10.10
+            node_role: primary
+            hana_site: DC01
+          - node_name: h01hana1
+            node_ip: 10.10.10.11
+            node_role: secondary
+            hana_site: DC02
+
+        # Virtual IP of the primary SAP HANA instance, it moves between the nodes together with the primary role.
+        sap_ha_pacemaker_cluster_vip_hana_primary_ip_address: 10.10.10.12
