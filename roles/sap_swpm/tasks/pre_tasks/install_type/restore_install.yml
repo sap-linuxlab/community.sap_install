@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# System Copy restore installation
+
+# This task file is included only for Product IDs of System Copy ('.CP'), so the backup location must be defined and exist.
+- name: SAP SWPM - Install Type - Restore - Fail if necessary variable for System Copy is not defined
+  ansible.builtin.fail:
+    msg: "FAIL: 'sap_swpm_backup_location' is not defined or is defined with an empty string!"
+  when: __sap_swpm_fact_vars['sap_swpm_backup_location'] is not defined
+
+- name: SAP SWPM - Install Type - Restore - Check availability of backup location
+  ansible.builtin.stat:
+    path: "{{ __sap_swpm_fact_vars['sap_swpm_backup_location'] }}"
+  register: __sap_swpm_register_backup_location_stat
+  failed_when: not __sap_swpm_register_backup_location_stat.stat.exists
+
+- name: SAP SWPM - Install Type - Restore - Change ownership of backup location
+  ansible.builtin.file:
+    path: "{{ __sap_swpm_fact_vars['sap_swpm_backup_location'] }}"
+    state: directory
+    recurse: yes
+    mode: '0755'
+    owner: root
+    group: root
+  when:
+    - __sap_swpm_register_backup_location_stat.stat.exists
+    - __sap_swpm_register_backup_location_stat.stat.isdir

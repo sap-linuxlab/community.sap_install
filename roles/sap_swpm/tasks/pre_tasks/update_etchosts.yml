@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# SAP NetWeaver entry is the baseline, so it is always updated. FQDN is mandatory and validated before.
+- name: SAP SWPM - Update etc hosts - Update '/etc/hosts' for SAP NetWeaver
+  ansible.builtin.import_role:
+    name: '{{ sap_swpm_sap_install_collection }}.sap_maintain_etc_hosts'
+  vars:
+    sap_maintain_etc_hosts_list:
+      - node_ip: "{{ ansible_facts['default_ipv4'].address | d(ansible_facts['all_ipv4_addresses'][0]) }}"
+        node_name: "{{ ansible_facts['hostname'] }}"
+        node_domain: "{{ __sap_swpm_fact_vars['sap_swpm_fqdn'] }}"
+        state: present
+
+# SAP HANA entry is updated only if DB IP and host are provided and the host is not the current host.
+# Empty variables are not in '__sap_swpm_fact_vars', so they are defined only if they are set.
+- name: SAP SWPM - Update etc hosts - Set fact if '/etc/hosts' is updated for SAP HANA
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_etchosts_update_hana: >-
+      {{ __sap_swpm_fact_vars['sap_swpm_db_ip'] is defined
+        and __sap_swpm_fact_vars['sap_swpm_db_host'] is defined
+        and __sap_swpm_fact_vars['sap_swpm_db_host'] != ansible_facts['hostname'] }}
+
+- name: SAP SWPM - Update etc hosts - Update '/etc/hosts' for SAP HANA
+  ansible.builtin.import_role:
+    name: '{{ sap_swpm_sap_install_collection }}.sap_maintain_etc_hosts'
+  vars:
+    sap_maintain_etc_hosts_list:
+      - node_ip: "{{ __sap_swpm_fact_vars['sap_swpm_db_ip'] | d('') }}"
+        node_name: "{{ __sap_swpm_fact_vars['sap_swpm_db_host'] | d('') }}"
+        node_domain: "{{ __sap_swpm_fact_vars['sap_swpm_fqdn'] }}"
+        state: present
+  when: __sap_swpm_fact_etchosts_update_hana
+
+
+- name: SAP SWPM - Update etc hosts - Show summary of changes in '/etc/hosts' file
+  ansible.builtin.debug:
+    msg: |
+      INFO: Summary of changes in '/etc/hosts' file:
+      - Updated for SAP NetWeaver with FQDN '{{ __sap_swpm_fact_vars['sap_swpm_fqdn'] }}'.
+      {% if __sap_swpm_fact_etchosts_update_hana %}
+      - Updated for SAP HANA, because DB IP and host were provided and the host is not the current host.
+      {% else %}
+      - Not updated for SAP HANA, because DB IP or host were not provided, or the host is the current host.
+      {% endif %}

@@ -30,28 +30,44 @@
 #   args:
 #     chdir: "{{ __sap_swpm_fact_sapinst_path }}"
 
+
 ### Async method
-# Note: The sapinst command is being assembled in file pre_install.yml, which is called from main.yml right before calling swpm.yml.
+# Note: The sapinst command is being assembled during Pre Tasks, specifically in file 'pre_tasks/main.yml'.
+# Pre tasks are always executed before this task file, including when tags are used.
 
 # Execute SAP SWPM, instead of command module use the shell module to allow use of umask according to SAP SWPM recommendations
 # Use of umask will enforce permissions 755 in /usr/sap etc (thereby resolving any shared NFS mount points
 #   initially attached with permissions 777)
 # Reason for noqa: This command installs software, so it will change things
 - name: SAP SWPM - {{ __sap_swpm_fact_installation_header }} # noqa no-changed-when
-  ansible.builtin.shell: |
-    {{ __sap_swpm_fact_sapinst_command }}
+  ansible.builtin.shell:
+    cmd: |
+      {{ __sap_swpm_fact_sapinst_command }}
   register: __sap_swpm_register_sapinst_async_job
   args:
     chdir: "{{ __sap_swpm_fact_sapinst_path }}"
-  async: 86400 # Seconds for maximum runtime, set to 24 hours
-  poll: 0 # Seconds between polls, use 0 to run Ansible Tasks concurrently
-  environment: "{{ sap_swpm_env_vars }}"
+  async: 86400  # Seconds for maximum runtime, set to 24 hours
+  poll: 0  # Seconds between polls, use 0 to run Ansible Tasks concurrently
+  environment: "{{ __sap_swpm_fact_vars['sap_swpm_env_vars'] | d({}) }}"
+
+# Debug message serves multiple purposes:
+# - Enables us to shorten task name of retried task to declutter debug logs.
+# - Explains interval and duration of the monitoring process.
+# - Explains that retry failure is to be expected.
+- name: SAP SWPM - Show details about background sapinst process
+  ansible.builtin.debug:
+    msg: |
+      INFO: sapinst process has been started in the background.
+      The following task will monitor the sapinst process and wait for it to exit.
+      Running processes are checked every 1 minute, for up to 24 hours.
+      The retry messages below are expected and do not indicate a failure.
 
 # Monitor the sapinst process and wait for exit
-- name: SAP SWPM - Wait for sapinst process to exit, poll every 60 seconds
-  ansible.builtin.shell: set -o pipefail && ps -ef | awk '/\.\/sapinst /&&!/umask/&&!/ awk /{print}'
+- name: SAP SWPM - Wait for sapinst process to exit
+  ansible.builtin.shell:
+    cmd: set -o pipefail && ps -ef | awk '/\.\/sapinst /&&!/umask/&&!/ awk /{print}'
   register: __sap_swpm_register_pids_sapinst
-  until: "__sap_swpm_register_pids_sapinst.stdout | length == 0"
+  until: __sap_swpm_register_pids_sapinst.stdout | length == 0
   retries: 1440
   delay: 60
   changed_when: false
@@ -61,9 +77,9 @@
     jid: "{{ __sap_swpm_register_sapinst_async_job.ansible_job_id }}"
   register: __sap_swpm_register_sapinst
   failed_when: (not __sap_swpm_register_sapinst.finished) or __sap_swpm_register_sapinst.rc != 0
-#   #until: __sap_swpm_register_sapinst.finished
-#   #retries: 1000
-#   #delay: 60
+  # until: __sap_swpm_register_sapinst.finished
+  # retries: 1000
+  # delay: 60
 
 - name: SAP SWPM - Display the sapinst return code
   ansible.builtin.debug:
@@ -74,8 +90,9 @@
     msg: "{{ __sap_swpm_register_sapinst.stdout_lines }}"
   when: sap_swpm_display_unattended_output
 
-- name: SAP SWPM - Find last installation location
-  ansible.builtin.command: "cat {{ __sap_swpm_fact_tempdir_from_env }}/sapinst_instdir/.lastInstallationLocation"
+- name: SAP SWPM - Find last installation location from file '.lastInstallationLocation'
+  ansible.builtin.command:
+    cmd: "cat {{ __sap_swpm_fact_sapinst_tempdir }}/sapinst_instdir/.lastInstallationLocation"
   register: __sap_swpm_register_last_install_path
   changed_when: false
 
@@ -83,15 +100,16 @@
   ansible.builtin.stat:
     path: "{{ __sap_swpm_register_last_install_path.stdout }}/installationSuccesfullyFinished.dat"
   register: __sap_swpm_register_success_file
-  failed_when: __sap_swpm_register_success_file.stat.exists == false
+  failed_when: not __sap_swpm_register_success_file.stat.exists
 
 # Equivalent to running: cat $(cat /tmp/sapinst_instdir/.lastInstallationLocation)/installationSuccesfullyFinished.dat
-- name: SAP SWPM - Get success file
-  ansible.builtin.command: "cat {{ __sap_swpm_register_last_install_path.stdout }}/installationSuccesfullyFinished.dat"
+- name: SAP SWPM - Get contents of success file
+  ansible.builtin.command:
+    cmd: "cat {{ __sap_swpm_register_last_install_path.stdout }}/installationSuccesfullyFinished.dat"
   register: __sap_swpm_register_success_file_contents
   changed_when: false
 
-- name: SAP SWPM - Find sapcontrol log file/s
+- name: SAP SWPM - Find sapcontrol log file(s)
   ansible.builtin.find:
     paths: "{{ __sap_swpm_register_last_install_path.stdout }}"
     recurse: false
@@ -100,21 +118,22 @@
     use_regex: true
   register: __sap_swpm_register_output_sapcontrol_files
 
-- name: SAP SWPM - Get sapcontrol file/s
-  ansible.builtin.command: awk -v RS='(^|\n)GetInstanceProperties\n' 'END{printf "%s", $0}' {{ line_item }}
+- name: SAP SWPM - Get sapcontrol file(s)
+  ansible.builtin.command:
+    cmd: awk -v RS='(^|\n)GetInstanceProperties\n' 'END{printf "%s", $0}' {{ line_item }}
   register: __sap_swpm_register_sapcontrol_file_contents
   changed_when: false
-  loop: "{{ __sap_swpm_register_output_sapcontrol_files.files | map(attribute='path') | list | unique }}"
+  loop: "{{ __sap_swpm_register_output_sapcontrol_files.files | d([]) | map(attribute='path') | list | unique }}"
   loop_control:
     loop_var: line_item
 
 - name: SAP SWPM - Display installation finished from success file
   ansible.builtin.debug:
-    msg: "{{ __sap_swpm_register_success_file_contents.stdout_lines }}"
+    msg: "{{ __sap_swpm_register_success_file_contents.stdout_lines | d([]) }}"
 
-- name: SAP SWPM - Display status from sapcontrol file/s
+- name: SAP SWPM - Display status from sapcontrol file(s)
   ansible.builtin.debug:
-    msg: "{{ ['GetInstanceProperties'] + file_output.stdout_lines }}"
+    msg: "{{ ['GetInstanceProperties'] + file_output.stdout_lines | d([]) }}"
   loop: "{{ __sap_swpm_register_sapcontrol_file_contents.results | d([]) }}"
   loop_control:
     loop_var: file_output

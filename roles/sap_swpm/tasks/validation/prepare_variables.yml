@@ -1,0 +1,117 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# This file adds role variables 'sap_swpm_*' into internal variables dictionary.
+# Only keys that are not defined yet are added, so that previous sources keep their precedence.
+# - Boolean values are always added, including 'false'.
+# - Other values are added only if not empty ('none', '', {}), regardless of the expected type.
+#   Empty list '[]' is added, because it is a valid value of list variables (e.g. 'sap_swpm_java_template_id_selected_list').
+#   Values of wrong type are not converted, they fail the validation at the end (e.g. 'true' as a string).
+#   Empty values are not added, so a boolean variable set to empty by the user is missing and fails the validation.
+# - Deprecated variables are added under the name of their replacement, only if the replacement is not set or empty,
+#   because empty list '[]' is added above and would otherwise block the deprecated variable.
+# NOTE: All role variables are templated here, so any variable failing to render will fail the role.
+
+## Role parameters dictionary
+# The 'sap_swpm_role_parameters_dict' defined directly, instead of inside of the 'sap_swpm_templates_install_dictionary'.
+# It is processed before role variables, so it overrides them, including defaults of the Boolean variables.
+# Only keys starting with 'sap_swpm_' are used, with the same rules for empty values as role variables below.
+- name: SAP SWPM - Prepare Variables - Assert that 'sap_swpm_role_parameters_dict' is a dictionary
+  ansible.builtin.assert:
+    that:
+      - sap_swpm_role_parameters_dict | type_debug == 'dict'
+    fail_msg: |
+      FAIL: The variable 'sap_swpm_role_parameters_dict' is not defined as a dictionary.
+  when: sap_swpm_role_parameters_dict is defined
+
+- name: SAP SWPM - Prepare Variables - Set fact with role parameters dictionary
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_vars: >-
+      {{ (__params | selectattr('value', 'boolean')
+          + __params | rejectattr('value', 'boolean') | rejectattr('value', 'in', [none, '', {}]))
+        | items2dict
+        | combine(__sap_swpm_fact_vars) }}
+  vars:
+    __params: >-
+      {{ sap_swpm_role_parameters_dict | dict2items
+        | selectattr('key', 'match', '^sap_swpm_')
+        | rejectattr('key', 'in', __sap_swpm_vars_excluded)
+        | list }}
+  when: sap_swpm_role_parameters_dict is defined
+  no_log: true  # Any set_fact will show full content in verbose mode, including sensitive information.
+
+
+## Role variables
+# 'selectattr' and 'rejectattr' apply a test to the 'value' of each item:
+# - selectattr('value', 'boolean') keeps items with a boolean value.
+# - rejectattr('value', 'boolean') | rejectattr('value', 'in', [none, '', {}]) keeps other items with a non-empty value.
+- name: SAP SWPM - Prepare Variables - Set fact with role variables
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_vars: >-
+      {{ (__role_vars | selectattr('value', 'boolean')
+          + __role_vars | rejectattr('value', 'boolean') | rejectattr('value', 'in', [none, '', {}]))
+        | items2dict
+        | combine(__sap_swpm_fact_vars) }}
+  vars:
+    # Names of all role variables starting with 'sap_swpm_', from any source.
+    # Only names are returned, values are templated by the 'vars' lookup below.
+    __role_var_names: >-
+      {{ lookup('ansible.builtin.varnames', '^sap_swpm_', wantlist=True)
+        | difference(__sap_swpm_deprecated_vars.keys())
+        | difference(__sap_swpm_vars_excluded) }}
+    # Values of role variables, in the same order as their names.
+    # Zip pairs names with values, 'dict2items' turns them into items for filtering.
+    __role_vars:
+      "{{ dict(__role_var_names | zip(lookup('ansible.builtin.vars', *__role_var_names, wantlist=True))) | dict2items }}"
+  no_log: true  # Any set_fact will show full content in verbose mode, including sensitive information.
+
+
+## Deprecated variables
+- name: SAP SWPM - Prepare Variables - Warning if deprecated variable is used
+  ansible.builtin.debug:
+    msg: |
+      WARN: The variable '{{ dict_item.key }}' is deprecated, please use '{{ dict_item.value }}' instead.
+      {% if __sap_swpm_fact_vars[dict_item.value] is defined and __sap_swpm_fact_vars[dict_item.value] | length > 0 %}
+      The variable '{{ dict_item.key }}' is ignored, because '{{ dict_item.value }}' is set.
+      {% endif %}
+  loop: "{{ __sap_swpm_deprecated_vars | dict2items }}"
+  loop_control:
+    loop_var: dict_item
+    label: "{{ dict_item.key }}"
+  when:
+    - lookup('ansible.builtin.vars', dict_item.key, default='') not in [none, '', [], {}]
+
+- name: SAP SWPM - Prepare Variables - Set fact with deprecated variables
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_vars:
+      "{{ __sap_swpm_fact_vars | combine({dict_item.value: lookup('ansible.builtin.vars', dict_item.key)}) }}"
+  loop: "{{ __sap_swpm_deprecated_vars | dict2items }}"
+  loop_control:
+    loop_var: dict_item
+    label: "{{ dict_item.key }}"
+  when:
+    - lookup('ansible.builtin.vars', dict_item.key, default='') not in [none, '', [], {}]
+    - >-
+      __sap_swpm_fact_vars[dict_item.value] is not defined
+      or __sap_swpm_fact_vars[dict_item.value] | length == 0
+  no_log: true  # Any set_fact will show full content in verbose mode, including sensitive information.
+
+
+## Deprecated boolean variable 'sap_swpm_swpm_observer_mode'
+# Replacement 'sap_swpm_observer_mode' always has default 'false', so the generic loop above would always ignore it.
+# Deprecated variable is used if it is 'true' and the replacement is not 'true'.
+- name: SAP SWPM - Prepare Variables - Warning if deprecated variable 'sap_swpm_swpm_observer_mode' is used
+  ansible.builtin.debug:
+    msg: |
+      WARN: The variable 'sap_swpm_swpm_observer_mode' is deprecated, please use 'sap_swpm_observer_mode' instead.
+  when: sap_swpm_swpm_observer_mode is defined
+
+- name: SAP SWPM - Prepare Variables - Set fact with deprecated variable 'sap_swpm_swpm_observer_mode'
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_vars: "{{ __sap_swpm_fact_vars | combine({'sap_swpm_observer_mode': true}) }}"
+  when:
+    - sap_swpm_swpm_observer_mode is defined
+    - sap_swpm_swpm_observer_mode is boolean
+    - sap_swpm_swpm_observer_mode
+    - not __sap_swpm_fact_vars['sap_swpm_observer_mode']
+  no_log: true  # Any set_fact will show full content in verbose mode, including sensitive information.

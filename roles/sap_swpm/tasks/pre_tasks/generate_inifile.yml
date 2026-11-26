@@ -1,0 +1,109 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Existing inifile is copied to the temporary directory, because sapinst reads it from there.
+# Its content was already validated in 'validation/parse_existing_inifile.yml'.
+- name: SAP SWPM - Pre Tasks - Create inifile - Copy existing 'inifile.params' to the temporary directory
+  ansible.builtin.copy:
+    src: "{{ sap_swpm_inifile_directory }}/inifile.params"
+    dest: "{{ __sap_swpm_register_tmpdir.path }}/inifile.params"
+    remote_src: true
+    owner: 'root'
+    group: 'root'
+    mode: '0640'
+  when: __sap_swpm_fact_inifile_exists
+
+
+# We are creating the inifile dynamically in one of the two cases:
+# 1 - The tag sap_swpm_generate_inifile is specified
+# 2 - There is no file 'inifile.params' available in 'sap_swpm_inifile_directory'
+- name: SAP SWPM - Pre Tasks - Create inifile - Create the SWPM inifile 'inifile.params' dynamically
+  when: "'sap_swpm_generate_inifile' in ansible_run_tags or (not __sap_swpm_fact_inifile_exists)"
+  tags: sap_swpm_generate_inifile
+  block:
+
+    # Passwords with 'sap_swpm_master_password' as fallback are resolved in the section validation of the matrix.
+    # Database schema depends on the stack, which cannot be defined in the matrix, so it is added here.
+    # Values are added into '__sap_swpm_fact_vars', which is used to render the template.
+    - name: SAP SWPM - Pre Tasks - Create inifile - Set database schema variables when ABAP
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_vars: >-
+          {{ __sap_swpm_fact_vars | combine({
+            'sap_swpm_db_schema': __sap_swpm_fact_vars['sap_swpm_db_schema_abap'],
+            'sap_swpm_db_schema_password': __sap_swpm_fact_vars['sap_swpm_db_schema_abap_password']}) }}
+      when:
+        - "'ABAP' in __sap_swpm_fact_vars['sap_swpm_product_catalog_id']"
+        - __sap_swpm_fact_vars['sap_swpm_db_schema_abap'] is defined
+        - __sap_swpm_fact_vars['sap_swpm_db_schema_abap_password'] is defined
+      no_log: true
+
+    - name: SAP SWPM - Pre Tasks - Create inifile - Set database schema variables when Java
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_vars: >-
+          {{ __sap_swpm_fact_vars | combine({
+            'sap_swpm_db_schema': __sap_swpm_fact_vars['sap_swpm_db_schema_java'],
+            'sap_swpm_db_schema_password': __sap_swpm_fact_vars['sap_swpm_db_schema_java_password']}) }}
+      when:
+        - "'Java' in __sap_swpm_fact_vars['sap_swpm_product_catalog_id']"
+        - __sap_swpm_fact_vars['sap_swpm_db_schema_java'] is defined
+        - __sap_swpm_fact_vars['sap_swpm_db_schema_java_password'] is defined
+      no_log: true
+
+    # Generate inifile.params, step 1: Process SWPM Configfile template locally for creating inifile.params
+    # Template lookup is used, because the 'template' module reads only role variables,
+    # while '__sap_swpm_fact_vars' resolves all sources.
+    - name: SAP SWPM - Pre Tasks - Create inifile - Process SWPM inifile template for creating 'inifile.params'
+      ansible.builtin.copy:
+        content: "{{ lookup('ansible.builtin.template', 'inifile_params.j2', template_vars=__sap_swpm_fact_vars) }}"
+        dest: "{{ __sap_swpm_register_tmpdir.path }}/inifile.params"
+        owner: 'root'
+        group: 'root'
+        mode: '0640'
+      # Inifile contains passwords, so its content must not be shown in the output or the diff.
+      diff: false
+      no_log: true
+      when: __sap_swpm_fact_vars['sap_swpm_inifile_sections_list'] | length > 0
+
+    # Generate inifile.params, step 2: Use any entries from sap_swpm_inifile_parameters_dict
+    - name: SAP SWPM - Pre Tasks - Create inifile - Use any 'inifile.params' entries from 'sap_swpm_inifile_parameters_dict'
+      when: __sap_swpm_fact_vars['sap_swpm_inifile_parameters_dict'] is defined
+      block:
+
+        - name: SAP SWPM - Pre Tasks - Create inifile - Configure entries in 'inifile.params' from 'sap_swpm_inifile_parameters_dict'
+          ansible.builtin.lineinfile:
+            path: "{{ __sap_swpm_register_tmpdir.path }}/inifile.params"
+            create: true
+            state: present
+            line: "{{ sap_swpm_line_item.key }} = {{ sap_swpm_line_item.value }}"
+            regexp: "^{{ sap_swpm_line_item.key }}[\\s]*=[\\s]*.*"
+            owner: 'root'
+            group: 'root'
+            mode: '0640'
+          loop: "{{ __sap_swpm_fact_vars['sap_swpm_inifile_parameters_dict'] | dict2items }}"
+          loop_control:
+            loop_var: sap_swpm_line_item
+            label: "{{ sap_swpm_line_item.key }}"
+          register: __sap_swpm_register_replace_result
+          # Inifile parameters can contain sensitive information such as passwords.
+          no_log: true
+
+        # NOTE: Only Product ID, Software Path, SID and FQDN are captured from the inifile, so this has lesser value.
+        # Values already resolved in '__sap_swpm_fact_vars' are not updated, it can only warn about differences.
+        - name: SAP SWPM - Pre Tasks - Create inifile - Parse inifile again if 'sap_swpm_inifile_parameters_dict' had been used
+          ansible.builtin.import_tasks:
+            file: validation/parse_existing_inifile.yml
+          vars:
+            __sap_swpm_fact_inifile_params_path: "{{ __sap_swpm_register_tmpdir.path }}/inifile.params"
+
+
+# NOTE: Copy of the inifile to the software path is not default behavior.
+# It is done only if the role fails or sapinst is not executed.
+# It is not implemented in this file, it is done in 'post_tasks/cleanup.yml'.
+- name: SAP SWPM - Pre Tasks - Create inifile - Display the path name of the inifile
+  ansible.builtin.debug:
+    msg: |
+      INFO: The sapinst inifile is in the temporary directory '{{ __sap_swpm_register_tmpdir.path }}',
+      which is removed at the end of the role.
+      If the role fails or sapinst is not executed, the inifile is copied to the software path
+      '{{ __sap_swpm_fact_vars['sap_swpm_software_path'] }}' before the temporary directory is removed.
+  tags: sap_swpm_generate_inifile

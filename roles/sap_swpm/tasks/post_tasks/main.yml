@@ -1,0 +1,115 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Set user expiration update
+- name: Block for setting user exiration
+  when: sap_swpm_set_sidadm_noexpire
+  block:
+    - name: SAP SWPM - Post Task - Get list of available OS users
+      ansible.builtin.getent:
+        database: passwd
+
+    # New task file includes detailed steps to set each parameter, instead of all at same time.
+    - name: SAP SWPM - Post Task - Execute user expiration task file
+      ansible.builtin.include_tasks:
+        file: set_password_expiration.yml
+      loop:
+        - "{{ __sap_swpm_sidadm_user }}"
+        - "sapadm"
+      loop_control:
+        loop_var: user_item
+      when:
+        - user_item in ansible_facts['getent_passwd']
+
+# Firewall steps are part of pre_tasks to ensure that ports are open before installation.
+
+# SAP HANA Client will not be installed for any installation with SAP AnyDB
+# and will only be installed alongside SAP NWAS PAS or AAS (not NWAS ASCS)
+- name: SAP SWPM - Post Task - Check for SAP HANA Client hdbuserstore
+  ansible.builtin.stat:
+    path: /usr/sap/{{ __sap_swpm_sid }}/hdbclient/hdbuserstore
+  register: __sap_swpm_register_hdbuserstore_exists
+
+- name: SAP SWPM - Post Task - Enforce Connection Info in SAP HANA Client hdbuserstore
+  ansible.builtin.shell:
+    cmd: |
+      /usr/sap/{{ __sap_swpm_sid }}/hdbclient/hdbuserstore \
+      SET DEFAULT \
+      {{ __sap_swpm_fact_vars['sap_swpm_db_host'] }}:3{{ __sap_swpm_fact_vars['sap_swpm_db_instance_nr'] }}13@{{
+        __sap_swpm_fact_vars['sap_swpm_db_sid'] }} \
+      {{ __sap_swpm_fact_vars['sap_swpm_db_schema_abap'] }} {{ __sap_swpm_fact_vars['sap_swpm_db_schema_abap_password'] | quote }}
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ __sap_swpm_sidadm_user }}"
+  # Database variables are validated only for the selected inifile sections, so they may be undefined here.
+  when:
+    - __sap_swpm_register_hdbuserstore_exists.stat.exists
+    - __sap_swpm_fact_vars['sap_swpm_install_saphostagent']
+    # Presence of HDB Client is not enough to trust that all role variables were provided,
+    # so we need to ensure that all required database variables are defined before attempting to use them.
+    - __sap_swpm_fact_vars['sap_swpm_db_host'] is defined
+    - __sap_swpm_fact_vars['sap_swpm_db_instance_nr'] is defined
+    - __sap_swpm_fact_vars['sap_swpm_db_sid'] is defined
+    - __sap_swpm_fact_vars['sap_swpm_db_schema_abap'] is defined
+    - __sap_swpm_fact_vars['sap_swpm_db_schema_abap_password'] is defined
+  register: __sap_swpm_register_hdbuserstore_connection
+  changed_when: __sap_swpm_register_hdbuserstore_connection is succeeded
+  # The command contains the password of the schema user.
+  no_log: true
+
+
+# Restart saphostctrl process to ensure it loads information about newly installed SAP system.
+- name: SAP SWPM - Post Task - Restart saphostctrl process
+  ansible.builtin.command:
+    cmd: /usr/sap/hostctrl/exe/saphostexec -restart
+  become: true
+  when:
+    - __sap_swpm_fact_vars['sap_swpm_install_saphostagent']
+    # Restart only for freshly installed SAP system.
+    - not __sap_swpm_fact_sap_detected or sap_swpm_force
+  # Restart can be always considered changed.
+  changed_when: true
+
+
+########################################################################################################################
+
+- name: SAP SWPM - Post Task - Display SAP System details after completion
+  ansible.builtin.debug:
+    msg: |
+      SAP System or Instance is deployed.
+      {% if __sap_swpm_fact_sap_detected and not sap_swpm_force %}
+
+      NOTE: SAP Instance(s) were detected before installation.
+      SWPM installation steps were skipped to avoid potential issues with existing installation.
+
+      If you intend to proceed with the installation despite this warning,
+      set 'sap_swpm_force' variable to 'true' and execute this Ansible Role again.
+      {% endif %}
+      {% if __sap_swpm_fact_sap_detected and sap_swpm_force %}
+
+      NOTE: SAP Instance(s) were detected before installation.
+      SWPM installation steps were executed regardless,
+      because 'sap_swpm_force' variable is set to 'true' (default is 'false').
+      {% endif %}
+
+      SAP Product        -       {{ __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] }}
+      SID                -       {{ __sap_swpm_fact_vars['sap_swpm_sid'] }}
+      Primary Instance   -       {{ __sap_swpm_fact_vars['sap_swpm_pas_instance_nr'] | d('') }}
+      Host               -       {{ ansible_facts['hostname'] }}
+      FQDN               -       {{ ansible_facts['fqdn'] }}
+      IP                 -       {{ ansible_facts['default_ipv4'].address | d(ansible_facts['all_ipv4_addresses'][0]) }}
+
+
+# Now that SWPM finished we may need to deal with SUM before continuing when sap_swpm_sum_start: 'true'
+# and if we are doing OneHost or CI/PAS installation
+# If observer mode is enabled, SWPM will wait for SUM to finish before continuing so we can't do anything here
+- name: SAP SWPM - Post Task - Control SUM if required
+  ansible.builtin.include_tasks:
+    file: sum_push_to_finish.yml
+  when:
+    - __sap_swpm_fact_vars['sap_swpm_sum_start']
+    - not __sap_swpm_fact_vars['sap_swpm_observer_mode']
+    - "'NW_ABAP_CI:' in __sap_swpm_fact_vars['sap_swpm_product_catalog_id'] or
+       'NW_ABAP_OneHost:' in __sap_swpm_fact_vars['sap_swpm_product_catalog_id']"
+    - not __sap_swpm_fact_sap_detected or sap_swpm_force

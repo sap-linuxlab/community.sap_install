@@ -1,0 +1,151 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+################
+# Prepare software path
+################
+
+# Software Path
+
+- name: Block to set directory and file permissions
+  when: sap_swpm_set_file_permissions
+  block:
+
+    # Modes, owners and groups are used by the 'shell' module in this file and by included files,
+    # so only valid values are allowed. Their types are validated in 'assert_mandatory_variables.yml'.
+    - name: SAP SWPM - Set Permissions - Fail if the modes are not octal numbers
+      ansible.builtin.fail:
+        msg: "The variable '{{ var_item }}' must be an octal mode, for example '0755'."
+      loop:
+        - sap_swpm_software_directory_mode
+        - sap_swpm_files_sapcar_mode
+        - sap_swpm_files_non_sapcar_mode
+      loop_control:
+        loop_var: var_item
+      when: lookup('ansible.builtin.vars', var_item) is not match('^[0-7]{3,4}$')
+
+    # getent_passwd and getent_group are populated with all entries, keyed by name.
+    # This is already part of detect_sap.yml, but it can be skipped with 'sap_swpm_skip_detection'.
+    - name: SAP SWPM - Set Permissions - Get details about available users
+      ansible.builtin.getent:
+        database: passwd
+
+    - name: SAP SWPM - Set Permissions - Get details about available groups
+      ansible.builtin.getent:
+        database: group
+
+    - name: SAP SWPM - Set Permissions - Fail if the owners do not exist
+      ansible.builtin.fail:
+        msg: "The user '{{ lookup('ansible.builtin.vars', var_item) }}' defined in '{{ var_item }}' does not exist on the managed host."
+      loop:
+        - sap_swpm_software_directory_owner
+        - sap_swpm_files_sapcar_owner
+        - sap_swpm_files_non_sapcar_owner
+      loop_control:
+        loop_var: var_item
+      when: lookup('ansible.builtin.vars', var_item) not in ansible_facts['getent_passwd']
+
+    - name: SAP SWPM - Set Permissions - Fail if the groups do not exist
+      ansible.builtin.fail:
+        msg: "The group '{{ lookup('ansible.builtin.vars', var_item) }}' defined in '{{ var_item }}' does not exist on the managed host."
+      loop:
+        - sap_swpm_software_directory_group
+        - sap_swpm_files_sapcar_group
+        - sap_swpm_files_non_sapcar_group
+      loop_control:
+        loop_var: var_item
+      when: lookup('ansible.builtin.vars', var_item) not in ansible_facts['getent_group']
+
+    - name: SAP SWPM - Set Permissions - Find directories in 'sap_swpm_software_path'
+      ansible.builtin.find:
+        path: "{{ __sap_swpm_software_path }}"
+        file_type: directory
+      register: __sap_swpm_register_find_result_directories
+
+    - name: SAP SWPM - Set Permissions - Create list of directories
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_directories:
+          "{{ __sap_swpm_register_find_result_directories.files | d([])
+            | map(attribute='path')
+            | reject('contains', 'extracted') | list }}"
+
+    - name: SAP SWPM - Set Permissions - Ensure correct permissions and ownership of all directories
+      ansible.builtin.file:
+        path: "{{ line_item }}"
+        recurse: false
+        mode: "{{ sap_swpm_software_directory_mode }}"
+        owner: "{{ sap_swpm_software_directory_owner }}"
+        group: "{{ sap_swpm_software_directory_group }}"
+      loop: "{{ __sap_swpm_fact_directories }}"
+      loop_control:
+        loop_var: line_item
+
+    - name: SAP SWPM - Set Permissions - Find non-SAPCAR files in 'sap_swpm_software_path'
+      ansible.builtin.find:
+        path: "{{ __sap_swpm_software_path }}"
+        file_type: file
+        recurse: true
+        excludes: "SAPCAR*EXE"
+      register: __sap_swpm_register_find_result_files_non_sapcar
+
+    - name: SAP SWPM - Set Permissions - Create list of files
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_files_non_sapcar:
+          "{{ __sap_swpm_register_find_result_files_non_sapcar.files | d([])
+            | map(attribute='path')
+            | reject('contains', 'extracted/') | list }}"
+
+    # Reasons for noqa:
+    # - command-instead-of-module: Shorter execution time compared to looping over a list when using the file module
+    # - no-changed-when: Not worth checking permissions and ownership before this task and comparing afterwards
+    # NOTE: Folded scalar '>' joins lines with spaces, so no line-continuation backslashes '\' are needed.
+    #       With 'cmd' they reach the shell literally and break the paths (legacy free-form parsing silently dropped them).
+    - name: SAP SWPM - Set Permissions - Ensure correct permissions and ownership of all non-SAPCAR files  # noqa command-instead-of-module no-changed-when
+      ansible.builtin.shell:
+        cmd: >
+          chown {{ sap_swpm_files_non_sapcar_owner }}:{{ sap_swpm_files_non_sapcar_group }} {{ line_item | join(' ') }} &&
+          chmod {{ sap_swpm_files_non_sapcar_mode }} {{ line_item | join(' ') }}
+      loop: "{{ __sap_swpm_fact_files_non_sapcar | batch(100) }}"
+      loop_control:
+        loop_var: line_item
+        label: "Batch {{ (__sap_swpm_fact_files_non_sapcar.index(line_item[0]) // 100) + 1 }}, first item: {{ line_item[0] }}"
+
+
+################
+# Get software files from software paths
+################
+
+- name: SAP SWPM - Prepare Software - SAPCAR files
+  ansible.builtin.include_tasks:
+    file: software/sapcar.yml
+
+- name: SAP SWPM - Prepare Software - SWPM files
+  ansible.builtin.include_tasks:
+    file: software/swpm.yml
+
+
+- name: Block for full SAP System
+  when: not sap_swpm_generic
+  block:
+
+    - name: SAP SWPM - Prepare Software - IGS files
+      ansible.builtin.include_tasks:
+        file: software/igsexe.yml
+
+    - name: SAP SWPM - Prepare Software - IGS Helper files
+      ansible.builtin.include_tasks:
+        file: software/igshelper.yml
+
+    - name: SAP SWPM - Prepare Software - SAPEXEDB files
+      ansible.builtin.include_tasks:
+        file: software/sapexedb.yml
+
+    - name: SAP SWPM - Prepare Software - SAPEXE files
+      ansible.builtin.include_tasks:
+        file: software/sapexe.yml
+
+
+- name: SAP SWPM - Prepare Software - Webdispatcher files
+  ansible.builtin.include_tasks:
+    file: software/sapwebdisp.yml
+  when: "'Webdispatcher' in __sap_swpm_fact_vars['sap_swpm_product_catalog_id']"

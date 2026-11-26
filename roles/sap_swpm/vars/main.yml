@@ -1,6 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+# Internal role variables - Do not modify or override!
+# All user-facing parameters are in defaults/main.yml, not in this file.
+# See README.md for available role variables and their options.
+
+
 # This dictionary defines keyword rules to identify SAP binaries compatible with modern Linux distributions supported by SAP HANA.
 # Each key is a valid `ansible_facts['architecture']` value.
 # The value is a list of rule sets, where each rule set is a list of keywords.
@@ -63,27 +68,27 @@ __sap_swpm_product_sections_dict:
     sections:
       - nw_config_central_services_abap
     instances:
-      - number: "{{ sap_swpm_ascs_instance_nr }}"
+      - number: "{{ __sap_swpm_fact_vars['sap_swpm_ascs_instance_nr'] | d('') }}"
         names:
-          - "{{ 'ASCS' ~ sap_swpm_ascs_instance_nr }}"
+          - "{{ 'ASCS' ~ __sap_swpm_fact_vars['sap_swpm_ascs_instance_nr'] | d('') }}"
 
   # Contains: SCS
   NW_Java_SCS:
     sections:
       - nw_config_central_services_java
     instances:
-      - number: "{{ sap_swpm_java_scs_instance_nr }}"
+      - number: "{{ __sap_swpm_fact_vars['sap_swpm_java_scs_instance_nr'] | d('') }}"
         names:
-          - "{{ 'SCS' ~ sap_swpm_java_scs_instance_nr }}"
+          - "{{ 'SCS' ~ __sap_swpm_fact_vars['sap_swpm_java_scs_instance_nr'] | d('') }}"
 
   # Contains: ERS
   NW_ERS:
     sections:
       - nw_config_ers
     instances:
-      - number: "{{ sap_swpm_ers_instance_nr }}"
+      - number: "{{ __sap_swpm_fact_vars['sap_swpm_ers_instance_nr'] | d('') }}"
         names:
-          - "{{ 'ERS' ~ sap_swpm_ers_instance_nr }}"
+          - "{{ 'ERS' ~ __sap_swpm_fact_vars['sap_swpm_ers_instance_nr'] | d('') }}"
 
   # Contains: ASCS, PAS (ABAP)
   # DVEBMGS is used as fallback to legacy instance name.
@@ -92,42 +97,42 @@ __sap_swpm_product_sections_dict:
       - nw_config_central_services_abap
       - nw_config_primary_application_server_instance
     instances:
-      - number: "{{ sap_swpm_ascs_instance_nr }}"
+      - number: "{{ __sap_swpm_fact_vars['sap_swpm_ascs_instance_nr'] | d('') }}"
         names:
-          - "{{ 'ASCS' ~ sap_swpm_ascs_instance_nr }}"
-      - number: "{{ sap_swpm_pas_instance_nr }}"
+          - "{{ 'ASCS' ~ __sap_swpm_fact_vars['sap_swpm_ascs_instance_nr'] | d('') }}"
+      - number: "{{ __sap_swpm_fact_vars['sap_swpm_pas_instance_nr'] | d('') }}"
         names:
-          - "{{ 'D' ~ sap_swpm_pas_instance_nr }}"
-          - "{{ 'DVEBMGS' ~ sap_swpm_pas_instance_nr }}"
+          - "{{ 'D' ~ __sap_swpm_fact_vars['sap_swpm_pas_instance_nr'] | d('') }}"
+          - "{{ 'DVEBMGS' ~ __sap_swpm_fact_vars['sap_swpm_pas_instance_nr'] | d('') }}"
 
   # Contains: PAS
   NW_ABAP_CI:
     sections:
       - nw_config_primary_application_server_instance
     instances:
-      - number: "{{ sap_swpm_pas_instance_nr }}"
+      - number: "{{ __sap_swpm_fact_vars['sap_swpm_pas_instance_nr'] | d('') }}"
         names:
-          - "{{ 'DVEBMGS' ~ sap_swpm_pas_instance_nr }}"
-          - "{{ 'D' ~ sap_swpm_pas_instance_nr }}"
+          - "{{ 'DVEBMGS' ~ __sap_swpm_fact_vars['sap_swpm_pas_instance_nr'] | d('') }}"
+          - "{{ 'D' ~ __sap_swpm_fact_vars['sap_swpm_pas_instance_nr'] | d('') }}"
 
   # Contains: ASCS, PAS (JAVA)
   NW_Java_CI:
     sections:
       - nw_config_primary_application_server_instance
     instances:
-      - number: "{{ sap_swpm_pas_instance_nr }}"
+      - number: "{{ __sap_swpm_fact_vars['sap_swpm_pas_instance_nr'] | d('') }}"
         names:
-          - "{{ 'J' ~ sap_swpm_pas_instance_nr }}"
+          - "{{ 'J' ~ __sap_swpm_fact_vars['sap_swpm_pas_instance_nr'] | d('') }}"
 
   # Contains: AAS (ABAP or JAVA)
   NW_DI:
     sections:
       - nw_config_additional_application_server_instance
     instances:
-      - number: "{{ sap_swpm_aas_instance_nr }}"
+      - number: "{{ __sap_swpm_fact_vars['sap_swpm_aas_instance_nr'] | d('') }}"
         names:
-          - "{{ 'D' ~ sap_swpm_aas_instance_nr }}"
-          - "{{ 'J' ~ sap_swpm_aas_instance_nr }}"
+          - "{{ 'D' ~ __sap_swpm_fact_vars['sap_swpm_aas_instance_nr'] | d('') }}"
+          - "{{ 'J' ~ __sap_swpm_fact_vars['sap_swpm_aas_instance_nr'] | d('') }}"
 
 
 # This is special list of product prefixes, where we cannot detect SAP,
@@ -147,8 +152,378 @@ __sap_swpm_product_detection_unavailable:
     - NW_ABAP_DB
     - NW_Java_DB
 
+
+### Internal variables for variable validation
+
+# Deprecated role variables and their replacements.
+# Deprecated variable is used only if its replacement is not set.
+# NOTE: 'sap_swpm_swpm_observer_mode' is handled separately, because its replacement is boolean with default.
+__sap_swpm_deprecated_vars:
+  sap_swpm_swpm_path: sap_swpm_path
+  sap_swpm_swpm_sar_file_name: sap_swpm_file_name
+  sap_swpm_swpm_remote_access_user: sap_swpm_remote_access_user
+  sap_swpm_inifile_list: sap_swpm_inifile_sections_list
+  sap_swpm_inifile_custom_values_dictionary: sap_swpm_inifile_parameters_dict
+
+# Role variables that are not added to internal variables dictionary.
+# They are input for other sources, not values of their own.
+__sap_swpm_vars_excluded:
+  - sap_swpm_templates_install_dictionary
+  - sap_swpm_templates_product_input
+  - sap_swpm_role_parameters_dict
+
+# Role variables used by each section in 'sap_swpm_inifile_sections_list', and their expected type.
+# Variables of selected sections are validated before the inifile is generated.
+# Value is either a type, or a dictionary with 'type' and optional conditions:
+# - type:
+#   - string - non-empty string.
+#   - boolean - boolean.
+#   - string_optional - string, validated only if not empty. Written into inifile even if empty.
+#   - list - list, can be empty.
+# - fallback - variable used when this variable is empty. Applied before validation.
+# - when - boolean variable that must be true for this variable to be required.
+# NOTE: Variable used in multiple sections is validated only once, using the strictest rule.
+# NOTE: Sections without role variables are listed with empty dictionary, to keep list of all sections complete.
+__sap_swpm_vars_sections_dict:
+  swpm_installation_media:
+    sap_swpm_software_path: string
+    sap_swpm_cd_export_path: string_optional
+
+  swpm_installation_media_swpm2_hana:
+    sap_swpm_software_use_media: boolean
+
+  swpm_installation_media_swpm1:
+    sap_swpm_cd_language_path: string_optional
+    sap_swpm_cd_java_path: string_optional
+    sap_swpm_cd_rdbms_path: string_optional
+
+  swpm_installation_media_swpm1_exportfiles:
+    sap_swpm_cd_export_path: string
+    sap_swpm_cd_export_pt1_path: string_optional
+    sap_swpm_cd_export_pt2_path: string_optional
+
+  swpm_installation_media_swpm1_ibmdb2:
+    sap_swpm_cd_ibmdb2_path: string
+    sap_swpm_cd_ibmdb2_client_path: string
+    sap_swpm_ibmdb2_unpack_path: string
+
+  swpm_installation_media_swpm1_oracledb_121:
+    sap_swpm_cd_oracle_path: string
+    sap_swpm_cd_oracle_client_path: string
+
+  swpm_installation_media_swpm1_oracledb_122:
+    sap_swpm_cd_oracle_path: string
+    sap_swpm_cd_oracle_client_path: string
+
+  swpm_installation_media_swpm1_oracledb_19:
+    sap_swpm_cd_oracle_path: string
+    sap_swpm_cd_oracle_client_path: string
+
+  swpm_installation_media_swpm1_sapase:
+    sap_swpm_cd_sapase_path: string
+    sap_swpm_cd_sapase_client_path: string
+
+  swpm_installation_media_swpm1_sapmaxdb:
+    sap_swpm_cd_sapmaxdb_path: string_optional
+
+  maintenance_plan_stack_tms_config:
+    sap_swpm_configure_tms: boolean
+    sap_swpm_tmsadm_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  maintenance_plan_stack_tms_transports:
+    sap_swpm_tms_tr_files_path: string
+
+  maintenance_plan_stack_spam_config:
+    sap_swpm_spam_update: boolean
+    sap_swpm_spam_update_sar:
+      type: string
+      when: sap_swpm_spam_update
+
+  maintenance_plan_stack_sum_config:
+    sap_swpm_sum_prepare: boolean
+    sap_swpm_sum_start: boolean
+    sap_swpm_sap_sidadm_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  maintenance_plan_stack_sum_10_batch_mode:
+    sap_swpm_sum_batch_file: string_optional
+
+  credentials:
+    sap_swpm_master_password: string_optional
+    sap_swpm_sap_sidadm_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_diagnostics_agent_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_sapadm_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  credentials_hana:
+    sap_swpm_db_schema_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_db_system_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  credentials_anydb_ibmdb2:
+    sap_swpm_sap_sidadm_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  credentials_anydb_oracledb:
+    sap_swpm_sap_sidadm_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_db_system_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  credentials_anydb_sapase:
+    sap_swpm_master_password: string
+    sap_swpm_sap_sidadm_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_db_system_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  credentials_anydb_sapmaxdb:
+    sap_swpm_sap_sidadm_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_db_system_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_db_schema_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  credentials_nwas_ssfs: {}
+
+  credentials_hdbuserstore: {}
+
+  credentials_syscopy:
+    sap_swpm_ddic_000_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  db_config_hana:
+    sap_swpm_db_instance_nr: string
+    sap_swpm_db_schema: string_optional
+
+  db_config_anydb_all: {}
+
+  db_config_anydb_ibmdb2:
+    sap_swpm_db_host: string
+    sap_swpm_db_sid: string
+
+  db_config_anydb_oracledb:
+    sap_swpm_db_sid: string
+    sap_swpm_db_schema_abap: string
+    sap_swpm_db_schema_java: string_optional
+    sap_swpm_sid: string_optional
+
+  db_config_anydb_oracledb_121:
+    sap_swpm_db_sid: string
+
+  db_config_anydb_oracledb_122:
+    sap_swpm_db_sid: string
+
+  db_config_anydb_oracledb_19:
+    sap_swpm_db_sid: string
+
+  db_config_anydb_sapase:
+    sap_swpm_sid: string
+    sap_swpm_db_host:
+      type: string
+      fallback: sap_swpm_ascs_instance_hostname
+
+  db_config_anydb_sapmaxdb:
+    sap_swpm_db_sid: string
+
+  db_connection_nw_hana:
+    sap_swpm_db_host: string
+    sap_swpm_db_sid: string
+    sap_swpm_db_instance_nr: string
+    sap_swpm_db_system_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_db_systemdb_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_db_schema_abap: string
+    sap_swpm_db_schema_abap_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_db_schema_java: string_optional
+    sap_swpm_db_schema_java_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_parallel_jobs_nr: string_optional
+    sap_swpm_db_sidadm_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  db_connection_nw_anydb_ibmdb2:
+    sap_swpm_sapadm_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_sid: string
+
+  db_connection_nw_anydb_oracledb:
+    sap_swpm_db_schema_abap_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_db_schema_java_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  db_connection_nw_anydb_sapase: {}
+
+  db_restore_hana:
+    sap_swpm_backup_system_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_backup_location: string
+    sap_swpm_backup_prefix: string
+    sap_swpm_db_host: string
+    sap_swpm_db_instance_nr: string
+    sap_swpm_db_sid: string
+    sap_swpm_db_sidadm_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  nw_config_anydb: {}
+
+  nw_config_other:
+    sap_swpm_fqdn: string_optional
+    sap_swpm_set_fqdn: boolean
+    sap_swpm_sid: string
+    sap_swpm_load_type: string_optional
+
+  nw_config_central_services_abap:
+    sap_swpm_ascs_instance_hostname: string_optional
+    sap_swpm_ascs_instance_nr: string
+
+  nw_config_central_services_java:
+    sap_swpm_java_scs_instance_hostname: string
+    sap_swpm_java_scs_instance_nr: string
+    sap_swpm_master_password: string
+
+  nw_config_primary_application_server_instance:
+    sap_swpm_pas_instance_hostname: string_optional
+    sap_swpm_pas_instance_nr: string
+
+  nw_config_additional_application_server_instance:
+    sap_swpm_aas_instance_nr: string
+    sap_swpm_aas_instance_hostname: string_optional
+
+  nw_config_ers:
+    sap_swpm_ers_instance_hostname: string
+    sap_swpm_ers_instance_nr: string
+
+  nw_config_ports:
+    sap_swpm_ascs_instance_nr: string
+
+  nw_config_java_ume:
+    sap_swpm_sid: string
+    sap_swpm_ume_j2ee_admin_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_ume_sapjsf_password:
+      type: string
+      fallback: sap_swpm_master_password
+    sap_swpm_ume_client_nr: string_optional
+    sap_swpm_pas_instance_hostname: string
+    sap_swpm_ume_instance_nr:
+      type: string
+      fallback: sap_swpm_pas_instance_nr
+    sap_swpm_ume_type: string_optional
+
+  nw_config_java_feature_template_ids:
+    sap_swpm_java_import_method: string_optional
+    sap_swpm_java_template_id_selected_list: list
+
+  nw_config_webdisp_generic:
+    sap_swpm_wd_instance_nr: string
+    sap_swpm_wd_virtual_host: string_optional
+    sap_swpm_wd_system_connectivity: boolean
+    sap_swpm_wd_backend_sid: string_optional
+    sap_swpm_wd_backend_ms_http_port: string_optional
+    sap_swpm_wd_backend_ms_host: string_optional
+    sap_swpm_wd_backend_scenario_size: string_optional
+    sap_swpm_wd_activate_icf: boolean
+    sap_swpm_wd_backend_rfc_host: string_optional
+    sap_swpm_wd_backend_rfc_instance_nr: string_optional
+    sap_swpm_wd_backend_rfc_client_nr: string_optional
+    sap_swpm_wd_backend_rfc_user: string_optional
+    sap_swpm_wd_backend_rfc_user_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  nw_config_webdisp_gateway:
+    sap_swpm_ascs_install_gateway: boolean
+
+  nw_config_host_agent:
+    sap_swpm_install_saphostagent: boolean
+
+  nw_config_post_load_abap_reports: {}
+
+  nw_config_livecache: {}
+
+  nw_config_sld: {}
+
+  nw_config_abap_language_packages: {}
+
+  sap_os_linux_user:
+    sap_swpm_sapadm_uid: string
+    sap_swpm_sapsys_gid: string
+    sap_swpm_sidadm_uid: string
+
+  swpm_installation_media_download_service: {}
+
+  nw_config_java_icm_credentials:
+    sap_swpm_ume_j2ee_admin_password:
+      type: string
+      fallback: sap_swpm_master_password
+
+  solman_abap_swpm1: {}
+
+  solman_daa_swpm1:
+    sap_swpm_diagnostics_agent_password: string_optional
+
+  syscopy_export_anydb:
+    sap_swpm_export_target_db_type: string_optional
+    sap_swpm_export_files_path: string_optional
+    sap_swpm_sid: string
+    sap_swpm_load_type: string_optional
+
+  syscopy_import_anydb_ibmdb2:
+    sap_swpm_db_host: string
+    sap_swpm_db_sid: string
+    sap_swpm_load_type: string_optional
+
+
+## Helper internal facts used for simplification and convenience within the role.
+# All are expanded and consumed only after 'sap_swpm_fact_vars' is defined and validated.
+
 # System ID (SID) in upper case.
-__sap_swpm_sid: "{{ sap_swpm_sid | upper }}"
+__sap_swpm_sid: "{{ __sap_swpm_fact_vars['sap_swpm_sid'] | upper }}"
 
 # Name of '<sid>adm' user.
-__sap_swpm_sidadm_user: "{{ sap_swpm_sid | lower }}adm"
+__sap_swpm_sidadm_user: "{{ __sap_swpm_fact_vars['sap_swpm_sid'] | lower }}adm"
+
+# Software Path, resolved from all sources.
+__sap_swpm_software_path: "{{ __sap_swpm_fact_vars['sap_swpm_software_path'] }}"
+
+# SAPCAR path, resolved from all sources. Software Path is used if it is not set.
+__sap_swpm_sapcar_path: "{{ __sap_swpm_fact_vars['sap_swpm_sapcar_path'] }}"
+
+# SWPM path, resolved from all sources. Software Path is used if it is not set.
+__sap_swpm_path: "{{ __sap_swpm_fact_vars['sap_swpm_path'] }}"

@@ -1,0 +1,106 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# This file validates role variables used by one inifile section, in 'section_item'.
+# Rules are defined in '__sap_swpm_vars_sections_dict' and values are read from '__sap_swpm_fact_vars'.
+# Section without rules is ignored. Task fails on the first invalid variable.
+# NOTE: Fail is used instead of assert, so that internal dictionary is not exposed in the output.
+
+- name: SAP SWPM - Validation - Validate variables of the inifile section
+  vars:
+    # Rules of the section as list of items with 'name', 'type', 'fallback' and 'when'.
+    # Rule defined only by type is expanded, so that all items have the same keys.
+    __rules: >-
+      {%- set ns = namespace(items=[]) -%}
+      {%- for var_name, rule in (__sap_swpm_vars_sections_dict[section_item] | d({})).items() %}
+      {%- set ns.items = ns.items + [{
+            'name': var_name,
+            'type': rule if rule is string else rule['type'],
+            'fallback': '' if rule is string else rule['fallback'] | d(''),
+            'when': '' if rule is string else rule['when'] | d('')
+          }] -%}
+      {%- endfor %}
+      {{- ns.items }}
+  block:
+
+    # Fallback is used only if the variable is not set, and the fallback variable is set.
+    # Missing fallback variable is reported by validation of the variable using it.
+    - name: SAP SWPM - Validation - Set fallback values of the inifile section
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_vars: >-
+          {{ __sap_swpm_fact_vars
+            | combine(dict(__fallbacks | map(attribute='name')
+              | zip(__fallbacks | map(attribute='fallback') | map('extract', __sap_swpm_fact_vars)))) }}
+      vars:
+        __fallbacks: >-
+          {{ __rules
+            | selectattr('fallback', '!=', '')
+            | rejectattr('name', 'in', __sap_swpm_fact_vars.keys() | list)
+            | selectattr('fallback', 'in', __sap_swpm_fact_vars.keys() | list)
+            | list }}
+      when: __fallbacks | length > 0
+      no_log: true  # Any set_fact will show full content in verbose mode, including sensitive information.
+
+    # Fallback that cannot be defined in the matrix, because it is calculated instead of copied from another variable.
+    # Not calculated without DB SID, so that the validation below reports the missing value.
+    - name: SAP SWPM - Validation - Set the default path of IBM Db2 software based on the DB SID
+      ansible.builtin.set_fact:
+        __sap_swpm_fact_vars: >-
+          {{ __sap_swpm_fact_vars | combine({'sap_swpm_ibmdb2_unpack_path':
+            '/db2/db2' ~ (__sap_swpm_fact_vars['sap_swpm_db_sid'] | lower) ~ '/db2_software'}) }}
+      when:
+        - section_item == 'swpm_installation_media_swpm1_ibmdb2'
+        - __sap_swpm_fact_vars['sap_swpm_ibmdb2_unpack_path'] is not defined
+        - __sap_swpm_fact_vars['sap_swpm_db_sid'] is defined
+      no_log: true  # Any set_fact will show full content in verbose mode, including sensitive information.
+
+    - name: SAP SWPM - Validation - Fail if the string variables are undefined, empty or invalid
+      ansible.builtin.fail:
+        msg: |
+          The string variable '{{ var_item.name }}' used by inifile section '{{ section_item }}' is undefined, empty or invalid.
+          {% if var_item.fallback != '' and var_item.name not in __sap_swpm_fact_vars %}
+          Its fallback variable '{{ var_item.fallback }}' is also undefined or empty.
+          {% endif %}
+      loop: "{{ __rules | selectattr('type', '==', 'string') | list }}"
+      loop_control:
+        loop_var: var_item
+        label: "{{ var_item.name }}"
+      vars:
+        __value: "{{ __sap_swpm_fact_vars[var_item.name] }}"
+      when:
+        - var_item.when == '' or __sap_swpm_fact_vars[var_item.when] | d(false)
+        - not (__value is defined and __value is string and __value | trim | length > 0)
+
+    - name: SAP SWPM - Validation - Fail if the boolean variables are undefined or invalid
+      ansible.builtin.fail:
+        msg: |
+          The boolean variable '{{ var_item.name }}' used by inifile section '{{ section_item }}' is undefined or invalid.
+      loop: "{{ __rules | selectattr('type', '==', 'boolean') | list }}"
+      loop_control:
+        loop_var: var_item
+        label: "{{ var_item.name }}"
+      when:
+        - not (__sap_swpm_fact_vars[var_item.name] is defined and __sap_swpm_fact_vars[var_item.name] is boolean)
+
+    - name: SAP SWPM - Validation - Fail if the list variables are undefined or invalid
+      ansible.builtin.fail:
+        msg: |
+          The list variable '{{ var_item.name }}' used by inifile section '{{ section_item }}' is undefined or invalid.
+      loop: "{{ __rules | selectattr('type', '==', 'list') | list }}"
+      loop_control:
+        loop_var: var_item
+        label: "{{ var_item.name }}"
+      when:
+        - not (__sap_swpm_fact_vars[var_item.name] is defined and __sap_swpm_fact_vars[var_item.name] | type_debug == 'list')
+
+    - name: SAP SWPM - Validation - Fail if the optional string variables are invalid
+      ansible.builtin.fail:
+        msg: |
+          The variable '{{ var_item.name }}' used by inifile section '{{ section_item }}' must be a string.
+      loop: "{{ __rules | selectattr('type', '==', 'string_optional') | list }}"
+      loop_control:
+        loop_var: var_item
+        label: "{{ var_item.name }}"
+      when:
+        - __sap_swpm_fact_vars[var_item.name] is defined
+        - __sap_swpm_fact_vars[var_item.name] is not string

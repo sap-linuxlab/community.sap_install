@@ -1,0 +1,253 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# This task file handles the automation of pushing the SAP Software Update Manager (SUM) through its key manual steps until completion.
+# - 'GET' requests are used to check the status and retrieve configuration from SUM.
+# - 'POST' requests are used to push configuration changes to SUM.
+# Developer NOTE:
+# - All registers are unique to avoid original conflicts between different SUM steps.
+# - All complex response search patterns are in variables for easier reuse and readability.
+
+# Originally created by @rob0d based on research done by @sean-freeman
+
+# Password of 'sidadm' is used for all requests to SUM, with fallback to Master password if it is not set.
+# It is validated in 'assert_variables.yml' when 'sap_swpm_sum_start' is true.
+- name: SAP SWPM - SUM - Set fact with the password of 'sidadm'
+  ansible.builtin.set_fact:
+    __sap_swpm_fact_sum_password: >-
+      {{ __sap_swpm_fact_vars['sap_swpm_sap_sidadm_password']
+        | d(__sap_swpm_fact_vars['sap_swpm_master_password'] | d('')) }}
+  no_log: true
+
+# Check if the SUMup process is running and retry for 5 minutes until it starts.
+- name: SAP SWPM - SUM - Check if SAPup_real process is running (Retry for 5 minutes)
+  ansible.builtin.command:
+    cmd: pgrep -c -u "{{ __sap_swpm_sidadm_user }}" -f SAPup_real
+  register: __sap_swpm_register_sapup_process
+  retries: 5
+  delay: 60
+  until:
+    - __sap_swpm_register_sapup_process.rc == 0
+    - __sap_swpm_register_sapup_process.stdout | int > 0
+  failed_when: __sap_swpm_register_sapup_process.rc != 0
+  changed_when: false
+
+- name: SAP SWPM - SUM - Print SUM monitoring and action URLs
+  ansible.builtin.debug:
+    msg: |
+      Check the following URLs for SAP Software Update Manager (SUM) monitoring or actions:
+      Note: If these URLs don't work, check the sapinst.log file for the correct URLs.
+      NOTE: HTTP can be used with port 1128 instead of HTTPS with port 1129.
+
+      SUM Monitor:          https://{{ ansible_facts['fqdn'] }}:1129/lmsl/sumobserver/{{ __sap_swpm_sid }}/monitor/index.html
+      SUM Admin:            https://{{ ansible_facts['fqdn'] }}:1129/lmsl/sumabap/{{ __sap_swpm_sid }}/slui/
+      SUM Admin Utilities:  https://{{ ansible_facts['fqdn'] }}:1129/lmsl/sumabap/{{ __sap_swpm_sid }}/slui_ext/
+
+
+# Check the SUM status via SUMOBSEVER.XML and retry for 60 minutes until we are in BIND_PATCH phase
+- name: SAP SWPM - SUM - Check the status of SUM (BIND_PATCH) (Retry for 60 minutes every 1 minute)
+  ansible.builtin.uri:
+    url: "https://localhost:1129/lmsl/sumobserver/{{ __sap_swpm_sid }}/analysis/SUMOBSERVER.XML"
+    method: GET
+    validate_certs: false
+    return_content: true
+    status_code: 200
+    user: "{{ __sap_swpm_sidadm_user }}"
+    password: "{{ __sap_swpm_fact_sum_password }}"
+  register: __sap_swpm_register_sum_get_patch_selection
+  vars:
+    __tag_patch: '<dialogId>SUM4ABAP|CONFIGURE|PREP_EXTENSION|BIND_PATCH|PatchSelection</dialogId>'
+  until:
+    - __sap_swpm_register_sum_get_patch_selection.status == 200
+    - __tag_patch in __sap_swpm_register_sum_get_patch_selection.content
+  retries: 60
+  delay: 60
+  failed_when:
+    - __sap_swpm_register_sum_get_patch_selection.status != 200
+      or __tag_patch not in __sap_swpm_register_sum_get_patch_selection.content
+
+
+# Get the config XML from SUM and retry for 3 minutes in case SUM is still busy and doesn't respond promptly.
+- name: SAP SWPM - SUM - Get the config XML from SUM (BIND_PATCH) (Retry for 3 minutes every 1 minute)
+  ansible.builtin.uri:
+    url: "https://localhost:1129/slp/sumabap/{{ __sap_swpm_sid }}/config"
+    method: GET
+    validate_certs: false
+    return_content: true
+    status_code: 200
+    user: "{{ __sap_swpm_sidadm_user }}"
+    password: "{{ __sap_swpm_fact_sum_password }}"
+  register: __sap_swpm_register_sum_get_config
+  until: __sap_swpm_register_sum_get_config.status == 200
+  retries: 3
+  delay: 60
+  failed_when: __sap_swpm_register_sum_get_config.status != 200
+
+# Get the CSRF token from SUM by calling config.
+- name: SAP SWPM - SUM - Get the CSRF token from SUM (BIND_PATCH)
+  ansible.builtin.uri:
+    url: "https://localhost:1129/slp/sumabap/{{ __sap_swpm_sid }}/config"
+    method: GET
+    validate_certs: false
+    return_content: false
+    status_code: 200
+    user: "{{ __sap_swpm_sidadm_user }}"
+    password: "{{ __sap_swpm_fact_sum_password }}"
+    headers:
+      # Cookie from previous GET config.
+      Cookie: "{{ __sap_swpm_register_sum_get_config.cookies_string | d('') }}"
+      X-CSRF-Token: Fetch
+      # X-Requested-With: XMLHttpRequest
+  register: __sap_swpm_register_get_config_token
+  failed_when: __sap_swpm_register_get_config_token.status != 200
+
+# Post the config XML back to SUM unchanged as we want to keep the default patch levels as per the XML file.
+# This will move SUM to the next step.
+- name: SAP SWPM - SUM - Move SUM to the next step (SPAUINFO or EXIT)
+  ansible.builtin.uri:
+    url: "https://localhost:1129/slp/sumabap/{{ __sap_swpm_sid }}/config"
+    method: POST
+    validate_certs: false
+    return_content: true
+    status_code: 200
+    user: "{{ __sap_swpm_sidadm_user }}"
+    password: "{{ __sap_swpm_fact_sum_password }}"
+    headers:
+      # Cookie from previous GET config.
+      Cookie: "{{ __sap_swpm_register_sum_get_config.cookies_string | d('') }}"
+      # Token from previous GET config token.
+      X-CSRF-Token: "{{ __sap_swpm_register_get_config_token.x_csrf_token | d('') }}"
+    body_format: raw
+    body: "{{ __sap_swpm_register_sum_get_config.content | d('') }}"
+  register: __sap_swpm_register_sum_post_config
+  until: __sap_swpm_register_sum_post_config.status == 200
+  failed_when: __sap_swpm_register_sum_post_config.status != 200
+
+
+# At this point SUM should be running. This will take anything between 6-12 hours to complete.
+# Retry for 20 hours in 5-minute intervals to see if SUM has completed all the steps and is now in the SPAUINFO step.
+- name: SAP SWPM - SUM - Wait for SUM to be finished (SPAUINFO or EXIT) (Retry for 20 hours every 5 minutes)
+  ansible.builtin.uri:
+    url: "https://localhost:1129/lmsl/sumobserver/{{ __sap_swpm_sid }}/analysis/SUMOBSERVER.XML"
+    method: GET
+    validate_certs: false
+    return_content: true
+    status_code: 200
+    user: "{{ __sap_swpm_sidadm_user }}"
+    password: "{{ __sap_swpm_fact_sum_password }}"
+  register: __sap_swpm_register_sum_get_exit
+  vars:
+    __tag_finish_spau: '<dialogId>SUM4ABAP|POST-EXECUTE|MAIN_POSTPROC|SPAUINFO|FinishSPAU</dialogId>'
+    __tag_exit: '<dialogId>SUM4ABAP|MAIN_POSTCLEAN|EXIT|UnitWizard</dialogId>'
+  until:
+    - __sap_swpm_register_sum_get_exit.status == 200
+    - __tag_finish_spau in __sap_swpm_register_sum_get_exit.content
+        or __tag_exit in __sap_swpm_register_sum_get_exit.content
+  # Retry for 20 hours in 5-minute intervals.
+  retries: 240
+  delay: 300
+  failed_when:
+    - __sap_swpm_register_sum_get_exit.status != 200
+      or (__tag_finish_spau not in __sap_swpm_register_sum_get_exit.content
+        and __tag_exit not in __sap_swpm_register_sum_get_exit.content)
+
+
+# If SUM is already in 'MAIN_POSTCLEAN|EXIT' phase, it has skipped SPAUINFO and has finished.
+- name: SAP SWPM - SUM - Check if SUM is still in SPAUINFO or has finished
+  vars:
+    __tag_finish_spau: '<dialogId>SUM4ABAP|POST-EXECUTE|MAIN_POSTPROC|SPAUINFO|FinishSPAU</dialogId>'
+  when: "__tag_finish_spau in __sap_swpm_register_sum_get_exit.content | d('')"
+  block:
+    - name: SAP SWPM - SUM - Inform that SUM is still in SPAUINFO
+      ansible.builtin.debug:
+        msg: |
+          INFO: SUM is still in SPAUINFO step and has not yet finished.
+          The following tasks will push SUM to the next step.
+
+    # Get the config XML from SUM and retry for 3 minutes in case SUM is still busy and doesn't respond promptly.
+    # Config is used only for cookies in subsequent tasks.
+    - name: SAP SWPM - SUM - Get the config XML from SUM (SPAUINFO or EXIT) (Retry for 3 minutes every 1 minute)
+      ansible.builtin.uri:
+        url: "https://localhost:1129/slp/sumabap/{{ __sap_swpm_sid }}/config"
+        method: GET
+        validate_certs: false
+        return_content: true
+        status_code: 200
+        user: "{{ __sap_swpm_sidadm_user }}"
+        password: "{{ __sap_swpm_fact_sum_password }}"
+      register: __sap_swpm_register_sum_get_config_spau
+      until: __sap_swpm_register_sum_get_config_spau.status == 200
+      retries: 3
+      delay: 60
+      failed_when: __sap_swpm_register_sum_get_config_spau.status != 200
+
+    # Get the CSRF token from SUM by calling config.
+    - name: SAP SWPM - SUM - Get the CSRF token from SUM (SPAUINFO or EXIT)
+      ansible.builtin.uri:
+        url: "https://localhost:1129/slp/sumabap/{{ __sap_swpm_sid }}/config"
+        method: GET
+        validate_certs: false
+        return_content: false
+        status_code: 200
+        user: "{{ __sap_swpm_sidadm_user }}"
+        password: "{{ __sap_swpm_fact_sum_password }}"
+        headers:
+          # Cookie from previous GET config.
+          Cookie: "{{ __sap_swpm_register_sum_get_config_spau.cookies_string | d('') }}"
+          X-CSRF-Token: Fetch
+          # X-Requested-With: XMLHttpRequest
+      register: __sap_swpm_register_sum_get_config_token_spau
+      failed_when: __sap_swpm_register_sum_get_config_token_spau.status != 200
+
+    # Post confirmation to SUM that no SPAU is required. This will move SUM to the next step.
+    - name: SAP SWPM - SUM - Move SUM to the next step (Past SPAUINFO)
+      ansible.builtin.uri:
+        url: "https://localhost:1129/slp/sumabap/{{ __sap_swpm_sid }}/config"
+        method: POST
+        validate_certs: false
+        return_content: true
+        status_code: 200
+        user: "{{ __sap_swpm_sidadm_user }}"
+        password: "{{ __sap_swpm_fact_sum_password }}"
+        headers:
+          # Cookie from previous GET config.
+          Cookie: "{{ __sap_swpm_register_sum_get_config_spau.cookies_string | d('') }}"
+          # Token from previous GET config token.
+          X-CSRF-Token: "{{ __sap_swpm_register_sum_get_config_token_spau.x_csrf_token | d('') }}"
+        body_format: raw
+        body: "{{ __body_lines | join('') }}"
+      register: __sap_swpm_register_sum_post_config_spau
+      vars:
+        # Original body string is too long so helper list variable is used instead.
+        # Lines are joined with '', so the XML is sent exactly as a single line without any difference.
+        __body_lines:
+          - '<config xmlns="http://www.sap.com/lmsl/slp"><Parameter>'
+          - '<id>DialogueValue</id><type>slp.parameter.type.SCALAR</type>'
+          - '<required>1</required><secure>0</secure><value>yes</value>'
+          - '<structure></structure><tuplevalue></tuplevalue><tablevalue></tablevalue>'
+          - '<validationResult/></Parameter></config>'
+      failed_when: __sap_swpm_register_sum_post_config_spau.status != 200
+
+
+# Finally wait for SUM to finish the final steps. This shouldn't take more than 1 hour.
+# Check the SUM status via SUMOBSERVER.XML and retry for 60 minutes until the status is 'MAIN_POSTCLEAN|EXIT'
+- name: SAP SWPM - SUM - Wait for SUM to be finished (MAIN_POSTCLEAN|EXIT) (Retry for 60 minutes every 1 minute)
+  ansible.builtin.uri:
+    url: "https://localhost:1129/lmsl/sumobserver/{{ __sap_swpm_sid }}/analysis/SUMOBSERVER.XML"
+    method: GET
+    validate_certs: false
+    return_content: true
+    status_code: 200
+    user: "{{ __sap_swpm_sidadm_user }}"
+    password: "{{ __sap_swpm_fact_sum_password }}"
+  register: __sap_swpm_register_sum_get_exit_final
+  vars:
+    __tag_exit: '<dialogId>SUM4ABAP|MAIN_POSTCLEAN|EXIT|UnitWizard</dialogId>'
+  until:
+    - __sap_swpm_register_sum_get_exit_final.status == 200
+    - __tag_exit in __sap_swpm_register_sum_get_exit_final.content
+  retries: 60
+  delay: 60
+  failed_when:
+    - __sap_swpm_register_sum_get_exit_final.status != 200
+      or __tag_exit not in __sap_swpm_register_sum_get_exit_final.content
